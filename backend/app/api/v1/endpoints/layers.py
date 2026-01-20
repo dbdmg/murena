@@ -18,10 +18,11 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# Correct path resolution:
-# layers.py -> endpoints -> v1 -> api -> app -> backend -> MEF-Immobili (root)
+# Path resolution:
+# layers.py -> endpoints -> v1 -> api -> app -> backend -> then into data/
 DATA_DIR = (
-    Path(__file__).resolve().parent.parent.parent.parent.parent.parent
+    Path(__file__).resolve().parent.parent.parent.parent.parent
+    / "data"
     / "FOLDER_STATIC_ROME"
 )
 

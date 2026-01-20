@@ -10,8 +10,8 @@ from pydantic import BaseModel
 
 router = APIRouter()
 
-# APE CSV path
-APE_CSV_PATH = Path("../FOLDER_META/ape_detailed_data.csv")
+# APE data path (relative to backend/)
+APE_CSV_PATH = Path("data/FOLDER_META/ape_detailed_data.parquet")
 
 # Load APE data
 _ape_df: Optional[pd.DataFrame] = None
@@ -23,7 +23,7 @@ def get_ape_dataframe() -> pd.DataFrame:
     if _ape_df is None:
         if not APE_CSV_PATH.exists():
             raise HTTPException(status_code=500, detail="APE data file not found")
-        _ape_df = pd.read_csv(APE_CSV_PATH)
+        _ape_df = pd.read_parquet(APE_CSV_PATH)
     return _ape_df
 
 

@@ -79,7 +79,7 @@ def extract_geo_coordinates(response):
     return coordinates if coordinates else "NESSUN LUOGO"
 
 
-def create_graph_metro(folder_linee="./FOLDER_STATIC_ROME/Linee"):
+def create_graph_metro(folder_linee="data/FOLDER_STATIC_ROME/Linee"):
     """
     Create NetworkX graph from metro line CSV files.
 

@@ -211,7 +211,7 @@ def load_static_data():
         pd.DataFrame: Station data
     """
     try:
-        stazioni_df = pd.read_csv("./FOLDER_DATASET/station_dataframe.csv")
+        stazioni_df = pd.read_csv("data/FOLDER_DATASET/station_dataframe.csv")
         return stazioni_df
     except FileNotFoundError:
         logger.warning("Station file not found.")
