@@ -1,0 +1,280 @@
+"""Analysis Service - Orchestrates LLM-based real estate analysis.
+
+This service wraps the existing graph_agent orchestrator and provides:
+- Async support for FastAPI integration
+- Progress callbacks for WebSocket streaming
+- Structured results for API responses
+- Error handling and logging
+
+NOTE: Heavy LLM/agent dependencies are imported lazily to keep import-time fast
+and to make mocked tests run without pulling large optional stacks.
+"""
+
+from typing import Optional, Callable, Dict, Any, List, TYPE_CHECKING
+import asyncio
+import pandas as pd
+from datetime import datetime
+import logging
+
+from app.data.loaders import load_and_merge_data
+from app.core.config import settings
+from app.services.real_estate_service import RealEstateService
+from app.utils.json_sanitizer import make_json_safe
+
+if TYPE_CHECKING:
+    from app.services.llm.agents.graph_agent import GraphOrchestratorAgent
+
+logger = logging.getLogger(__name__)
+
+
+class AnalysisService:
+    """Service for running real estate analysis with LLM agents."""
+
+    def __init__(self):
+        """Initialize the analysis service."""
+        # Typed as Any at runtime to avoid importing heavy dependencies on module import.
+        self.graph_agent: Optional[Any] = None
+        self._base_dataset_cache: Dict[str, pd.DataFrame] = {}
+        self._real_estate_service = RealEstateService()
+
+    def _get_or_load_dataset(self, dataset_key: str) -> pd.DataFrame:
+        """
+        Load dataset with caching.
+
+        Args:
+            dataset_key: Dataset identifier ('full', 'meta', 'ape')
+
+        Returns:
+            Loaded DataFrame
+        """
+        if dataset_key not in self._base_dataset_cache:
+            dataset_path = settings.dataset_options.get(dataset_key)
+            if not dataset_path:
+                raise ValueError(f"Unknown dataset key: {dataset_key}")
+
+            logger.info(f"Loading dataset: {dataset_key} from {dataset_path}")
+            self._base_dataset_cache[dataset_key] = load_and_merge_data(dataset_path)
+            logger.info(f"Dataset loaded: {len(self._base_dataset_cache[dataset_key])} records")
+
+        return self._base_dataset_cache[dataset_key]
+
+    def _init_graph_agent(self):
+        """
+        Initialize the graph orchestrator agent.
+
+        Returns:
+            Configured GraphOrchestratorAgent
+        """
+        if self.graph_agent is None:
+            logger.info("Initializing GraphOrchestratorAgent...")
+
+            # Lazy import: avoids pulling langchain/transformers unless actually needed.
+            from app.services.llm.agents.graph_agent import GraphOrchestratorAgent
+
+            # Import SQL execution function
+            from app.services.analysis.executor import execute_sql_query
+
+            # Create agent with all dependencies
+            self.graph_agent = GraphOrchestratorAgent(
+                analysis_mode="agent",  # Default mode
+                execute_sql_fn=execute_sql_query,
+            )
+
+            logger.info("GraphOrchestratorAgent initialized successfully")
+
+        return self.graph_agent
+
+    async def run_analysis(
+        self,
+        run_id: str,
+        query: str,
+        dataset_key: str = "full",
+        map_limit: int = 1000,
+        llm_limit: int = 25,
+        analysis_mode: str = "agent",
+        progress_callback: Optional[Callable[[int, List[Dict]], None]] = None,
+    ) -> Dict[str, Any]:
+        """
+        Run a complete real estate analysis.
+
+        This method:
+        1. Loads the appropriate dataset
+        2. Initializes the LLM graph agent
+        3. Runs the analysis with progress callbacks
+        4. Returns structured results
+
+        Args:
+            run_id: Unique identifier for this analysis run
+            query: Natural language search query
+            dataset_key: Dataset to use ('full', 'meta', 'ape')
+            map_limit: Max results to return for map
+            llm_limit: Max results to evaluate with LLM
+            analysis_mode: 'agent' or 'classic'
+            progress_callback: Optional callback for progress updates
+
+        Returns:
+            Dict containing analysis results
+
+        Raises:
+            Exception: If analysis fails
+        """
+        try:
+            logger.info(f"Starting analysis {run_id}: '{query}'")
+
+            # Import ProgressManager
+            from app.services.progress_manager import progress_manager
+            from app.models.responses import ProgressUpdate, StepState
+
+            # Load dataset
+            base_dataset = await asyncio.to_thread(self._get_or_load_dataset, dataset_key)
+
+            # Get dataset path
+            dataset_path = settings.dataset_options.get(dataset_key)
+
+            # Initialize agent
+            agent = self._init_graph_agent()
+            agent.analysis_mode = analysis_mode
+
+            # Prepare database schema (simplified for now)
+            db_schema = {
+                "columns": list(base_dataset.columns),
+                "types": {col: str(dtype) for col, dtype in base_dataset.dtypes.items()},
+            }
+
+            # Capture the main event loop BEFORE entering the thread pool.
+            # The callback will be invoked from a worker thread, so we need to
+            # schedule coroutines back onto the main loop via call_soon_threadsafe.
+            main_loop = asyncio.get_running_loop()
+
+            def wrapped_progress_callback(progress_tuple):
+                """Wrap progress callback to publish via ProgressManager (thread-safe)."""
+                try:
+                    percent, steps_state = progress_tuple
+
+                    # Extract current step info
+                    current_step = ""
+                    current_detail = ""
+
+                    for step in steps_state:
+                        if step.get("state") == "current":
+                            current_step = step.get("label", "")
+                            current_detail = step.get("detail", "")
+                            break
+
+                    # Create progress update
+                    update = ProgressUpdate(
+                        type="progress",
+                        progress=int(percent),
+                        step=current_step,
+                        detail=current_detail,
+                        steps_state=(
+                            [StepState(**step) for step in steps_state] if steps_state else None
+                        ),
+                    )
+
+                    # Schedule the coroutine on the MAIN event loop (thread-safe).
+                    # This ensures WebSocket publish actually runs.
+                    def schedule_publish():
+                        asyncio.create_task(progress_manager.publish(run_id, update))
+
+                    main_loop.call_soon_threadsafe(schedule_publish)
+
+                    # Call original callback if provided
+                    if progress_callback:
+                        progress_callback(progress_tuple)
+
+                except Exception as e:
+                    logger.error(f"Error in progress callback: {e}", exc_info=True)
+
+            # Run analysis in thread pool (since graph_agent is sync)
+            logger.info("Running LLM orchestration...")
+            result = await asyncio.to_thread(
+                agent.run,
+                query=query,
+                dataset_key=dataset_key,
+                base_dataset=base_dataset,
+                db_schema=db_schema,
+                dataset_path=dataset_path,
+                set_progress=wrapped_progress_callback,
+                llm_limit=llm_limit,
+                map_limit=map_limit,
+            )
+
+            logger.info(f"Analysis {run_id} completed successfully")
+
+            # Signal completion to WebSocket subscribers
+            await progress_manager.complete(run_id)
+
+            # Convert result to dict format
+            return self._format_results(run_id, query, result)
+
+        except Exception as e:
+            logger.error(f"Analysis {run_id} failed: {e}", exc_info=True)
+
+            # Try to signal error to WebSocket subscribers
+            try:
+                from app.services.progress_manager import progress_manager
+                from app.models.responses import ProgressUpdate
+
+                error_update = ProgressUpdate(
+                    type="progress",
+                    progress=0,
+                    step="error",
+                    detail=f"Analysis failed: {str(e)}",
+                    steps_state=None,
+                )
+                await progress_manager.publish(run_id, error_update)
+                await progress_manager.complete(run_id)
+            except:
+                pass
+
+            raise
+
+    def _format_results(self, run_id: str, query: str, orchestrator_result) -> Dict[str, Any]:
+        """
+        Format orchestrator results for API response.
+
+        Args:
+            run_id: Analysis run ID
+            query: Original query
+            orchestrator_result: Result from GraphOrchestratorAgent
+
+        Returns:
+            Formatted results dict
+        """
+        # Convert DataFrame to API models
+        buildings = []
+        if orchestrator_result.map_df is not None and not orchestrator_result.map_df.empty:
+            for _, row in orchestrator_result.map_df.iterrows():
+                try:
+                    buildings.append(self._real_estate_service._df_row_to_building(row))
+                except Exception as e:
+                    logger.warning(f"Skipping building row due to conversion error: {e}")
+                    continue
+
+        return {
+            "run_id": run_id,
+            "query": query,
+            "status": "completed",
+            "buildings": buildings,
+            "location": make_json_safe(orchestrator_result.location),
+            "filters_applied": {
+                "where_clause": make_json_safe(orchestrator_result.where_clause),
+            },
+            "gemini_responses": make_json_safe(orchestrator_result.gemini_responses),
+            "broker_summary": make_json_safe(orchestrator_result.broker_summary),
+            "context": (
+                orchestrator_result.context.model_dump() if orchestrator_result.context else None
+            ),
+            "created_at": datetime.utcnow(),
+            "completed_at": datetime.utcnow(),
+        }
+
+    def clear_cache(self):
+        """Clear the dataset cache."""
+        self._base_dataset_cache.clear()
+        logger.info("Dataset cache cleared")
+
+
+# Global service instance
+analysis_service = AnalysisService()

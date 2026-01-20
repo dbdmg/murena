@@ -1,0 +1,175 @@
+import functools
+import json
+import random
+import time
+from datetime import datetime
+from pathlib import Path
+from typing import Any, Callable
+
+from app.utils.logger import LLM_LOG_DIR, logger
+
+
+def retry_with_backoff(
+    retries: int = 3,
+    initial_delay: float = 1.0,
+    backoff_factor: float = 2.0,
+    exceptions: tuple = (Exception,),
+):
+    """
+    Decorator that retries a function call with exponential backoff.
+
+    Args:
+        retries: Maximum number of retries.
+        initial_delay: Initial delay in seconds.
+        backoff_factor: Multiplier for the delay after each failure.
+        exceptions: Tuple of exceptions to catch and retry on.
+    """
+
+    def decorator(func: Callable) -> Callable:
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs) -> Any:
+            delay = initial_delay
+            last_exception = None
+
+            for attempt in range(retries + 1):
+                try:
+                    return func(*args, **kwargs)
+                except exceptions as e:
+                    last_exception = e
+                    if attempt == retries:
+                        logger.error(
+                            f"Function {func.__name__} failed after {retries} retries. Last error: {e}"
+                        )
+                        raise last_exception
+
+                    sleep_time = delay + random.uniform(0, 0.1)  # Add jitter
+                    logger.warning(
+                        f"Function {func.__name__} failed (Attempt {attempt + 1}/{retries + 1}). Retrying in {sleep_time:.2f}s. Error: {e}"
+                    )
+                    time.sleep(sleep_time)
+                    delay *= backoff_factor
+
+            return None  # Should not be reached
+
+        return wrapper
+
+    return decorator
+
+
+def handle_agent_error(fallback_value: Any = None):
+    """
+    Decorator to handle exceptions in Agent methods safely.
+    Logs the error and returns a fallback value or raises a custom exception.
+
+    Args:
+        fallback_value: Value to return if an exception occurs.
+                        If None, it might return None or re-raise depending on logic.
+                        For now, we'll return None or a safe default if provided.
+    """
+
+    def decorator(func: Callable) -> Callable:
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs) -> Any:
+            try:
+                return func(*args, **kwargs)
+            except Exception as e:
+                agent_name = (
+                    getattr(args[0], "name", "Unknown Agent") if args else "Unknown Function"
+                )
+                logger.error(f"Error in {agent_name}.{func.__name__}: {e}")
+                import traceback
+
+                logger.debug(traceback.format_exc())
+
+                # If a fallback is provided, return it
+                if fallback_value is not None:
+                    return fallback_value
+
+                # If the return type annotation suggests a specific type, we might want to try to match it
+                # But for now, let's re-raise or return None based on critical flag?
+                # The requirement says "return user-friendly error messages instead of stack traces".
+                # But agents usually return structured objects.
+
+                # If we are in an agent run method, we might want to return a "failed" result object.
+                # Since we can't easily know the return type here generically without more complex logic,
+                # we will rely on the caller to handle None or we re-raise a wrapped exception.
+
+                # For now, let's re-raise a custom AgentError that the orchestrator can catch?
+                # Or just return None and let the orchestrator handle it.
+
+                # Let's try to return None and ensure orchestrator handles None.
+                return None
+
+        return wrapper
+
+    return decorator
+
+
+def _write_llm_log(entry: dict) -> None:
+    try:
+        log_dir = Path(LLM_LOG_DIR)
+        log_dir.mkdir(parents=True, exist_ok=True)
+        log_file = log_dir / f"llm_usage_{datetime.utcnow():%Y-%m-%d}.log"
+        with log_file.open("a", encoding="utf-8") as fh:
+            fh.write(json.dumps(entry, ensure_ascii=False) + "\n")
+    except Exception as exc:
+        logger.debug(f"Failed to write LLM log: {exc}")
+
+
+def log_llm_usage(func: Callable) -> Callable:
+    """Decorator that records metadata for each LLM-backed agent call."""
+
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs) -> Any:
+        agent = args[0] if args else None
+        agent_name = getattr(agent, "name", func.__qualname__)
+
+        llm_client = getattr(agent, "llm", None)
+        model_name = None
+        if llm_client is not None:
+            for attr in ("model_name", "model", "deployment_name"):
+                model_name = getattr(llm_client, attr, None)
+                if model_name:
+                    break
+
+        start_time = time.time()
+        status = "success"
+        error_message = ""
+
+        def _shorten(value: Any) -> str:
+            text = value if isinstance(value, str) else str(value)
+            return text[:200] + ("..." if len(text) > 200 else "")
+
+        def _collect_context() -> dict:
+            context: dict[str, str] = {}
+            keys = ("query", "use_case", "estates_data")
+            for key in keys:
+                value = kwargs.get(key)
+                if isinstance(value, str) and value:
+                    context[key] = _shorten(value)
+            if "query" not in context and len(args) > 1 and isinstance(args[1], str):
+                context["query"] = _shorten(args[1])
+            return context
+
+        try:
+            result = func(*args, **kwargs)
+            return result
+        except Exception as exc:
+            status = "error"
+            error_message = f"{type(exc).__name__}: {exc}"
+            raise
+        finally:
+            duration_ms = int((time.time() - start_time) * 1000)
+            entry = {
+                "timestamp": datetime.utcnow().isoformat(),
+                "agent": agent_name,
+                "model": model_name or "unknown",
+                "status": status,
+                "duration_ms": duration_ms,
+                "context": _collect_context(),
+            }
+            if error_message:
+                entry["error"] = error_message
+            _write_llm_log(entry)
+
+    return wrapper

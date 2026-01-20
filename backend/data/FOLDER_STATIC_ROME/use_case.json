@@ -1,0 +1,710 @@
+{
+  "use_cases": [
+    {
+      "id": 0,
+      "nome_use_case": "Studentato",
+      "emoji": "🎓🏘️",
+      "descrizione_prompt": "Questo use case è focalizzato sull'identificazione di immobili non utilizzati che possono essere convertiti in residenze per studenti universitari. Si cercano edifici, come abitazioni di grandi dimensioni o strutture residenziali collettive, con un buon numero di vani e situati in prossimità di poli universitari o ben collegati ad essi, per offrire alloggi confortevoli e funzionali agli studenti fuorisede.",
+      "query_di_esempio": [
+        "Mostrami gli immobili che possono essere usati da studenti universitari come residenza, attualmente non utilizzati e vicini all'università la Sapienza di Roma.",
+        "Trova strutture residenziali collettive non utilizzate con più di 10 vani vicino all'università Roma Tre, nel quartiere Ostiense.",
+        "Identifica abitazioni sfitte con superficie superiore a 150mq nel quartiere San Lorenzo a Roma, adatte per diventare uno studentato."
+      ],
+      "caratteristiche_chiave": [
+        "Tipologia bene: 'abitazione' o 'struttura residenziale collettiva'",
+        "Stato: 'non utilizzato'",
+        "Superficie: sufficientemente ampia per più studenti (es. > 100 mq)",
+        "Vani: numero elevato (es. > 5) per camere e aree comuni",
+        "Posizione: Vicinanza a università o aree ben collegate"
+      ],
+      "scheda_di_valutazione_interna": {
+        "descrizione_scheda": "Di seguito la Scheda di Valutazione Normativa Interna per lo use case 'Studentato'. L'agente valutatore dovrebbe verificare la corrispondenza dell'immobile ai seguenti punti, utilizzando i dati forniti dal dataset:",
+        "criteri": [
+          {
+            "id_criterio": 1,
+            "nome_criterio": "Tipologia Bene Adeguata",
+            "campo_dataset": "tipologia_bene_immobile",
+            "valutazione_desiderata": "Il valore è 'abitazione' OPPURE 'struttura residenziale collettiva (es.: collegi e convitti, educandati, ricoveri, orfanotrofi, ospizi, conventi, seminari)'?"
+          },
+          {
+            "id_criterio": 2,
+            "nome_criterio": "Disponibilità Immediata (Utilizzo)",
+            "campo_dataset": "utilizzo_del_bene",
+            "valutazione_desiderata": "Il valore è 'non utilizzato'?"
+          },
+          {
+            "id_criterio": 3,
+            "nome_criterio": "Disponibilità Immediata (Stato Dettagliato)",
+            "campo_dataset": "stato_utilizzo",
+            "valutazione_desiderata": "Il valore è 'non utilizzato'?"
+          },
+          {
+            "id_criterio": 4,
+            "nome_criterio": "Capacità Dimensionale (Superficie)",
+            "campo_dataset": "superficie_di_riferimento_mq",
+            "valutazione_desiderata": "La superficie è sufficiente per ospitare un numero congruo di studenti e aree comuni (es. > 100 mq)?"
+          },
+          {
+            "id_criterio": 5,
+            "nome_criterio": "Articolazione Spazi (Vani)",
+            "campo_dataset": "vani",
+            "valutazione_desiderata": "Il numero di vani è adeguato per camere da letto e spazi comuni (es. > 5 vani)?"
+          },
+          {
+            "id_criterio": 6,
+            "nome_criterio": "Prossimità a Luogo di Interesse (Logistica)",
+            "campo_dataset": ["latitudine", "longitudine"],
+            "valutazione_desiderata": "L'immobile si trova a una distanza accettabile dal luogo di interesse specificato (es. università), come valutato dalla pipeline?"
+          }
+        ]
+      }
+    },
+    {
+      "id": 1,
+      "nome_use_case": "Hub Creativo - Co-working Space",
+      "emoji": "🎨💡",
+      "descrizione_prompt": "Questo use case mira a identificare immobili non utilizzati che possono essere trasformati in spazi di lavoro condivisi e collaborativi, come hub creativi o co-working. L'obiettivo è supportare freelance, startup e piccole imprese offrendo ambienti moderni, flessibili e ben collegati, con diverse tipologie di spazi, da postazioni singole a uffici privati e sale riunioni.",
+      "query_di_esempio": [
+        "Mostrami uffici non utilizzati con almeno 200mq e più di 5 vani nel quartiere Ostiense a Roma, adatti per un co-working.",
+        "Identifica locali commerciali sfitti che potrebbero diventare hub creativi vicino alla stazione Termini di Roma.",
+        "Quali fabbricati industriali dismessi nel quartiere Ostiense o Testaccio con buona superficie sono ideali per startup innovative?"
+      ],
+      "caratteristiche_chiave": [
+        "Tipologia bene: 'ufficio strutturato', 'locale commerciale', 'fabbricato per attività produttiva'",
+        "Stato: 'non utilizzato'",
+        "Superficie: > 200 mq",
+        "Vani: > 5",
+        "Posizione: Aree ben collegate o commercialmente vivaci"
+      ],
+      "scheda_di_valutazione_interna": {
+        "descrizione_scheda": "Ecco la Scheda di Valutazione Normativa Interna per lo use case 'Hub Creativo - Co-working Space'. L'agente valutatore si baserà sui seguenti criteri derivati dal dataset:",
+        "criteri": [
+          {
+            "id_criterio": 1,
+            "nome_criterio": "Tipologia Bene Compatibile",
+            "campo_dataset": "tipologia_bene_immobile",
+            "valutazione_desiderata": "Il valore è 'ufficio strutturato ed assimilabili' OPPURE 'locale commerciale, negozio' OPPURE 'fabbricato per attività produttiva (industriale, artigianale o agricola)'?"
+          },
+          {
+            "id_criterio": 2,
+            "nome_criterio": "Disponibilità Immediata (Utilizzo)",
+            "campo_dataset": "utilizzo_del_bene",
+            "valutazione_desiderata": "Il valore è 'non utilizzato'?"
+          },
+          {
+            "id_criterio": 3,
+            "nome_criterio": "Disponibilità Immediata (Stato Dettagliato)",
+            "campo_dataset": "stato_utilizzo",
+            "valutazione_desiderata": "Il valore è 'non utilizzato'?"
+          },
+          {
+            "id_criterio": 4,
+            "nome_criterio": "Spazio Operativo (Superficie)",
+            "campo_dataset": "superficie_di_riferimento_mq",
+            "valutazione_desiderata": "La superficie è adeguata per postazioni multiple, aree comuni e servizi (es. > 200 mq)?"
+          },
+          {
+            "id_criterio": 5,
+            "nome_criterio": "Flessibilità Spazi (Vani)",
+            "campo_dataset": "vani",
+            "valutazione_desiderata": "Il numero di vani permette una suddivisione funzionale (es. > 5 vani per uffici privati, sale riunioni, aree open)?"
+          },
+          {
+            "id_criterio": 6,
+            "nome_criterio": "Accessibilità e Attrattività (Logistica)",
+            "campo_dataset": ["latitudine", "longitudine"],
+            "valutazione_desiderata": "L'immobile è situato in zona ben collegata o commercialmente/culturalmente vivace, come valutato dalla pipeline in base al luogo di interesse?"
+          }
+        ]
+      }
+    },
+    {
+      "id": 2,
+      "nome_use_case": "Centro Polifunzionale per Anziani",
+      "emoji": "👵👴",
+      "descrizione_prompt": "L'obiettivo di questo use case è individuare edifici sfitti da riqualificare come centri polifunzionali per la terza età. Si cercano spazi accoglienti e accessibili, preferibilmente al piano terra o con facilità di accesso, dove offrire attività ricreative, sociali, culturali e servizi di assistenza leggera, situati in zone tranquille e ben servite.",
+      "query_di_esempio": [
+        "Trova strutture non utilizzate idonee a centro per anziani vicino a Villa Borghese a Roma.",
+        "Quali abitazioni sfitte con più di 4 vani e oltre 150mq potrebbero essere riconvertite per assistenza anziani in zona Prati a Roma?",
+        "Cerca edifici non utilizzati vicino a parchi pubblici nel quartiere Monteverde a Roma per creare un centro diurno per la terza età."
+      ],
+      "caratteristiche_chiave": [
+        "Tipologia bene: 'abitazione', 'struttura residenziale collettiva', 'ospedali, case di cura', 'edificio scolastico'",
+        "Stato: 'non utilizzato'",
+        "Superficie: > 150 mq",
+        "Vani: > 4",
+        "Posizione: Zone residenziali tranquille, vicino a parchi o servizi"
+      ],
+      "scheda_di_valutazione_interna": {
+        "descrizione_scheda": "Segue la Scheda di Valutazione Normativa Interna per 'Centro Polifunzionale per Anziani'. L'agente valuterà l'idoneità basandosi su:",
+        "criteri": [
+          {
+            "id_criterio": 1,
+            "nome_criterio": "Tipologia Bene Adattabile",
+            "campo_dataset": "tipologia_bene_immobile",
+            "valutazione_desiderata": "Il valore è 'abitazione', 'struttura residenziale collettiva', 'ospedali, case di cura, cliniche e assimilabili' (per riconversione a uso diurno/aggregativo) OPPURE 'edificio scolastico'?"
+          },
+          {
+            "id_criterio": 2,
+            "nome_criterio": "Disponibilità (Utilizzo)",
+            "campo_dataset": "utilizzo_del_bene",
+            "valutazione_desiderata": "Il valore è 'non utilizzato'?"
+          },
+          {
+            "id_criterio": 3,
+            "nome_criterio": "Disponibilità (Stato Dettagliato)",
+            "campo_dataset": "stato_utilizzo",
+            "valutazione_desiderata": "Il valore è 'non utilizzato'?"
+          },
+          {
+            "id_criterio": 4,
+            "nome_criterio": "Spazio per Attività (Superficie)",
+            "campo_dataset": "superficie_di_riferimento_mq",
+            "valutazione_desiderata": "La superficie è sufficiente per aree comuni, sale attività, e servizi (es. > 150 mq)? (L'accessibilità fisica, non presente nel dataset, andrà valutata in seguito)."
+          },
+          {
+            "id_criterio": 5,
+            "nome_criterio": "Organizzazione Spazi (Vani)",
+            "campo_dataset": "vani",
+            "valutazione_desiderata": "Il numero di vani consente la creazione di ambienti distinti (es. > 4 vani)?"
+          },
+          {
+            "id_criterio": 6,
+            "nome_criterio": "Contesto Urbano (Logistica)",
+            "campo_dataset": ["latitudine", "longitudine"],
+            "valutazione_desiderata": "L'immobile è in zona residenziale tranquilla, vicino a servizi utili per anziani (parchi, farmacie - da valutare con la pipeline rispetto a POI specifici)?"
+          }
+        ]
+      }
+    },
+    {
+      "id": 3,
+      "nome_use_case": "Spazi Espositivi Temporanei - Gallerie d'Arte Pop-up",
+      "emoji": "🖼️🌟",
+      "descrizione_prompt": "Questo use case è pensato per trovare immobili inutilizzati adatti ad essere trasformati in spazi espositivi temporanei o gallerie d'arte pop-up. Si ricercano luoghi con buona visibilità e accesso al pubblico, anche di diverse metrature, per ospitare mostre, installazioni ed eventi culturali di breve durata, valorizzando artisti e iniziative locali in zone centrali o culturalmente vivaci.",
+      "query_di_esempio": [
+        "Mostrami locali commerciali sfitti nel Rione Monti a Roma adatti per mostre d'arte temporanee.",
+        "Quali magazzini non utilizzati in zona Trastevere a Roma potrebbero ospitare gallerie pop-up?",
+        "Identifica palazzi storici non utilizzati vicino al Pantheon o a Piazza Navona a Roma per eventi culturali temporanei."
+      ],
+      "caratteristiche_chiave": [
+        "Tipologia bene: 'locale commerciale', 'magazzino', 'palazzo storico', 'biblioteca/museo', 'fabbricato produttiva'",
+        "Stato: 'non utilizzato'",
+        "Superficie: > 80 mq, preferibilmente con un'area principale ampia",
+        "Posizione: Zone centrali, di passaggio o culturalmente attive"
+      ],
+      "scheda_di_valutazione_interna": {
+        "descrizione_scheda": "Per lo use case 'Spazi Espositivi Temporanei', l'agente utilizzerà la seguente Scheda di Valutazione Normativa Interna:",
+        "criteri": [
+          {
+            "id_criterio": 1,
+            "nome_criterio": "Tipologia Bene Idonea",
+            "campo_dataset": "tipologia_bene_immobile",
+            "valutazione_desiderata": "Il valore è 'locale commerciale, negozio', 'magazzino e locali di deposito', 'palazzo storico, castello', 'biblioteca, pinacoteca, museo, gallerie' OPPURE 'fabbricato per attività produttiva'?"
+          },
+          {
+            "id_criterio": 2,
+            "nome_criterio": "Inutilizzo Attuale",
+            "campo_dataset": "utilizzo_del_bene",
+            "valutazione_desiderata": "Il valore è 'non utilizzato'?"
+          },
+          {
+            "id_criterio": 3,
+            "nome_criterio": "Inutilizzo Attuale (Dettaglio)",
+            "campo_dataset": "stato_utilizzo",
+            "valutazione_desiderata": "Il valore è 'non utilizzato'?"
+          },
+          {
+            "id_criterio": 4,
+            "nome_criterio": "Superficie Espositiva",
+            "campo_dataset": "superficie_di_riferimento_mq",
+            "valutazione_desiderata": "La superficie è adeguata per l'esposizione (es. > 80 mq, con almeno un'area principale ampia)?"
+          },
+          {
+            "id_criterio": 5,
+            "nome_criterio": "Caratteristiche Storiche/Architettoniche (Opzionale)",
+            "campo_dataset": ["epoca_costruzione", "tipologia_bene_immobile"],
+            "valutazione_desiderata": "Se rilevante per il concept espositivo, l'epoca o la tipologia (es. 'palazzo storico, castello') aggiungono valore?"
+          },
+          {
+            "id_criterio": 6,
+            "nome_criterio": "Visibilità e Accesso (Logistica)",
+            "campo_dataset": ["latitudine", "longitudine"],
+            "valutazione_desiderata": "L'immobile è in zona centrale, di passaggio o culturalmente attiva (valutazione tramite pipeline)?"
+          }
+        ]
+      }
+    },
+    {
+      "id": 4,
+      "nome_use_case": "Asilo Nido - Scuola Materna di Quartiere",
+      "emoji": "👶🧸",
+      "descrizione_prompt": "Il fine di questo use case è selezionare edifici non utilizzati idonei alla creazione di asili nido o scuole materne. Si cercano strutture sicure, con spazi interni luminosi e modulabili per aule e servizi, e possibilmente con accesso a aree verdi esterne o situate vicino a parchi, per rispondere alle esigenze delle famiglie in zone residenziali.",
+      "query_di_esempio": [
+        "Cerca edifici scolastici non utilizzati per un nuovo asilo nido nel quartiere San Giovanni a Roma.",
+        "Trova abitazioni sfitte con almeno 200mq e più di 5 vani nel quartiere Trieste a Roma, idonee per una scuola materna.",
+        "Quali strutture non utilizzate vicino a parchi pubblici sono adatte per una scuola materna in zona Appio Latino a Roma?"
+      ],
+      "caratteristiche_chiave": [
+        "Tipologia bene: 'edificio scolastico', 'abitazione' (se grande e adattabile)",
+        "Stato: 'non utilizzato'",
+        "Superficie: > 200 mq",
+        "Vani: > 5",
+        "Posizione: Zone residenziali, vicino a parchi"
+      ],
+      "scheda_di_valutazione_interna": {
+        "descrizione_scheda": "Valutare gli immobili per 'Asilo Nido - Scuola Materna' usando la Scheda di Valutazione Normativa Interna qui acclusa:",
+        "criteri": [
+          {
+            "id_criterio": 1,
+            "nome_criterio": "Destinazione d'Uso Compatibile",
+            "campo_dataset": "tipologia_bene_immobile",
+            "valutazione_desiderata": "Il valore è 'edificio scolastico (es.: scuola di ogni ordine e grado, università, scuola di formazione)' OPPURE 'abitazione' (se sufficientemente ampia e adattabile)?"
+          },
+          {
+            "id_criterio": 2,
+            "nome_criterio": "Non Utilizzato",
+            "campo_dataset": "utilizzo_del_bene",
+            "valutazione_desiderata": "Il valore è 'non utilizzato'?"
+          },
+          {
+            "id_criterio": 3,
+            "nome_criterio": "Non Utilizzato (Dettaglio)",
+            "campo_dataset": "stato_utilizzo",
+            "valutazione_desiderata": "Il valore è 'non utilizzato'?"
+          },
+          {
+            "id_criterio": 4,
+            "nome_criterio": "Spazi Adeguati (Superficie)",
+            "campo_dataset": "superficie_di_riferimento_mq",
+            "valutazione_desiderata": "La superficie è idonea per aule, servizi e gioco (es. > 200 mq)? (Spazio esterno non nel dataset, da verificare a parte)."
+          },
+          {
+            "id_criterio": 5,
+            "nome_criterio": "Numero Locali (Vani)",
+            "campo_dataset": "vani",
+            "valutazione_desiderata": "Numero di vani sufficiente per diverse sezioni e funzioni (es. > 5 vani)?"
+          },
+          {
+            "id_criterio": 6,
+            "nome_criterio": "Sicurezza e Contesto (Logistica)",
+            "campo_dataset": ["latitudine", "longitudine"],
+            "valutazione_desiderata": "L'immobile è in zona residenziale, sicura, e preferibilmente vicino a parchi (valutazione con pipeline e POI)?"
+          }
+        ]
+      }
+    },
+    {
+      "id": 5,
+      "nome_use_case": "Mercato Coperto di Prossimità - Food Hall",
+      "emoji": "🥕🛍️",
+      "descrizione_prompt": "Questo use case si concentra sull'individuazione di immobili sfitti, preferibilmente di ampia metratura e con buona accessibilità, da trasformare in mercati coperti di prossimità o food hall. L'idea è creare poli di aggregazione che valorizzino i prodotti locali, offrano spazi per la piccola ristorazione e rivitalizzino il tessuto commerciale di quartieri densamente popolati.",
+      "query_di_esempio": [
+        "Identifica mercati coperti dismessi da riqualificare in zona Garbatella a Roma.",
+        "Mostrami magazzini non utilizzati con superficie superiore a 300mq vicino a Piazza Vittorio Emanuele II a Roma per una food hall.",
+        "Quali locali commerciali ampi e sfitti nel quartiere Testaccio a Roma potrebbero diventare mercati di quartiere?"
+      ],
+      "caratteristiche_chiave": [
+        "Tipologia bene: 'mercato coperto', 'locale commerciale', 'magazzino', 'fabbricato produttiva'",
+        "Stato: 'non utilizzato'",
+        "Superficie: > 300 mq",
+        "Vani: Pochi vani molto grandi o open space",
+        "Posizione: Aree densamente popolate, accessibili"
+      ],
+      "scheda_di_valutazione_interna": {
+        "descrizione_scheda": "La valutazione per 'Mercato Coperto - Food Hall' si baserà sulla seguente Scheda Normativa Interna:",
+        "criteri": [
+          {
+            "id_criterio": 1,
+            "nome_criterio": "Tipologia Idonea a Grandi Flussi",
+            "campo_dataset": "tipologia_bene_immobile",
+            "valutazione_desiderata": "Il valore è 'mercato coperto', 'locale commerciale, negozio' (se molto ampio), 'magazzino e locali di deposito', 'fabbricato per attività produttiva'?"
+          },
+          {
+            "id_criterio": 2,
+            "nome_criterio": "Stato di Inutilizzo",
+            "campo_dataset": "utilizzo_del_bene",
+            "valutazione_desiderata": "Il valore è 'non utilizzato'?"
+          },
+          {
+            "id_criterio": 3,
+            "nome_criterio": "Stato di Inutilizzo (Dettaglio)",
+            "campo_dataset": "stato_utilizzo",
+            "valutazione_desiderata": "Il valore è 'non utilizzato'?"
+          },
+          {
+            "id_criterio": 4,
+            "nome_criterio": "Ampiezza (Superficie)",
+            "campo_dataset": "superficie_di_riferimento_mq",
+            "valutazione_desiderata": "Superficie molto ampia per stand, aree comuni, flussi di persone (es. > 300 mq)?"
+          },
+          {
+            "id_criterio": 5,
+            "nome_criterio": "Apertura Spazi (Vani)",
+            "campo_dataset": "vani",
+            "valutazione_desiderata": "Preferibilmente pochi vani molto grandi o un unico grande spazio, o comunque facilmente configurabile come open space."
+          },
+          {
+            "id_criterio": 6,
+            "nome_criterio": "Accessibilità Pubblico (Logistica)",
+            "campo_dataset": ["latitudine", "longitudine"],
+            "valutazione_desiderata": "Posizione in area densamente popolata e/o facilmente raggiungibile con mezzi pubblici (valutazione con pipeline)?"
+          }
+        ]
+      }
+    },
+    {
+      "id": 6,
+      "nome_use_case": "Centro di Formazione Professionale",
+      "emoji": "🛠️📚",
+      "descrizione_prompt": "L'obiettivo è identificare edifici non utilizzati che possano essere riconvertiti in centri di formazione professionale. Si cercano strutture con più locali adatti ad aule didattiche, laboratori tecnici e uffici amministrativi, ben collegate con i trasporti pubblici, per offrire corsi di aggiornamento e riqualificazione professionale a diverse categorie di utenti.",
+      "query_di_esempio": [
+        "Trova edifici scolastici non utilizzati per corsi di formazione professionale vicino alla Stazione Tiburtina a Roma.",
+        "Quali uffici sfitti con almeno 7 vani e 250mq potrebbero ospitare un centro di formazione nel quartiere San Lorenzo a Roma?",
+        "Cerca fabbricati produttivi dismessi da riconvertire in laboratori per formazione tecnica in zona Porto Fluviale a Roma."
+      ],
+      "caratteristiche_chiave": [
+        "Tipologia bene: 'edificio scolastico', 'ufficio strutturato', 'fabbricato produttiva'",
+        "Stato: 'non utilizzato'",
+        "Superficie: > 250 mq",
+        "Vani: > 7 per diversificare gli spazi",
+        "Posizione: Ben collegata con trasporti pubblici"
+      ],
+      "scheda_di_valutazione_interna": {
+        "descrizione_scheda": "Per il 'Centro di Formazione Professionale', l'agente deve consultare la Scheda di Valutazione Normativa Interna fornita:",
+        "criteri": [
+          {
+            "id_criterio": 1,
+            "nome_criterio": "Tipologia per Didattica/Laboratori",
+            "campo_dataset": "tipologia_bene_immobile",
+            "valutazione_desiderata": "Il valore è 'edificio scolastico', 'ufficio strutturato ed assimilabili', 'fabbricato per attività produttiva' (per laboratori specifici)?"
+          },
+          {
+            "id_criterio": 2,
+            "nome_criterio": "Attualmente Sfitto (Utilizzo)",
+            "campo_dataset": "utilizzo_del_bene",
+            "valutazione_desiderata": "Il valore è 'non utilizzato'?"
+          },
+          {
+            "id_criterio": 3,
+            "nome_criterio": "Attualmente Sfitto (Stato Dettagliato)",
+            "campo_dataset": "stato_utilizzo",
+            "valutazione_desiderata": "Il valore è 'non utilizzato'?"
+          },
+          {
+            "id_criterio": 4,
+            "nome_criterio": "Spazio per Aule e Lab (Superficie)",
+            "campo_dataset": "superficie_di_riferimento_mq",
+            "valutazione_desiderata": "Superficie adeguata per aule, laboratori, uffici (es. > 250 mq)?"
+          },
+          {
+            "id_criterio": 5,
+            "nome_criterio": "Articolazione Interna (Vani)",
+            "campo_dataset": "vani",
+            "valutazione_desiderata": "Numero di vani sufficiente per diversificare le attività didattiche e amministrative (es. > 7 vani)?"
+          },
+          {
+            "id_criterio": 6,
+            "nome_criterio": "Raggiungibilità (Logistica)",
+            "campo_dataset": ["latitudine", "longitudine"],
+            "valutazione_desiderata": "Ben collegato con trasporti pubblici (valutazione tramite pipeline)?"
+          }
+        ]
+      }
+    },
+    {
+      "id": 7,
+      "nome_use_case": "Riuso Temporaneo per Emergenze Abitative - Accoglienza",
+      "emoji": "🏘️🆘",
+      "descrizione_prompt": "Questo use case è finalizzato a mappare immobili sfitti o rapidamente attivabili da destinare a soluzioni abitative temporanee in contesti di emergenza o per accoglienza. Si cercano edifici di ampia metratura, con un numero elevato di vani o grandi spazi divisibili, per ospitare persone o famiglie in difficoltà, garantendo vicinanza ai servizi essenziali.",
+      "query_di_esempio": [
+        "Identifica strutture residenziali collettive non utilizzate per accoglienza temporanea vicino all'Ospedale San Camillo a Roma.",
+        "Mostrami caserme dismesse con elevato numero di vani e ampia superficie per alloggi di emergenza in zone facilmente accessibili con i trasporti pubblici a Roma.",
+        "Quali alberghi non utilizzati con più di 10 stanze potrebbero essere rapidamente adattati per famiglie in difficoltà in zona Aurelio a Roma?"
+      ],
+      "caratteristiche_chiave": [
+        "Tipologia bene: 'abitazione', 'struttura residenziale collettiva', 'caserma', 'albergo', 'ospedali'",
+        "Stato: 'non utilizzato' o 'in ristrutturazione'",
+        "Superficie: > 400 mq",
+        "Vani: > 10",
+        "Posizione: Vicinanza a servizi essenziali"
+      ],
+      "scheda_di_valutazione_interna": {
+        "descrizione_scheda": "La valutazione per 'Riuso Temporaneo Emergenze Abitative' si atterrà alla seguente Scheda Normativa Interna:",
+        "criteri": [
+          {
+            "id_criterio": 1,
+            "nome_criterio": "Tipologia Residenziale o Adattabile",
+            "campo_dataset": "tipologia_bene_immobile",
+            "valutazione_desiderata": "Il valore è 'abitazione', 'struttura residenziale collettiva', 'caserma', 'albergo, pensione e assimilabili', 'ospedali, case di cura, cliniche e assimilabili'?"
+          },
+          {
+            "id_criterio": 2,
+            "nome_criterio": "Disponibilità Rapida (Utilizzo)",
+            "campo_dataset": "utilizzo_del_bene",
+            "valutazione_desiderata": "Il valore è 'non utilizzato' o 'in ristrutturazione/manutenzione' (se attivabile in tempi brevi)?"
+          },
+          {
+            "id_criterio": 3,
+            "nome_criterio": "Disponibilità Rapida (Stato Dettagliato)",
+            "campo_dataset": "stato_utilizzo",
+            "valutazione_desiderata": "Il valore è 'non utilizzato' o 'parzialmente utilizzato' (se la parte non utilizzata è significativa e separabile)?"
+          },
+          {
+            "id_criterio": 4,
+            "nome_criterio": "Grande Capacità (Superficie)",
+            "campo_dataset": "superficie_di_riferimento_mq",
+            "valutazione_desiderata": "Superficie molto ampia per ospitare numerose persone (es. > 400 mq)?"
+          },
+          {
+            "id_criterio": 5,
+            "nome_criterio": "Elevato Numero di Unità/Spazi (Vani)",
+            "campo_dataset": "vani",
+            "valutazione_desiderata": "Numero elevato di vani per creare unità abitative o posti letto (es. > 10 vani)?"
+          },
+          {
+            "id_criterio": 6,
+            "nome_criterio": "Vicinanza Servizi Essenziali (Logistica)",
+            "campo_dataset": ["latitudine", "longitudine"],
+            "valutazione_desiderata": "Vicinanza a ospedali, trasporti, negozi di prima necessità (valutazione con pipeline e POI)?"
+          }
+        ]
+      }
+    },
+    {
+      "id": 8,
+      "nome_use_case": "Deposito - Archivio Centralizzato per la Pubblica Amministrazione",
+      "emoji": "🗄️📄",
+      "descrizione_prompt": "L'intento di questo use case è individuare grandi immobili non utilizzati, come magazzini o ex fabbricati industriali, da adibire a depositi o archivi centralizzati per la Pubblica Amministrazione. Le strutture ideali devono offrire ampia superficie, sicurezza e buona accessibilità per la conservazione ottimale di documenti e materiali.",
+      "query_di_esempio": [
+        "Cerca magazzini non utilizzati con superficie oltre i 500mq per un archivio statale nella zona industriale di Roma Est, ben collegata al GRA.",
+        "Quali fabbricati produttivi dismessi e sicuri possono essere usati come deposito centrale per documenti ministeriali nell'area industriale lungo la Via Prenestina, interna al GRA?",
+        "Trova ampie caserme dismesse nel quadrante Nord-Est di Roma, interne al GRA, per la conservazione di archivi."
+      ],
+      "caratteristiche_chiave": [
+        "Tipologia bene: 'magazzino', 'fabbricato produttiva', 'caserma'",
+        "Stato: 'non utilizzato'",
+        "Superficie: > 500 mq",
+        "Posizione: Anche periferica ma accessibile per mezzi pesanti"
+      ],
+      "scheda_di_valutazione_interna": {
+        "descrizione_scheda": "Per 'Deposito - Archivio Centralizzato PA', l'agente userà questa Scheda di Valutazione Normativa Interna:",
+        "criteri": [
+          {
+            "id_criterio": 1,
+            "nome_criterio": "Tipologia per Stoccaggio Sicuro",
+            "campo_dataset": "tipologia_bene_immobile",
+            "valutazione_desiderata": "Il valore è 'magazzino e locali di deposito', 'fabbricato per attività produttiva', 'caserma'?"
+          },
+          {
+            "id_criterio": 2,
+            "nome_criterio": "Inutilizzo Totale",
+            "campo_dataset": "utilizzo_del_bene",
+            "valutazione_desiderata": "Il valore è 'non utilizzato'?"
+          },
+          {
+            "id_criterio": 3,
+            "nome_criterio": "Inutilizzo Totale (Dettaglio)",
+            "campo_dataset": "stato_utilizzo",
+            "valutazione_desiderata": "Il valore è 'non utilizzato'?"
+          },
+          {
+            "id_criterio": 4,
+            "nome_criterio": "Ampia Area di Stoccaggio (Superficie)",
+            "campo_dataset": "superficie_di_riferimento_mq",
+            "valutazione_desiderata": "Superficie molto estesa (es. > 500 mq)?"
+          },
+          {
+            "id_criterio": 5,
+            "nome_criterio": "Finalità Precedente (Opzionale)",
+            "campo_dataset": ["finalità", "altra_finalità"],
+            "valutazione_desiderata": "Se i valori indicano già 'archivio' o 'conservazione di archivi', è un plus. Altrimenti, non è un blocco."
+          },
+          {
+            "id_criterio": 6,
+            "nome_criterio": "Accessibilità Logistica (Posizione)",
+            "campo_dataset": ["latitudine", "longitudine"],
+            "valutazione_desiderata": "Accessibile per mezzi di trasporto merci, anche se periferico (valutazione con pipeline rispetto a infrastrutture viarie)?"
+          }
+        ]
+      }
+    },
+    {
+      "id": 9,
+      "nome_use_case": "Laboratori Artigianali Condivisi - FabLab",
+      "emoji": "🛠️🔬",
+      "descrizione_prompt": "Questo use case ricerca immobili inutilizzati da trasformare in laboratori artigianali condivisi o FabLab. L'obiettivo è creare spazi attrezzati dove artigiani, maker e designer possano collaborare, condividere macchinari (es. stampanti 3D, taglio laser) e sviluppare progetti innovativi. Sono preferibili locali con buona metratura, robustezza strutturale e accessi idonei al trasporto di materiali.",
+      "query_di_esempio": [
+        "Mostrami fabbricati per attività produttiva non utilizzati nel quartiere Prenestino a Roma per laboratori artigianali.",
+        "Identifica magazzini sfitti con almeno 150mq in zona Tiburtina Valley a Roma che potrebbero diventare un FabLab.",
+        "Quali locali commerciali ampi e non utilizzati in zona Marconi a Roma potrebbero ospitare botteghe artigiane condivise?"
+      ],
+      "caratteristiche_chiave": [
+        "Tipologia bene: 'fabbricato produttiva', 'magazzino', 'locale commerciale' (se spazioso)",
+        "Stato: 'non utilizzato'",
+        "Superficie: > 150 mq",
+        "Vani: Preferibilmente ampi spazi aperti",
+        "Posizione: Accessibile per trasporto materiali"
+      ],
+      "scheda_di_valutazione_interna": {
+        "descrizione_scheda": "La Scheda di Valutazione Normativa Interna per 'Laboratori Artigianali - FabLab' è la seguente:",
+        "criteri": [
+          {
+            "id_criterio": 1,
+            "nome_criterio": "Tipologia per Attività Produttive/Creative",
+            "campo_dataset": "tipologia_bene_immobile",
+            "valutazione_desiderata": "Il valore è 'fabbricato per attività produttiva', 'magazzino e locali di deposito', 'locale commerciale, negozio' (se con caratteristiche adatte)?"
+          },
+          {
+            "id_criterio": 2,
+            "nome_criterio": "Non Attualmente in Uso",
+            "campo_dataset": "utilizzo_del_bene",
+            "valutazione_desiderata": "Il valore è 'non utilizzato'?"
+          },
+          {
+            "id_criterio": 3,
+            "nome_criterio": "Non Attualmente in Uso (Dettaglio)",
+            "campo_dataset": "stato_utilizzo",
+            "valutazione_desiderata": "Il valore è 'non utilizzato'?"
+          },
+          {
+            "id_criterio": 4,
+            "nome_criterio": "Spazio per Macchinari e Lavoro (Superficie)",
+            "campo_dataset": "superficie_di_riferimento_mq",
+            "valutazione_desiderata": "Superficie adatta a ospitare macchinari, banchi da lavoro e aree comuni (es. > 150 mq)?"
+          },
+          {
+            "id_criterio": 5,
+            "nome_criterio": "Struttura degli Spazi (Vani)",
+            "campo_dataset": "vani",
+            "valutazione_desiderata": "Preferenza per ampi spazi aperti o pochi vani grandi, facilmente adattabili."
+          },
+          {
+            "id_criterio": 6,
+            "nome_criterio": "Accessibilità Materiali (Logistica)",
+            "campo_dataset": ["latitudine", "longitudine"],
+            "valutazione_desiderata": "Facilità di accesso per carico/scarico materiali, anche in zone semi-periferiche ma ben collegate (valutazione con pipeline)?"
+          }
+        ]
+      }
+    },
+    {
+      "id": 10,
+      "nome_use_case": "Palestra Popolare - Impianto Sportivo di Quartiere",
+      "emoji": "🏋️‍♀️🏀",
+      "descrizione_prompt": "L'obiettivo di questo use case è identificare immobili dismessi, come ex impianti sportivi, magazzini o capannoni con ampi volumi interni, da riqualificare come palestre popolari o impianti sportivi di quartiere. Si mira a creare spazi accessibili per promuovere l'attività fisica, la salute e l'aggregazione sociale a costi contenuti per i residenti.",
+      "query_di_esempio": [
+        "Cerca impianti sportivi dismessi da riqualificare nel quartiere Appio Latino (Municipio VII) di Roma.",
+        "Quali magazzini non utilizzati con superficie superiore ai 250mq potrebbero diventare palestre popolari nel quartiere Pigneto a Roma?",
+        "Trova fabbricati industriali sfitti con ampi spazi interni per attività sportive indoor vicino a parchi nel quartiere Ostiense a Roma."
+      ],
+      "caratteristiche_chiave": [
+        "Tipologia bene: 'impianto sportivo', 'fabbricato produttiva', 'magazzino'",
+        "Stato: 'non utilizzato'",
+        "Superficie: > 200 mq",
+        "Vani: Preferibilmente grandi open space",
+        "Posizione: Raggiungibile dai residenti del quartiere"
+      ],
+      "scheda_di_valutazione_interna": {
+        "descrizione_scheda": "Per 'Palestra Popolare - Impianto Sportivo', l'agente valuterà usando i criteri della Scheda Normativa Interna:",
+        "criteri": [
+          {
+            "id_criterio": 1,
+            "nome_criterio": "Tipologia Idonea ad Attività Sportiva",
+            "campo_dataset": "tipologia_bene_immobile",
+            "valutazione_desiderata": "Il valore è 'impianto sportivo', 'fabbricato per attività produttiva' (se con altezze e volumi adeguati), 'magazzino e locali di deposito' (idem)?"
+          },
+          {
+            "id_criterio": 2,
+            "nome_criterio": "Immobile Libero (Utilizzo)",
+            "campo_dataset": "utilizzo_del_bene",
+            "valutazione_desiderata": "Il valore è 'non utilizzato'?"
+          },
+          {
+            "id_criterio": 3,
+            "nome_criterio": "Immobile Libero (Stato Dettagliato)",
+            "campo_dataset": "stato_utilizzo",
+            "valutazione_desiderata": "Il valore è 'non utilizzato'?"
+          },
+          {
+            "id_criterio": 4,
+            "nome_criterio": "Spazio per Attività Fisica (Superficie)",
+            "campo_dataset": "superficie_di_riferimento_mq",
+            "valutazione_desiderata": "Superficie ampia per attrezzature e movimento (es. > 200 mq)? (Altezze interne non nel dataset, da verificare)."
+          },
+          {
+            "id_criterio": 5,
+            "nome_criterio": "Configurazione Spazi (Vani)",
+            "campo_dataset": "vani",
+            "valutazione_desiderata": "Preferibilmente grandi open space o pochi vani ampi."
+          },
+          {
+            "id_criterio": 6,
+            "nome_criterio": "Fruibilità per il Quartiere (Logistica)",
+            "campo_dataset": ["latitudine", "longitudine"],
+            "valutazione_desiderata": "Facilmente raggiungibile dai residenti del quartiere target (valutazione con pipeline)?"
+          }
+        ]
+      }
+    },
+    {
+      "id": 11,
+      "nome_use_case": "Casa della Cultura - Biblioteca di Quartiere",
+      "emoji": "📚🎭",
+      "descrizione_prompt": "Questo use case si propone di trovare edifici non utilizzati da trasformare in Case della Cultura o biblioteche di quartiere. Si cercano immobili, possibilmente con un certo pregio o ampi spazi modulabili, per ospitare biblioteche, sale lettura, aree per eventi, corsi e attività artistiche, diventando poli culturali di riferimento per la comunità locale.",
+      "query_di_esempio": [
+        "Identifica edifici scolastici non utilizzati per una nuova biblioteca di quartiere nel Rione Esquilino a Roma.",
+        "Mostrami palazzi storici sfitti nel Rione Monti a Roma adatti a diventare una casa della cultura.",
+        "Quali abitazioni di grandi dimensioni, non utilizzate e con più di 6 vani, in zona Flaminio a Roma potrebbero ospitare una biblioteca e spazi per eventi culturali?"
+      ],
+      "caratteristiche_chiave": [
+        "Tipologia bene: 'biblioteca/museo', 'edificio scolastico', 'palazzo storico', 'abitazione' (grande), 'teatro'",
+        "Stato: 'non utilizzato'",
+        "Superficie: > 200 mq",
+        "Vani: > 6",
+        "Posizione: Centrale nel quartiere o edificio di pregio"
+      ],
+      "scheda_di_valutazione_interna": {
+        "descrizione_scheda": "Utilizzare la seguente Scheda di Valutazione Normativa Interna per lo use case 'Casa della Cultura - Biblioteca di Quartiere':",
+        "criteri": [
+          {
+            "id_criterio": 1,
+            "nome_criterio": "Tipologia Compatibile con Uso Culturale",
+            "campo_dataset": "tipologia_bene_immobile",
+            "valutazione_desiderata": "Il valore è 'biblioteca, pinacoteca, museo, gallerie', 'edificio scolastico', 'palazzo storico, castello', 'abitazione' (se di pregio o ampia metratura), 'teatro, cinematografo, struttura per concerti e spettacoli e assimilabili'?"
+          },
+          {
+            "id_criterio": 2,
+            "nome_criterio": "Immobile Non Utilizzato Attualmente",
+            "campo_dataset": "utilizzo_del_bene",
+            "valutazione_desiderata": "Il valore è 'non utilizzato'?"
+          },
+          {
+            "id_criterio": 3,
+            "nome_criterio": "Immobile Non Utilizzato Attualmente (Dettaglio)",
+            "campo_dataset": "stato_utilizzo",
+            "valutazione_desiderata": "Il valore è 'non utilizzato'?"
+          },
+          {
+            "id_criterio": 4,
+            "nome_criterio": "Spazi per Funzioni Multiple (Superficie)",
+            "campo_dataset": "superficie_di_riferimento_mq",
+            "valutazione_desiderata": "Superficie sufficiente per sale lettura, aree espositive, aule, uffici (es. > 200 mq)?"
+          },
+          {
+            "id_criterio": 5,
+            "nome_criterio": "Articolazione Funzionale (Vani)",
+            "campo_dataset": "vani",
+            "valutazione_desiderata": "Numero di vani adeguato a diversificare le attività (es. > 6 vani)?"
+          },
+          {
+            "id_criterio": 6,
+            "nome_criterio": "Valore Storico/Architettonico e Posizione (Logistica)",
+            "campo_dataset": ["epoca_costruzione", "tipologia_bene_immobile", "latitudine", "longitudine"],
+            "valutazione_desiderata": "L'epoca o la tipologia (es. 'palazzo storico') aggiungono valore? L'immobile è in posizione centrale o significativa per il quartiere (valutazione con pipeline)?"
+          }
+        ]
+      }
+    }
+  ]
+}
