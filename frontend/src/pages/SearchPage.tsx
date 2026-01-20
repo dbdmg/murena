@@ -145,10 +145,10 @@ export const SearchPage: React.FC = () => {
                     className="text-center mb-16"
                 >
                     <h1 className="text-4xl md:text-5xl font-bold text-white mb-3">
-                        Launch New
+                        Real Estate Intelligence
                     </h1>
                     <h2 className="text-4xl md:text-5xl font-bold bg-linear-to-r from-blue-400 via-cyan-400 to-blue-500 bg-clip-text text-transparent pb-2">
-                        Intelligence Agent
+                        Powered by Agentic AI
                     </h2>
                 </motion.div>
 

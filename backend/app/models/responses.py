@@ -54,6 +54,14 @@ class POIScores(BaseModel):
     sport: Optional[float] = None
 
 
+class SubProperty(BaseModel):
+    """Sub-property info for meta immobili."""
+
+    id: str
+    surface_area: Optional[float] = None
+    property_type: Optional[str] = None
+
+
 class BuildingResponse(BaseModel):
     """Response model for a single building."""
 
@@ -87,6 +95,9 @@ class BuildingResponse(BaseModel):
     data_decorrenza: Optional[str] = None
     numero_immobili_per_catasto: Optional[int] = None
     id_list: Optional[str] = None
+    sub_properties: Optional[List[SubProperty]] = (
+        None  # Detailed sub-properties for meta immobili
+    )
     ape_scores: Optional[APEScores] = None
     poi_scores: Optional[POIScores] = None
     ape_files: Optional[List[str]] = None  # List of APE file paths/identifiers

@@ -171,6 +171,19 @@ class MapService:
                         ),
                         # APE files list
                         "ape_files": b.ape_files,
+                        # Sub-properties for meta immobili
+                        "sub_properties": (
+                            [
+                                {
+                                    "id": sp.id,
+                                    "surface_area": sp.surface_area,
+                                    "property_type": sp.property_type,
+                                }
+                                for sp in b.sub_properties
+                            ]
+                            if b.sub_properties
+                            else None
+                        ),
                     }
                 )
 

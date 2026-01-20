@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, BarChart, Bar, XAxis, YAxis, Cell } from 'recharts';
+import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
 import { Zap, MapPin, Building2, FileText, Shield, ChevronDown, FileCheck, Sparkles } from 'lucide-react';
 import { APEDetailModal } from './APEDetailModal';
 import { AIEvaluationCard } from './AIEvaluationCard';
@@ -53,6 +53,11 @@ interface BuildingData {
     data_decorrenza?: string;
     numero_immobili_per_catasto?: number;
     id_list?: string;
+    sub_properties?: {
+        id: string;
+        surface_area?: number;
+        property_type?: string;
+    }[];
     // AI Intelligence Map fields
     tier?: MarkerTier;
     evaluation_text?: string;
@@ -127,16 +132,52 @@ export const BuildingDetail: React.FC<BuildingDetailProps> = ({ data }) => {
         ];
     }, [details.poi_scores]);
 
-    // APE Bar data
-    const apeBarData = useMemo(() => {
+    // APE Radar data (for new APE radar chart)
+    const apeRadarData = useMemo(() => {
         if (!details.ape_scores) return [];
         return [
-            { name: 'Classe', value: details.ape_scores.class_score || 0, color: '#10b981' },
-            { name: 'Impianto', value: details.ape_scores.system_score || 0, color: '#3b82f6' },
-            { name: 'Involucro', value: details.ape_scores.envelope_score || 0, color: '#f59e0b' },
-            { name: 'Rinnovabili', value: details.ape_scores.renewables_score || 0, color: '#8b5cf6' },
+            { subject: 'Classe', A: details.ape_scores.class_score || 0, fullMark: 5 },
+            { subject: 'Impianto', A: details.ape_scores.system_score || 0, fullMark: 5 },
+            { subject: 'Involucro', A: details.ape_scores.envelope_score || 0, fullMark: 5 },
+            { subject: 'Rinnovabili', A: details.ape_scores.renewables_score || 0, fullMark: 5 },
         ];
     }, [details.ape_scores]);
+
+    // Custom tick component for radar chart to show values
+    const renderPolarAngleAxisTick = (props: any) => {
+        const { payload, x, y, cx, cy, ...rest } = props;
+        const dataPoint = poiRadarData.find(d => d.subject === payload.value);
+        const value = dataPoint?.A ?? 0;
+
+        return (
+            <g>
+                <text {...rest} x={x} y={y} fill="#9ca3af" fontSize={9} textAnchor={x > cx ? 'start' : x < cx ? 'end' : 'middle'}>
+                    {payload.value}
+                </text>
+                <text {...rest} x={x} y={y + 10} fill="#06b6d4" fontSize={8} fontWeight="bold" textAnchor={x > cx ? 'start' : x < cx ? 'end' : 'middle'}>
+                    {value.toFixed(1)}
+                </text>
+            </g>
+        );
+    };
+
+    // Custom tick for APE radar
+    const renderApeRadarTick = (props: any) => {
+        const { payload, x, y, cx, cy, ...rest } = props;
+        const dataPoint = apeRadarData.find(d => d.subject === payload.value);
+        const value = dataPoint?.A ?? 0;
+
+        return (
+            <g>
+                <text {...rest} x={x} y={y} fill="#9ca3af" fontSize={9} textAnchor={x > cx ? 'start' : x < cx ? 'end' : 'middle'}>
+                    {payload.value}
+                </text>
+                <text {...rest} x={x} y={y + 10} fill="#f59e0b" fontSize={8} fontWeight="bold" textAnchor={x > cx ? 'start' : x < cx ? 'end' : 'middle'}>
+                    {value}
+                </text>
+            </g>
+        );
+    };
 
     // APE color based on class
     const getApeColor = (cls?: string) => {
@@ -148,7 +189,7 @@ export const BuildingDetail: React.FC<BuildingDetailProps> = ({ data }) => {
     };
 
     const hasPoiData = poiRadarData.some(d => d.A > 0);
-    const hasApeBarData = apeBarData.length > 0 && apeBarData.some(d => d.value > 0);
+    const hasApeRadarData = apeRadarData.length > 0 && apeRadarData.some(d => d.A > 0);
     const hasAIEvaluation = details.is_evaluated && (details.ranking_score != null || details.evaluation_text);
 
     // Get tier badge info
@@ -348,30 +389,66 @@ export const BuildingDetail: React.FC<BuildingDetailProps> = ({ data }) => {
                         <Zap className="w-3.5 h-3.5 text-yellow-400" />
                         <span className="text-[10px] uppercase text-gray-500 font-medium">Classe Energetica</span>
                     </div>
-                    <div className="flex items-start gap-3">
+                    <div className="flex items-center gap-3 mb-3">
                         <div className={`w-12 h-12 shrink-0 rounded-lg bg-linear-to-br ${getApeColor(details.energy_class)} flex flex-col items-center justify-center text-white font-bold border border-white/10`}>
                             <span className="text-lg leading-none">{details.energy_class}</span>
                         </div>
-                        {hasApeBarData && (
-                            <div className="flex-1 h-[80px] -ml-2">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={apeBarData} layout="vertical" margin={{ left: 0, right: 10, top: 0, bottom: 0 }}>
-                                        <XAxis type="number" domain={[0, 10]} hide />
-                                        <YAxis type="category" dataKey="name" tick={{ fill: '#9ca3af', fontSize: 9 }} width={55} axisLine={false} tickLine={false} />
-                                        <Bar dataKey="value" radius={[0, 4, 4, 0]}>
-                                            {apeBarData.map((entry, index) => (
-                                                <Cell key={`cell-${index}`} fill={entry.color} />
-                                            ))}
-                                        </Bar>
-                                    </BarChart>
-                                </ResponsiveContainer>
+                        {details.ape_scores?.total != null && (
+                            <div className="flex flex-col">
+                                <span className="text-[10px] text-gray-500">Score Totale</span>
+                                <span className="text-xl font-bold text-white">{details.ape_scores.total.toFixed(1)}</span>
                             </div>
                         )}
                     </div>
+                    {/* APE Radar Chart */}
+                    {hasApeRadarData && (
+                        <div className="w-full h-[160px]">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <RadarChart cx="50%" cy="50%" outerRadius="65%" data={apeRadarData}>
+                                    <PolarGrid stroke="rgba(255,255,255,0.08)" />
+                                    <PolarAngleAxis dataKey="subject" tick={renderApeRadarTick} />
+                                    <PolarRadiusAxis angle={45} domain={[0, 5]} tick={false} axisLine={false} />
+                                    <Radar name="Score" dataKey="A" stroke="#f59e0b" strokeWidth={2} fill="#f59e0b" fillOpacity={0.35} />
+                                </RadarChart>
+                            </ResponsiveContainer>
+                        </div>
+                    )}
                     {/* APE Files integrated here */}
                     {details.ape_files && details.ape_files.length > 0 && (
                         <ApeFilesList files={details.ape_files} onFileClick={setSelectedApeFile} />
                     )}
+                </div>
+            )}
+
+            {/* Meta Immobile Sub-Properties List */}
+            {(details.meta_immobile === true || details.meta_immobile === 'true' as any) && details.sub_properties && details.sub_properties.length > 0 && (
+                <div className="bg-[#1a1d24]/60 p-3 rounded-lg border border-purple-500/20">
+                    <div className="flex items-center gap-1.5 mb-2">
+                        <Building2 className="w-3.5 h-3.5 text-purple-400" />
+                        <span className="text-[10px] uppercase text-gray-500 font-medium">Immobili Componenti ({details.sub_properties.length})</span>
+                    </div>
+                    <div className="space-y-1.5 max-h-[180px] overflow-y-auto">
+                        {details.sub_properties.map((prop, index) => (
+                            <div key={index} className="flex items-center gap-3 px-2 py-1.5 rounded bg-white/5 text-xs">
+                                <div className="flex items-center gap-1">
+                                    <span className="text-gray-500">ID:</span>
+                                    <span className="text-white font-mono">{prop.id}</span>
+                                </div>
+                                {prop.surface_area != null && (
+                                    <div className="flex items-center gap-1">
+                                        <span className="text-gray-500">MQ:</span>
+                                        <span className="text-cyan-400">{prop.surface_area}</span>
+                                    </div>
+                                )}
+                                {prop.property_type && (
+                                    <div className="flex items-center gap-1 flex-1 min-w-0">
+                                        <span className="text-gray-500">Tipo:</span>
+                                        <span className="text-gray-300 truncate">{prop.property_type}</span>
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
                 </div>
             )}
 
@@ -382,11 +459,11 @@ export const BuildingDetail: React.FC<BuildingDetailProps> = ({ data }) => {
                         <MapPin className="w-3.5 h-3.5 text-cyan-400" />
                         <span className="text-[10px] uppercase text-gray-500 font-medium">Score Localizzazione (POI)</span>
                     </div>
-                    <div className="w-full h-[180px]">
+                    <div className="w-full h-[200px]">
                         <ResponsiveContainer width="100%" height="100%">
-                            <RadarChart cx="50%" cy="50%" outerRadius="70%" data={poiRadarData}>
+                            <RadarChart cx="50%" cy="50%" outerRadius="60%" data={poiRadarData}>
                                 <PolarGrid stroke="rgba(255,255,255,0.08)" />
-                                <PolarAngleAxis dataKey="subject" tick={{ fill: '#9ca3af', fontSize: 9 }} />
+                                <PolarAngleAxis dataKey="subject" tick={renderPolarAngleAxisTick} />
                                 <PolarRadiusAxis angle={30} domain={[0, 10]} tick={false} axisLine={false} />
                                 <Radar name="Score" dataKey="A" stroke="#06b6d4" strokeWidth={2} fill="#06b6d4" fillOpacity={0.35} />
                             </RadarChart>

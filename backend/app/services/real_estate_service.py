@@ -24,6 +24,7 @@ from app.models.responses import (
     BuildingResponse,
     Coordinates,
     POIScores,
+    SubProperty,
 )
 from app.utils.logger import logger
 
@@ -385,26 +386,33 @@ class RealEstateService:
 
         coordinates = Coordinates(lat=float(lat), lon=float(lon))
 
-        # Extract APE scores if available
+        # Extract APE scores if available (using actual column names from dataset)
         ape_scores = None
-        if all(
-            k in row.index
-            for k in [
-                "ape_total_score",
-                "ape_class_score",
-                "ape_system_score",
-                "ape_envelope_score",
-                "ape_renewables_score",
-            ]
-        ):
-            if pd.notna(row["ape_total_score"]):
-                ape_scores = APEScores(
-                    total=float(row["ape_total_score"]),
-                    class_score=int(row["ape_class_score"]),
-                    system_score=int(row["ape_system_score"]),
-                    envelope_score=int(row["ape_envelope_score"]),
-                    renewables_score=int(row["ape_renewables_score"]),
-                )
+        ape_score_cols = {
+            "total": ["ape_score_total"],
+            "class_score": ["ape_score_classe"],
+            "system_score": ["ape_score_impianto"],
+            "envelope_score": ["ape_score_involucro"],
+            "renewables_score": ["ape_score_rinnovabili"],
+        }
+
+        ape_data = {}
+        for key, cols in ape_score_cols.items():
+            value = safe_get(cols[0], alternatives=cols[1:] if len(cols) > 1 else [])
+            if value is not None:
+                if key == "total":
+                    ape_data[key] = float(value)
+                else:
+                    ape_data[key] = int(value) if not pd.isna(value) else 0
+
+        if ape_data and "total" in ape_data:
+            ape_scores = APEScores(
+                total=ape_data.get("total", 0.0),
+                class_score=ape_data.get("class_score", 0),
+                system_score=ape_data.get("system_score", 0),
+                envelope_score=ape_data.get("envelope_score", 0),
+                renewables_score=ape_data.get("renewables_score", 0),
+            )
 
         # Extract POI scores if available (using actual column names from dataset)
         poi_scores = None
@@ -459,6 +467,57 @@ class RealEstateService:
             )
         )
 
+        # Parse sub-properties for meta immobili
+        sub_properties = None
+        if self._str_to_bool(safe_get("meta_immobile", default=False)):
+            id_list_raw = safe_get("id_list")
+            if id_list_raw is not None:
+                try:
+                    import ast
+
+                    # Parse id_list which might be a string representation of a list
+                    if isinstance(id_list_raw, str):
+                        id_list_parsed = ast.literal_eval(id_list_raw)
+                    elif isinstance(id_list_raw, list):
+                        id_list_parsed = id_list_raw
+                    else:
+                        id_list_parsed = []
+
+                    if id_list_parsed and len(id_list_parsed) > 0:
+                        sub_properties = []
+                        # Get the cached dataset to look up sub-properties
+                        df = self._dataset_cache.get("full")
+                        for sub_id in id_list_parsed[:20]:  # Limit to 20
+                            sub_id_str = str(sub_id)
+                            sub_prop = SubProperty(id=sub_id_str)
+
+                            # Try to find details in the dataset
+                            if df is not None:
+                                sub_row = df[df["id"].astype(str) == sub_id_str]
+                                if not sub_row.empty:
+                                    sub_row = sub_row.iloc[0]
+                                    if (
+                                        "superficie_di_riferimento_mq" in sub_row.index
+                                        and pd.notna(
+                                            sub_row["superficie_di_riferimento_mq"]
+                                        )
+                                    ):
+                                        sub_prop.surface_area = float(
+                                            sub_row["superficie_di_riferimento_mq"]
+                                        )
+                                    if (
+                                        "tipologia_bene_immobile" in sub_row.index
+                                        and pd.notna(sub_row["tipologia_bene_immobile"])
+                                    ):
+                                        sub_prop.property_type = str(
+                                            sub_row["tipologia_bene_immobile"]
+                                        )
+
+                            sub_properties.append(sub_prop)
+                except Exception as e:
+                    logger.warning(f"Error parsing sub-properties: {e}")
+                    sub_properties = None
+
         # Build the response
         return BuildingResponse(
             id=str(safe_get("id", "")),
@@ -511,6 +570,7 @@ class RealEstateService:
             id_list=(
                 str(safe_get("id_list", default="")) if safe_get("id_list") else None
             ),
+            sub_properties=sub_properties,
             ape_scores=ape_scores,
             poi_scores=poi_scores,
             ape_files=ape_files,

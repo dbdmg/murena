@@ -122,7 +122,16 @@ export const MapPage: React.FC = () => {
             result = result.filter(m => m.legal_nature && m.legal_nature.toUpperCase() === filters.naturaBene!.toUpperCase());
         }
 
-        // 9. Intelligence Map Tiers
+        // 9. Filter by has APE
+        if (filters.hasApe !== null) {
+            result = result.filter(m => {
+                // Check if building has APE (ape_files array or energy_class)
+                const hasApe = (m.ape_files && m.ape_files.length > 0) || !!m.energy_class;
+                return filters.hasApe ? hasApe : !hasApe;
+            });
+        }
+
+        // 10. Intelligence Map Tiers
         if (filters.showOnlyTopPicks) {
             result = result.filter(m => m.tier === 3);
         } else if (filters.showOnlyResults) {
@@ -267,7 +276,6 @@ export const MapPage: React.FC = () => {
                     <FilterPanel
                         filters={filters}
                         onFiltersChange={setFilters}
-                        onApply={() => { }} // Filters now work via Intelligence Map
                     />
                     <LayersPanel
                         layers={layers}

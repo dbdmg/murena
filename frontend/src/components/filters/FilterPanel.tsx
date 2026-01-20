@@ -26,6 +26,7 @@ export interface FilterState {
     vincolo: string[];
     isMetaImmobile: boolean | null;
     naturaBene: string | null;
+    hasApe: boolean | null;  // Filter for buildings with/without APE
     // Intelligence Map filters
     showOnlyTopPicks: boolean;
     showOnlyResults: boolean;
@@ -41,6 +42,7 @@ export const defaultFilters: FilterState = {
     vincolo: [],
     isMetaImmobile: null,
     naturaBene: null,
+    hasApe: null,
     showOnlyTopPicks: false,
     showOnlyResults: false,
 };
@@ -48,7 +50,6 @@ export const defaultFilters: FilterState = {
 interface FilterPanelProps {
     filters: FilterState;
     onFiltersChange: (filters: FilterState) => void;
-    onApply: () => void;
 }
 
 // Real values from db_metadata.json
@@ -114,7 +115,6 @@ type ActiveDropdown = 'energy' | 'surface' | 'epoca' | 'tipologia' | 'utilizzo' 
 export const FilterPanel: React.FC<FilterPanelProps> = ({
     filters,
     onFiltersChange,
-    onApply,
 }) => {
     const [activeDropdown, setActiveDropdown] = useState<ActiveDropdown>(null);
     const [isExpanded, setIsExpanded] = useState(false);
@@ -129,6 +129,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
         filters.vincolo.length > 0,
         filters.isMetaImmobile !== null,
         filters.naturaBene !== null,
+        filters.hasApe !== null,
         filters.showOnlyTopPicks,
         filters.showOnlyResults,
     ].filter(Boolean).length;
@@ -154,14 +155,8 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
         onFiltersChange({ ...filters, [key]: newValues });
     };
 
-    const handleApply = () => {
-        onApply();
-        setActiveDropdown(null);
-    };
-
     const handleReset = () => {
         onFiltersChange(defaultFilters);
-        setTimeout(() => onApply(), 0);
         setActiveDropdown(null);
     };
 
@@ -330,7 +325,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
                         className={`
                             flex items-center gap-1 px-2 py-2 rounded-lg text-xs
                             transition-all border whitespace-nowrap
-                            ${(filters.isMetaImmobile !== null || filters.naturaBene !== null || filters.showOnlyTopPicks || filters.showOnlyResults)
+                            ${(filters.isMetaImmobile !== null || filters.naturaBene !== null || filters.hasApe !== null || filters.showOnlyTopPicks || filters.showOnlyResults)
                                 ? 'bg-cyan-500/20 text-cyan-400 border-cyan-500/50'
                                 : 'bg-white/5 text-gray-500 border-white/10 hover:border-white/20'
                             }
@@ -354,29 +349,6 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
                             Reset
                         </button>
                     )}
-                </div>
-
-                {/* Apply Button - Always visible if filters changed, specific logic if needed */}
-                {/* For now, keep it inside or outside? User said "tutti i bottoni su una sola riga". 
-                    If collapsed, we might want Apply to be visible if there are pending changes? 
-                    But typically Apply is clicked after selecting filters. 
-                    Let's put it at the end, always visible if we want, or inside the collapse.
-                    Wait, if I collapse, the user can't see "Apply" unless expanded. 
-                    That seems fine if the workflow is Open -> Select -> Apply.
-                    However, let's keep Apply outside if it's important, or inside. 
-                    Given the request for compactness, let's put it inside.
-                */}
-                <div className={`
-                    overflow-hidden transition-all duration-300 ease-in-out
-                    ${isExpanded ? 'opacity-100 w-auto ml-2' : 'opacity-0 w-0'}
-                `}>
-                    <button
-                        onClick={handleApply}
-                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-linear-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 rounded-lg transition-colors shadow-lg shadow-cyan-500/20 whitespace-nowrap"
-                    >
-                        <Check className="w-3.5 h-3.5" />
-                        Applica
-                    </button>
                 </div>
             </div>
 
@@ -670,6 +642,15 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
                                         value={filters.isMetaImmobile}
                                         onChange={(val) => onFiltersChange({ ...filters, isMetaImmobile: val })}
                                         options={{ on: 'Solo Meta', off: 'Escludi' }}
+                                    />
+                                </div>
+
+                                <div className="border-t border-white/10 pt-3">
+                                    <ToggleSwitch
+                                        label="Certificati APE"
+                                        value={filters.hasApe}
+                                        onChange={(val) => onFiltersChange({ ...filters, hasApe: val })}
+                                        options={{ on: 'Con APE', off: 'Senza APE' }}
                                     />
                                 </div>
 

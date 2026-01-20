@@ -57,18 +57,19 @@ const selectedClusterIcon = (count: number) => {
 };
 
 
-// Tier 1 Icon - Muted slate (Background markers - very subtle)
+// Tier 1 Icon - Slate with better visibility (Background markers)
 const tier1Icon = () => {
     return L.divIcon({
         html: `
-            <div class="relative w-3 h-3 group transition-all duration-200 hover:scale-125">
-                <div class="absolute inset-0 bg-slate-500/60 rounded-full"></div>
-                <div class="relative w-3 h-3 rounded-full bg-linear-to-br from-slate-400/80 to-slate-600/80 border border-white/20 shadow-sm"></div>
+            <div class="relative w-4 h-4 group transition-all duration-200 hover:scale-125">
+                <div class="absolute inset-[-2px] bg-slate-400/30 rounded-full blur-xs"></div>
+                <div class="absolute inset-0 bg-slate-600/80 rounded-full"></div>
+                <div class="relative w-4 h-4 rounded-full bg-linear-to-br from-slate-400 to-slate-600 border border-white/40 shadow-md shadow-slate-500/30"></div>
             </div>
         `,
         className: 'tier1-point-icon',
-        iconSize: [12, 12],
-        iconAnchor: [6, 6],
+        iconSize: [18, 18],
+        iconAnchor: [9, 9],
     });
 };
 
