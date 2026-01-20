@@ -16,12 +16,14 @@ _zone_omi_cache: Optional[Dict] = None
 
 import logging
 
-from app.core.config import settings
-
 logger = logging.getLogger(__name__)
 
-# Use path from config
-DATA_DIR = Path(settings.STATIC_DIR)
+# Correct path resolution:
+# layers.py -> endpoints -> v1 -> api -> app -> backend -> MEF-Immobili (root)
+DATA_DIR = (
+    Path(__file__).resolve().parent.parent.parent.parent.parent.parent
+    / "FOLDER_STATIC_ROME"
+)
 
 logger.info(f"Layers DATA_DIR resolved to: {DATA_DIR}")
 

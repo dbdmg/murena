@@ -79,21 +79,16 @@ def extract_geo_coordinates(response):
     return coordinates if coordinates else "NESSUN LUOGO"
 
 
-def create_graph_metro(folder_linee=None):
+def create_graph_metro(folder_linee="./FOLDER_STATIC_ROME/Linee"):
     """
     Create NetworkX graph from metro line CSV files.
 
     Args:
-        folder_linee: Folder containing metro line CSV files (defaults to settings.STATIC_DIR/Linee)
+        folder_linee: Folder containing metro line CSV files
 
     Returns:
         nx.Graph: Metro network graph with stations as nodes
     """
-    from app.core.config import settings
-
-    if folder_linee is None:
-        folder_linee = os.path.join(settings.STATIC_DIR, "Linee")
-
     G = nx.Graph()
 
     if not os.path.exists(folder_linee):
