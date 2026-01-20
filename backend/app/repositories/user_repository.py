@@ -40,7 +40,9 @@ class UserRepository(BaseRepository[User]):
         """
         return self.db.query(User).filter(User.email == email).first()
 
-    def create_user(self, username: str, password_hash: str, email: Optional[str] = None) -> User:
+    def create_user(
+        self, username: str, password_hash: str, email: Optional[str] = None
+    ) -> User:
         """
         Create a new user.
 

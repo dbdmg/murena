@@ -52,7 +52,9 @@ async def get_map_markers(
     energy_classes: Optional[str] = None,  # Comma-separated: "A1,A2,B"
     min_surface: Optional[float] = None,
     max_surface: Optional[float] = None,
-    epoche_costruzione: Optional[str] = None,  # Pipe-separated: "Prima del 1919|Dal 1919 al 1945"
+    epoche_costruzione: Optional[
+        str
+    ] = None,  # Pipe-separated: "Prima del 1919|Dal 1919 al 1945"
     property_types: Optional[str] = None,  # Pipe-separated
     utilizzo_bene: Optional[str] = None,  # Pipe-separated
     vincolo_culturale: Optional[str] = None,  # Pipe-separated
@@ -86,13 +88,17 @@ async def get_map_markers(
     if city is not None:
         filters["city"] = city
     if energy_classes:
-        filters["energy_classes"] = [c.strip().upper() for c in energy_classes.split(",")]
+        filters["energy_classes"] = [
+            c.strip().upper() for c in energy_classes.split(",")
+        ]
     if min_surface is not None:
         filters["min_surface"] = min_surface
     if max_surface is not None:
         filters["max_surface"] = max_surface
     if epoche_costruzione:
-        filters["epoche_costruzione"] = [e.strip() for e in epoche_costruzione.split("|")]
+        filters["epoche_costruzione"] = [
+            e.strip() for e in epoche_costruzione.split("|")
+        ]
     if property_types:
         filters["property_types"] = [t.strip() for t in property_types.split("|")]
     if utilizzo_bene:

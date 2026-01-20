@@ -43,7 +43,9 @@ class ProgressManager:
             self._subscribers[run_id].append(queue)
             subscriber_count = len(self._subscribers[run_id])
 
-        logger.info(f"Client subscribed to run {run_id} ({subscriber_count} total subscribers)")
+        logger.info(
+            f"Client subscribed to run {run_id} ({subscriber_count} total subscribers)"
+        )
 
         try:
             while True:
@@ -62,7 +64,9 @@ class ProgressManager:
                 if queue in self._subscribers[run_id]:
                     self._subscribers[run_id].remove(queue)
                     remaining = len(self._subscribers[run_id])
-                    logger.info(f"Client unsubscribed from run {run_id} ({remaining} remaining)")
+                    logger.info(
+                        f"Client unsubscribed from run {run_id} ({remaining} remaining)"
+                    )
 
                 # If no more subscribers, cleanup the key
                 if run_id in self._subscribers and not self._subscribers[run_id]:
@@ -91,7 +95,9 @@ class ProgressManager:
             except Exception as e:
                 logger.error(f"Failed to publish update to subscriber: {e}")
 
-        logger.debug(f"Published update to {len(queues)} subscriber(s) for run {run_id}")
+        logger.debug(
+            f"Published update to {len(queues)} subscriber(s) for run {run_id}"
+        )
 
     async def complete(self, run_id: str) -> None:
         """
@@ -114,7 +120,9 @@ class ProgressManager:
             except Exception as e:
                 logger.error(f"Failed to send completion signal: {e}")
 
-        logger.info(f"Sent completion signal to {len(queues)} subscriber(s) for run {run_id}")
+        logger.info(
+            f"Sent completion signal to {len(queues)} subscriber(s) for run {run_id}"
+        )
 
         # Cleanup will happen automatically when clients disconnect
 

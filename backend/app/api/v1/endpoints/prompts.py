@@ -30,7 +30,9 @@ async def list_prompt_overrides() -> Dict[str, Dict[str, str]]:
     try:
         return prompt_loader._load_overrides()  # best-effort: shared cache
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to load prompt overrides: {e}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to load prompt overrides: {e}"
+        )
 
 
 @router.get("/overrides/{agent}/{key}")
@@ -40,7 +42,9 @@ async def get_prompt_override(agent: str, key: str = "template") -> Dict[str, An
     try:
         overrides = prompt_loader._load_overrides()
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to load prompt overrides: {e}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to load prompt overrides: {e}"
+        )
 
     agent_map = overrides.get(agent)
     if not agent_map or key not in agent_map:
@@ -68,13 +72,17 @@ async def put_prompt_override(
     _ = current_user
 
     try:
-        prompt_loader.update_prompt_template(agent=agent, key=key, new_text=request.text)
+        prompt_loader.update_prompt_template(
+            agent=agent, key=key, new_text=request.text
+        )
     except FileNotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to update prompt override: {e}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to update prompt override: {e}"
+        )
 
     return {
         "agent": agent,
@@ -102,7 +110,9 @@ async def reset_all_prompts(
     """
 
     if not settings.DEBUG:
-        raise HTTPException(status_code=403, detail="Prompt reset is disabled in production")
+        raise HTTPException(
+            status_code=403, detail="Prompt reset is disabled in production"
+        )
 
     _ = current_user
 
@@ -126,7 +136,9 @@ async def reset_agent_prompts(
     """
 
     if not settings.DEBUG:
-        raise HTTPException(status_code=403, detail="Prompt reset is disabled in production")
+        raise HTTPException(
+            status_code=403, detail="Prompt reset is disabled in production"
+        )
 
     _ = current_user
 

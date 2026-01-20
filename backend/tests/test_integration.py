@@ -51,7 +51,9 @@ def setup_module(module):
     global _override_stack
     global client
     _override_stack = ExitStack()
-    _override_stack.enter_context(temporary_dependency_overrides(app, {get_db: override_get_db}))
+    _override_stack.enter_context(
+        temporary_dependency_overrides(app, {get_db: override_get_db})
+    )
     client = TestClient(app)
 
     # Create admin user

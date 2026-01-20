@@ -73,7 +73,9 @@ class SQLAgent(BaseAgent):
     name = "sql-agent"
 
     def __init__(self, model_name: str = None):
-        resolved_model = model_name or AGENT_MODELS.get("sql_agent") or AGENT_MODELS.get("default")
+        resolved_model = (
+            model_name or AGENT_MODELS.get("sql_agent") or AGENT_MODELS.get("default")
+        )
         self.llm = get_llm(model_name=resolved_model)
 
         # Load system and user prompts separately
@@ -81,8 +83,12 @@ class SQLAgent(BaseAgent):
         self.user_template = get_user_template("sql_agent", DEFAULT_USER)
 
         # Load retry prompts separately
-        self.retry_system = get_system_prompt("sql_agent", DEFAULT_RETRY_SYSTEM, key="retry_system")
-        self.retry_user = get_user_template("sql_agent", DEFAULT_RETRY_USER, key="retry_user")
+        self.retry_system = get_system_prompt(
+            "sql_agent", DEFAULT_RETRY_SYSTEM, key="retry_system"
+        )
+        self.retry_user = get_user_template(
+            "sql_agent", DEFAULT_RETRY_USER, key="retry_user"
+        )
 
     def _invoke(
         self, system: str, user_template: str, variables: dict, is_retry: bool = False
@@ -161,7 +167,9 @@ class SQLAgent(BaseAgent):
             "db_metadata": db_metadata,
         }
 
-        raw_text, prompt_record = self._invoke(system, user_template, variables, is_retry)
+        raw_text, prompt_record = self._invoke(
+            system, user_template, variables, is_retry
+        )
         sql = _clean_sql(raw_text)
 
         # Fix common SQL syntax errors from LLM

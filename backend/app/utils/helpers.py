@@ -45,7 +45,9 @@ def haversine_km(lat1, lon1, lat2, lon2):
         float: Distance in kilometers
     """
     R = 6371  # Earth radius in km
-    lat1, lon1, lat2, lon2 = map(np.radians, [float(lat1), float(lon1), float(lat2), float(lon2)])
+    lat1, lon1, lat2, lon2 = map(
+        np.radians, [float(lat1), float(lon1), float(lat2), float(lon2)]
+    )
     dlon, dlat = lon2 - lon1, lat2 - lat1
     a = np.sin(dlat / 2) ** 2 + np.cos(lat1) * np.cos(lat2) * np.sin(dlon / 2) ** 2
     c = 2 * np.arctan2(np.sqrt(a), np.sqrt(1 - a))

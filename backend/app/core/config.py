@@ -70,7 +70,9 @@ class Settings(BaseSettings):
     DEFAULT_LLM_PROVIDER: str = "openai"
 
     # LLM Models
-    OPENAI_MODEL_FAST: str = "gpt-5-mini-2025-08-07"  # Modello veloce ed economico OpenAI
+    OPENAI_MODEL_FAST: str = (
+        "gpt-5-mini-2025-08-07"  # Modello veloce ed economico OpenAI
+    )
     OPENAI_MODEL_SMART: str = "gpt-5.2-2025-12-11"  # Modello più potente OpenAI
     USE_MOCK_RESPONSES: bool = False
 
@@ -93,17 +95,23 @@ class Settings(BaseSettings):
     PLOT_DIR: str = "data/FOLDER_APE/META/plots_inverted"
 
     # Dataset paths
-    DATASET_FULL: str = "data/FOLDER_META/immobili_with_meta_and_ape_full_cleaned.parquet"
+    DATASET_FULL: str = (
+        "data/FOLDER_META/immobili_with_meta_and_ape_full_cleaned.parquet"
+    )
     DATASET_META: str = "data/FOLDER_META/immobili_with_meta_only.parquet"
     DATASET_APE: str = "data/FOLDER_META/immobili_with_ape_only.parquet"
     APE_DETAILED_DATA_PATH: str = "data/FOLDER_META/ape_detailed_data.parquet"
 
     # Static data
     STATIONS_CSV: str = "data/FOLDER_DATASET/station_dataframe.csv"
-    POPULATION_CSV: str = "data/FOLDER_STATIC_ROME/dati_popolazione_roma_normalizzati.csv"
+    POPULATION_CSV: str = (
+        "data/FOLDER_STATIC_ROME/dati_popolazione_roma_normalizzati.csv"
+    )
     MUNICIPI_GEOJSON: str = "data/FOLDER_STATIC_ROME/municipi_roma.geojson"
     ZONE_OMI_GEOJSON: str = "data/FOLDER_STATIC_ROME/Zone_omi_torino.geojson"
-    ZONE_URBANISTICHE_GEOJSON: str = "data/FOLDER_STATIC_ROME/roma_zone_urbanistiche.geojson"
+    ZONE_URBANISTICHE_GEOJSON: str = (
+        "data/FOLDER_STATIC_ROME/roma_zone_urbanistiche.geojson"
+    )
 
     # ==========================================================================
     # Map Configuration
@@ -126,7 +134,9 @@ class Settings(BaseSettings):
     MINUTES_PER_KM_WALKING: int = 12  # 5 km/h
     MINUTES_PER_METRO_STATION_SEGMENT: int = 2
 
-    model_config = SettingsConfigDict(env_file=".env", case_sensitive=True, extra="ignore")
+    model_config = SettingsConfigDict(
+        env_file=".env", case_sensitive=True, extra="ignore"
+    )
 
     # ==========================================================================
     # Computed Properties

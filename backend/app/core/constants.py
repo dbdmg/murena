@@ -94,8 +94,12 @@ EVALUATED_BUILDING_ICON_URL = (
 SELECTED_BUILDING_ICON_URL = (
     "https://img.icons8.com/?size=100&id=h1ACssMxjHCf&format=png&color=000000"
 )
-LOCATION_ICON_URL = "https://img.icons8.com/?size=100&id=Cl0BYMUbkFMN&format=png&color=000000"
-META_BUILDING_ICON_URL = "https://img.icons8.com/?size=100&id=KxXZNaqhRRv8&format=png&color=00C853"
+LOCATION_ICON_URL = (
+    "https://img.icons8.com/?size=100&id=Cl0BYMUbkFMN&format=png&color=000000"
+)
+META_BUILDING_ICON_URL = (
+    "https://img.icons8.com/?size=100&id=KxXZNaqhRRv8&format=png&color=00C853"
+)
 META_SELECTED_BUILDING_ICON_URL = (
     "https://img.icons8.com/?size=100&id=h1ACssMxjHCf&format=png&color=00C853"
 )

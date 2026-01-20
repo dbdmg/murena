@@ -86,7 +86,9 @@ async def analysis_progress_websocket(websocket: WebSocket, run_id: str):
         }
         await websocket.send_json(completion_message)
 
-        logger.info(f"WebSocket completed for run {run_id} " f"({message_count} updates sent)")
+        logger.info(
+            f"WebSocket completed for run {run_id} " f"({message_count} updates sent)"
+        )
 
     except WebSocketDisconnect:
         logger.info(f"WebSocket disconnected for run: {run_id}")

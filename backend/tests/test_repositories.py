@@ -171,8 +171,12 @@ def test_feedback_repository():
     assert feedback1.id is not None
 
     # Create more feedback
-    feedback2 = feedback_repo.create_feedback("run_test_001", "building_456", 4, "Good value")
-    feedback3 = feedback_repo.create_feedback("run_test_001", "building_123", 3, "Average")
+    feedback2 = feedback_repo.create_feedback(
+        "run_test_001", "building_456", 4, "Good value"
+    )
+    feedback3 = feedback_repo.create_feedback(
+        "run_test_001", "building_123", 3, "Average"
+    )
 
     # Test get by building
     building_feedback = feedback_repo.get_by_building("building_123")

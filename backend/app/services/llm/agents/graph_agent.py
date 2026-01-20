@@ -56,7 +56,9 @@ class GraphState(TypedDict):
     # ape_df: Any # REMOVED for Memory Management
     db_schema: Dict[str, Any]
     db_metadata: Dict[str, Any]  # New field for metadata
-    dataset_metadata: Dict[str, Any]  # New field for lightweight metadata (columns, typologies)
+    dataset_metadata: Dict[
+        str, Any
+    ]  # New field for lightweight metadata (columns, typologies)
 
     # Intermediate
     location_payload: List[List[Union[str, float]]]
@@ -212,9 +214,14 @@ class GraphOrchestratorAgent(BaseAgent):
             ),
             "typologies": [],
         }
-        if base_dataset is not None and "tipologia_bene_immobile" in base_dataset.columns:
+        if (
+            base_dataset is not None
+            and "tipologia_bene_immobile" in base_dataset.columns
+        ):
             dataset_metadata["typologies"] = [
-                str(x) for x in base_dataset["tipologia_bene_immobile"].unique() if pd.notna(x)
+                str(x)
+                for x in base_dataset["tipologia_bene_immobile"].unique()
+                if pd.notna(x)
             ]
 
         initial_state: GraphState = {
@@ -333,7 +340,9 @@ class GraphOrchestratorAgent(BaseAgent):
             }
 
             # Fake payload for location
-            state["location_payload"] = [[p.name, p.lat, p.lon] for p in MOCK_LOCATION.places]
+            state["location_payload"] = [
+                [p.name, p.lat, p.lon] for p in MOCK_LOCATION.places
+            ]
 
             return state
 
@@ -349,7 +358,9 @@ class GraphOrchestratorAgent(BaseAgent):
             return self.typology_agent.run(
                 query=query,
                 available_typologies=str(
-                    state["db_metadata"].get("tipologia_bene_immobile", {}).get("values", [])
+                    state["db_metadata"]
+                    .get("tipologia_bene_immobile", {})
+                    .get("values", [])
                 ),
             )
 
@@ -362,7 +373,9 @@ class GraphOrchestratorAgent(BaseAgent):
                     query=query,
                     db_schema=str(db_schema),
                     dataset_sample=sample_columns,
-                    db_metadata=json.dumps(state["db_metadata"], indent=2, ensure_ascii=False),
+                    db_metadata=json.dumps(
+                        state["db_metadata"], indent=2, ensure_ascii=False
+                    ),
                 )
             else:
                 return self.use_case_agent.run(query=query, db_schema=str(db_schema))
@@ -395,7 +408,9 @@ class GraphOrchestratorAgent(BaseAgent):
         # Process Typology
         state["typology_result"] = typology_result
         state["gemini_responses"]["typology_extraction"] = {
-            "prompt": (typology_result.prompt.model_dump() if typology_result.prompt else None),
+            "prompt": (
+                typology_result.prompt.model_dump() if typology_result.prompt else None
+            ),
             "response": typology_result.raw_text,
             "typologies": typology_result.typologies,
         }
@@ -421,7 +436,9 @@ class GraphOrchestratorAgent(BaseAgent):
         if loc_result.places:
 
             def geocode_place(place):
-                search_query = f"{place.name}, {place.city}" if place.city else place.name
+                search_query = (
+                    f"{place.name}, {place.city}" if place.city else place.name
+                )
                 try:
                     lat, lon = get_coordinates(search_query)
                 except Exception:
@@ -471,9 +488,7 @@ class GraphOrchestratorAgent(BaseAgent):
         poi_text = ""
         if poi_result:
             high_priority = [k for k, v in poi_result.poi_weights.items() if v >= 0.6]
-            poi_text = (
-                f"\n\nAnalisi POI: L'utente ha espresso preferenza per: {', '.join(high_priority)}."
-            )
+            poi_text = f"\n\nAnalisi POI: L'utente ha espresso preferenza per: {', '.join(high_priority)}."
             if poi_result.constraints.get("must_have"):
                 poi_text += f" Vincoli stretti: {', '.join(poi_result.constraints['must_have'])}."
 
@@ -512,12 +527,20 @@ class GraphOrchestratorAgent(BaseAgent):
             use_case_result = strategy_result
             state["use_case_str"] = use_case_result.description + ape_text + poi_text
             state["gemini_responses"]["use_case_generation"] = {
-                "prompt": (use_case_result.prompt.model_dump() if use_case_result.prompt else None),
+                "prompt": (
+                    use_case_result.prompt.model_dump()
+                    if use_case_result.prompt
+                    else None
+                ),
                 "response": use_case_result.raw_text,
                 "description": use_case_result.description,
             }
             state["gemini_responses"]["use_case_generation"] = {
-                "prompt": (use_case_result.prompt.model_dump() if use_case_result.prompt else None),
+                "prompt": (
+                    use_case_result.prompt.model_dump()
+                    if use_case_result.prompt
+                    else None
+                ),
                 "response": use_case_result.raw_text,
                 "use_case": use_case_result.model_dump(),
             }
@@ -531,7 +554,9 @@ class GraphOrchestratorAgent(BaseAgent):
 
     def _generate_sql(self, state: GraphState) -> GraphState:
         retry_count = state["retry_count"]
-        self._update_progress(state, 4, f"Generazione SQL (tentativo {retry_count + 1})...")
+        self._update_progress(
+            state, 4, f"Generazione SQL (tentativo {retry_count + 1})..."
+        )
 
         query = state["query"]
         db_schema = state["db_schema"]
@@ -568,7 +593,9 @@ class GraphOrchestratorAgent(BaseAgent):
                 query=sql_prompt,
                 scheme=str(db_schema),
                 location=loc_obj,
-                db_metadata=json.dumps(state["db_metadata"], indent=2, ensure_ascii=False),
+                db_metadata=json.dumps(
+                    state["db_metadata"], indent=2, ensure_ascii=False
+                ),
             )
         else:
             sql_result = self.sql_agent.run(
@@ -577,11 +604,17 @@ class GraphOrchestratorAgent(BaseAgent):
                 location=loc_obj,
                 failed_query=failed_query,
                 error_msg=error_msg,
-                db_metadata=json.dumps(state["db_metadata"], indent=2, ensure_ascii=False),
+                db_metadata=json.dumps(
+                    state["db_metadata"], indent=2, ensure_ascii=False
+                ),
             )
 
         state["sql_query"] = sql_result.sql_query
-        key = "sql_generation" if retry_count == 0 else f"sql_generation_retry_{retry_count}"
+        key = (
+            "sql_generation"
+            if retry_count == 0
+            else f"sql_generation_retry_{retry_count}"
+        )
         state["gemini_responses"][key] = {
             "prompt": sql_result.prompt.model_dump() if sql_result.prompt else None,
             "response": sql_result.raw_text,
@@ -596,7 +629,9 @@ class GraphOrchestratorAgent(BaseAgent):
 
         logger.info(f"Executing SQL: {sql_query}")
         # Pass None as working_dataset, rely on dataset_path and DuckDB
-        selected_data, error = self.execute_sql_fn(sql_query, None, dataset_path=dataset_path)
+        selected_data, error = self.execute_sql_fn(
+            sql_query, None, dataset_path=dataset_path
+        )
 
         if error:
             logger.error(f"SQL Execution Error: {error}")
@@ -610,7 +645,9 @@ class GraphOrchestratorAgent(BaseAgent):
     def _check_sql_execution(self, state: GraphState) -> str:
         if state.get("execution_error"):
             if state["retry_count"] < 5:
-                logger.warning(f"Retrying due to error (Attempt {state['retry_count'] + 1})")
+                logger.warning(
+                    f"Retrying due to error (Attempt {state['retry_count'] + 1})"
+                )
                 return "retry"
             logger.error("Max retries reached with error.")
             return "empty"
@@ -619,7 +656,9 @@ class GraphOrchestratorAgent(BaseAgent):
             return "continue"
 
         if state["retry_count"] < 5:
-            logger.warning(f"Retrying due to empty results (Attempt {state['retry_count'] + 1})")
+            logger.warning(
+                f"Retrying due to empty results (Attempt {state['retry_count'] + 1})"
+            )
             return "retry_relax"
 
         logger.warning("Max retries reached with empty results.")
@@ -648,7 +687,11 @@ class GraphOrchestratorAgent(BaseAgent):
         try:
             parsed = sqlparse.parse(sql_query)[0]
             state["where_clause"] = next(
-                (str(token) for token in parsed.tokens if isinstance(token, sqlparse.sql.Where)),
+                (
+                    str(token)
+                    for token in parsed.tokens
+                    if isinstance(token, sqlparse.sql.Where)
+                ),
                 "Nessuna clausola WHERE trovata.",
             )
         except Exception:
@@ -669,7 +712,9 @@ class GraphOrchestratorAgent(BaseAgent):
         if "distanza_km" not in enriched_data.columns:
             enriched_data["distanza_km"] = np.nan
 
-        state["context"].filtered_dataset_preview = enriched_data.head(10).to_dict("records")
+        state["context"].filtered_dataset_preview = enriched_data.head(10).to_dict(
+            "records"
+        )
         state["selected_data"] = enriched_data
         return state
 
@@ -728,7 +773,9 @@ class GraphOrchestratorAgent(BaseAgent):
 
         if USE_MOCK_RESPONSES:
             logger.info("MOCK MODE: Simulating Evaluation...")
-            self._update_progress(state, 7, f"Avvio valutazione qualitativa simulata...")
+            self._update_progress(
+                state, 7, f"Avvio valutazione qualitativa simulata..."
+            )
             time.sleep(1)
 
             # Create fake evaluation results matching selected IDs if possible, or just generic
@@ -787,7 +834,8 @@ class GraphOrchestratorAgent(BaseAgent):
         # Batch processing
         batch_size = 5
         batches = [
-            eval_input_df[i : i + batch_size] for i in range(0, len(eval_input_df), batch_size)
+            eval_input_df[i : i + batch_size]
+            for i in range(0, len(eval_input_df), batch_size)
         ]
 
         all_results = []
@@ -800,7 +848,9 @@ class GraphOrchestratorAgent(BaseAgent):
             # Replace NaN with "N/D" for cleaner LLM input
             # Fix FutureWarning: Downcasting object dtype arrays on .fillna
             clean_batch = batch_df.fillna("N/D").infer_objects(copy=False)
-            estates_data_str = tabulate.tabulate(clean_batch, headers="keys", tablefmt="grid")
+            estates_data_str = tabulate.tabulate(
+                clean_batch, headers="keys", tablefmt="grid"
+            )
 
             logger.info(f"Evaluating batch of {len(batch_df)} items")
             eval_payload: EvaluationAgentResponse = self.evaluation_agent.run(
@@ -811,7 +861,10 @@ class GraphOrchestratorAgent(BaseAgent):
             return eval_payload
 
         with ThreadPoolExecutor(max_workers=4) as executor:
-            futures = {executor.submit(process_batch, batch): i for i, batch in enumerate(batches)}
+            futures = {
+                executor.submit(process_batch, batch): i
+                for i, batch in enumerate(batches)
+            }
 
             for future in as_completed(futures):
                 try:
@@ -828,7 +881,9 @@ class GraphOrchestratorAgent(BaseAgent):
                         all_results.extend(payload.results)
                         # We keep the last prompt/response for logging purposes
                         state["gemini_responses"]["evaluation"] = {
-                            "prompt": (payload.prompt.model_dump() if payload.prompt else None),
+                            "prompt": (
+                                payload.prompt.model_dump() if payload.prompt else None
+                            ),
                             "response": payload.raw_text,
                             "results_count": len(all_results),
                         }
@@ -896,7 +951,9 @@ class GraphOrchestratorAgent(BaseAgent):
             dataset_path = state.get("dataset_path")
             fallback_query = "SELECT * FROM IMMOBILI LIMIT 500"
             # Use execute_sql_fn to get data
-            fallback_data, _ = self.execute_sql_fn(fallback_query, None, dataset_path=dataset_path)
+            fallback_data, _ = self.execute_sql_fn(
+                fallback_query, None, dataset_path=dataset_path
+            )
 
             full_df = fallback_data
             full_df["is_match"] = False
@@ -957,7 +1014,9 @@ class GraphOrchestratorAgent(BaseAgent):
         ]
         if overlay_cols:
             overlay_df = enriched_data[overlay_cols].drop_duplicates("id")
-            map_df = pd.merge(map_df, overlay_df, on="id", how="left", suffixes=("", "_ann"))
+            map_df = pd.merge(
+                map_df, overlay_df, on="id", how="left", suffixes=("", "_ann")
+            )
 
         # Default robusti per flag e score
         if "is_match" not in map_df.columns:
@@ -997,14 +1056,16 @@ class GraphOrchestratorAgent(BaseAgent):
 
                 map_df = pd.merge(
                     map_df,
-                    valutazioni_df[["id", "score", "motivazione", "pro", "contro"]].drop_duplicates(
-                        "id"
-                    ),
+                    valutazioni_df[
+                        ["id", "score", "motivazione", "pro", "contro"]
+                    ].drop_duplicates("id"),
                     on="id",
                     how="left",
                 )
 
-                map_df["score"] = pd.to_numeric(map_df["score"], errors="coerce").fillna(0)
+                map_df["score"] = pd.to_numeric(
+                    map_df["score"], errors="coerce"
+                ).fillna(0)
                 map_df["is_evaluated"] = map_df["id"].isin(valutazioni_df["id"])
                 map_df["is_selected_by_llm"] = map_df["score"] >= 60
             else:
@@ -1055,7 +1116,9 @@ class GraphOrchestratorAgent(BaseAgent):
             int(map_df["is_evaluated"].sum()) if "is_evaluated" in map_df.columns else 0
         )
         selected_in_map = (
-            int(map_df["is_selected_by_llm"].sum()) if "is_selected_by_llm" in map_df.columns else 0
+            int(map_df["is_selected_by_llm"].sum())
+            if "is_selected_by_llm" in map_df.columns
+            else 0
         )
 
         if evaluated_total > 0:
@@ -1082,7 +1145,9 @@ class GraphOrchestratorAgent(BaseAgent):
     # ------------------------------------------------------------------
     # Helpers (Copied from OrchestratorAgent)
     # ------------------------------------------------------------------
-    def _resolve_llm_cap(self, llm_limit: Optional[int], plan: Optional[NeedsMetricPlan]) -> int:
+    def _resolve_llm_cap(
+        self, llm_limit: Optional[int], plan: Optional[NeedsMetricPlan]
+    ) -> int:
         base_cap = min(int(llm_limit) if llm_limit else MAX_ITEMS_FOR_LLM, MAX_LLM_CAP)
         if self.is_agent_mode and plan and plan.dataset_strategy.top_k:
             return min(base_cap, plan.dataset_strategy.top_k)
@@ -1111,7 +1176,9 @@ class GraphOrchestratorAgent(BaseAgent):
             )
             notes = plan.dataset_strategy.notes or "Nessuna"
             ape_note = plan.ape_strategy.strategy or ""
-            ape_status = "usa dati APE" if plan.ape_strategy.use_ape else "APE opzionale"
+            ape_status = (
+                "usa dati APE" if plan.ape_strategy.use_ape else "APE opzionale"
+            )
             filter_summary = ", ".join(filter_list) or "Nessuno"
             plan_text = (
                 f"OBIETTIVO: {plan.summary}\n"
@@ -1158,7 +1225,9 @@ class GraphOrchestratorAgent(BaseAgent):
             )
             or "- Metriche non definite"
         )
-        filters_text = ", ".join(plan.dataset_strategy.filters) or "nessun filtro specifico"
+        filters_text = (
+            ", ".join(plan.dataset_strategy.filters) or "nessun filtro specifico"
+        )
         ape_text = plan.ape_strategy.strategy or (
             "Utilizzo APE" if plan.ape_strategy.use_ape else "APE non prioritario"
         )

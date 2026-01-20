@@ -127,9 +127,13 @@ def process_population_data(geojson_data, csv_path):
         ]
 
         for col in age_cols:
-            df_pop_clean[col] = pd.to_numeric(df_pop_clean[col], errors="coerce").fillna(0)
+            df_pop_clean[col] = pd.to_numeric(
+                df_pop_clean[col], errors="coerce"
+            ).fillna(0)
 
-        df_pop_clean["join_key"] = df_pop_clean["zona_urbanistica"].str.lower().str.strip()
+        df_pop_clean["join_key"] = (
+            df_pop_clean["zona_urbanistica"].str.lower().str.strip()
+        )
 
         for feature in geojson_data["features"]:
             props = feature["properties"]
@@ -175,8 +179,12 @@ def calculate_travel_times_df(
 
     # Ensure coordinates are float
     if "latitudine" in df_processed.columns and "longitudine" in df_processed.columns:
-        df_processed["latitudine"] = pd.to_numeric(df_processed["latitudine"], errors="coerce")
-        df_processed["longitudine"] = pd.to_numeric(df_processed["longitudine"], errors="coerce")
+        df_processed["latitudine"] = pd.to_numeric(
+            df_processed["latitudine"], errors="coerce"
+        )
+        df_processed["longitudine"] = pd.to_numeric(
+            df_processed["longitudine"], errors="coerce"
+        )
     else:
         return df_processed
 
@@ -210,11 +218,15 @@ def calculate_travel_times_df(
     # Manteniamo per ogni immobile la distanza MINIMA verso uno dei POI selezionati
 
     # Inizializza colonne per il minimo
-    min_distances = pd.Series([float("inf")] * len(df_processed), index=df_processed.index)
+    min_distances = pd.Series(
+        [float("inf")] * len(df_processed), index=df_processed.index
+    )
     best_pois = pd.Series([None] * len(df_processed), index=df_processed.index)
 
     # Valid lat/lon mask
-    valid_mask = df_processed["latitudine"].notna() & df_processed["longitudine"].notna()
+    valid_mask = (
+        df_processed["latitudine"].notna() & df_processed["longitudine"].notna()
+    )
 
     if not valid_mask.any():
         return df_processed
@@ -239,7 +251,9 @@ def calculate_travel_times_df(
                 current_distances = d_meters / 1000.0
 
                 # Sostituisci inf con nan per gestione
-                current_distances = current_distances.replace([float("inf"), np.inf], np.nan)
+                current_distances = current_distances.replace(
+                    [float("inf"), np.inf], np.nan
+                )
             except Exception as e:
                 print(f"Routing error for {name}: {e}")
 
@@ -291,7 +305,9 @@ def calculate_travel_times_df(
     df_processed["tempo_minuti"] = df_processed["tempo_minuti"].round(0)
 
     df_processed["distanza_km"] = df_processed["distanza_km"].round(2)
-    df_processed.sort_values(by="distanza_km", ascending=True, inplace=True, na_position="last")
+    df_processed.sort_values(
+        by="distanza_km", ascending=True, inplace=True, na_position="last"
+    )
 
     return df_processed
 
@@ -409,9 +425,14 @@ def parse_ape_xml(xml_text: str) -> dict:
         # Energy services (updated logic with 'impiantoSimulato')
         servizi = []
 
-        if sxp("//ape:datiImpianti/ape:climatizzazioneInvernale/ape:impiantoSimulato") is None:
+        if (
+            sxp("//ape:datiImpianti/ape:climatizzazioneInvernale/ape:impiantoSimulato")
+            is None
+        ):
             if (
-                sxp("//ape:datiGenerali/ape:serviziEnergeticiPresenti/ape:climatizzazioneInvernale")
+                sxp(
+                    "//ape:datiGenerali/ape:serviziEnergeticiPresenti/ape:climatizzazioneInvernale"
+                )
                 == "true"
             ):
                 servizi.append("Riscaldamento")
@@ -456,7 +477,9 @@ def parse_ape_xml(xml_text: str) -> dict:
             vettori_ordinati = sorted(
                 consumi_calcolati_kwh.items(), key=lambda item: item[1], reverse=True
             )
-            vettori_positivi = [(nome, round(val, 2)) for nome, val in vettori_ordinati if val > 0]
+            vettori_positivi = [
+                (nome, round(val, 2)) for nome, val in vettori_ordinati if val > 0
+            ]
 
             if vettori_positivi:
                 vettore_principale = vettori_positivi[0][0]
@@ -494,7 +517,9 @@ def parse_ape_xml(xml_text: str) -> dict:
             cat["subDA"] = s("ape:subalterni/ape:subDA")
 
             # Try to extract subalterno from identifier
-            idf = sxp("//ape:datiGenerali/ape:datiIdentificativi/ape:identificativoCatastale")
+            idf = sxp(
+                "//ape:datiGenerali/ape:datiIdentificativi/ape:identificativoCatastale"
+            )
             if idf:
                 patterns = [
                     r"F\s*(\d+)\s+P\s*(\d+)\s+S\s*(\d+)",
@@ -518,15 +543,17 @@ def parse_ape_xml(xml_text: str) -> dict:
         data.update(cat)
 
         # Building envelope quality (updated mapping)
-        tolower = (
-            "translate(local-name(),'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz')"
-        )
+        tolower = "translate(local-name(),'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz')"
 
-        val_inv = sxp("//ape:prestazioneGlobale/ape:prestazioneEnergeticaFabbricato/ape:inverno")
+        val_inv = sxp(
+            "//ape:prestazioneGlobale/ape:prestazioneEnergeticaFabbricato/ape:inverno"
+        )
         data["qualita_invernale_cod"] = val_inv
         data["qualita_invernale"] = MAPPING_QUALITA_INVOLUCRO.get(val_inv, val_inv)
 
-        val_est = sxp("//ape:prestazioneGlobale/ape:prestazioneEnergeticaFabbricato/ape:estate")
+        val_est = sxp(
+            "//ape:prestazioneGlobale/ape:prestazioneEnergeticaFabbricato/ape:estate"
+        )
         data["qualita_estiva_cod"] = val_est
         data["qualita_estiva"] = MAPPING_QUALITA_INVOLUCRO.get(val_est, val_est)
 
@@ -551,7 +578,9 @@ def parse_ape_xml(xml_text: str) -> dict:
                 val = found_node.xpath(f"string({xpath})", namespaces=ns)
                 return val.strip() if isinstance(val, str) and val.strip() else None
 
-            anno = s(f".//*[contains({tolower},'install') and contains({tolower},'anno')][1]")
+            anno = s(
+                f".//*[contains({tolower},'install') and contains({tolower},'anno')][1]"
+            )
             descrizione = s(".//ape:impianto[1]/ape:descrizioneImpianto")
             epnren = s(".//ape:prestazione/ape:epnren")
 
@@ -615,7 +644,9 @@ def parse_ape_xml(xml_text: str) -> dict:
 
         data["risparmio_perc"] = None  # Removed, too unreliable
 
-        data["tempo_ritorno"] = sxp("//ape:raccomandazioni//ape:tempoRitornoInvestimento")
+        data["tempo_ritorno"] = sxp(
+            "//ape:raccomandazioni//ape:tempoRitornoInvestimento"
+        )
         if data["tempo_ritorno"] is None:
             full_text = " ".join(root.xpath("string(//*)")).strip()
             payback = re.search(
@@ -623,7 +654,9 @@ def parse_ape_xml(xml_text: str) -> dict:
                 full_text,
                 re.IGNORECASE,
             )
-            data["tempo_ritorno"] = (payback.group(1).replace(",", ".")) if payback else None
+            data["tempo_ritorno"] = (
+                (payback.group(1).replace(",", ".")) if payback else None
+            )
 
         migli_txt = xs(["//ape:informazioniMiglioramento", "//ape:raccomandazioni"])
         if migli_txt:

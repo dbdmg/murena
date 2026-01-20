@@ -23,15 +23,27 @@ real_estate_service = RealEstateService()
 @router.get("/buildings", response_model=BuildingsListResponse)
 async def list_buildings(
     run_id: Optional[str] = Query(None, description="Filter by analysis run ID"),
-    min_surface: Optional[float] = Query(None, ge=0, description="Minimum surface area in m²"),
-    max_surface: Optional[float] = Query(None, ge=0, description="Maximum surface area in m²"),
-    min_score: Optional[float] = Query(None, ge=0, le=100, description="Minimum evaluation score"),
-    energy_classes: Optional[List[str]] = Query(None, description="Energy classes (e.g., A, B, C)"),
+    min_surface: Optional[float] = Query(
+        None, ge=0, description="Minimum surface area in m²"
+    ),
+    max_surface: Optional[float] = Query(
+        None, ge=0, description="Maximum surface area in m²"
+    ),
+    min_score: Optional[float] = Query(
+        None, ge=0, le=100, description="Minimum evaluation score"
+    ),
+    energy_classes: Optional[List[str]] = Query(
+        None, description="Energy classes (e.g., A, B, C)"
+    ),
     city: Optional[str] = Query(None, description="Filter by city name"),
-    is_evaluated: Optional[bool] = Query(None, description="Show only evaluated buildings"),
+    is_evaluated: Optional[bool] = Query(
+        None, description="Show only evaluated buildings"
+    ),
     limit: int = Query(100, ge=1, le=1000, description="Maximum results per page"),
     offset: int = Query(0, ge=0, description="Number of results to skip"),
-    dataset_key: str = Query("full", description="Dataset to use: 'full', 'meta', or 'ape'"),
+    dataset_key: str = Query(
+        "full", description="Dataset to use: 'full', 'meta', or 'ape'"
+    ),
 ):
     """
     List buildings with optional filtering and pagination.
@@ -101,13 +113,17 @@ async def list_buildings(
 
     except Exception as e:
         logger.error(f"Error in list_buildings: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Failed to retrieve buildings: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to retrieve buildings: {str(e)}"
+        )
 
 
 @router.get("/buildings/{building_id}", response_model=BuildingResponse)
 async def get_building(
     building_id: str,
-    dataset_key: str = Query("full", description="Dataset to search: 'full', 'meta', or 'ape'"),
+    dataset_key: str = Query(
+        "full", description="Dataset to search: 'full', 'meta', or 'ape'"
+    ),
 ):
     """
     Get detailed information for a specific building by ID.
@@ -156,4 +172,6 @@ async def get_building(
         raise
     except Exception as e:
         logger.error(f"Error retrieving building {building_id}: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Failed to retrieve building: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to retrieve building: {str(e)}"
+        )

@@ -65,7 +65,9 @@ class Run(Base):
 
     # Relationships
     user = relationship("User", back_populates="runs")
-    feedback = relationship("Feedback", back_populates="run", cascade="all, delete-orphan")
+    feedback = relationship(
+        "Feedback", back_populates="run", cascade="all, delete-orphan"
+    )
 
     def __repr__(self):
         return f"<Run(id={self.id}, run_id='{self.run_id}', status='{self.status}')>"
@@ -82,7 +84,9 @@ class Feedback(Base):
     building_id = Column(String(100), nullable=True, index=True)
 
     # Feedback content
-    rating = Column(Integer, nullable=True)  # 1-5 stars (optional for app-level feedback)
+    rating = Column(
+        Integer, nullable=True
+    )  # 1-5 stars (optional for app-level feedback)
     comment = Column(Text, nullable=True)
     helpful = Column(Integer, nullable=True)  # 0=no, 1=yes, null=not answered
 

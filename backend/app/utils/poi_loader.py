@@ -28,7 +28,9 @@ CATEGORIES = {
         "icon": "bus",
     },
     "istruzione": {
-        "tags": {"amenity": ["school", "university", "kindergarten", "college", "library"]},
+        "tags": {
+            "amenity": ["school", "university", "kindergarten", "college", "library"]
+        },
         "color": "#FF9800",  # Orange
         "icon": "graduation-cap",
     },

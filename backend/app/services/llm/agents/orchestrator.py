@@ -111,7 +111,9 @@ class OrchestratorAgent(BaseAgent):
         if base_dataset is None:
             raise FileNotFoundError("Dataset non disponibile per l'analisi.")
 
-        step_definitions = self.AGENT_STEPS if self.is_agent_mode else self.CLASSIC_STEPS
+        step_definitions = (
+            self.AGENT_STEPS if self.is_agent_mode else self.CLASSIC_STEPS
+        )
         total_steps = len(step_definitions)
 
         def update_progress(step_index: int, message: str) -> None:
@@ -132,15 +134,22 @@ class OrchestratorAgent(BaseAgent):
         # ------------------------------------------------------------------
         update_progress(0, "Analisi tipologia...")
         available_typologies = []
-        if base_dataset is not None and "tipologia_bene_immobile" in base_dataset.columns:
+        if (
+            base_dataset is not None
+            and "tipologia_bene_immobile" in base_dataset.columns
+        ):
             available_typologies = [
-                str(x) for x in base_dataset["tipologia_bene_immobile"].unique() if pd.notna(x)
+                str(x)
+                for x in base_dataset["tipologia_bene_immobile"].unique()
+                if pd.notna(x)
             ]
 
         typology_result = self.typology_agent.run(query, available_typologies)
         context.typology_result = typology_result
         gemini_responses["typology_extraction"] = {
-            "prompt": (typology_result.prompt.model_dump() if typology_result.prompt else None),
+            "prompt": (
+                typology_result.prompt.model_dump() if typology_result.prompt else None
+            ),
             "response": typology_result.raw_text,
             "typologies": typology_result.typologies,
         }
@@ -168,7 +177,9 @@ class OrchestratorAgent(BaseAgent):
         location_payload = []
         if loc_result.places:
             for place in loc_result.places:
-                search_query = f"{place.name}, {place.city}" if place.city else place.name
+                search_query = (
+                    f"{place.name}, {place.city}" if place.city else place.name
+                )
                 try:
                     lat, lon = get_coordinates(search_query)
                 except Exception:
@@ -206,12 +217,17 @@ class OrchestratorAgent(BaseAgent):
                 update_progress(2, "Analisi dati APE...")
                 ape_result = self.ape_agent.run(query, ape_df)
                 gemini_responses["ape_analysis"] = {
-                    "prompt": (ape_result.prompt.model_dump() if ape_result.prompt else None),
+                    "prompt": (
+                        ape_result.prompt.model_dump() if ape_result.prompt else None
+                    ),
                     "response": ape_result.raw_text,
                     "answer": ape_result.answer,
                 }
                 plan.summary += f"\n\nAnalisi APE: {ape_result.answer}"
-                if hasattr(ape_result, "suggested_filters") and ape_result.suggested_filters:
+                if (
+                    hasattr(ape_result, "suggested_filters")
+                    and ape_result.suggested_filters
+                ):
                     ape_filters = ape_result.suggested_filters
 
             gemini_responses["needs_metric_plan"] = {
@@ -221,9 +237,15 @@ class OrchestratorAgent(BaseAgent):
             }
             use_case_str = self._format_plan_for_evaluation(plan)
         else:
-            use_case_result = self.use_case_agent.run(query=query, db_schema=str(db_schema))
+            use_case_result = self.use_case_agent.run(
+                query=query, db_schema=str(db_schema)
+            )
             gemini_responses["use_case_generation"] = {
-                "prompt": (use_case_result.prompt.model_dump() if use_case_result.prompt else None),
+                "prompt": (
+                    use_case_result.prompt.model_dump()
+                    if use_case_result.prompt
+                    else None
+                ),
                 "response": use_case_result.raw_text,
                 "use_case": use_case_result.model_dump(),
             }
@@ -239,7 +261,9 @@ class OrchestratorAgent(BaseAgent):
                 update_progress(2, "Analisi dati APE...")
                 ape_result = self.ape_agent.run(query, ape_df)
                 gemini_responses["ape_analysis"] = {
-                    "prompt": (ape_result.prompt.model_dump() if ape_result.prompt else None),
+                    "prompt": (
+                        ape_result.prompt.model_dump() if ape_result.prompt else None
+                    ),
                     "response": ape_result.raw_text,
                     "answer": ape_result.answer,
                 }
@@ -259,7 +283,9 @@ class OrchestratorAgent(BaseAgent):
             _, lat, lon = location_payload[0]
             loc_obj = {"lat": lat, "lon": lon}
 
-        sql_prompt = self._augment_query_with_plan(query, context.metrics_plan, ape_filters)
+        sql_prompt = self._augment_query_with_plan(
+            query, context.metrics_plan, ape_filters
+        )
 
         while retry_count < max_retries:
             if retry_count == 0:
@@ -268,7 +294,9 @@ class OrchestratorAgent(BaseAgent):
                 )
                 sql_query = sql_result.sql_query
                 gemini_responses["sql_generation"] = {
-                    "prompt": (sql_result.prompt.model_dump() if sql_result.prompt else None),
+                    "prompt": (
+                        sql_result.prompt.model_dump() if sql_result.prompt else None
+                    ),
                     "response": sql_result.raw_text,
                     "sql_query": sql_query,
                 }
@@ -285,7 +313,9 @@ class OrchestratorAgent(BaseAgent):
                 )
                 sql_query = sql_result.sql_query
                 gemini_responses[f"sql_generation_retry_{retry_count}"] = {
-                    "prompt": (sql_result.prompt.model_dump() if sql_result.prompt else None),
+                    "prompt": (
+                        sql_result.prompt.model_dump() if sql_result.prompt else None
+                    ),
                     "response": sql_result.raw_text,
                     "sql_query": sql_query,
                 }
@@ -297,7 +327,9 @@ class OrchestratorAgent(BaseAgent):
             retry_count += 1
 
         if selected_data.empty:
-            status_msg = f"La ricerca non ha prodotto risultati dopo {max_retries} tentativi."
+            status_msg = (
+                f"La ricerca non ha prodotto risultati dopo {max_retries} tentativi."
+            )
             context.filtered_dataset_preview = []
             gemini_responses["agent_context"] = context.model_dump()
             update_progress(7, "Completato.")
@@ -316,14 +348,22 @@ class OrchestratorAgent(BaseAgent):
         try:
             parsed = sqlparse.parse(sql_query)[0]
             where_clause_str = next(
-                (str(token) for token in parsed.tokens if isinstance(token, sqlparse.sql.Where)),
+                (
+                    str(token)
+                    for token in parsed.tokens
+                    if isinstance(token, sqlparse.sql.Where)
+                ),
                 "Nessuna clausola WHERE trovata.",
             )
         except Exception:
             where_clause_str = "Nessuna clausola WHERE trovata."
 
         cols_to_add = working_dataset.columns.difference(selected_data.columns).tolist()
-        if "id" in working_dataset.columns and "id" in selected_data.columns and cols_to_add:
+        if (
+            "id" in working_dataset.columns
+            and "id" in selected_data.columns
+            and cols_to_add
+        ):
             selected_data = pd.merge(
                 selected_data,
                 working_dataset[["id"] + cols_to_add],
@@ -351,7 +391,9 @@ class OrchestratorAgent(BaseAgent):
         update_progress(5, f"Valutazione su top {llm_cap}...")
         eval_input_df = enriched_data.head(llm_cap).copy()
         eval_input_df["is_evaluated"] = True
-        estates_data_str = tabulate.tabulate(eval_input_df, headers="keys", tablefmt="grid")
+        estates_data_str = tabulate.tabulate(
+            eval_input_df, headers="keys", tablefmt="grid"
+        )
         eval_payload: EvaluationAgentResponse = self.evaluation_agent.run(
             use_case=use_case_str,
             estates_data=estates_data_str,
@@ -396,12 +438,14 @@ class OrchestratorAgent(BaseAgent):
                 eval_input_df["id"] = eval_input_df["id"].astype(str)
                 map_df["id"] = map_df["id"].astype(str)
 
-                evaluated_df = pd.merge(eval_input_df, valutazioni_df, on="id", how="left")
+                evaluated_df = pd.merge(
+                    eval_input_df, valutazioni_df, on="id", how="left"
+                )
                 map_df = pd.merge(
                     map_df,
-                    evaluated_df[["id", "score", "motivazione", "pro", "contro"]].drop_duplicates(
-                        "id"
-                    ),
+                    evaluated_df[
+                        ["id", "score", "motivazione", "pro", "contro"]
+                    ].drop_duplicates("id"),
                     on="id",
                     how="left",
                 )
@@ -411,10 +455,18 @@ class OrchestratorAgent(BaseAgent):
                     f"LLM ha valutato {len(valutazioni_df)}/{len(eval_input_df)} elementi."
                 )
             else:
-                status_msg = f"Trovati {len(map_df)} risultati. Nessuna valutazione generata."
+                status_msg = (
+                    f"Trovati {len(map_df)} risultati. Nessuna valutazione generata."
+                )
         else:
-            status_msg = f"Trovati {len(map_df)} risultati. Nessuna valutazione LLM disponibile."
-            eval_ids = enriched_data.head(llm_cap)["id"] if "id" in enriched_data.columns else []
+            status_msg = (
+                f"Trovati {len(map_df)} risultati. Nessuna valutazione LLM disponibile."
+            )
+            eval_ids = (
+                enriched_data.head(llm_cap)["id"]
+                if "id" in enriched_data.columns
+                else []
+            )
             map_df["is_evaluated"] = (
                 map_df.get("id").isin(eval_ids) if "id" in map_df.columns else False
             )
@@ -434,7 +486,9 @@ class OrchestratorAgent(BaseAgent):
     # ------------------------------------------------------------------
     # Helpers
     # ------------------------------------------------------------------
-    def _resolve_llm_cap(self, llm_limit: Optional[int], plan: Optional[NeedsMetricPlan]) -> int:
+    def _resolve_llm_cap(
+        self, llm_limit: Optional[int], plan: Optional[NeedsMetricPlan]
+    ) -> int:
         base_cap = min(int(llm_limit) if llm_limit else MAX_ITEMS_FOR_LLM, MAX_LLM_CAP)
         if self.is_agent_mode and plan and plan.dataset_strategy.top_k:
             return min(base_cap, plan.dataset_strategy.top_k)
@@ -453,7 +507,11 @@ class OrchestratorAgent(BaseAgent):
         if not (self.is_agent_mode and plan):
             return query
 
-        filters_list = plan.dataset_strategy.filters.copy() if plan.dataset_strategy.filters else []
+        filters_list = (
+            plan.dataset_strategy.filters.copy()
+            if plan.dataset_strategy.filters
+            else []
+        )
         if ape_filters:
             filters_list.extend(ape_filters)
 
@@ -484,7 +542,9 @@ class OrchestratorAgent(BaseAgent):
             )
             or "- Metriche non definite"
         )
-        filters_text = ", ".join(plan.dataset_strategy.filters) or "nessun filtro specifico"
+        filters_text = (
+            ", ".join(plan.dataset_strategy.filters) or "nessun filtro specifico"
+        )
         ape_text = plan.ape_strategy.strategy or (
             "Utilizzo APE" if plan.ape_strategy.use_ape else "APE non prioritario"
         )

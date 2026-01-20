@@ -28,7 +28,9 @@ reusable_oauth2 = OAuth2PasswordBearer(tokenUrl=f"/api/v1/auth/login")
 security = HTTPBearer()
 
 
-def get_current_user(db: Session = Depends(get_db), token: str = Depends(reusable_oauth2)) -> User:
+def get_current_user(
+    db: Session = Depends(get_db), token: str = Depends(reusable_oauth2)
+) -> User:
     """
     Dependency to get the current authenticated user from JWT token.
 
@@ -70,7 +72,9 @@ def get_current_active_user(
 def get_current_user_optional(
     db: Session = Depends(get_db),
     # Use Security with auto_error=False for optional auth
-    token_auth: Optional[HTTPAuthorizationCredentials] = Depends(HTTPBearer(auto_error=False)),
+    token_auth: Optional[HTTPAuthorizationCredentials] = Depends(
+        HTTPBearer(auto_error=False)
+    ),
 ) -> Optional[User]:
     """
     Dependency for optional authentication.

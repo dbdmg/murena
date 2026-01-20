@@ -65,7 +65,9 @@ class MapAssistantAgent(BaseAgent):
 
     def __init__(self, model_name: str = None):
         resolved_model = (
-            model_name or AGENT_MODELS.get("map_assistant") or AGENT_MODELS.get("default")
+            model_name
+            or AGENT_MODELS.get("map_assistant")
+            or AGENT_MODELS.get("default")
         )
         self.llm = get_llm(model_name=resolved_model)
 
@@ -94,7 +96,9 @@ class MapAssistantAgent(BaseAgent):
 
         # Chain
         if hasattr(self.llm, "with_structured_output"):
-            self.chain = self.prompt | self.llm.with_structured_output(MapAssistantResponse)
+            self.chain = self.prompt | self.llm.with_structured_output(
+                MapAssistantResponse
+            )
         else:
             self.chain = self.prompt | self.llm | self.parser
 
@@ -104,7 +108,9 @@ class MapAssistantAgent(BaseAgent):
             # Assuming app/data/db_metadata.json exists relative to valid path
             # Need to find absolute path or relative to project root.
             # BaseAgent doesn't inherently give root, so we infer or use hardcoded relative for now.
-            base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            base_dir = os.path.dirname(
+                os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            )
             meta_path = os.path.join(base_dir, "data", "db_metadata.json")
 
             if not os.path.exists(meta_path):
@@ -149,10 +155,14 @@ class MapAssistantAgent(BaseAgent):
 
         # Prepare inputs
         results_count = (
-            len(context.filtered_dataset_preview) if context.filtered_dataset_preview else "N/D"
+            len(context.filtered_dataset_preview)
+            if context.filtered_dataset_preview
+            else "N/D"
         )
         history_str = (
-            "\n".join(chat_history[-5:]) if chat_history else "Nessuna interazione precedente."
+            "\n".join(chat_history[-5:])
+            if chat_history
+            else "Nessuna interazione precedente."
         )
 
         # Build Context Data (RAG Lite)
@@ -176,7 +186,9 @@ class MapAssistantAgent(BaseAgent):
                 context_items.append(line)
 
         context_data_str = (
-            "\n".join(context_items) if context_items else "Nessun dato visibile specifico."
+            "\n".join(context_items)
+            if context_items
+            else "Nessun dato visibile specifico."
         )
 
         # Build Evaluation Context

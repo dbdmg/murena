@@ -20,7 +20,10 @@ logger = logging.getLogger(__name__)
 
 # Correct path resolution:
 # layers.py -> endpoints -> v1 -> api -> app -> backend -> MEF-Immobili (root)
-DATA_DIR = Path(__file__).resolve().parent.parent.parent.parent.parent.parent / "FOLDER_STATIC_ROME"
+DATA_DIR = (
+    Path(__file__).resolve().parent.parent.parent.parent.parent.parent
+    / "FOLDER_STATIC_ROME"
+)
 
 logger.info(f"Layers DATA_DIR resolved to: {DATA_DIR}")
 
@@ -105,7 +108,11 @@ def _matches_category(poi: Dict, category: str) -> bool:
     for tag_key, tag_value in category_defs:
         if tags.get(tag_key) == tag_value:
             # Special check for bus to ensure it's not a generic platform
-            if category == "bus" and tag_key == "public_transport" and tags.get("bus") != "yes":
+            if (
+                category == "bus"
+                and tag_key == "public_transport"
+                and tags.get("bus") != "yes"
+            ):
                 continue
             return True
     return False
@@ -296,7 +303,9 @@ async def get_zone_omi() -> Dict[str, Any]:
         zone_code = props.get("CODZONA", "")
 
         if zone_code not in zone_colors:
-            zone_colors[zone_code] = color_palette[len(zone_colors) % len(color_palette)]
+            zone_colors[zone_code] = color_palette[
+                len(zone_colors) % len(color_palette)
+            ]
 
         props["fillColor"] = zone_colors[zone_code]
         props["strokeColor"] = zone_colors[zone_code]

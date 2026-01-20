@@ -211,6 +211,7 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
                                 </h1>
                                 <p className="text-sm text-gray-400 mb-3">
                                     Intelligence Map for Real Estate Asset Management
+                                    Test for commit
                                 </p>
 
                                 {/* Version & Stats */}

@@ -13,7 +13,9 @@ if BACKEND_ROOT not in sys.path:
 
 
 @contextmanager
-def temporary_dependency_overrides(app, overrides: Dict[Callable, Callable]) -> Iterator[None]:
+def temporary_dependency_overrides(
+    app, overrides: Dict[Callable, Callable]
+) -> Iterator[None]:
     """Temporarily apply FastAPI dependency overrides and restore previous state.
 
     This prevents test cross-talk when multiple test modules override the same dependency.

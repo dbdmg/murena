@@ -130,15 +130,21 @@ class MapService:
                         "ape_scores": (
                             {
                                 "total": b.ape_scores.total if b.ape_scores else None,
-                                "class_score": (b.ape_scores.class_score if b.ape_scores else None),
+                                "class_score": (
+                                    b.ape_scores.class_score if b.ape_scores else None
+                                ),
                                 "system_score": (
                                     b.ape_scores.system_score if b.ape_scores else None
                                 ),
                                 "envelope_score": (
-                                    b.ape_scores.envelope_score if b.ape_scores else None
+                                    b.ape_scores.envelope_score
+                                    if b.ape_scores
+                                    else None
                                 ),
                                 "renewables_score": (
-                                    b.ape_scores.renewables_score if b.ape_scores else None
+                                    b.ape_scores.renewables_score
+                                    if b.ape_scores
+                                    else None
                                 ),
                             }
                             if b.ape_scores
@@ -148,10 +154,16 @@ class MapService:
                         "poi_scores": (
                             {
                                 "health": b.poi_scores.health if b.poi_scores else None,
-                                "mobility": (b.poi_scores.mobility if b.poi_scores else None),
+                                "mobility": (
+                                    b.poi_scores.mobility if b.poi_scores else None
+                                ),
                                 "green": b.poi_scores.green if b.poi_scores else None,
-                                "education": (b.poi_scores.education if b.poi_scores else None),
-                                "shopping": (b.poi_scores.shopping if b.poi_scores else None),
+                                "education": (
+                                    b.poi_scores.education if b.poi_scores else None
+                                ),
+                                "shopping": (
+                                    b.poi_scores.shopping if b.poi_scores else None
+                                ),
                                 "sport": b.poi_scores.sport if b.poi_scores else None,
                             }
                             if b.poi_scores

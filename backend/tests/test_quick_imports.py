@@ -26,7 +26,9 @@ def test_import(module_name: str, description: str):
         __import__(module_name)
     except Exception as e:
         traceback.print_exc()
-        raise AssertionError(f"Import failed for {description} ({module_name}): {e}") from e
+        raise AssertionError(
+            f"Import failed for {description} ({module_name}): {e}"
+        ) from e
 
 
 if __name__ == "__main__":
