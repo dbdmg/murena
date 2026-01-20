@@ -54,7 +54,9 @@ class PoiAgent(BaseAgent):
     name = "poi-agent"
 
     def __init__(self, model_name: str = None):
-        resolved_model = model_name or AGENT_MODELS.get("poi_agent") or AGENT_MODELS.get("default")
+        resolved_model = (
+            model_name or AGENT_MODELS.get("poi_agent") or AGENT_MODELS.get("default")
+        )
         self.llm = get_llm(model_name=resolved_model)
 
         # Load system and user prompts separately
@@ -131,4 +133,6 @@ class PoiAgent(BaseAgent):
 
         except Exception as e:
             print(f"Errore PoiAgent: {e}")
-            return PoiAgentResult(raw_text=str(e), poi_weights={}, constraints={}, prompt=None)
+            return PoiAgentResult(
+                raw_text=str(e), poi_weights={}, constraints={}, prompt=None
+            )

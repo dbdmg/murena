@@ -74,7 +74,9 @@ def handle_agent_error(fallback_value: Any = None):
                 return func(*args, **kwargs)
             except Exception as e:
                 agent_name = (
-                    getattr(args[0], "name", "Unknown Agent") if args else "Unknown Function"
+                    getattr(args[0], "name", "Unknown Agent")
+                    if args
+                    else "Unknown Function"
                 )
                 logger.error(f"Error in {agent_name}.{func.__name__}: {e}")
                 import traceback

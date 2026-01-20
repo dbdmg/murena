@@ -70,7 +70,9 @@ class EvaluationAgent(BaseAgent):
 
     def __init__(self, model_name: str = None):
         resolved_model = (
-            model_name or AGENT_MODELS.get("evaluation_agent") or AGENT_MODELS.get("default")
+            model_name
+            or AGENT_MODELS.get("evaluation_agent")
+            or AGENT_MODELS.get("default")
         )
         self.llm = get_llm(model_name=resolved_model)
 
@@ -117,7 +119,9 @@ class EvaluationAgent(BaseAgent):
         self.broker_chain = self.broker_prompt | self.llm
 
     @log_llm_usage
-    def run(self, *, use_case: str, estates_data: str, query: str) -> EvaluationAgentResponse:
+    def run(
+        self, *, use_case: str, estates_data: str, query: str
+    ) -> EvaluationAgentResponse:
         prompt_inputs = {
             "use_case": use_case,
             "estates_data": estates_data,
@@ -151,13 +155,17 @@ class EvaluationAgent(BaseAgent):
             full_text=full_text,
         )
 
-        return EvaluationAgentResponse(prompt=prompt_record, raw_text=raw_text, results=results)
+        return EvaluationAgentResponse(
+            prompt=prompt_record, raw_text=raw_text, results=results
+        )
 
     @log_llm_usage
     def run_synthesis(self, *, query: str, candidates_data: str) -> str:
         """Genera una sintesi comparativa (Broker Review)."""
         try:
-            res = self.broker_chain.invoke({"query": query, "candidates_data": candidates_data})
+            res = self.broker_chain.invoke(
+                {"query": query, "candidates_data": candidates_data}
+            )
             # Handle standard langchain response objects (content vs str)
             return res.content if hasattr(res, "content") else str(res)
         except Exception as e:

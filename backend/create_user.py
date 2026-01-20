@@ -56,7 +56,9 @@ def main():
 
         # Create user
         hashed_password = get_password_hash(password)
-        user = repo.create_user(username=username, password_hash=hashed_password, email=email)
+        user = repo.create_user(
+            username=username, password_hash=hashed_password, email=email
+        )
 
         print(f"✅ Success! User created with ID: {user.id}")
         print(f"You can now log in as '{username}'.")

@@ -171,7 +171,9 @@ class RealEstateService:
         }
         return dataset_paths.get(dataset_key.lower())
 
-    def _apply_filters(self, df: pd.DataFrame, filters: BuildingFilters) -> pd.DataFrame:
+    def _apply_filters(
+        self, df: pd.DataFrame, filters: BuildingFilters
+    ) -> pd.DataFrame:
         """
         Apply filters to DataFrame.
 
@@ -221,7 +223,9 @@ class RealEstateService:
             if energy_col:
                 # Normalize filter classes to uppercase
                 filter_classes = [c.upper() for c in filters.energy_classes]
-                logger.info(f"Filtering by energy classes: {filter_classes}, column: {energy_col}")
+                logger.info(
+                    f"Filtering by energy classes: {filter_classes}, column: {energy_col}"
+                )
 
                 # Match either exact class (A, B, C) or class with number (A1, A2, A3, A4)
                 def matches_class(val):
@@ -319,7 +323,9 @@ class RealEstateService:
                     result = result[result[meta_col] == True]
                 else:
                     # Only non-meta buildings
-                    result = result[(result[meta_col] == False) | (result[meta_col].isna())]
+                    result = result[
+                        (result[meta_col] == False) | (result[meta_col].isna())
+                    ]
 
         # Filter by natura_bene (FABBRICATO or TERRENO)
         if filters.natura_bene:
@@ -330,7 +336,9 @@ class RealEstateService:
                 natura_col = "natura"
 
             if natura_col:
-                result = result[result[natura_col].str.upper() == filters.natura_bene.upper()]
+                result = result[
+                    result[natura_col].str.upper() == filters.natura_bene.upper()
+                ]
 
         # TODO: Filter by run_id (requires database lookup for run results)
         if filters.run_id:
@@ -371,7 +379,9 @@ class RealEstateService:
 
         # Coordinates are required
         if lat is None or lon is None:
-            raise ValueError(f"Missing coordinates for building {row.get('id', 'unknown')}")
+            raise ValueError(
+                f"Missing coordinates for building {row.get('id', 'unknown')}"
+            )
 
         coordinates = Coordinates(lat=float(lat), lon=float(lon))
 
@@ -455,11 +465,15 @@ class RealEstateService:
             address=safe_get("address", alternatives=["indirizzo", "via"]),
             city=safe_get("city", alternatives=["comune", "codice_comune"]),
             coordinates=coordinates,
-            surface_area=safe_get("surface_area", alternatives=["superficie_di_riferimento_mq"]),
+            surface_area=safe_get(
+                "surface_area", alternatives=["superficie_di_riferimento_mq"]
+            ),
             construction_year=str(
                 safe_get("construction_year", alternatives=["epoca_costruzione"])
             ),
-            energy_class=safe_get("energy_class", alternatives=["classe_energetica_ape"]),
+            energy_class=safe_get(
+                "energy_class", alternatives=["classe_energetica_ape"]
+            ),
             score=safe_get("score", alternatives=["ape_score_total"]),
             rooms=None,  # Not present in provided columns
             bathrooms=None,  # Not present in provided columns
@@ -469,15 +483,21 @@ class RealEstateService:
                 "description", alternatives=["utilizzo_del_bene", "natura_del_bene"]
             ),
             # Extended property info
-            property_type=safe_get("property_type", alternatives=["tipologia_bene_immobile"]),
-            legal_nature=safe_get("legal_nature", alternatives=["natura_giuridica_del_bene"]),
+            property_type=safe_get(
+                "property_type", alternatives=["tipologia_bene_immobile"]
+            ),
+            legal_nature=safe_get(
+                "legal_nature", alternatives=["natura_giuridica_del_bene"]
+            ),
             cultural_constraint=safe_get(
                 "cultural_constraint", alternatives=["vincolo_culturale_paesaggistico"]
             ),
             purpose=safe_get("purpose", alternatives=["finalita"]),
             omi_zone=safe_get("omi_zone", alternatives=["zona_omi"]),
             cadastral_sheet=str(safe_get("cadastral_sheet", alternatives=["foglio"])),
-            cadastral_parcel=str(safe_get("cadastral_parcel", alternatives=["particella"])),
+            cadastral_parcel=str(
+                safe_get("cadastral_parcel", alternatives=["particella"])
+            ),
             is_evaluated=bool(safe_get("is_evaluated", default=False)),
             meta_building=self._str_to_bool(safe_get("meta_immobile", default=False)),
             # Map new requested fields explicitly
@@ -485,8 +505,12 @@ class RealEstateService:
             canone_annuale=safe_get("canone_annuale", default=None),
             tipo_detenzione_a_terzi=safe_get("tipo_detenzione_a_terzi", default=None),
             data_decorrenza=safe_get("data_decorrenza", default=None),
-            numero_immobili_per_catasto=safe_get("numero_immobili_per_catasto", default=None),
-            id_list=(str(safe_get("id_list", default="")) if safe_get("id_list") else None),
+            numero_immobili_per_catasto=safe_get(
+                "numero_immobili_per_catasto", default=None
+            ),
+            id_list=(
+                str(safe_get("id_list", default="")) if safe_get("id_list") else None
+            ),
             ape_scores=ape_scores,
             poi_scores=poi_scores,
             ape_files=ape_files,

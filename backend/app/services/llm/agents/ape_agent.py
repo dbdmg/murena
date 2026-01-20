@@ -39,7 +39,9 @@ class ApeAgent(BaseAgent):
     name = "ape-agent"
 
     def __init__(self, model_name: str = None):
-        resolved_model = model_name or AGENT_MODELS.get("ape_agent") or AGENT_MODELS.get("default")
+        resolved_model = (
+            model_name or AGENT_MODELS.get("ape_agent") or AGENT_MODELS.get("default")
+        )
         self.llm = get_llm(model_name=resolved_model)
 
         # Load system and user prompts separately

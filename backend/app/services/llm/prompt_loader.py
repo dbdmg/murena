@@ -122,7 +122,9 @@ def update_prompt_template(agent: str, key: str, new_text: str) -> None:
 
     lines: List[str] = CONFIG_PATH.read_text(encoding="utf-8").splitlines()
     header = f"## {agent}.{key}"
-    header_idx = next((i for i, line in enumerate(lines) if line.strip() == header), None)
+    header_idx = next(
+        (i for i, line in enumerate(lines) if line.strip() == header), None
+    )
     fence_default = "```prompt"
 
     if header_idx is None:

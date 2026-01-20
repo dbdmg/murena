@@ -118,10 +118,16 @@ def run_full_pipeline(
     if buildings:
         print(f"\n🏢 TOP 3 BUILDINGS (su {len(buildings)} totali):")
         for i, b in enumerate(buildings[:3]):
-            b_dict = b if isinstance(b, dict) else b.__dict__ if hasattr(b, "__dict__") else {}
+            b_dict = (
+                b
+                if isinstance(b, dict)
+                else b.__dict__ if hasattr(b, "__dict__") else {}
+            )
             print(f"   {i+1}. ID: {b_dict.get('id', 'N/A')}")
             print(f"      Indirizzo: {b_dict.get('indirizzo', 'N/A')}")
-            print(f"      Superficie: {b_dict.get('superficie_di_riferimento_mq', 'N/A')} mq")
+            print(
+                f"      Superficie: {b_dict.get('superficie_di_riferimento_mq', 'N/A')} mq"
+            )
             print(f"      Tipologia: {b_dict.get('tipologia_bene_immobile', 'N/A')}")
             if "evaluation_text" in b_dict:
                 eval_preview = b_dict["evaluation_text"][:100] + "..."
@@ -167,7 +173,9 @@ def run_full_pipeline(
             elif isinstance(b, dict):
                 buildings_serializable.append(b)
         with open(buildings_file, "w", encoding="utf-8") as f:
-            json.dump(buildings_serializable, f, indent=2, ensure_ascii=False, default=str)
+            json.dump(
+                buildings_serializable, f, indent=2, ensure_ascii=False, default=str
+            )
 
         print(f"\n💾 RISULTATI SALVATI IN: {output_dir}")
         print(f"   ├─ gemini_responses.json")
@@ -201,7 +209,9 @@ def main():
     parser.add_argument(
         "--limit", "-l", type=int, default=5, help="Limite immobili da valutare con LLM"
     )
-    parser.add_argument("--no-save", action="store_true", help="Non salvare i risultati su file")
+    parser.add_argument(
+        "--no-save", action="store_true", help="Non salvare i risultati su file"
+    )
 
     args = parser.parse_args()
 

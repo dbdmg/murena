@@ -70,7 +70,9 @@ class LocationAgent(BaseAgent):
 
     def __init__(self, model_name: str = None):
         resolved_model = (
-            model_name or AGENT_MODELS.get("location_agent") or AGENT_MODELS.get("default")
+            model_name
+            or AGENT_MODELS.get("location_agent")
+            or AGENT_MODELS.get("default")
         )
         self.llm = get_llm(model_name=resolved_model)
 

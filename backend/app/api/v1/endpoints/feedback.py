@@ -35,7 +35,9 @@ def _parse_payload_from_comment(comment: Optional[str]) -> Optional[dict]:
         return None
 
 
-@router.post("/app", response_model=AppFeedbackResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/app", response_model=AppFeedbackResponse, status_code=status.HTTP_201_CREATED
+)
 async def create_app_feedback(
     request: AppFeedbackRequest,
     db: Session = Depends(get_db),

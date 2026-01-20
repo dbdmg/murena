@@ -322,10 +322,13 @@ def _load_demo_artifacts(demo_id: str, limit: int = 50) -> dict:
                     surface_area=_parse_float(row.get("superficie_di_riferimento_mq")),
                     construction_year=(row.get("epoca_costruzione") or None),
                     energy_class=(row.get("classe_energetica_ape") or None),
-                    score=_parse_float(row.get("score")) or _parse_float(row.get("ranking_score")),
+                    score=_parse_float(row.get("score"))
+                    or _parse_float(row.get("ranking_score")),
                     property_type=(row.get("tipologia_bene_immobile") or None),
                     legal_nature=(row.get("natura_giuridica_del_bene") or None),
-                    cultural_constraint=(row.get("vincolo_culturale_paesaggistico") or None),
+                    cultural_constraint=(
+                        row.get("vincolo_culturale_paesaggistico") or None
+                    ),
                     purpose=(row.get("finalita") or None),
                     omi_zone=(row.get("zona_omi") or None),
                     cadastral_sheet=(row.get("foglio") or None),
@@ -335,7 +338,9 @@ def _load_demo_artifacts(demo_id: str, limit: int = 50) -> dict:
                     # New metadata fields
                     meta_immobile=bool(_parse_bool(row.get("meta_immobile")) or False),
                     canone_annuale=_parse_float(row.get("canone_annuale")),
-                    tipo_detenzione_a_terzi=(row.get("tipo_detenzione_a_terzi") or None),
+                    tipo_detenzione_a_terzi=(
+                        row.get("tipo_detenzione_a_terzi") or None
+                    ),
                     data_decorrenza=(row.get("data_decorrenza") or None),
                     numero_immobili_per_catasto=_parse_float(
                         row.get("numero_immobili_per_catasto")
@@ -549,7 +554,9 @@ async def start_demo_run(
     except FileNotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to load demo artifacts: {e}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to load demo artifacts: {e}"
+        )
 
     # Normalize results for later storage
     results_model = AnalysisResults.model_validate(
@@ -590,7 +597,9 @@ async def start_demo_run(
                 steps_state = []
                 for j, (s_label, _s_pct) in enumerate(demo_steps):
                     if j < i:
-                        steps_state.append({"label": s_label, "state": "done", "detail": ""})
+                        steps_state.append(
+                            {"label": s_label, "state": "done", "detail": ""}
+                        )
                     elif j == i:
                         steps_state.append(
                             {
@@ -600,7 +609,9 @@ async def start_demo_run(
                             }
                         )
                     else:
-                        steps_state.append({"label": s_label, "state": "pending", "detail": ""})
+                        steps_state.append(
+                            {"label": s_label, "state": "pending", "detail": ""}
+                        )
 
                 update = ProgressUpdate(
                     type="progress",
@@ -692,7 +703,9 @@ async def start_analysis(
         """Background task that runs the analysis."""
         # Use the same engine as the request-scoped session (works with dependency overrides in tests)
         engine = db.get_bind()
-        BackgroundSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+        BackgroundSessionLocal = sessionmaker(
+            autocommit=False, autoflush=False, bind=engine
+        )
 
         try:
             raw_results = await analysis_service.run_analysis(
@@ -718,7 +731,8 @@ async def start_analysis(
                     results=results_json,
                     gemini_responses=results_json.get("gemini_responses") or {},
                     location_data=results_json.get("location"),
-                    status_message=results_json.get("broker_summary") or "Analysis completed",
+                    status_message=results_json.get("broker_summary")
+                    or "Analysis completed",
                     results_count=len(results_json.get("buildings") or []),
                 )
         except Exception as e:
@@ -838,7 +852,9 @@ async def get_analysis(
         try:
             return AnalysisResults.model_validate(run.results)
         except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Stored results are invalid: {e}")
+            raise HTTPException(
+                status_code=500, detail=f"Stored results are invalid: {e}"
+            )
 
     # Otherwise return current run status (still processing/failed)
     return AnalysisResults(

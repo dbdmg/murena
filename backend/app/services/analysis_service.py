@@ -54,7 +54,9 @@ class AnalysisService:
 
             logger.info(f"Loading dataset: {dataset_key} from {dataset_path}")
             self._base_dataset_cache[dataset_key] = load_and_merge_data(dataset_path)
-            logger.info(f"Dataset loaded: {len(self._base_dataset_cache[dataset_key])} records")
+            logger.info(
+                f"Dataset loaded: {len(self._base_dataset_cache[dataset_key])} records"
+            )
 
         return self._base_dataset_cache[dataset_key]
 
@@ -126,7 +128,9 @@ class AnalysisService:
             from app.models.responses import ProgressUpdate, StepState
 
             # Load dataset
-            base_dataset = await asyncio.to_thread(self._get_or_load_dataset, dataset_key)
+            base_dataset = await asyncio.to_thread(
+                self._get_or_load_dataset, dataset_key
+            )
 
             # Get dataset path
             dataset_path = settings.dataset_options.get(dataset_key)
@@ -138,7 +142,9 @@ class AnalysisService:
             # Prepare database schema (simplified for now)
             db_schema = {
                 "columns": list(base_dataset.columns),
-                "types": {col: str(dtype) for col, dtype in base_dataset.dtypes.items()},
+                "types": {
+                    col: str(dtype) for col, dtype in base_dataset.dtypes.items()
+                },
             }
 
             # Capture the main event loop BEFORE entering the thread pool.
@@ -168,7 +174,9 @@ class AnalysisService:
                         step=current_step,
                         detail=current_detail,
                         steps_state=(
-                            [StepState(**step) for step in steps_state] if steps_state else None
+                            [StepState(**step) for step in steps_state]
+                            if steps_state
+                            else None
                         ),
                     )
 
@@ -230,7 +238,9 @@ class AnalysisService:
 
             raise
 
-    def _format_results(self, run_id: str, query: str, orchestrator_result) -> Dict[str, Any]:
+    def _format_results(
+        self, run_id: str, query: str, orchestrator_result
+    ) -> Dict[str, Any]:
         """
         Format orchestrator results for API response.
 
@@ -244,12 +254,17 @@ class AnalysisService:
         """
         # Convert DataFrame to API models
         buildings = []
-        if orchestrator_result.map_df is not None and not orchestrator_result.map_df.empty:
+        if (
+            orchestrator_result.map_df is not None
+            and not orchestrator_result.map_df.empty
+        ):
             for _, row in orchestrator_result.map_df.iterrows():
                 try:
                     buildings.append(self._real_estate_service._df_row_to_building(row))
                 except Exception as e:
-                    logger.warning(f"Skipping building row due to conversion error: {e}")
+                    logger.warning(
+                        f"Skipping building row due to conversion error: {e}"
+                    )
                     continue
 
         return {
@@ -264,7 +279,9 @@ class AnalysisService:
             "gemini_responses": make_json_safe(orchestrator_result.gemini_responses),
             "broker_summary": make_json_safe(orchestrator_result.broker_summary),
             "context": (
-                orchestrator_result.context.model_dump() if orchestrator_result.context else None
+                orchestrator_result.context.model_dump()
+                if orchestrator_result.context
+                else None
             ),
             "created_at": datetime.utcnow(),
             "completed_at": datetime.utcnow(),

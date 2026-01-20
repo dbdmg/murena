@@ -107,7 +107,9 @@ class NeedsMetricAgent(BaseAgent):
 
     def __init__(self, model_name: Optional[str] = None):
         resolved_model = (
-            model_name or AGENT_MODELS.get("needs_metric_agent") or AGENT_MODELS.get("default")
+            model_name
+            or AGENT_MODELS.get("needs_metric_agent")
+            or AGENT_MODELS.get("default")
         )
         self.llm = get_llm(model_name=resolved_model)
 
@@ -172,14 +174,18 @@ class NeedsMetricAgent(BaseAgent):
                     goal=item.get("goal"),
                     weight=_safe_float(item.get("weight"), 1.0),
                     data_points=[
-                        dp for dp in (item.get("data_points") or []) if isinstance(dp, str)
+                        dp
+                        for dp in (item.get("data_points") or [])
+                        if isinstance(dp, str)
                     ],
                 )
             )
 
         dataset_cfg = data.get("dataset_strategy") or {}
         dataset_strategy = DatasetStrategy(
-            filters=[f for f in (dataset_cfg.get("filters") or []) if isinstance(f, str)],
+            filters=[
+                f for f in (dataset_cfg.get("filters") or []) if isinstance(f, str)
+            ],
             sort_by=dataset_cfg.get("sort_by"),
             top_k=_safe_int(dataset_cfg.get("top_k")),
             notes=dataset_cfg.get("notes"),

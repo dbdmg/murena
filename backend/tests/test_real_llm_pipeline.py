@@ -95,7 +95,9 @@ def test_api_keys_configured():
     if openai_key:
         print(f"✅ OPENAI_API_KEY: {openai_key[:10]}...{openai_key[-4:]}")
     else:
-        print("⚠️ OPENAI_API_KEY non configurata (alcuni agenti potrebbero non funzionare)")
+        print(
+            "⚠️ OPENAI_API_KEY non configurata (alcuni agenti potrebbero non funzionare)"
+        )
 
 
 @real_llm_test
@@ -247,11 +249,17 @@ def test_single_agent_location():
     for p in result.places:
         name_lower = (p.name or "").lower()
         city_lower = (p.city or "").lower()
-        if "torino" in name_lower or "torino" in city_lower or "politecnico" in name_lower:
+        if (
+            "torino" in name_lower
+            or "torino" in city_lower
+            or "politecnico" in name_lower
+        ):
             found_torino = True
             break
 
-    assert found_torino, f"Torino/Politecnico non identificato nei places: {result.places}"
+    assert (
+        found_torino
+    ), f"Torino/Politecnico non identificato nei places: {result.places}"
 
     print(f"✅ Location correttamente identificata: {result.places[0]}")
 

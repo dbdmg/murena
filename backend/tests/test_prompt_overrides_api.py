@@ -49,6 +49,7 @@ def test_prompt_overrides_roundtrip(client_and_db, monkeypatch):
 
     # Force DEBUG=True to allow prompt editing
     from app.core.config import settings
+
     monkeypatch.setattr(settings, "DEBUG", True)
 
     # Create config with new system/user structure

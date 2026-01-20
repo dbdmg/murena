@@ -35,14 +35,18 @@ def get_llm(model_name: Optional[str] = None, temperature: Optional[float] = Non
     except ValueError:
         default_temperature = 0.0
 
-    resolved_temperature = temperature if temperature is not None else default_temperature
+    resolved_temperature = (
+        temperature if temperature is not None else default_temperature
+    )
 
     # --- LOGICA DI SWITCHING MODELLO ---
     # Se il modello inizia con "gpt-" o "o1-", usiamo OpenAI
     if resolved_model.startswith("gpt-") or resolved_model.startswith("o1-"):
         api_key = os.getenv("OPENAI_API_KEY")
         if not api_key:
-            raise RuntimeError("OPENAI_API_KEY non configurata per utilizzare modelli OpenAI.")
+            raise RuntimeError(
+                "OPENAI_API_KEY non configurata per utilizzare modelli OpenAI."
+            )
 
         try:
             from langchain_openai import ChatOpenAI
@@ -54,7 +58,9 @@ def get_llm(model_name: Optional[str] = None, temperature: Optional[float] = Non
                     "Manca il pacchetto 'langchain-openai'. Installalo con pip install langchain-openai"
                 ) from e
 
-        return ChatOpenAI(model=resolved_model, api_key=api_key, temperature=resolved_temperature)
+        return ChatOpenAI(
+            model=resolved_model, api_key=api_key, temperature=resolved_temperature
+        )
 
     # --- DEFAULT: GEMINI ---
     api_key = os.getenv("GEMINI_KEY")

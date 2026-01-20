@@ -10,7 +10,9 @@ class AnalysisRequest(BaseModel):
     """Request model for starting a new analysis."""
 
     query: str = Field(..., description="Natural language query for property search")
-    dataset_key: str = Field(default="full", description="Dataset to use: 'full', 'meta', or 'ape'")
+    dataset_key: str = Field(
+        default="full", description="Dataset to use: 'full', 'meta', or 'ape'"
+    )
     map_limit: int = Field(
         default=1000,
         ge=1,
@@ -23,7 +25,9 @@ class AnalysisRequest(BaseModel):
         le=50,
         description="Maximum number of properties to evaluate with LLM",
     )
-    analysis_mode: str = Field(default="agent", description="Analysis mode: 'classic' or 'agent'")
+    analysis_mode: str = Field(
+        default="agent", description="Analysis mode: 'classic' or 'agent'"
+    )
 
     class Config:
         json_schema_extra = {
@@ -83,15 +87,25 @@ class BuildingFilters(BaseModel):
     """Filter parameters for buildings list endpoint."""
 
     run_id: Optional[str] = Field(None, description="Filter by analysis run ID")
-    min_surface: Optional[float] = Field(None, ge=0, description="Minimum surface area in m²")
-    max_surface: Optional[float] = Field(None, ge=0, description="Maximum surface area in m²")
-    min_score: Optional[float] = Field(None, ge=0, le=100, description="Minimum evaluation score")
-    max_score: Optional[float] = Field(None, ge=0, le=100, description="Maximum evaluation score")
+    min_surface: Optional[float] = Field(
+        None, ge=0, description="Minimum surface area in m²"
+    )
+    max_surface: Optional[float] = Field(
+        None, ge=0, description="Maximum surface area in m²"
+    )
+    min_score: Optional[float] = Field(
+        None, ge=0, le=100, description="Minimum evaluation score"
+    )
+    max_score: Optional[float] = Field(
+        None, ge=0, le=100, description="Maximum evaluation score"
+    )
     energy_classes: Optional[List[str]] = Field(
         None, description="List of energy classes (A1, A2, A4, B, C, D, E, F, G)"
     )
     city: Optional[str] = Field(None, description="Filter by city name")
-    is_evaluated: Optional[bool] = Field(None, description="Filter by evaluation status")
+    is_evaluated: Optional[bool] = Field(
+        None, description="Filter by evaluation status"
+    )
     epoche_costruzione: Optional[List[str]] = Field(
         None,
         description="List of construction periods (e.g. 'Prima del 1919', 'Dal 1919 al 1945')",

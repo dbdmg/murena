@@ -46,14 +46,18 @@ class UseCaseResult(BaseModel):
     key_metrics: List[str] = Field(
         default_factory=list, description="Metriche chiave da analizzare"
     )
-    prompt: Optional[PromptRecord] = Field(None, description="Prompt utilizzato per la generazione")
+    prompt: Optional[PromptRecord] = Field(
+        None, description="Prompt utilizzato per la generazione"
+    )
 
 
 class SQLAgentResult(BaseModel):
     sql_query: str = Field(..., description="Query SQL generata")
     explanation: Optional[str] = Field(None, description="Spiegazione della query")
     raw_text: str = Field(..., description="Risposta grezza ottenuta dal modello")
-    prompt: Optional[PromptRecord] = Field(None, description="Prompt utilizzato per la generazione")
+    prompt: Optional[PromptRecord] = Field(
+        None, description="Prompt utilizzato per la generazione"
+    )
 
 
 class EvaluationResult(BaseModel):
@@ -65,7 +69,9 @@ class EvaluationResult(BaseModel):
 
 
 class EvaluationAgentResponse(BaseModel):
-    prompt: Optional[PromptRecord] = Field(None, description="Prompt utilizzato per la valutazione")
+    prompt: Optional[PromptRecord] = Field(
+        None, description="Prompt utilizzato per la valutazione"
+    )
     raw_text: str = Field(..., description="Risposta grezza del modello")
     results: List[EvaluationResult] = Field(
         default_factory=list, description="Valutazioni strutturate"
@@ -82,10 +88,18 @@ class MetricDefinition(BaseModel):
 
 
 class DatasetStrategy(BaseModel):
-    filters: List[str] = Field(default_factory=list, description="Filtri o clausole suggerite")
-    sort_by: Optional[str] = Field(None, description="Campo e direzione di ordinamento consigliati")
-    top_k: Optional[int] = Field(None, description="Numero ideale di candidati da analizzare")
-    notes: Optional[str] = Field(None, description="Indicazioni aggiuntive sulla strategia dataset")
+    filters: List[str] = Field(
+        default_factory=list, description="Filtri o clausole suggerite"
+    )
+    sort_by: Optional[str] = Field(
+        None, description="Campo e direzione di ordinamento consigliati"
+    )
+    top_k: Optional[int] = Field(
+        None, description="Numero ideale di candidati da analizzare"
+    )
+    notes: Optional[str] = Field(
+        None, description="Indicazioni aggiuntive sulla strategia dataset"
+    )
 
 
 class ApeUsagePlan(BaseModel):
@@ -118,13 +132,17 @@ class PoiAgentResult(BaseModel):
     poi_weights: Dict[str, float] = Field(
         default_factory=dict, description="Pesi per categoria POI"
     )
-    constraints: Dict[str, List[str]] = Field(default_factory=dict, description="Vincoli specifici")
+    constraints: Dict[str, List[str]] = Field(
+        default_factory=dict, description="Vincoli specifici"
+    )
     prompt: Optional[PromptRecord] = Field(None, description="Prompt utilizzato")
 
 
 class NeedsMetricPlan(BaseModel):
     summary: str = Field(default="", description="Sintesi del bisogno dell'utente")
-    raw_text: Optional[str] = Field(None, description="Risposta grezza generata dal modello")
+    raw_text: Optional[str] = Field(
+        None, description="Risposta grezza generata dal modello"
+    )
     prompt: Optional[PromptRecord] = Field(
         None, description="Prompt utilizzato per la generazione del piano"
     )
@@ -142,7 +160,9 @@ class NeedsMetricPlan(BaseModel):
 
 class AgentContext(BaseModel):
     user_query: str = Field(..., description="Query originale dell'utente")
-    locations: List[Place] = Field(default_factory=list, description="Luoghi identificati")
+    locations: List[Place] = Field(
+        default_factory=list, description="Luoghi identificati"
+    )
     typology_result: Optional[TypologyAgentResult] = Field(
         None, description="Risultato del TypologyAgent"
     )
@@ -158,15 +178,25 @@ class AgentContext(BaseModel):
 
 
 class ChatAction(BaseModel):
-    action_type: str = Field(..., description="Tipo di azione: 'filter', 'reset', 'rerun', 'none'")
+    action_type: str = Field(
+        ..., description="Tipo di azione: 'filter', 'reset', 'rerun', 'none'"
+    )
     filter_field: Optional[str] = Field(
         None, description="Campo su cui filtrare (es. 'tipologia', 'classe')"
     )
-    filter_value: Optional[str] = Field(None, description="Valore del filtro (es. 'Ufficio', 'A4')")
-    reasoning: str = Field(..., description="Spiegazione dell'azione o risposta all'utente")
+    filter_value: Optional[str] = Field(
+        None, description="Valore del filtro (es. 'Ufficio', 'A4')"
+    )
+    reasoning: str = Field(
+        ..., description="Spiegazione dell'azione o risposta all'utente"
+    )
 
 
 class MapAssistantResponse(BaseModel):
-    response_text: str = Field(..., description="Risposta testuale da mostrare all'utente")
-    action: Optional[ChatAction] = Field(None, description="Azione da eseguire sulla UI")
+    response_text: str = Field(
+        ..., description="Risposta testuale da mostrare all'utente"
+    )
+    action: Optional[ChatAction] = Field(
+        None, description="Azione da eseguire sulla UI"
+    )
     prompt: Optional[PromptRecord] = Field(None, description="Prompt utilizzato")

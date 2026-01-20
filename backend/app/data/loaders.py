@@ -125,7 +125,9 @@ def load_and_merge_data(file_path):
 
 
 @lru_cache(maxsize=128)
-@retry_with_backoff(retries=3, initial_delay=1.0, exceptions=(requests.RequestException,))
+@retry_with_backoff(
+    retries=3, initial_delay=1.0, exceptions=(requests.RequestException,)
+)
 def get_coordinates(place_name):
     """
     Fetch coordinates for a place using Nominatim API (cached).

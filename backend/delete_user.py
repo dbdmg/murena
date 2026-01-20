@@ -48,7 +48,9 @@ def main():
 
         # Confirm deletion
         confirm = (
-            input(f"\nAre you sure you want to delete '{username}'? (yes/no): ").strip().lower()
+            input(f"\nAre you sure you want to delete '{username}'? (yes/no): ")
+            .strip()
+            .lower()
         )
         if confirm != "yes":
             print("Deletion cancelled.")

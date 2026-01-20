@@ -61,7 +61,9 @@ def _poll_until_completed(client: TestClient, run_id: str, timeout_s: float = 2.
         time.sleep(0.02)
 
     assert last is not None
-    pytest.fail(f"Timed out waiting analysis completion. Last status={last.get('status')}")
+    pytest.fail(
+        f"Timed out waiting analysis completion. Last status={last.get('status')}"
+    )
 
 
 def test_analysis_history_and_delete_mocked(client_and_sessionmaker, monkeypatch):
@@ -72,10 +74,14 @@ def test_analysis_history_and_delete_mocked(client_and_sessionmaker, monkeypatch
 
     # Optional: seed the mock with real query/location from an existing run folder.
     repo_root = Path(__file__).resolve().parents[2]
-    metadata_path = repo_root / "runs" / "admin" / "run_20251218_124255_71b2aec2" / "metadata.json"
+    metadata_path = (
+        repo_root / "runs" / "admin" / "run_20251218_124255_71b2aec2" / "metadata.json"
+    )
     if metadata_path.exists():
         metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
-        real_query = metadata.get("query") or "Appartamenti a Torino vicino al Politecnico"
+        real_query = (
+            metadata.get("query") or "Appartamenti a Torino vicino al Politecnico"
+        )
         real_location = metadata.get("location_data")
         real_summary = metadata.get("status_message")
     else:
@@ -151,7 +157,9 @@ def test_analysis_history_and_delete_mocked(client_and_sessionmaker, monkeypatch
     assert after.status_code == 404
 
 
-def test_analysis_failed_status_when_service_raises(client_and_sessionmaker, monkeypatch):
+def test_analysis_failed_status_when_service_raises(
+    client_and_sessionmaker, monkeypatch
+):
     client, _ = client_and_sessionmaker
 
     from app.services.analysis_service import analysis_service
@@ -204,4 +212,6 @@ def test_websocket_progress_streaming_mocked(client_and_sessionmaker, monkeypatc
         msg2 = ws.receive_json()
         assert msg2.get("type") == "complete"
         assert msg2.get("run_id") == run_id
-        assert msg2.get("results_url") == f"/api/v1/analysis/{run_id}"  # contract in websockets.py
+        assert (
+            msg2.get("results_url") == f"/api/v1/analysis/{run_id}"
+        )  # contract in websockets.py

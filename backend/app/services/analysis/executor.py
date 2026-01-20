@@ -40,21 +40,29 @@ def execute_sql_query(sql_query, pd_data, dataset_path=None):
             con.create_function("haversine_km", haversine_km, return_type="FLOAT")
 
             # DuckDB Native Loading Optimization
-            if dataset_path and dataset_path.endswith(".parquet") and os.path.exists(dataset_path):
+            if (
+                dataset_path
+                and dataset_path.endswith(".parquet")
+                and os.path.exists(dataset_path)
+            ):
                 try:
                     # Create view for base data
-                    con.execute(f"CREATE VIEW base_immobili AS SELECT * FROM '{dataset_path}'")
+                    con.execute(
+                        f"CREATE VIEW base_immobili AS SELECT * FROM '{dataset_path}'"
+                    )
 
                     # Check for APE data and join if available
-                    if os.path.exists(APE_DETAILED_DATA_PATH) and APE_DETAILED_DATA_PATH.endswith(
-                        ".parquet"
-                    ):
+                    if os.path.exists(
+                        APE_DETAILED_DATA_PATH
+                    ) and APE_DETAILED_DATA_PATH.endswith(".parquet"):
                         con.execute(
                             f"CREATE VIEW ape_data AS SELECT * FROM '{APE_DETAILED_DATA_PATH}'"
                         )
 
                         # Check if 'id' column exists in ape_data
-                        ape_cols = [c[0] for c in con.execute("DESCRIBE ape_data").fetchall()]
+                        ape_cols = [
+                            c[0] for c in con.execute("DESCRIBE ape_data").fetchall()
+                        ]
 
                         if "id" in ape_cols:
                             # Construct join query to replicate load_and_merge_data logic
@@ -75,10 +83,14 @@ def execute_sql_query(sql_query, pd_data, dataset_path=None):
                         else:
                             # If no ID in APE data, just alias base table (skip join)
                             # This matches the behavior of pandas load_and_merge_data which skips merge if 'id' missing
-                            con.execute("CREATE VIEW IMMOBILI AS SELECT * FROM base_immobili")
+                            con.execute(
+                                "CREATE VIEW IMMOBILI AS SELECT * FROM base_immobili"
+                            )
                     else:
                         # If no APE data, just alias base table
-                        con.execute("CREATE VIEW IMMOBILI AS SELECT * FROM base_immobili")
+                        con.execute(
+                            "CREATE VIEW IMMOBILI AS SELECT * FROM base_immobili"
+                        )
 
                     return con.execute(sql_query).fetchdf(), None
                 except Exception as e:

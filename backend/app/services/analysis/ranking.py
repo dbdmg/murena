@@ -132,7 +132,9 @@ def calculate_ranking_score(
             w_ape, w_poi = 0.5, 0.5
 
     # 4. Score Totale
-    final_score = (poi_score_norm * w_poi) + (ape_score_norm * w_ape) + (dist_score_norm * w_dist)
+    final_score = (
+        (poi_score_norm * w_poi) + (ape_score_norm * w_ape) + (dist_score_norm * w_dist)
+    )
 
     df["ranking_score"] = final_score
 
