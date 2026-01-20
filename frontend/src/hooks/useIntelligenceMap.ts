@@ -175,6 +175,7 @@ export function useIntelligenceMap(
                         data_decorrenza: b.data_decorrenza,
                         numero_immobili_per_catasto: b.numero_immobili_per_catasto,
                         id_list: b.id_list,
+                        sub_properties: b.sub_properties,
                         // Scores and extended info
                         ape_scores: b.ape_scores,
                         poi_scores: b.poi_scores,

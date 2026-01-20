@@ -12,6 +12,8 @@ from typing import Optional
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from sqlalchemy.orm import Session, sessionmaker
+import pandas as pd
+import logging
 
 from app.api.deps import get_current_user_optional
 from app.database.connection import get_db
@@ -21,6 +23,8 @@ from app.models.responses import AnalysisResponse, AnalysisResults, AgentStepsRe
 from app.repositories import RunRepository
 from app.core.config import settings
 from app.utils.json_sanitizer import make_json_safe
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -850,7 +854,74 @@ async def get_analysis(
     # If results are available, return them
     if run.results:
         try:
-            return AnalysisResults.model_validate(run.results)
+            results = AnalysisResults.model_validate(run.results)
+
+            # Enrich meta immobili with sub_properties if missing
+            # This handles legacy runs stored before sub_properties was implemented
+            from app.services.real_estate_service import RealEstateService
+            from app.models.responses import SubProperty
+
+            real_estate_svc = RealEstateService()
+
+            for building in results.buildings:
+                if (
+                    building.meta_immobile
+                    and building.id_list
+                    and not building.sub_properties
+                ):
+                    try:
+                        # Parse id_list
+                        id_list_raw = building.id_list
+                        if isinstance(id_list_raw, str):
+                            id_list_parsed = ast.literal_eval(id_list_raw)
+                        elif isinstance(id_list_raw, list):
+                            id_list_parsed = id_list_raw
+                        else:
+                            continue
+
+                        if id_list_parsed and len(id_list_parsed) > 0:
+                            sub_properties = []
+                            # Get cached dataset for lookups
+                            df = real_estate_svc._dataset_cache.get("full")
+
+                            for sub_id in id_list_parsed[:20]:  # Limit to 20
+                                sub_id_str = str(sub_id)
+                                sub_prop = SubProperty(id=sub_id_str)
+
+                                # Try to find details in the dataset
+                                if df is not None:
+                                    sub_row = df[df["id"].astype(str) == sub_id_str]
+                                    if not sub_row.empty:
+                                        sub_row = sub_row.iloc[0]
+                                        if (
+                                            "superficie_di_riferimento_mq"
+                                            in sub_row.index
+                                            and pd.notna(
+                                                sub_row["superficie_di_riferimento_mq"]
+                                            )
+                                        ):
+                                            sub_prop.surface_area = float(
+                                                sub_row["superficie_di_riferimento_mq"]
+                                            )
+                                        if (
+                                            "tipologia_bene_immobile" in sub_row.index
+                                            and pd.notna(
+                                                sub_row["tipologia_bene_immobile"]
+                                            )
+                                        ):
+                                            sub_prop.property_type = str(
+                                                sub_row["tipologia_bene_immobile"]
+                                            )
+
+                                sub_properties.append(sub_prop)
+
+                            building.sub_properties = sub_properties
+                    except Exception as e:
+                        logger.warning(
+                            f"Error enriching sub_properties for building {building.id}: {e}"
+                        )
+
+            return results
         except Exception as e:
             raise HTTPException(
                 status_code=500, detail=f"Stored results are invalid: {e}"
