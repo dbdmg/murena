@@ -3,8 +3,10 @@ import os
 from functools import lru_cache
 import pandas as pd
 
-# Define path relative to project root (assuming execution from project root)
-POI_JSON_PATH = os.path.join("FOLDER_STATIC_ROME", "pois.json")
+from app.core.config import settings
+
+# Define path relative to project root using config
+POI_JSON_PATH = os.path.join(settings.STATIC_DIR, "pois.json")
 
 # Category definitions based on tags
 CATEGORIES = {

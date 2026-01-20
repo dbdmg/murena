@@ -8,10 +8,12 @@ import pandas as pd
 from typing import Optional
 from pydantic import BaseModel
 
+from app.core.config import settings
+
 router = APIRouter()
 
-# APE CSV path
-APE_CSV_PATH = Path("../FOLDER_META/ape_detailed_data.csv")
+# APE data path from config
+APE_CSV_PATH = Path(settings.APE_DETAILED_DATA_PATH)
 
 # Load APE data
 _ape_df: Optional[pd.DataFrame] = None
