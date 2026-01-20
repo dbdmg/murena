@@ -119,9 +119,24 @@ export const SearchPage: React.FC = () => {
     };
 
     return (
-        <div className="min-h-full flex flex-col items-center justify-center p-8">
+        <div className="min-h-full relative flex flex-col items-center justify-center p-8 overflow-hidden">
+            {/* Background Image */}
+            <div
+                className="absolute inset-0 z-0"
+                style={{
+                    backgroundImage: 'url(/backgrounds/buildings.jpg)',
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center bottom',
+                    backgroundRepeat: 'no-repeat',
+                    opacity: 0.5,
+                }}
+            />
+            {/* Gradient overlay for text readability */}
+            <div className="absolute inset-0 z-0 bg-gradient-to-b from-[#0a0d12] via-[#0a0d12]/80 to-[#0a0d12]/95" />
+            <div className="absolute inset-0 z-0 bg-gradient-to-t from-[#0a0d12] via-transparent to-transparent" />
+
             {/* Main Content */}
-            <div className="w-full max-w-3xl mx-auto">
+            <div className="w-full max-w-3xl mx-auto relative z-10">
                 {/* Neural Engine Badge */}
                 <motion.div
                     initial={{ opacity: 0, y: -20 }}
@@ -241,8 +256,9 @@ export const SearchPage: React.FC = () => {
                     </motion.div>
                 )}
 
-                {/* Demo Mode Toggle - Absolute Top Right */}
-                <div className="absolute top-8 right-8">
+
+                {/* Demo Mode Toggle - Fixed Top Right */}
+                <div className="fixed top-8 right-8 z-50">
                     <button
                         onClick={() => setDemoMode(!demoMode)}
                         className={`
