@@ -1,0 +1,16 @@
+mini-server di Continuous Deployment (CD)
+
+SERVER MP1:
+WEBAPP .......................... http://mp1.polito.it:8890
+CHECK SERVICE IS ACTIVE ......... ps aux | grep realestateai | grep tower
+START SERVICE ................... cd /home/cortina/projects/real-estate-ai/git/ops/watch-tower && nohup ./realestateai-watch-tower 2>&1 &
+LAUNCH DEPLOY ................... curl -X POST http://mp1.polito.it:8891/deploy -H "X-API-Key: B4I0LZNVH9AXENC5AQT5Q6YSULI9KWNZE9FAJBK6RMxIAAKsNb"
+CHECK HEALTH .................... curl http://mp1.polito.it:8891/health
+DOCKER CONFIG ................... sudo usermod -aG docker $USER
+GO INSTALLATION ................. sudo apt install -y golang-go && go version
+GO BUILD ......,................. go build realestateai-watch-tower.go
+OPEN PORTS IN UFW ............... sudo ufw allow 8891
+
+LOCALHOST:
+LAUNCH DEPLOY ................... curl -X POST http://localhost:8891/deploy -H "X-API-Key: B4I0LZNVH9AXENC5AQT5Q6YSULI9KWNZE9FAJBK6RMxIAAKsNb"
+CHECK HEALTH .................... curl http://localhost:8891/health
