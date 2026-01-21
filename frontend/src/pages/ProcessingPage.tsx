@@ -237,15 +237,31 @@ export const ProcessingPage: React.FC = () => {
         return undefined;
     };
 
-    // Auto-scroll to summary when complete
+    // START CHANGES: UX Improvements
+    const [visualStepIndex, setVisualStepIndex] = useState(0);
+
+    // Smoothly advance visual steps up to the real target (enforce min duration)
     useEffect(() => {
-        if (isComplete && brokerSummary) {
-            // Small delay to allow animation to start/render
-            setTimeout(() => {
-                summaryRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }, 500);
+        // Target is either completion or current progress step
+        const targetStep = isComplete ? TIMELINE_STEPS.length : currentStepIndex;
+
+        if (visualStepIndex < targetStep) {
+            const timeout = setTimeout(() => {
+                setVisualStepIndex(prev => prev + 1);
+            }, 800); // 800ms minimum per step for better UX
+            return () => clearTimeout(timeout);
         }
-    }, [isComplete, brokerSummary]);
+    }, [visualStepIndex, currentStepIndex, isComplete]);
+
+    // Only show completion state when VISUAL animation finishes
+    const isVisuallyComplete = isComplete && visualStepIndex === TIMELINE_STEPS.length;
+
+    // REMOVED: Auto-scroll to summary (User feedback: unwanted behavior)
+    /* useEffect(() => {
+        if (isComplete && brokerSummary) ...
+    }, ...); */
+
+    // END CHANGES
 
     // Update UI based on WebSocket progress
     useEffect(() => {
@@ -281,7 +297,7 @@ export const ProcessingPage: React.FC = () => {
                 hasFetchedSteps.current = true;
                 fetchAgentSteps();
             }
-            // Fetch results to get broker_summary and final data
+            // Fetch results
             if (runId && !results) {
                 analysisApi.getResults(runId).then(resultsData => {
                     if (resultsData.status === 'completed') {
@@ -297,7 +313,7 @@ export const ProcessingPage: React.FC = () => {
         }
     }, [progress.percent, progress.message, progress.step, progress.isComplete, fetchAgentSteps, runId, results]);
 
-    // Poll for final results (less frequent - WebSocket handles real-time)
+    // Poll for final results
     useEffect(() => {
         if (!runId || isComplete) return;
 
@@ -315,7 +331,6 @@ export const ProcessingPage: React.FC = () => {
                     setCurrentStepIndex(TIMELINE_STEPS.length);
                     clearInterval(pollInterval);
 
-                    // Fetch agent steps on complete
                     if (!hasFetchedSteps.current) {
                         hasFetchedSteps.current = true;
                         fetchAgentSteps();
@@ -378,14 +393,14 @@ export const ProcessingPage: React.FC = () => {
 
                     {/* HERO SECTION: Neural Pulse & Status */}
                     <div className="flex flex-col items-center justify-center mb-10 py-4">
-                        <NeuralPulse active={!isComplete} />
+                        <NeuralPulse active={!isVisuallyComplete} />
 
                         <div className="mt-4 text-center">
                             <h2 className="text-2xl md:text-3xl font-bold text-white mb-2">
-                                {isComplete ? 'Analysis Complete' : 'Neural Engine Active'}
+                                {isVisuallyComplete ? 'Analysis Complete' : 'Neural Engine Active'}
                             </h2>
                             <p className="text-gray-400 flex items-center justify-center gap-2 h-6">
-                                {isComplete ? (
+                                {isVisuallyComplete ? (
                                     <span className="text-emerald-400 flex items-center gap-2">
                                         <CheckCircle2 className="w-4 h-4" />
                                         All tasks finished successfully
@@ -403,8 +418,9 @@ export const ProcessingPage: React.FC = () => {
                     {/* Timeline Stepper - Horizontal with connecting lines */}
                     <div className="flex items-center justify-between mb-8 px-2">
                         {TIMELINE_STEPS.map((step, i) => {
-                            const isCompleted = i < currentStepIndex;
-                            const isCurrent = i === currentStepIndex && !isComplete;
+                            // Use VISUAL step index
+                            const isCompleted = i < visualStepIndex;
+                            const isCurrent = i === visualStepIndex && !isVisuallyComplete;
                             const StepIcon = step.icon;
 
                             return (
@@ -445,7 +461,7 @@ export const ProcessingPage: React.FC = () => {
                                     {i < TIMELINE_STEPS.length - 1 && (
                                         <div className={`
                                         flex-1 h-0.5 mx-4 rounded-full transition-all duration-500
-                                        ${i < currentStepIndex ? 'bg-blue-500' : 'bg-white/10'}
+                                        ${i < visualStepIndex ? 'bg-blue-500' : 'bg-white/10'}
                                     `} />
                                     )}
                                 </React.Fragment>
