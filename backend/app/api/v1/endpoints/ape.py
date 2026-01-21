@@ -14,17 +14,13 @@ router = APIRouter()
 APE_CSV_PATH = Path("data/FOLDER_META/ape_detailed_data.parquet")
 
 # Load APE data
-_ape_df: Optional[pd.DataFrame] = None
+from app.services.energy_score_calculator import get_calculator
 
 
 def get_ape_dataframe() -> pd.DataFrame:
-    """Load and cache the APE dataframe."""
-    global _ape_df
-    if _ape_df is None:
-        if not APE_CSV_PATH.exists():
-            raise HTTPException(status_code=500, detail="APE data file not found")
-        _ape_df = pd.read_parquet(APE_CSV_PATH)
-    return _ape_df
+    """Load and cache the APE dataframe using robust calculator."""
+    calculator = get_calculator()
+    return calculator.load_and_compute()
 
 
 class APEDetailResponse(BaseModel):

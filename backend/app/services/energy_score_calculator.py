@@ -77,56 +77,77 @@ class EnergyScoreCalculator:
             return self._scores_df
 
         logger.info(f"Loading APE data from {self.ape_data_path}")
-        df = pd.read_parquet(self.ape_data_path)
 
-        # Calculate kWh per square meter
-        df = df.copy()
-        df["kwh_per_sqm"] = df["consumo_kwh_tot"] / df["superficie"]
+        try:
+            if not self.ape_data_path.exists():
+                logger.error(f"APE data file not found at {self.ape_data_path}")
+                # Return empty DF but don't crash
+                self._scores_df = pd.DataFrame()
+                self._loaded = True
+                return self._scores_df
 
-        # Remove invalid values
-        df = df[
-            df["kwh_per_sqm"].notna()
-            & (df["kwh_per_sqm"] > 0)
-            & (df["kwh_per_sqm"] < 1000)
-        ]
+            df = pd.read_parquet(self.ape_data_path)
 
-        # Build distributions per usage type
-        for usage_type in df["destinazione_uso_cod"].dropna().unique():
-            subset = df[df["destinazione_uso_cod"] == usage_type]["kwh_per_sqm"]
-            if len(subset) >= 10:  # Need enough samples for meaningful stats
-                self._distributions[usage_type] = {
-                    "mean": subset.mean(),
-                    "std": subset.std(),
-                    "count": len(subset),
-                }
-                logger.info(
-                    f"Usage type {usage_type}: mean={subset.mean():.2f}, std={subset.std():.2f}, n={len(subset)}"
-                )
+            # Calculate kWh per square meter
+            df = df.copy()
+            if "consumo_kwh_tot" in df.columns and "superficie" in df.columns:
+                df["kwh_per_sqm"] = df["consumo_kwh_tot"] / df["superficie"]
+            else:
+                logger.warning("APE data missing required columns")
+                self._scores_df = pd.DataFrame()
+                return self._scores_df
 
-        # Global distribution as fallback
-        all_values = df["kwh_per_sqm"].dropna()
-        self._global_distribution = {
-            "mean": all_values.mean(),
-            "std": all_values.std(),
-            "count": len(all_values),
-        }
-        logger.info(
-            f"Global distribution: mean={all_values.mean():.2f}, std={all_values.std():.2f}, n={len(all_values)}"
-        )
+            # Remove invalid values
+            df = df[
+                df["kwh_per_sqm"].notna()
+                & (df["kwh_per_sqm"] > 0)
+                & (df["kwh_per_sqm"] < 1000)
+            ]
 
-        # Calculate scores for all rows
-        df["energy_score"] = df.apply(self._compute_score_for_row, axis=1)
+            # Build distributions per usage type
+            if "destinazione_uso_cod" in df.columns:
+                for usage_type in df["destinazione_uso_cod"].dropna().unique():
+                    subset = df[df["destinazione_uso_cod"] == usage_type]["kwh_per_sqm"]
+                    if len(subset) >= 10:
+                        self._distributions[usage_type] = {
+                            "mean": subset.mean(),
+                            "std": subset.std(),
+                            "count": len(subset),
+                        }
+                        logger.debug(
+                            f"Usage type {usage_type}: mean={subset.mean():.2f}, std={subset.std():.2f}, n={len(subset)}"
+                        )
 
-        # Calculate estimated annual cost (€/year)
-        df["estimated_cost_year"] = df["consumo_kwh_tot"] * DEFAULT_KWH_COST
+            # Global distribution as fallback
+            all_values = df["kwh_per_sqm"].dropna()
+            self._global_distribution = {
+                "mean": all_values.mean(),
+                "std": all_values.std(),
+                "count": len(all_values),
+            }
+            logger.debug(
+                f"Global distribution: mean={all_values.mean():.2f}, std={all_values.std():.2f}, n={len(all_values)}"
+            )
 
-        # Calculate cost per sqm (€/m²/year)
-        df["cost_per_sqm_year"] = df["kwh_per_sqm"] * DEFAULT_KWH_COST
+            # Calculate scores for all rows
+            df["energy_score"] = df.apply(self._compute_score_for_row, axis=1)
 
-        self._scores_df = df
-        self._loaded = True
+            # Calculate estimated annual cost (€/year)
+            df["estimated_cost_year"] = df["consumo_kwh_tot"] * DEFAULT_KWH_COST
 
-        return df
+            # Calculate cost per sqm (€/m²/year)
+            df["cost_per_sqm_year"] = df["kwh_per_sqm"] * DEFAULT_KWH_COST
+
+            self._scores_df = df
+            self._loaded = True
+
+            return df
+
+        except Exception as e:
+            logger.error(f"Failed to load/compute APE data: {e}")
+            self._scores_df = pd.DataFrame()
+            self._loaded = True  # Prevent retry loop
+            return self._scores_df
 
     def _compute_score_for_row(self, row: pd.Series) -> int:
         """Compute score for a single row."""

@@ -184,8 +184,13 @@ def update_ape_data(
     df = calculate_energy_scores(df)
 
     # Save to parquet
+    # Save to parquet
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    df.to_parquet(output_path, index=False)
+    try:
+        df.to_parquet(output_path, index=False, engine="pyarrow")
+    except Exception as e:
+        print(f"Warning: pyarrow failed ({e}), trying default engine...")
+        df.to_parquet(output_path, index=False)
     print(f"\n✅ Saved {len(df)} records to {output_path}")
 
     return output_path
