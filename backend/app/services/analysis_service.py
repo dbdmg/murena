@@ -132,6 +132,16 @@ class AnalysisService:
                 self._get_or_load_dataset, dataset_key
             )
 
+            # Preload RealEstateService to ensure enrichment cache is populated
+            try:
+                # We use limit=1 just to trigger the dataset load and index build
+                await self._real_estate_service.get_buildings(
+                    filters=None, limit=1, dataset_key=dataset_key
+                )
+                logger.info("RealEstateService cache preloaded for enrichment")
+            except Exception as e:
+                logger.warning(f"Failed to preload RealEstateService: {e}")
+
             # Get dataset path
             dataset_path = settings.dataset_options.get(dataset_key)
 
@@ -258,6 +268,9 @@ class AnalysisService:
             orchestrator_result.map_df is not None
             and not orchestrator_result.map_df.empty
         ):
+            logger.info(
+                f"Formatting {len(orchestrator_result.map_df)} rows from orchestrator"
+            )
             for _, row in orchestrator_result.map_df.iterrows():
                 try:
                     buildings.append(self._real_estate_service._df_row_to_building(row))
@@ -266,6 +279,8 @@ class AnalysisService:
                         f"Skipping building row due to conversion error: {e}"
                     )
                     continue
+        else:
+            logger.info("Orchestrator returned no map_df or empty")
 
         return {
             "run_id": run_id,

@@ -19,7 +19,8 @@ import {
     MapPin,
     Zap,
     Layers,
-    Check
+    Check,
+    Search
 } from 'lucide-react';
 import type { MapMarker } from '../../api/types';
 
@@ -56,6 +57,7 @@ export const ResultsSidebar: React.FC<ResultsSidebarProps> = ({
     const [sortBy, setSortBy] = useState<SortOption>(hasActiveRun ? 'score' : 'address');
     const [currentPage, setCurrentPage] = useState(1);
     const [showSortDropdown, setShowSortDropdown] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
 
     // Refs for card elements to enable autoscroll
     const cardRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
@@ -72,9 +74,18 @@ export const ResultsSidebar: React.FC<ResultsSidebarProps> = ({
         }
     }, [hasActiveRun]);
 
-    // Sort markers
+    // Sort and Filter markers
     const sortedMarkers = useMemo(() => {
-        const sorted = [...markers];
+        let sorted = [...markers];
+
+        // Filter by search query
+        if (searchQuery.trim()) {
+            const q = searchQuery.toLowerCase().trim();
+            sorted = sorted.filter(m =>
+                String(m.id).includes(q) ||
+                (m.address && m.address.toLowerCase().includes(q))
+            );
+        }
 
         switch (sortBy) {
             case 'score':
@@ -94,7 +105,7 @@ export const ResultsSidebar: React.FC<ResultsSidebarProps> = ({
             default:
                 return sorted;
         }
-    }, [markers, sortBy]);
+    }, [markers, sortBy, searchQuery]);
 
     // Paginate
     const totalPages = Math.ceil(sortedMarkers.length / ITEMS_PER_PAGE);
@@ -156,7 +167,7 @@ export const ResultsSidebar: React.FC<ResultsSidebarProps> = ({
                             </div>
                             <div>
                                 <h3 className="text-sm font-semibold text-white">Risultati</h3>
-                                <span className="text-xs text-gray-500">{markers.length} immobili</span>
+                                <span className="text-xs text-gray-500">{sortedMarkers.length} immobili</span>
                             </div>
                         </div>
                         <button
@@ -167,8 +178,32 @@ export const ResultsSidebar: React.FC<ResultsSidebarProps> = ({
                         </button>
                     </div>
 
-                    {/* Sort Controls */}
-                    <div className="p-3 border-b border-white/5">
+                    {/* Search and Sort Controls */}
+                    <div className="p-3 border-b border-white/5 space-y-2">
+                        {/* Search Input */}
+                        <div className="relative">
+                            <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-500" />
+                            <input
+                                type="text"
+                                placeholder="Cerca indirizzo o ID..."
+                                value={searchQuery}
+                                onChange={(e) => {
+                                    setSearchQuery(e.target.value);
+                                    setCurrentPage(1);
+                                }}
+                                className="w-full pl-9 pr-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/20 transition-all"
+                            />
+                            {searchQuery && (
+                                <button
+                                    onClick={() => setSearchQuery('')}
+                                    className="absolute right-3 top-2.5 hover:text-white text-gray-500"
+                                >
+                                    <X className="w-3.5 h-3.5" />
+                                </button>
+                            )}
+                        </div>
+
+                        {/* Sort Dropdown */}
                         <div className="relative">
                             <button
                                 onClick={() => setShowSortDropdown(!showSortDropdown)}

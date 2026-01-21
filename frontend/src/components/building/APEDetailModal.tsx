@@ -3,40 +3,97 @@ import { X, Zap, Thermometer, Droplets, Snowflake, Wrench, Calendar, MapPin, Bui
 import client from '../../api/client';
 
 interface APEDetail {
+    // Basic identification
     file: string;
     unita?: string;
     indirizzo?: string;
     data_emissione?: string;
+
+    // Energy class and metrics
     classe?: string;
-    epglnren?: number;
-    epglren?: number;
-    co2?: number;
+    epglnren?: number;  // EP globale non rinnovabile
+    epglren?: number;   // EP globale rinnovabile
+    co2?: number;       // kg CO2/m²/anno
     superficie?: number;
+
+    // Energy vector and services
     vettore?: string;
+    serv_risc?: boolean;  // Has heating
+    serv_acs?: boolean;   // Has hot water
+    serv_raf?: boolean;   // Has cooling
+    serv_vent?: boolean;  // Has ventilation
+    serv_illu?: boolean;  // Has lighting
+    serv_trasp?: boolean; // Has transport (elevators)
+
+    // Location and building
     comune?: string;
     zona_climatica?: string;
     anno_costruzione?: string;
     tipologia_edilizia_str?: string;
+    tipologia_edilizia_cod?: number;
+    destinazione_uso_cod?: number;
     piano?: string;
+
+    // Quality indicators
     qualita_invernale?: string;
     qualita_estiva?: string;
     fonti_rinnovabili?: string;
+
+    // Intervention recommendations
     intervento_desc?: string;
     intervento_classe_target?: string;
     intervento_payback?: number;
+
+    // Heating system
     imp_risc_anno?: string;
     imp_risc_desc?: string;
     imp_risc_tipo?: string;
+    imp_risc_epnren?: number;  // EP non rinnovabile riscaldamento
+
+    // Hot water system
     imp_acs_anno?: string;
     imp_acs_desc?: string;
     imp_acs_tipo?: string;
+    imp_acs_epnren?: number;  // EP non rinnovabile ACS
+
+    // Cooling system
     imp_raf_anno?: string;
     imp_raf_desc?: string;
     imp_raf_tipo?: string;
+    imp_raf_epnren?: number;  // EP non rinnovabile raffrescamento
+
+    // Total consumption
     consumo_kwh_tot?: number;
+
+    // Cadastral info (complete)
+    codice_catastale?: string;
+    sezione?: string;
     foglio?: string;
     particella?: string;
     subalterno?: string;
+    subA?: number;
+    subDA?: number;
+
+    // Coordinates
+    lat?: number;
+    lon?: number;
+
+    // APE scoring breakdown
+    ape_class_score?: number;
+    ape_system_score?: number;
+    ape_envelope_score?: number;
+    ape_renewables_score?: number;
+    ape_total_points?: number;
+    ape_score?: number;
+
+    // Energy cost analysis (calculated)
+    energy_score?: number;
+    kwh_per_sqm?: number;
+    costo_annuo_euro?: number;
+    costo_per_mq_anno?: number;
+    confronto_media_kwh_mq?: number;
+    confronto_tipo_uso?: string;
+    confronto_differenza_pct?: number;
 }
 
 interface APEDetailModalProps {
@@ -167,6 +224,78 @@ export const APEDetailModal: React.FC<APEDetailModalProps> = ({ filename, isOpen
                                 </div>
                             </div>
 
+                            {/* Energy Cost Analysis */}
+                            {data.energy_score !== undefined && data.energy_score !== null && (
+                                <div className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/20 rounded-lg p-3">
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <div className="w-6 h-6 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                                            <span className="text-white text-[10px] font-bold">⚡</span>
+                                        </div>
+                                        <p className="text-[10px] uppercase text-purple-400 font-medium">Analisi Costi Energetici</p>
+                                    </div>
+
+                                    {/* Score display */}
+                                    <div className="flex items-center justify-between mb-3">
+                                        <div className="flex items-center gap-3">
+                                            <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-lg font-bold ${data.energy_score >= 70 ? 'bg-emerald-500/20 text-emerald-400' :
+                                                data.energy_score >= 40 ? 'bg-yellow-500/20 text-yellow-400' :
+                                                    'bg-red-500/20 text-red-400'
+                                                }`}>
+                                                {data.energy_score}
+                                            </div>
+                                            <div>
+                                                <p className="text-sm font-medium text-white">Score Efficienza</p>
+                                                <p className="text-[10px] text-gray-500">
+                                                    {data.energy_score >= 70 ? 'Ottimo' :
+                                                        data.energy_score >= 40 ? 'Nella media' : 'Sotto la media'}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Cost metrics grid */}
+                                    <div className="grid grid-cols-2 gap-2 mb-3">
+                                        <div className="bg-black/20 rounded-lg p-2">
+                                            <p className="text-[10px] text-gray-500 uppercase">Consumo</p>
+                                            <p className="text-sm font-medium text-white">
+                                                {data.kwh_per_sqm?.toFixed(1)} <span className="text-gray-500 text-xs">kWh/m²/anno</span>
+                                            </p>
+                                        </div>
+                                        <div className="bg-black/20 rounded-lg p-2">
+                                            <p className="text-[10px] text-gray-500 uppercase">Costo/m²</p>
+                                            <p className="text-sm font-medium text-white">
+                                                €{data.costo_per_mq_anno?.toFixed(2)} <span className="text-gray-500 text-xs">/anno</span>
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {/* Annual cost */}
+                                    {data.costo_annuo_euro && (
+                                        <div className="bg-black/20 rounded-lg p-2 text-center mb-3">
+                                            <p className="text-[10px] text-gray-500 uppercase">Costo Annuo Stimato</p>
+                                            <p className="text-lg font-bold text-purple-400">
+                                                €{data.costo_annuo_euro.toLocaleString('it-IT', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                                            </p>
+                                        </div>
+                                    )}
+
+                                    {/* Comparison */}
+                                    {data.confronto_media_kwh_mq && (
+                                        <div className="flex items-center justify-between text-xs border-t border-white/10 pt-2">
+                                            <span className="text-gray-500">vs {data.confronto_tipo_uso || 'Media'}</span>
+                                            <span className={`font-medium ${(data.confronto_differenza_pct || 0) < 0 ? 'text-emerald-400' :
+                                                (data.confronto_differenza_pct || 0) > 20 ? 'text-red-400' : 'text-yellow-400'
+                                                }`}>
+                                                {(data.confronto_differenza_pct || 0) > 0 ? '+' : ''}{data.confronto_differenza_pct?.toFixed(1)}%
+                                                <span className="text-gray-500 ml-1">
+                                                    ({data.confronto_media_kwh_mq.toFixed(0)} kWh/m²)
+                                                </span>
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
                             {/* Quality Indicators */}
                             {(data.qualita_invernale || data.qualita_estiva) && (
                                 <div className="bg-white/5 rounded-lg p-3">
@@ -245,17 +374,108 @@ export const APEDetailModal: React.FC<APEDetailModalProps> = ({ filename, isOpen
                                 </div>
                             )}
 
-                            {/* Cadastral Info */}
-                            {(data.foglio || data.particella) && (
+                            {/* Cadastral Info - Enhanced */}
+                            {(data.foglio || data.particella || data.codice_catastale) && (
                                 <div className="bg-white/5 rounded-lg p-3">
                                     <div className="flex items-center gap-1.5 mb-2">
                                         <MapPin className="w-3.5 h-3.5 text-gray-400" />
                                         <p className="text-[10px] uppercase text-gray-500">Dati catastali</p>
                                     </div>
-                                    <div className="flex gap-4 text-xs">
+                                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs">
+                                        {data.codice_catastale && <span className="text-gray-400">Cod.: <span className="text-gray-200">{data.codice_catastale}</span></span>}
+                                        {data.sezione && <span className="text-gray-400">Sez.: <span className="text-gray-200">{data.sezione}</span></span>}
                                         {data.foglio && <span className="text-gray-400">Foglio: <span className="text-gray-200">{data.foglio}</span></span>}
                                         {data.particella && <span className="text-gray-400">Part.: <span className="text-gray-200">{data.particella}</span></span>}
                                         {data.subalterno && <span className="text-gray-400">Sub.: <span className="text-gray-200">{data.subalterno}</span></span>}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Services Available */}
+                            {(data.serv_risc !== undefined || data.serv_acs !== undefined || data.serv_raf !== undefined) && (
+                                <div className="bg-white/5 rounded-lg p-3">
+                                    <p className="text-[10px] uppercase text-gray-500 mb-2">Servizi Energetici</p>
+                                    <div className="flex flex-wrap gap-2">
+                                        <span className={`px-2 py-1 rounded text-xs ${data.serv_risc ? 'bg-orange-500/20 text-orange-400' : 'bg-gray-700/50 text-gray-500'}`}>
+                                            <Thermometer className="w-3 h-3 inline mr-1" />Riscaldamento
+                                        </span>
+                                        <span className={`px-2 py-1 rounded text-xs ${data.serv_acs ? 'bg-cyan-500/20 text-cyan-400' : 'bg-gray-700/50 text-gray-500'}`}>
+                                            <Droplets className="w-3 h-3 inline mr-1" />ACS
+                                        </span>
+                                        <span className={`px-2 py-1 rounded text-xs ${data.serv_raf ? 'bg-blue-500/20 text-blue-400' : 'bg-gray-700/50 text-gray-500'}`}>
+                                            <Snowflake className="w-3 h-3 inline mr-1" />Raffrescamento
+                                        </span>
+                                        {data.serv_vent !== undefined && (
+                                            <span className={`px-2 py-1 rounded text-xs ${data.serv_vent ? 'bg-purple-500/20 text-purple-400' : 'bg-gray-700/50 text-gray-500'}`}>
+                                                Ventilazione
+                                            </span>
+                                        )}
+                                        {data.serv_illu !== undefined && (
+                                            <span className={`px-2 py-1 rounded text-xs ${data.serv_illu ? 'bg-yellow-500/20 text-yellow-400' : 'bg-gray-700/50 text-gray-500'}`}>
+                                                Illuminazione
+                                            </span>
+                                        )}
+                                        {data.serv_trasp !== undefined && (
+                                            <span className={`px-2 py-1 rounded text-xs ${data.serv_trasp ? 'bg-pink-500/20 text-pink-400' : 'bg-gray-700/50 text-gray-500'}`}>
+                                                Trasporto
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* APE Scoring Breakdown */}
+                            {data.ape_total_points !== undefined && (
+                                <div className="bg-gradient-to-r from-blue-500/10 to-cyan-500/10 border border-blue-500/20 rounded-lg p-3">
+                                    <p className="text-[10px] uppercase text-blue-400 mb-2">Punteggio APE Dettagliato</p>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <div className="bg-black/20 rounded p-2 text-center">
+                                            <p className="text-[10px] text-gray-500">Classe</p>
+                                            <p className="text-sm font-bold text-emerald-400">{data.ape_class_score ?? '-'}</p>
+                                        </div>
+                                        <div className="bg-black/20 rounded p-2 text-center">
+                                            <p className="text-[10px] text-gray-500">Impianti</p>
+                                            <p className="text-sm font-bold text-orange-400">{data.ape_system_score ?? '-'}</p>
+                                        </div>
+                                        <div className="bg-black/20 rounded p-2 text-center">
+                                            <p className="text-[10px] text-gray-500">Involucro</p>
+                                            <p className="text-sm font-bold text-cyan-400">{data.ape_envelope_score ?? '-'}</p>
+                                        </div>
+                                        <div className="bg-black/20 rounded p-2 text-center">
+                                            <p className="text-[10px] text-gray-500">Rinnovabili</p>
+                                            <p className="text-sm font-bold text-green-400">{data.ape_renewables_score ?? '-'}</p>
+                                        </div>
+                                    </div>
+                                    <div className="mt-2 pt-2 border-t border-white/10 flex justify-between items-center">
+                                        <span className="text-xs text-gray-400">Punteggio Totale</span>
+                                        <span className="text-lg font-bold text-white">{data.ape_total_points} <span className="text-xs text-gray-500">punti</span></span>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* EP per System */}
+                            {(data.imp_risc_epnren || data.imp_acs_epnren || data.imp_raf_epnren) && (
+                                <div className="bg-white/5 rounded-lg p-3">
+                                    <p className="text-[10px] uppercase text-gray-500 mb-2">EP Non Rinnovabile per Servizio</p>
+                                    <div className="space-y-1">
+                                        {data.imp_risc_epnren && (
+                                            <div className="flex justify-between text-xs">
+                                                <span className="text-orange-400"><Thermometer className="w-3 h-3 inline mr-1" />Riscaldamento</span>
+                                                <span className="text-gray-200">{data.imp_risc_epnren.toFixed(2)} kWh/m²</span>
+                                            </div>
+                                        )}
+                                        {data.imp_acs_epnren && (
+                                            <div className="flex justify-between text-xs">
+                                                <span className="text-cyan-400"><Droplets className="w-3 h-3 inline mr-1" />ACS</span>
+                                                <span className="text-gray-200">{data.imp_acs_epnren.toFixed(2)} kWh/m²</span>
+                                            </div>
+                                        )}
+                                        {data.imp_raf_epnren && (
+                                            <div className="flex justify-between text-xs">
+                                                <span className="text-blue-400"><Snowflake className="w-3 h-3 inline mr-1" />Raffrescamento</span>
+                                                <span className="text-gray-200">{data.imp_raf_epnren.toFixed(2)} kWh/m²</span>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             )}
@@ -265,6 +485,26 @@ export const APEDetailModal: React.FC<APEDetailModalProps> = ({ filename, isOpen
                                 <div className="bg-white/5 rounded-lg p-3 text-center">
                                     <p className="text-[10px] uppercase text-gray-500 mb-1">Consumo annuo stimato</p>
                                     <p className="text-lg font-bold text-yellow-400">{data.consumo_kwh_tot.toLocaleString('it-IT')} kWh</p>
+                                </div>
+                            )}
+
+                            {/* Coordinates with Google Maps link */}
+                            {data.lat && data.lon && (
+                                <div className="bg-white/5 rounded-lg p-3">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <p className="text-[10px] uppercase text-gray-500">Coordinate</p>
+                                            <p className="text-xs text-gray-300">{data.lat.toFixed(6)}, {data.lon.toFixed(6)}</p>
+                                        </div>
+                                        <a
+                                            href={`https://www.google.com/maps?q=${data.lat},${data.lon}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="px-3 py-1.5 bg-blue-500/20 text-blue-400 rounded text-xs hover:bg-blue-500/30 transition-colors"
+                                        >
+                                            Apri Mappa
+                                        </a>
+                                    </div>
                                 </div>
                             )}
 

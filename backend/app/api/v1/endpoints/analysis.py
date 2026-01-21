@@ -856,15 +856,15 @@ async def get_analysis(
         try:
             results = AnalysisResults.model_validate(run.results)
 
-            # Enrich meta immobili with sub_properties if missing
-            # This handles legacy runs stored before sub_properties was implemented
+            # Enrich buildings with missing fields from dataset
+            # This handles legacy runs stored before certain fields were implemented
             from app.services.real_estate_service import RealEstateService
-            from app.models.responses import SubProperty
+            from app.models.responses import SubProperty, APEScores, POIScores
             from app.data.loaders import load_and_merge_data
 
             real_estate_svc = RealEstateService()
 
-            # Load dataset if not cached (needed for sub_property lookups)
+            # Load dataset if not cached (needed for field lookups)
             df = real_estate_svc._dataset_cache.get("full")
             if df is None:
                 try:
@@ -873,11 +873,100 @@ async def get_analysis(
                         df = load_and_merge_data(dataset_path)
                         real_estate_svc._dataset_cache["full"] = df
                 except Exception as load_err:
-                    logger.warning(
-                        f"Could not load dataset for sub_properties enrichment: {load_err}"
-                    )
+                    logger.warning(f"Could not load dataset for enrichment: {load_err}")
 
             for building in results.buildings:
+                # Try to enrich from dataset if we have it
+                if df is not None:
+                    try:
+                        building_row = df[df["id"].astype(str) == str(building.id)]
+                        if not building_row.empty:
+                            row = building_row.iloc[0]
+
+                            # Enrich surface_area if missing
+                            if building.surface_area is None:
+                                val = row.get("superficie_di_riferimento_mq")
+                                if pd.notna(val):
+                                    building.surface_area = float(val)
+
+                            # Enrich property_type if missing
+                            if building.property_type is None:
+                                val = row.get("tipologia_bene_immobile")
+                                if pd.notna(val):
+                                    building.property_type = str(val)
+
+                            # Enrich construction_year if missing
+                            if building.construction_year is None:
+                                val = row.get("epoca_costruzione")
+                                if pd.notna(val):
+                                    building.construction_year = str(val)
+
+                            # Enrich energy_class if missing
+                            if building.energy_class is None:
+                                val = row.get("classe_energetica_ape")
+                                if pd.notna(val):
+                                    building.energy_class = str(val)
+
+                            # Enrich ape_scores if missing
+                            if building.ape_scores is None:
+                                ape_total = row.get("ape_score_total")
+                                if pd.notna(ape_total):
+                                    cls = row.get("ape_score_classe")
+                                    sys_score = row.get("ape_score_impianto")
+                                    env = row.get("ape_score_involucro")
+                                    ren = row.get("ape_score_rinnovabili")
+                                    if all(
+                                        pd.notna(x) for x in [cls, sys_score, env, ren]
+                                    ):
+                                        building.ape_scores = APEScores(
+                                            total=float(ape_total),
+                                            class_score=int(float(cls)),
+                                            system_score=int(float(sys_score)),
+                                            envelope_score=int(float(env)),
+                                            renewables_score=int(float(ren)),
+                                        )
+
+                            # Enrich poi_scores if missing
+                            if building.poi_scores is None:
+                                poi_fields = {
+                                    "health": "sanita",
+                                    "mobility": "mobilita",
+                                    "green": "verde",
+                                    "education": "educazione",
+                                    "shopping": "commerciale",
+                                    "sport": "sport",
+                                }
+                                poi_values = {}
+                                has_any = False
+                                for poi_key, csv_key in poi_fields.items():
+                                    val = row.get(csv_key)
+                                    if pd.notna(val):
+                                        poi_values[poi_key] = float(val)
+                                        has_any = True
+                                    else:
+                                        poi_values[poi_key] = None
+
+                                if has_any:
+                                    building.poi_scores = POIScores(**poi_values)
+
+                            # Enrich ape_files if missing
+                            if not building.ape_files:
+                                ape_files_raw = row.get("lista_file_ape") or row.get(
+                                    "list_file_ape_filtered"
+                                )
+                                if pd.notna(ape_files_raw) and ape_files_raw:
+                                    try:
+                                        building.ape_files = ast.literal_eval(
+                                            str(ape_files_raw)
+                                        )
+                                    except Exception:
+                                        pass
+                    except Exception as enrich_err:
+                        logger.warning(
+                            f"Error enriching building {building.id}: {enrich_err}"
+                        )
+
+                # Enrich meta immobili with sub_properties if missing
                 if (
                     building.meta_immobile
                     and building.id_list

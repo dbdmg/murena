@@ -32,9 +32,13 @@ from app.utils.logger import logger
 class RealEstateService:
     """Service for managing real estate building data."""
 
+    # Class-level cache to share dataset across request-scoped instances
+    _dataset_cache: Dict[str, pd.DataFrame] = {}
+    _dataset_indexed_cache: Dict[str, pd.DataFrame] = {}
+
     def __init__(self):
-        """Initialize the service with an empty dataset cache."""
-        self._dataset_cache: Dict[str, pd.DataFrame] = {}
+        """Initialize the service."""
+        pass
 
     async def get_buildings(
         self,
@@ -151,6 +155,21 @@ class RealEstateService:
         if df is not None and not df.empty:
             # Cache the dataset
             self._dataset_cache[dataset_key] = df
+
+            # Build and cache ID index for fast lookups
+            try:
+                if "id" in df.columns:
+                    df_indexed = df.copy()
+                    df_indexed["id_str"] = df_indexed["id"].astype(str)
+                    df_indexed = df_indexed.drop_duplicates(subset=["id_str"])
+                    df_indexed.set_index("id_str", inplace=True)
+                    self._dataset_indexed_cache[dataset_key] = df_indexed
+                    logger.info(
+                        f"Built ID index for {dataset_key} ({len(df_indexed)} unique IDs)"
+                    )
+            except Exception as e:
+                logger.warning(f"Failed to build ID index: {e}")
+
             logger.info(f"Loaded and cached {len(df)} buildings from {dataset_key}")
 
         return df
@@ -369,6 +388,25 @@ class RealEstateService:
                         return row[alt]
             return default
 
+        # Enrich row from indexed cache if available
+        # This ensures that if 'row' comes from a partial SQL result (missing columns),
+        # we fill in the gaps from the full dataset.
+        df_indexed = self._dataset_indexed_cache.get("full")
+        row_id = str(row.get("id", ""))
+
+        if df_indexed is not None and row_id and row_id in df_indexed.index:
+            try:
+                full_row = df_indexed.loc[row_id]
+                if isinstance(full_row, pd.DataFrame):
+                    full_row = full_row.iloc[0]
+
+                # combine_first fills missing values in 'row' from 'full_row'
+                # It aligns on index (column names), so missing columns are added.
+                row = row.combine_first(full_row)
+            except Exception as e:
+                # Log but continue with original row
+                pass
+
         # Extract coordinates
         lat = safe_get("lat", alternatives=["latitude", "coordinata_y", "latitudine"])
         lon = safe_get("lon", alternatives=["longitude", "coordinata_x", "longitudine"])
@@ -380,6 +418,9 @@ class RealEstateService:
 
         # Coordinates are required
         if lat is None or lon is None:
+            # If coordinates are missing even after enrichment, we can't map it
+            # But we might want to return a partial object?
+            # For now, stick to existing behavior
             raise ValueError(
                 f"Missing coordinates for building {row.get('id', 'unknown')}"
             )
@@ -485,17 +526,25 @@ class RealEstateService:
 
                     if id_list_parsed and len(id_list_parsed) > 0:
                         sub_properties = []
-                        # Get the cached dataset to look up sub-properties
-                        df = self._dataset_cache.get("full")
+                        # Get the cached indexed dataset for O(1) lookup
+                        df_indexed = self._dataset_indexed_cache.get("full")
+
                         for sub_id in id_list_parsed[:20]:  # Limit to 20
                             sub_id_str = str(sub_id)
                             sub_prop = SubProperty(id=sub_id_str)
 
-                            # Try to find details in the dataset
-                            if df is not None:
-                                sub_row = df[df["id"].astype(str) == sub_id_str]
-                                if not sub_row.empty:
-                                    sub_row = sub_row.iloc[0]
+                            # Try to find details in the dataset using fast index lookup
+                            if (
+                                df_indexed is not None
+                                and sub_id_str in df_indexed.index
+                            ):
+                                try:
+                                    sub_row = df_indexed.loc[sub_id_str]
+
+                                    # Handle case where index might not be unique (though we tried to dedup)
+                                    if isinstance(sub_row, pd.DataFrame):
+                                        sub_row = sub_row.iloc[0]
+
                                     if (
                                         "superficie_di_riferimento_mq" in sub_row.index
                                         and pd.notna(
@@ -512,6 +561,9 @@ class RealEstateService:
                                         sub_prop.property_type = str(
                                             sub_row["tipologia_bene_immobile"]
                                         )
+                                except Exception as e:
+                                    # Fallback or ignore error for single item
+                                    pass
 
                             sub_properties.append(sub_prop)
                 except Exception as e:
