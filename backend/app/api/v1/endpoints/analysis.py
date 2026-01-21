@@ -860,8 +860,22 @@ async def get_analysis(
             # This handles legacy runs stored before sub_properties was implemented
             from app.services.real_estate_service import RealEstateService
             from app.models.responses import SubProperty
+            from app.data.loaders import load_and_merge_data
 
             real_estate_svc = RealEstateService()
+
+            # Load dataset if not cached (needed for sub_property lookups)
+            df = real_estate_svc._dataset_cache.get("full")
+            if df is None:
+                try:
+                    dataset_path = settings.dataset_options.get("full")
+                    if dataset_path:
+                        df = load_and_merge_data(dataset_path)
+                        real_estate_svc._dataset_cache["full"] = df
+                except Exception as load_err:
+                    logger.warning(
+                        f"Could not load dataset for sub_properties enrichment: {load_err}"
+                    )
 
             for building in results.buildings:
                 if (
@@ -881,8 +895,6 @@ async def get_analysis(
 
                         if id_list_parsed and len(id_list_parsed) > 0:
                             sub_properties = []
-                            # Get cached dataset for lookups
-                            df = real_estate_svc._dataset_cache.get("full")
 
                             for sub_id in id_list_parsed[:20]:  # Limit to 20
                                 sub_id_str = str(sub_id)

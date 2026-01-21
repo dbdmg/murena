@@ -131,14 +131,6 @@ export const ResultsCarousel: React.FC<ResultsCarouselProps> = ({
         return null;
     }
 
-    const getScoreBgColor = (score?: number) => {
-        if (!score) return 'from-gray-600 to-gray-700';
-        if (score >= 80) return 'from-emerald-500 to-green-600';
-        if (score >= 60) return 'from-cyan-500 to-blue-600';
-        if (score >= 40) return 'from-amber-500 to-orange-600';
-        return 'from-red-500 to-rose-600';
-    };
-
     return (
         <div className="relative" style={{ marginRight: sidebarOpen ? '340px' : '0', transition: 'margin-right 0.3s ease' }}>
             {/* Header */}
@@ -262,14 +254,19 @@ export const ResultsCarousel: React.FC<ResultsCarouselProps> = ({
                                             </div>
                                         </div>
 
-                                        {/* Score Circle */}
+                                        {/* Score Badge - Squared, Amber themed */}
                                         <div className={`
-                                        w-12 h-12 rounded-full bg-linear-to-br ${getScoreBgColor(marker.ranking_score)}
-                                        flex items-center justify-center shadow-lg
-                                    `}>
-                                            <span className="text-white font-bold text-sm">
-                                                {marker.ranking_score ?? '—'}
-                                            </span>
+                                            px-3 py-1.5 rounded-lg font-bold text-base
+                                            ${(marker.ranking_score ?? 0) >= 80
+                                                ? 'bg-gradient-to-br from-amber-400 to-yellow-500 text-black shadow-lg shadow-amber-500/30'
+                                                : (marker.ranking_score ?? 0) >= 60
+                                                    ? 'bg-gradient-to-br from-amber-500/80 to-orange-500/80 text-white shadow-lg shadow-amber-500/20'
+                                                    : (marker.ranking_score ?? 0) >= 40
+                                                        ? 'bg-gradient-to-br from-slate-500 to-slate-600 text-white'
+                                                        : 'bg-slate-700 text-gray-300'
+                                            }
+                                        `}>
+                                            {marker.ranking_score ?? '—'}
                                         </div>
                                     </div>
 
