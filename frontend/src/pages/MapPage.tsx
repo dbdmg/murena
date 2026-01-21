@@ -9,11 +9,12 @@ import { MapRunSelector } from '../components/map/MapRunSelector';
 import { ResultsCarousel } from '../components/map/ResultsCarousel';
 import { MapLegend } from '../components/map/MapLegend';
 import { AgentRefinementHUD } from '../components/agent/AgentRefinementHUD';
+import { ResultsSidebar } from '../components/map/ResultsSidebar';
 
 import { mapApi } from '../api/endpoints/map';
 import { layersApi } from '../api/endpoints/layers';
 import type { MapConfig, MapMarker, POI } from '../api/types';
-import { Loader2, Sparkles, Building2 } from 'lucide-react';
+import { Loader2, Sparkles, Building2, List } from 'lucide-react';
 
 import { useSettings } from '../contexts/SettingsContext';
 import { useMapContext } from '../contexts/MapContext';
@@ -59,6 +60,9 @@ export const MapPage: React.FC = () => {
 
     // Agent Tuner HUD state
     const [isAgentHUDOpen, setIsAgentHUDOpen] = useState(false);
+
+    // Results list sidebar state
+    const [isListSidebarOpen, setIsListSidebarOpen] = useState(false);
 
     // Filter markers based on Intelligence Map filters
     const filteredMarkers = useMemo(() => {
@@ -270,9 +274,22 @@ export const MapPage: React.FC = () => {
     return (
         <div className="h-full w-full relative flex flex-col overflow-hidden">
             {/* Top Controls Bar - Left side only */}
-            <div className="absolute top-4 left-4 z-400 flex flex-col gap-2">
-                {/* Row 1: Filters, Layers, Legend & Agent Tuner */}
+            <div className="absolute top-4 left-4 z-400 flex flex-col gap-2" style={{ marginLeft: isListSidebarOpen ? '320px' : '0', transition: 'margin-left 0.3s ease' }}>
+                {/* Row 1: List toggle, Filters, Layers, Legend & Agent Tuner */}
                 <div className="flex items-start gap-2">
+                    {/* List Sidebar Toggle */}
+                    <button
+                        onClick={() => setIsListSidebarOpen(!isListSidebarOpen)}
+                        className={`
+                            flex items-center justify-center w-12.5 h-12.5 rounded-lg text-xs font-medium border backdrop-blur-xl transition-all duration-300 shadow-xl shadow-black/40
+                            ${isListSidebarOpen
+                                ? 'bg-cyan-500/20 text-cyan-400 border-cyan-500/50'
+                                : 'bg-slate-900/80 text-gray-400 border-white/10 hover:border-white/20 hover:text-white hover:bg-white/10'
+                            }
+                        `}
+                    >
+                        <List className="w-4 h-4" />
+                    </button>
                     <FilterPanel
                         filters={filters}
                         onFiltersChange={setFilters}
@@ -347,7 +364,22 @@ export const MapPage: React.FC = () => {
             </div>
 
             {/* Map Container */}
-            <div className={`flex-1 relative rounded-xl overflow-hidden shadow-2xl border border-white/5 m-4 mt-1 ${hasTopPicks ? 'mb-36' : ''}`}>
+            {/* Results List Sidebar */}
+            <ResultsSidebar
+                isOpen={isListSidebarOpen}
+                onClose={() => setIsListSidebarOpen(false)}
+                markers={filteredMarkers}
+                selectedId={selectedBuildings[0]?.id || null}
+                onSelect={(marker) => {
+                    setSelectedBuildings([marker]);
+                    setIsSidebarOpen(true);
+                    setFocusMarkerId(marker.id);
+                    setCarouselSelectedId(marker.id);
+                }}
+                hasActiveRun={!!activeRunId}
+            />
+
+            <div className={`flex-1 relative rounded-xl overflow-hidden shadow-2xl border border-white/5 m-4 mt-1 ${hasTopPicks ? 'mb-36' : ''}`} style={{ marginLeft: isListSidebarOpen ? '320px' : '0', transition: 'margin-left 0.3s ease' }}>
                 <Map
                     markers={filteredMarkers}
                     center={config.center}
@@ -366,7 +398,10 @@ export const MapPage: React.FC = () => {
 
             {/* Results Carousel - Bottom */}
             {hasTopPicks && (
-                <div className="absolute bottom-0 left-0 right-0 bg-linear-to-t from-[#0a0d12] via-[#0a0d12]/95 to-transparent pt-6 pb-4 z-300">
+                <div
+                    className="absolute bottom-0 left-0 right-0 bg-linear-to-t from-[#0a0d12] via-[#0a0d12]/95 to-transparent pt-6 pb-4 z-300"
+                    style={{ marginLeft: isListSidebarOpen ? '320px' : '0', transition: 'margin-left 0.3s ease' }}
+                >
                     <ResultsCarousel
                         topPicks={topPicks}
                         selectedId={carouselSelectedId}

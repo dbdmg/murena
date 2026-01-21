@@ -1,0 +1,332 @@
+/**
+ * ResultsSidebar - Collapsible left sidebar with building list
+ * 
+ * Features:
+ * - Sortable list (Score, Surface, Energy Class, Address)
+ * - Pagination (20 per page)
+ * - Compact building cards
+ * - Bidirectional selection with map
+ */
+
+import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+    X,
+    ChevronLeft,
+    ChevronRight,
+    ArrowUpDown,
+    Building2,
+    MapPin,
+    Zap,
+    Layers,
+    Check
+} from 'lucide-react';
+import type { MapMarker } from '../../api/types';
+
+interface ResultsSidebarProps {
+    isOpen: boolean;
+    onClose: () => void;
+    markers: MapMarker[];
+    selectedId: string | null;
+    onSelect: (marker: MapMarker) => void;
+    hasActiveRun?: boolean;
+}
+
+type SortOption = 'score' | 'surface' | 'energy' | 'address';
+
+const ITEMS_PER_PAGE = 20;
+
+const SORT_OPTIONS: { value: SortOption; label: string; icon: React.ReactNode }[] = [
+    { value: 'score', label: 'Score AI', icon: <Zap className="w-3.5 h-3.5" /> },
+    { value: 'surface', label: 'Superficie', icon: <Building2 className="w-3.5 h-3.5" /> },
+    { value: 'energy', label: 'Classe Energia', icon: <Zap className="w-3.5 h-3.5" /> },
+    { value: 'address', label: 'Indirizzo', icon: <MapPin className="w-3.5 h-3.5" /> },
+];
+
+const ENERGY_CLASS_ORDER = ['A4', 'A3', 'A2', 'A1', 'B', 'C', 'D', 'E', 'F', 'G'];
+
+export const ResultsSidebar: React.FC<ResultsSidebarProps> = ({
+    isOpen,
+    onClose,
+    markers,
+    selectedId,
+    onSelect,
+    hasActiveRun = false,
+}) => {
+    const [sortBy, setSortBy] = useState<SortOption>(hasActiveRun ? 'score' : 'address');
+    const [currentPage, setCurrentPage] = useState(1);
+    const [showSortDropdown, setShowSortDropdown] = useState(false);
+
+    // Refs for card elements to enable autoscroll
+    const cardRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
+
+    // Reset page when markers change
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [markers.length]);
+
+    // Reset sort to score when run becomes active
+    useEffect(() => {
+        if (hasActiveRun) {
+            setSortBy('score');
+        }
+    }, [hasActiveRun]);
+
+    // Sort markers
+    const sortedMarkers = useMemo(() => {
+        const sorted = [...markers];
+
+        switch (sortBy) {
+            case 'score':
+                return sorted.sort((a, b) => (b.ranking_score ?? 0) - (a.ranking_score ?? 0));
+            case 'surface':
+                return sorted.sort((a, b) => (b.surface_area ?? 0) - (a.surface_area ?? 0));
+            case 'energy':
+                return sorted.sort((a, b) => {
+                    const aIdx = ENERGY_CLASS_ORDER.indexOf(a.energy_class || 'G');
+                    const bIdx = ENERGY_CLASS_ORDER.indexOf(b.energy_class || 'G');
+                    return aIdx - bIdx;
+                });
+            case 'address':
+                return sorted.sort((a, b) =>
+                    (a.address || '').localeCompare(b.address || '')
+                );
+            default:
+                return sorted;
+        }
+    }, [markers, sortBy]);
+
+    // Paginate
+    const totalPages = Math.ceil(sortedMarkers.length / ITEMS_PER_PAGE);
+    const paginatedMarkers = useMemo(() => {
+        const start = (currentPage - 1) * ITEMS_PER_PAGE;
+        return sortedMarkers.slice(start, start + ITEMS_PER_PAGE);
+    }, [sortedMarkers, currentPage]);
+
+    // Navigate to the page containing selected marker AND scroll to it
+    useEffect(() => {
+        if (selectedId && isOpen) {
+            const idx = sortedMarkers.findIndex(m => m.id === selectedId);
+            if (idx >= 0) {
+                const targetPage = Math.floor(idx / ITEMS_PER_PAGE) + 1;
+                if (targetPage !== currentPage) {
+                    setCurrentPage(targetPage);
+                }
+                // Scroll to card after a short delay (for page change to render)
+                setTimeout(() => {
+                    const cardEl = cardRefs.current.get(selectedId);
+                    if (cardEl) {
+                        cardEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                }, 100);
+            }
+        }
+    }, [selectedId, isOpen, sortedMarkers]);
+
+    const getEnergyClassColor = (cls?: string) => {
+        if (!cls) return 'bg-gray-500/20 text-gray-400';
+        const base = cls.charAt(0);
+        switch (base) {
+            case 'A': return 'bg-emerald-500/20 text-emerald-400';
+            case 'B': return 'bg-lime-500/20 text-lime-400';
+            case 'C': return 'bg-yellow-500/20 text-yellow-400';
+            case 'D': return 'bg-orange-500/20 text-orange-400';
+            case 'E': return 'bg-orange-600/20 text-orange-500';
+            case 'F': return 'bg-red-500/20 text-red-400';
+            case 'G': return 'bg-red-600/20 text-red-500';
+            default: return 'bg-gray-500/20 text-gray-400';
+        }
+    };
+
+    return (
+        <AnimatePresence>
+            {isOpen && (
+                <motion.div
+                    initial={{ x: -320, opacity: 0 }}
+                    animate={{ x: 0, opacity: 1 }}
+                    exit={{ x: -320, opacity: 0 }}
+                    transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+                    className="absolute left-0 top-0 bottom-0 w-80 bg-[#0a0d12]/95 backdrop-blur-xl border-r border-white/10 z-40 flex flex-col shadow-2xl"
+                >
+                    {/* Header */}
+                    <div className="flex items-center justify-between p-4 border-b border-white/10">
+                        <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-lg bg-cyan-500/20 flex items-center justify-center">
+                                <Layers className="w-4 h-4 text-cyan-400" />
+                            </div>
+                            <div>
+                                <h3 className="text-sm font-semibold text-white">Risultati</h3>
+                                <span className="text-xs text-gray-500">{markers.length} immobili</span>
+                            </div>
+                        </div>
+                        <button
+                            onClick={onClose}
+                            className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+                        >
+                            <X className="w-4 h-4 text-gray-400" />
+                        </button>
+                    </div>
+
+                    {/* Sort Controls */}
+                    <div className="p-3 border-b border-white/5">
+                        <div className="relative">
+                            <button
+                                onClick={() => setShowSortDropdown(!showSortDropdown)}
+                                className="flex items-center gap-2 w-full px-3 py-2 bg-white/5 hover:bg-white/10 rounded-lg text-sm text-gray-300 transition-colors"
+                            >
+                                <ArrowUpDown className="w-4 h-4 text-gray-500" />
+                                <span>Ordina per: <span className="text-white font-medium">
+                                    {SORT_OPTIONS.find(o => o.value === sortBy)?.label}
+                                </span></span>
+                            </button>
+
+                            {showSortDropdown && (
+                                <div className="absolute top-full left-0 right-0 mt-1 bg-[#12151a] border border-white/10 rounded-lg overflow-hidden z-50 shadow-xl">
+                                    {SORT_OPTIONS.map((option) => (
+                                        <button
+                                            key={option.value}
+                                            onClick={() => {
+                                                setSortBy(option.value);
+                                                setShowSortDropdown(false);
+                                                setCurrentPage(1);
+                                            }}
+                                            disabled={option.value === 'score' && !hasActiveRun}
+                                            className={`
+                                                flex items-center gap-2 w-full px-3 py-2 text-sm text-left transition-colors
+                                                ${sortBy === option.value
+                                                    ? 'bg-cyan-500/20 text-cyan-400'
+                                                    : 'text-gray-300 hover:bg-white/5'
+                                                }
+                                                ${option.value === 'score' && !hasActiveRun ? 'opacity-40 cursor-not-allowed' : ''}
+                                            `}
+                                        >
+                                            {option.icon}
+                                            <span>{option.label}</span>
+                                            {option.value === 'score' && !hasActiveRun && (
+                                                <span className="text-xs text-gray-500 ml-auto">(richiede run)</span>
+                                            )}
+                                            {sortBy === option.value && <Check className="w-3 h-3 ml-auto" />}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Building List */}
+                    <div className="flex-1 overflow-y-auto">
+                        {paginatedMarkers.length === 0 ? (
+                            <div className="flex items-center justify-center h-32 text-gray-500 text-sm">
+                                Nessun risultato
+                            </div>
+                        ) : (
+                            <div className="p-2 space-y-2">
+                                {paginatedMarkers.map((marker) => {
+                                    const isSelected = marker.id === selectedId;
+
+                                    return (
+                                        <button
+                                            key={marker.id}
+                                            ref={(el) => {
+                                                if (el) cardRefs.current.set(marker.id, el);
+                                            }}
+                                            onClick={() => onSelect(marker)}
+                                            className={`
+                                                w-full p-3 rounded-xl text-left transition-all duration-200
+                                                ${isSelected
+                                                    ? 'bg-cyan-500/20 border border-cyan-500/40 ring-1 ring-cyan-500/20'
+                                                    : 'bg-white/5 border border-transparent hover:bg-white/10 hover:border-white/10'
+                                                }
+                                            `}
+                                        >
+                                            {/* Header row */}
+                                            <div className="flex items-start justify-between gap-2 mb-2">
+                                                <div className="flex-1 min-w-0">
+                                                    <p className={`text-sm font-medium truncate ${isSelected ? 'text-cyan-300' : 'text-white'}`}>
+                                                        {marker.address || `ID: ${marker.id}`}
+                                                    </p>
+                                                    {marker.meta_immobile && (
+                                                        <span className="inline-block mt-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-purple-500/20 text-purple-400 border border-purple-500/30">
+                                                            META
+                                                        </span>
+                                                    )}
+                                                </div>
+
+                                                {/* Score badge */}
+                                                {marker.ranking_score != null && (
+                                                    <div className={`
+                                                        px-2 py-1 rounded-lg font-bold text-xs shrink-0
+                                                        ${marker.ranking_score >= 80
+                                                            ? 'bg-gradient-to-br from-amber-400 to-yellow-500 text-black'
+                                                            : marker.ranking_score >= 60
+                                                                ? 'bg-amber-500/30 text-amber-400'
+                                                                : 'bg-slate-600/50 text-gray-300'
+                                                        }
+                                                    `}>
+                                                        {marker.ranking_score}
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* Info badges */}
+                                            <div className="flex flex-wrap items-center gap-1.5">
+                                                <span className="px-1.5 py-0.5 rounded text-[10px] bg-slate-700/50 text-gray-400">
+                                                    ID: {marker.id}
+                                                </span>
+
+                                                {marker.surface_area && (
+                                                    <span className="px-1.5 py-0.5 rounded text-[10px] bg-blue-500/20 text-blue-400">
+                                                        {marker.surface_area.toLocaleString()} m²
+                                                    </span>
+                                                )}
+
+                                                {marker.energy_class && (
+                                                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${getEnergyClassColor(marker.energy_class)}`}>
+                                                        {marker.energy_class}
+                                                    </span>
+                                                )}
+
+                                                {marker.omi_zone && (
+                                                    <span className="px-1.5 py-0.5 rounded text-[10px] bg-cyan-500/20 text-cyan-400">
+                                                        {marker.omi_zone}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Pagination */}
+                    {totalPages > 1 && (
+                        <div className="p-3 border-t border-white/10 flex items-center justify-between">
+                            <button
+                                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                disabled={currentPage === 1}
+                                className="p-2 hover:bg-white/10 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                            >
+                                <ChevronLeft className="w-4 h-4 text-gray-400" />
+                            </button>
+
+                            <span className="text-xs text-gray-400">
+                                Pagina <span className="text-white font-medium">{currentPage}</span> di {totalPages}
+                            </span>
+
+                            <button
+                                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                                disabled={currentPage === totalPages}
+                                className="p-2 hover:bg-white/10 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                            >
+                                <ChevronRight className="w-4 h-4 text-gray-400" />
+                            </button>
+                        </div>
+                    )}
+                </motion.div>
+            )}
+        </AnimatePresence>
+    );
+};
+
+export default ResultsSidebar;
