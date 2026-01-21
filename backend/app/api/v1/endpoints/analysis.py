@@ -865,102 +865,124 @@ async def get_analysis(
             real_estate_svc = RealEstateService()
 
             # Load dataset if not cached (needed for field lookups)
-            df = real_estate_svc._dataset_cache.get("full")
+            df = RealEstateService._dataset_cache.get("full")
+            indexed_cache = RealEstateService._dataset_indexed_cache.get("full")
+
             if df is None:
                 try:
                     dataset_path = settings.dataset_options.get("full")
                     if dataset_path:
+                        logger.info(
+                            f"Loading dataset for enrichment from {dataset_path}"
+                        )
                         df = load_and_merge_data(dataset_path)
-                        real_estate_svc._dataset_cache["full"] = df
+                        RealEstateService._dataset_cache["full"] = df
+                        logger.info(f"Loaded {len(df)} rows for enrichment")
                 except Exception as load_err:
                     logger.warning(f"Could not load dataset for enrichment: {load_err}")
 
+            # Build indexed cache if not present (same format as _load_dataset)
+            if df is not None and indexed_cache is None:
+                try:
+                    logger.info("Building indexed cache for enrichment...")
+                    if "id" in df.columns:
+                        df_indexed = df.copy()
+                        df_indexed["id_str"] = df_indexed["id"].astype(str)
+                        df_indexed = df_indexed.drop_duplicates(subset=["id_str"])
+                        df_indexed.set_index("id_str", inplace=True)
+                        indexed_cache = df_indexed
+                        RealEstateService._dataset_indexed_cache["full"] = indexed_cache
+                        logger.info(
+                            f"Built indexed cache with {len(indexed_cache)} entries"
+                        )
+                except Exception as idx_err:
+                    logger.warning(f"Could not build indexed cache: {idx_err}")
+
             for building in results.buildings:
-                # Try to enrich from dataset if we have it
-                if df is not None:
+                # Try to enrich from indexed cache (DataFrame with id as index)
+                building_id_str = str(building.id)
+                if indexed_cache is not None and building_id_str in indexed_cache.index:
                     try:
-                        building_row = df[df["id"].astype(str) == str(building.id)]
-                        if not building_row.empty:
-                            row = building_row.iloc[0]
+                        row = indexed_cache.loc[building_id_str]
+                        if isinstance(row, pd.DataFrame):
+                            row = row.iloc[0]
 
-                            # Enrich surface_area if missing
-                            if building.surface_area is None:
-                                val = row.get("superficie_di_riferimento_mq")
+                        # Enrich surface_area if missing
+                        if building.surface_area is None:
+                            val = row.get("superficie_di_riferimento_mq")
+                            if pd.notna(val):
+                                building.surface_area = float(val)
+
+                        # Enrich property_type if missing
+                        if building.property_type is None:
+                            val = row.get("tipologia_bene_immobile")
+                            if pd.notna(val):
+                                building.property_type = str(val)
+
+                        # Enrich construction_year if missing
+                        if building.construction_year is None:
+                            val = row.get("epoca_costruzione")
+                            if pd.notna(val):
+                                building.construction_year = str(val)
+
+                        # Enrich energy_class if missing
+                        if building.energy_class is None:
+                            val = row.get("classe_energetica_ape")
+                            if pd.notna(val):
+                                building.energy_class = str(val)
+
+                        # Enrich ape_scores if missing
+                        if building.ape_scores is None:
+                            ape_total = row.get("ape_score_total")
+                            if pd.notna(ape_total):
+                                cls = row.get("ape_score_classe")
+                                sys_score = row.get("ape_score_impianto")
+                                env = row.get("ape_score_involucro")
+                                ren = row.get("ape_score_rinnovabili")
+                                if all(pd.notna(x) for x in [cls, sys_score, env, ren]):
+                                    building.ape_scores = APEScores(
+                                        total=float(ape_total),
+                                        class_score=int(float(cls)),
+                                        system_score=int(float(sys_score)),
+                                        envelope_score=int(float(env)),
+                                        renewables_score=int(float(ren)),
+                                    )
+
+                        # Enrich poi_scores if missing
+                        if building.poi_scores is None:
+                            poi_fields = {
+                                "health": "sanita",
+                                "mobility": "mobilita",
+                                "green": "verde",
+                                "education": "educazione",
+                                "shopping": "commerciale",
+                                "sport": "sport",
+                            }
+                            poi_values = {}
+                            has_any = False
+                            for poi_key, csv_key in poi_fields.items():
+                                val = row.get(csv_key)
                                 if pd.notna(val):
-                                    building.surface_area = float(val)
+                                    poi_values[poi_key] = float(val)
+                                    has_any = True
+                                else:
+                                    poi_values[poi_key] = None
 
-                            # Enrich property_type if missing
-                            if building.property_type is None:
-                                val = row.get("tipologia_bene_immobile")
-                                if pd.notna(val):
-                                    building.property_type = str(val)
+                            if has_any:
+                                building.poi_scores = POIScores(**poi_values)
 
-                            # Enrich construction_year if missing
-                            if building.construction_year is None:
-                                val = row.get("epoca_costruzione")
-                                if pd.notna(val):
-                                    building.construction_year = str(val)
-
-                            # Enrich energy_class if missing
-                            if building.energy_class is None:
-                                val = row.get("classe_energetica_ape")
-                                if pd.notna(val):
-                                    building.energy_class = str(val)
-
-                            # Enrich ape_scores if missing
-                            if building.ape_scores is None:
-                                ape_total = row.get("ape_score_total")
-                                if pd.notna(ape_total):
-                                    cls = row.get("ape_score_classe")
-                                    sys_score = row.get("ape_score_impianto")
-                                    env = row.get("ape_score_involucro")
-                                    ren = row.get("ape_score_rinnovabili")
-                                    if all(
-                                        pd.notna(x) for x in [cls, sys_score, env, ren]
-                                    ):
-                                        building.ape_scores = APEScores(
-                                            total=float(ape_total),
-                                            class_score=int(float(cls)),
-                                            system_score=int(float(sys_score)),
-                                            envelope_score=int(float(env)),
-                                            renewables_score=int(float(ren)),
-                                        )
-
-                            # Enrich poi_scores if missing
-                            if building.poi_scores is None:
-                                poi_fields = {
-                                    "health": "sanita",
-                                    "mobility": "mobilita",
-                                    "green": "verde",
-                                    "education": "educazione",
-                                    "shopping": "commerciale",
-                                    "sport": "sport",
-                                }
-                                poi_values = {}
-                                has_any = False
-                                for poi_key, csv_key in poi_fields.items():
-                                    val = row.get(csv_key)
-                                    if pd.notna(val):
-                                        poi_values[poi_key] = float(val)
-                                        has_any = True
-                                    else:
-                                        poi_values[poi_key] = None
-
-                                if has_any:
-                                    building.poi_scores = POIScores(**poi_values)
-
-                            # Enrich ape_files if missing
-                            if not building.ape_files:
-                                ape_files_raw = row.get("lista_file_ape") or row.get(
-                                    "list_file_ape_filtered"
-                                )
-                                if pd.notna(ape_files_raw) and ape_files_raw:
-                                    try:
-                                        building.ape_files = ast.literal_eval(
-                                            str(ape_files_raw)
-                                        )
-                                    except Exception:
-                                        pass
+                        # Enrich ape_files if missing
+                        if not building.ape_files:
+                            ape_files_raw = row.get("lista_file_ape") or row.get(
+                                "list_file_ape_filtered"
+                            )
+                            if pd.notna(ape_files_raw) and ape_files_raw:
+                                try:
+                                    building.ape_files = ast.literal_eval(
+                                        str(ape_files_raw)
+                                    )
+                                except Exception:
+                                    pass
                     except Exception as enrich_err:
                         logger.warning(
                             f"Error enriching building {building.id}: {enrich_err}"
@@ -984,39 +1006,58 @@ async def get_analysis(
 
                         if id_list_parsed and len(id_list_parsed) > 0:
                             sub_properties = []
+                            logger.debug(
+                                f"Enriching sub_properties for meta {building.id}: {id_list_parsed[:5]}..."
+                            )
 
                             for sub_id in id_list_parsed[:20]:  # Limit to 20
                                 sub_id_str = str(sub_id)
                                 sub_prop = SubProperty(id=sub_id_str)
 
-                                # Try to find details in the dataset
-                                if df is not None:
-                                    sub_row = df[df["id"].astype(str) == sub_id_str]
-                                    if not sub_row.empty:
-                                        sub_row = sub_row.iloc[0]
+                                # Use indexed cache for O(1) lookup (cache is DataFrame with id as index)
+                                if (
+                                    indexed_cache is not None
+                                    and sub_id_str in indexed_cache.index
+                                ):
+                                    try:
+                                        sub_row = indexed_cache.loc[sub_id_str]
+                                        if isinstance(sub_row, pd.DataFrame):
+                                            sub_row = sub_row.iloc[0]
+                                        # Extract surface_area
                                         if (
                                             "superficie_di_riferimento_mq"
                                             in sub_row.index
-                                            and pd.notna(
-                                                sub_row["superficie_di_riferimento_mq"]
-                                            )
                                         ):
-                                            sub_prop.surface_area = float(
-                                                sub_row["superficie_di_riferimento_mq"]
+                                            val = sub_row.get(
+                                                "superficie_di_riferimento_mq"
                                             )
-                                        if (
-                                            "tipologia_bene_immobile" in sub_row.index
-                                            and pd.notna(
-                                                sub_row["tipologia_bene_immobile"]
-                                            )
-                                        ):
-                                            sub_prop.property_type = str(
-                                                sub_row["tipologia_bene_immobile"]
-                                            )
+                                            if pd.notna(val):
+                                                sub_prop.surface_area = float(val)
+                                        # Extract property_type
+                                        if "tipologia_bene_immobile" in sub_row.index:
+                                            val = sub_row.get("tipologia_bene_immobile")
+                                            if pd.notna(val):
+                                                sub_prop.property_type = str(val)
+                                        # Extract energy_class
+                                        if "classe_energetica_ape" in sub_row.index:
+                                            val = sub_row.get("classe_energetica_ape")
+                                            if pd.notna(val):
+                                                sub_prop.energy_class = str(val)
+                                    except Exception as sub_err:
+                                        logger.debug(
+                                            f"Error getting sub-property {sub_id_str}: {sub_err}"
+                                        )
+                                elif indexed_cache is None:
+                                    logger.debug(
+                                        "No indexed cache available for sub_properties lookup"
+                                    )
 
                                 sub_properties.append(sub_prop)
 
                             building.sub_properties = sub_properties
+                            logger.debug(
+                                f"Enriched {len(sub_properties)} sub_properties for {building.id}"
+                            )
                     except Exception as e:
                         logger.warning(
                             f"Error enriching sub_properties for building {building.id}: {e}"

@@ -132,15 +132,8 @@ class AnalysisService:
                 self._get_or_load_dataset, dataset_key
             )
 
-            # Preload RealEstateService to ensure enrichment cache is populated
-            try:
-                # We use limit=1 just to trigger the dataset load and index build
-                await self._real_estate_service.get_buildings(
-                    filters=None, limit=1, dataset_key=dataset_key
-                )
-                logger.info("RealEstateService cache preloaded for enrichment")
-            except Exception as e:
-                logger.warning(f"Failed to preload RealEstateService: {e}")
+            # Note: Data enrichment now happens in graph_agent._enrich_results
+            # via LEFT JOIN with full dataset - no need to preload here
 
             # Get dataset path
             dataset_path = settings.dataset_options.get(dataset_key)

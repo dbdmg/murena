@@ -56,6 +56,33 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.error(f"Database initialization failed: {e}")
 
+    # Preload dataset and indexed cache for fast first request
+    try:
+        import asyncio
+        from app.services.real_estate_service import RealEstateService
+        from app.data.loaders import load_and_merge_data
+
+        dataset_path = settings.dataset_options.get("full")
+        if dataset_path:
+            logger.info(f"Preloading dataset from {dataset_path}...")
+
+            # Load dataset
+            df = load_and_merge_data(dataset_path)
+            RealEstateService._dataset_cache["full"] = df
+            logger.info(f"Dataset preloaded: {len(df)} rows")
+
+            # Build indexed cache for O(1) lookups (same format as _load_dataset)
+            if "id" in df.columns:
+                logger.info("Building indexed cache...")
+                df_indexed = df.copy()
+                df_indexed["id_str"] = df_indexed["id"].astype(str)
+                df_indexed = df_indexed.drop_duplicates(subset=["id_str"])
+                df_indexed.set_index("id_str", inplace=True)
+                RealEstateService._dataset_indexed_cache["full"] = df_indexed
+                logger.info(f"Indexed cache ready: {len(df_indexed)} entries")
+    except Exception as e:
+        logger.warning(f"Dataset preloading failed (will load on first request): {e}")
+
     yield
 
     # Shutdown

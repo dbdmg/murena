@@ -83,10 +83,15 @@ class MapService:
         from app.models.requests import BuildingFilters
 
         build_filters = BuildingFilters(**(filters or {}))
+        logger.info(f"get_markers called with limit={limit}, filters={filters}")
 
         # Override limit for map optimization
         buildings, total_count = await self.real_estate_service.get_buildings(
             filters=build_filters, limit=limit, offset=0
+        )
+
+        logger.info(
+            f"get_buildings returned {len(buildings)} buildings, total_count={total_count}"
         )
 
         markers = []

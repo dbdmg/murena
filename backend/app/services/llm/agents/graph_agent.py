@@ -137,6 +137,7 @@ class GraphOrchestratorAgent(BaseAgent):
         workflow.add_node("generate_sql", self._generate_sql)
         workflow.add_node("execute_sql", self._execute_sql)
         workflow.add_node("handle_retry", self._handle_retry)
+        workflow.add_node("fallback_results", self._fallback_results)  # NEW
         workflow.add_node("enrich_results", self._enrich_results)
         workflow.add_node("rank_results", self._rank_results)
         workflow.add_node("evaluate_results", self._evaluate_results)
@@ -157,10 +158,12 @@ class GraphOrchestratorAgent(BaseAgent):
                 "retry": "handle_retry",
                 "retry_relax": "handle_retry",
                 "continue": "enrich_results",
-                "empty": "finalize_results",
+                "fallback": "fallback_results",  # NEW: route to fallback instead of empty
             },
         )
 
+        # Fallback continues to enrich (so ranking/evaluation still happen)
+        workflow.add_edge("fallback_results", "enrich_results")
         workflow.add_edge("enrich_results", "rank_results")
         workflow.add_edge("rank_results", "evaluate_results")
         workflow.add_edge("evaluate_results", "broker_review")
@@ -262,12 +265,16 @@ class GraphOrchestratorAgent(BaseAgent):
         # Increase recursion limit to handle retry loops safely
         final_state = self.workflow.invoke(initial_state, {"recursion_limit": 50})
 
+        # Get results - finalize_results should have added is_evaluated
+        result_df = final_state["selected_data"]
+
+        # Ensure is_evaluated exists (safety check)
+        if not result_df.empty and "is_evaluated" not in result_df.columns:
+            logger.warning("is_evaluated column missing, adding default")
+            result_df["is_evaluated"] = False
+
         return OrchestratorResult(
-            map_df=(
-                final_state["selected_data"]
-                if "is_evaluated" in final_state["selected_data"].columns
-                else pd.DataFrame()
-            ),  # Logic handled in finalize
+            map_df=result_df,
             location=final_state["location_payload"],
             status_msg=final_state["status_msg"],
             gemini_responses=final_state["gemini_responses"],
@@ -649,8 +656,8 @@ class GraphOrchestratorAgent(BaseAgent):
                     f"Retrying due to error (Attempt {state['retry_count'] + 1})"
                 )
                 return "retry"
-            logger.error("Max retries reached with error.")
-            return "empty"
+            logger.error("Max retries reached with error. Activating fallback.")
+            return "fallback"
 
         if not state["selected_data"].empty:
             return "continue"
@@ -661,8 +668,8 @@ class GraphOrchestratorAgent(BaseAgent):
             )
             return "retry_relax"
 
-        logger.warning("Max retries reached with empty results.")
-        return "empty"
+        logger.warning("Max retries reached with empty results. Activating fallback.")
+        return "fallback"
 
     def _handle_retry(self, state: GraphState) -> GraphState:
         # Check if we need to relax constraints based on the edge that brought us here
@@ -677,11 +684,76 @@ class GraphOrchestratorAgent(BaseAgent):
 
         return {"retry_count": state["retry_count"] + 1, "relax_constraints": relax}
 
+    def _fallback_results(self, state: GraphState) -> GraphState:
+        """
+        Fallback when SQL queries fail after max retries.
+        Returns top results from full dataset so user always gets something.
+        """
+        self._update_progress(
+            state, 5, "Nessun risultato trovato. Generazione alternative..."
+        )
+        logger.warning("Fallback activated: loading top results from full dataset")
+
+        dataset_path = state.get("dataset_path")
+        if not dataset_path:
+            logger.error("No dataset path for fallback")
+            state["status_msg"] = "Errore: impossibile generare alternative."
+            return state
+
+        try:
+            full_df = pd.read_parquet(dataset_path)
+            logger.info(f"Fallback loaded {len(full_df)} rows from dataset")
+
+            # Get user location if available for sorting
+            user_location = None
+            loc_payload = state.get("location_payload")
+            if isinstance(loc_payload, list) and len(loc_payload) > 0:
+                try:
+                    user_location = (float(loc_payload[0][1]), float(loc_payload[0][2]))
+                except Exception:
+                    pass
+
+            # Sort by best APE score, or by distance if location available
+            if (
+                user_location
+                and "latitudine" in full_df.columns
+                and "longitudine" in full_df.columns
+            ):
+                # Calculate distance for sorting
+                lat, lon = user_location
+                full_df["_fallback_dist"] = np.sqrt(
+                    (full_df["latitudine"] - lat) ** 2
+                    + (full_df["longitudine"] - lon) ** 2
+                )
+                fallback_df = full_df.nsmallest(500, "_fallback_dist")
+                fallback_df = fallback_df.drop(columns=["_fallback_dist"])
+            elif "ape_score_total" in full_df.columns:
+                # Sort by APE score (higher is better)
+                fallback_df = full_df.nlargest(500, "ape_score_total")
+            else:
+                # Random sample as last resort
+                fallback_df = full_df.sample(min(500, len(full_df)))
+
+            state["selected_data"] = fallback_df
+            state["gemini_responses"]["fallback_activated"] = True
+            state["status_msg"] = (
+                "Nessun risultato trovato con i criteri specificati. "
+                "Mostro alternative suggerite."
+            )
+            logger.info(f"Fallback returning {len(fallback_df)} results")
+
+        except Exception as e:
+            logger.error(f"Fallback failed: {e}")
+            state["status_msg"] = f"Errore durante la generazione di alternative: {e}"
+
+        return state
+
     def _enrich_results(self, state: GraphState) -> GraphState:
         self._update_progress(state, 6, "Arricchimento dati...")
         selected_data = state["selected_data"]
         sql_query = state["sql_query"]
         location_payload = state["location_payload"]
+        dataset_path = state.get("dataset_path")
 
         # Post-processing similar to OrchestratorAgent
         try:
@@ -697,6 +769,45 @@ class GraphOrchestratorAgent(BaseAgent):
         except Exception:
             state["where_clause"] = "Nessuna clausola WHERE trovata."
 
+        # ============================================================
+        # CRITICAL: LEFT JOIN with full dataset to recover ALL columns
+        # SQL might only select specific columns, but we need everything
+        # for the UI (surface_area, meta_immobile, ape_scores, etc.)
+        # ============================================================
+        if dataset_path and not selected_data.empty and "id" in selected_data.columns:
+            try:
+                full_df = pd.read_parquet(dataset_path)
+                logger.info(
+                    f"Enrichment: merging {len(selected_data)} SQL results with "
+                    f"{len(full_df)} full dataset rows"
+                )
+
+                # Ensure ID is string for matching
+                selected_data["id"] = selected_data["id"].astype(str)
+                full_df["id"] = full_df["id"].astype(str)
+
+                # Get columns only in full_df (not in selected_data)
+                sql_columns = set(selected_data.columns)
+                full_columns = set(full_df.columns)
+                missing_columns = full_columns - sql_columns
+
+                if missing_columns:
+                    # Only merge the missing columns (more efficient)
+                    merge_columns = ["id"] + list(missing_columns)
+                    full_subset = full_df[merge_columns].drop_duplicates(subset=["id"])
+
+                    # LEFT JOIN: preserve all SQL rows, add missing columns
+                    selected_data = selected_data.merge(
+                        full_subset, on="id", how="left"
+                    )
+                    logger.info(
+                        f"Enrichment: added {len(missing_columns)} missing columns"
+                    )
+
+            except Exception as e:
+                logger.warning(f"Failed to enrich with full dataset: {e}")
+                # Continue with whatever data we have
+
         # 1. Calculate travel times on the SELECTED subset first (for performance)
         location_list = location_payload if isinstance(location_payload, list) else []
 
@@ -704,8 +815,7 @@ class GraphOrchestratorAgent(BaseAgent):
             # Enrich with direct Haversine distance (distanza_km) for ranking & filters
             selected_data = calculate_travel_times_df(selected_data, location_list)
 
-        # 2. No longer merging with working_dataset as it is removed from state.
-        # We assume selected_data contains the relevant rows and columns.
+        # 2. Mark as matched
         enriched_data = selected_data.copy()
         enriched_data["is_match"] = True
 

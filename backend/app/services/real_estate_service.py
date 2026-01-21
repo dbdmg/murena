@@ -136,10 +136,15 @@ class RealEstateService:
         Returns:
             DataFrame or None if load fails
         """
-        # Check cache first
-        if dataset_key in self._dataset_cache:
+        # Log cache state for debugging
+        logger.info(
+            f"_load_dataset called for '{dataset_key}', cache keys: {list(RealEstateService._dataset_cache.keys())}"
+        )
+
+        # Check class-level cache first (use class name explicitly)
+        if dataset_key in RealEstateService._dataset_cache:
             logger.info(f"Using cached dataset: {dataset_key}")
-            return self._dataset_cache[dataset_key]
+            return RealEstateService._dataset_cache[dataset_key]
 
         # Get file path from settings
         file_path = self._get_dataset_path(dataset_key)
