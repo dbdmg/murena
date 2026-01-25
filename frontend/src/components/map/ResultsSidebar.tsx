@@ -62,17 +62,23 @@ export const ResultsSidebar: React.FC<ResultsSidebarProps> = ({
     // Refs for card elements to enable autoscroll
     const cardRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
 
+    // Track previous props for render-time updates
+    const [prevMarkersLen, setPrevMarkersLen] = useState(markers.length);
+    const [prevHasActiveRun, setPrevHasActiveRun] = useState(hasActiveRun);
+
     // Reset page when markers change
-    useEffect(() => {
+    if (markers.length !== prevMarkersLen) {
+        setPrevMarkersLen(markers.length);
         setCurrentPage(1);
-    }, [markers.length]);
+    }
 
     // Reset sort to score when run becomes active
-    useEffect(() => {
+    if (hasActiveRun !== prevHasActiveRun) {
+        setPrevHasActiveRun(hasActiveRun);
         if (hasActiveRun) {
             setSortBy('score');
         }
-    }, [hasActiveRun]);
+    }
 
     // Sort and Filter markers
     const sortedMarkers = useMemo(() => {
@@ -121,7 +127,7 @@ export const ResultsSidebar: React.FC<ResultsSidebarProps> = ({
             if (idx >= 0) {
                 const targetPage = Math.floor(idx / ITEMS_PER_PAGE) + 1;
                 if (targetPage !== currentPage) {
-                    setCurrentPage(targetPage);
+                    setTimeout(() => setCurrentPage(targetPage), 0);
                 }
                 // Scroll to card after a short delay (for page change to render)
                 setTimeout(() => {
@@ -132,7 +138,7 @@ export const ResultsSidebar: React.FC<ResultsSidebarProps> = ({
                 }, 100);
             }
         }
-    }, [selectedId, isOpen, sortedMarkers]);
+    }, [selectedId, isOpen, sortedMarkers, currentPage]);
 
     const getEnergyClassColor = (cls?: string) => {
         if (!cls) return 'bg-gray-500/20 text-gray-400';
@@ -292,7 +298,7 @@ export const ResultsSidebar: React.FC<ResultsSidebarProps> = ({
                                                     <div className={`
                                                         px-2 py-1 rounded-lg font-bold text-xs shrink-0
                                                         ${marker.ranking_score >= 80
-                                                            ? 'bg-gradient-to-br from-amber-400 to-yellow-500 text-black'
+                                                            ? 'bg-linear-to-br from-amber-400 to-yellow-500 text-black'
                                                             : marker.ranking_score >= 60
                                                                 ? 'bg-amber-500/30 text-amber-400'
                                                                 : 'bg-slate-600/50 text-gray-300'
@@ -303,21 +309,17 @@ export const ResultsSidebar: React.FC<ResultsSidebarProps> = ({
                                                 )}
                                             </div>
 
-                                            {/* Info badges */}
+                                            {/* Info badges - Simplified: only surface, energy class, OMI zone */}
                                             <div className="flex flex-wrap items-center gap-1.5">
-                                                <span className="px-1.5 py-0.5 rounded text-[10px] bg-slate-700/50 text-gray-400">
-                                                    ID: {marker.id}
-                                                </span>
-
                                                 {marker.surface_area && (
-                                                    <span className="px-1.5 py-0.5 rounded text-[10px] bg-blue-500/20 text-blue-400">
+                                                    <span className="px-1.5 py-0.5 rounded text-[10px] bg-slate-700/50 text-gray-300">
                                                         {marker.surface_area.toLocaleString()} m²
                                                     </span>
                                                 )}
 
                                                 {marker.energy_class && (
                                                     <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${getEnergyClassColor(marker.energy_class)}`}>
-                                                        {marker.energy_class}
+                                                        Classe {marker.energy_class}
                                                     </span>
                                                 )}
 

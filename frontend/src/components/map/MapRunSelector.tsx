@@ -82,7 +82,7 @@ export const MapRunSelector: React.FC<MapRunSelectorProps> = ({
                     <>
                         {/* Backdrop */}
                         <div
-                            className="fixed inset-0 z-[450]"
+                            className="fixed inset-0 z-450"
                             onClick={() => setIsOpen(false)}
                         />
 
@@ -91,7 +91,7 @@ export const MapRunSelector: React.FC<MapRunSelectorProps> = ({
                             animate={{ opacity: 1, y: 0, scale: 1 }}
                             exit={{ opacity: 0, y: -10, scale: 0.95 }}
                             transition={{ duration: 0.15 }}
-                            className="absolute top-full left-0 mt-2 w-[320px] bg-[#0a0d12]/95 backdrop-blur-2xl border border-white/10 rounded-xl shadow-2xl shadow-black/50 z-[500] overflow-hidden"
+                            className="absolute top-full left-0 mt-2 w-[320px] bg-[#0a0d12]/95 backdrop-blur-2xl border border-white/10 rounded-xl shadow-2xl shadow-black/50 z-500 overflow-hidden"
                         >
                             {/* Header */}
                             <div className="px-3 py-2 border-b border-white/5 flex items-center justify-between">
@@ -124,7 +124,7 @@ export const MapRunSelector: React.FC<MapRunSelectorProps> = ({
                                         }`}
                                 >
                                     <div className="flex items-center gap-2">
-                                        <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-gray-600 to-gray-700 flex items-center justify-center">
+                                        <div className="w-6 h-6 rounded-lg bg-linear-to-br from-gray-600 to-gray-700 flex items-center justify-center">
                                             <span className="text-xs">🗺️</span>
                                         </div>
                                         <div>
@@ -185,10 +185,10 @@ export const MapRunSelector: React.FC<MapRunSelectorProps> = ({
                                                         </div>
                                                         <span
                                                             className={`text-[9px] px-1.5 py-0.5 rounded uppercase font-medium ${item.status === 'completed'
-                                                                    ? 'bg-emerald-500/20 text-emerald-400'
-                                                                    : item.status === 'failed'
-                                                                        ? 'bg-red-500/20 text-red-400'
-                                                                        : 'bg-amber-500/20 text-amber-400'
+                                                                ? 'bg-emerald-500/20 text-emerald-400'
+                                                                : item.status === 'failed'
+                                                                    ? 'bg-red-500/20 text-red-400'
+                                                                    : 'bg-amber-500/20 text-amber-400'
                                                                 }`}
                                                         >
                                                             {item.status === 'completed' ? '✓' : item.status === 'failed' ? '✗' : '...'}

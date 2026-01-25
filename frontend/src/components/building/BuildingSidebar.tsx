@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { X, ChevronDown } from 'lucide-react';
 import { Button } from '../common/Button';
 import { BuildingDetail } from './BuildingDetail';
@@ -16,13 +16,15 @@ export const BuildingSidebar: React.FC<BuildingSidebarProps> = ({
     selectedBuildings
 }) => {
     const [selectedIndex, setSelectedIndex] = useState(0);
+    const [prevBuildings, setPrevBuildings] = useState(selectedBuildings);
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
-    // Reset selection when buildings change
-    useEffect(() => {
+    // Reset selection when buildings change (render-time update)
+    if (selectedBuildings !== prevBuildings) {
+        setPrevBuildings(selectedBuildings);
         setSelectedIndex(0);
         setIsDropdownOpen(false);
-    }, [selectedBuildings]);
+    }
 
     if (!isOpen) return null;
 
@@ -30,7 +32,7 @@ export const BuildingSidebar: React.FC<BuildingSidebarProps> = ({
     const currentBuilding = selectedBuildings[selectedIndex];
 
     return (
-        <div className="absolute top-0 right-0 h-full w-[380px] bg-[#1a1d24]/95 backdrop-blur-xl border-l border-white/10 shadow-2xl z-[500] flex flex-col">
+        <div className="absolute top-0 right-0 h-full w-[380px] bg-[#1a1d24]/95 backdrop-blur-xl border-l border-white/10 shadow-2xl z-500 flex flex-col">
             {/* Header */}
             <div className="p-4 border-b border-white/5 flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-2">
@@ -76,7 +78,10 @@ export const BuildingSidebar: React.FC<BuildingSidebarProps> = ({
                                             {building.address || `Immobile ${building.id}`}
                                         </div>
                                         <div className="text-xs text-gray-500 truncate">
-                                            ID: {building.id} | {building.surface_area || 'N/A'} m²
+                                            {building.sub_properties && building.sub_properties.length > 0
+                                                ? `ID: ${building.id} | Sub: ${building.sub_properties.length}`
+                                                : `ID: ${building.id} | ${building.surface_area || 'N/A'} m²`
+                                            }
                                         </div>
                                     </button>
                                 ))}
@@ -89,7 +94,8 @@ export const BuildingSidebar: React.FC<BuildingSidebarProps> = ({
             {/* Content Area - Building Detail */}
             <div className="flex-1 overflow-auto p-4 custom-scrollbar">
                 {currentBuilding ? (
-                    <BuildingDetail data={currentBuilding as any} />
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    <BuildingDetail data={currentBuilding as unknown as any} />
                 ) : (
                     <div className="text-center text-gray-500 mt-10">
                         <p>Nessun immobile selezionato.</p>

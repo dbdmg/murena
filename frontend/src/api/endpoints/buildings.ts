@@ -10,7 +10,7 @@ export const buildingsApi = {
         return response.data;
     },
 
-    listBuildings: async (params: any) => {
+    listBuildings: async (params: Record<string, unknown>) => {
         const response = await client.get<BuildingsListResponse>('/buildings', {
             params
         });

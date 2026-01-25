@@ -169,7 +169,7 @@ export const SettingsPage: React.FC = () => {
         <div className="p-6 max-w-4xl mx-auto">
             {/* Header */}
             <div className="flex items-center gap-3 mb-8">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/20">
+                <div className="w-12 h-12 rounded-xl bg-linear-to-br from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/20">
                     <Settings className="w-6 h-6 text-white" />
                 </div>
                 <div>
@@ -207,10 +207,10 @@ export const SettingsPage: React.FC = () => {
                                         className={`
                                             flex items-center justify-between p-3 rounded-xl border transition-all text-left
                                             ${provider.comingSoon
-                                                ? 'bg-white/[0.01] border-white/5 text-gray-500 cursor-not-allowed opacity-60'
+                                                ? 'bg-white/1 border-white/5 text-gray-500 cursor-not-allowed opacity-60'
                                                 : llmProvider === provider.value
                                                     ? 'bg-violet-500/15 border-violet-500/50 text-violet-300'
-                                                    : 'bg-white/[0.02] border-white/10 text-gray-400 hover:bg-white/5 hover:border-white/20'
+                                                    : 'bg-white/2 border-white/10 text-gray-400 hover:bg-white/5 hover:border-white/20'
                                             }
                                         `}
                                     >
@@ -308,7 +308,7 @@ export const SettingsPage: React.FC = () => {
                         {showConfirm ? (
                             <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-xl">
                                 <div className="flex items-start gap-3 mb-4">
-                                    <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+                                    <AlertTriangle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
                                     <div>
                                         <h3 className="text-sm font-semibold text-red-400 mb-1">Conferma Reset</h3>
                                         <p className="text-xs text-gray-400">
@@ -424,7 +424,7 @@ export const SettingsPage: React.FC = () => {
                                     p-4 rounded-xl border transition-all text-left
                                     ${dataSource === 'live'
                                         ? 'bg-emerald-500/15 border-emerald-500/50'
-                                        : 'bg-white/[0.02] border-white/10 hover:bg-white/5'
+                                        : 'bg-white/2 border-white/10 hover:bg-white/5'
                                     }
                                 `}
                             >
@@ -441,7 +441,7 @@ export const SettingsPage: React.FC = () => {
                                     p-4 rounded-xl border transition-all text-left
                                     ${dataSource === 'sandbox'
                                         ? 'bg-amber-500/15 border-amber-500/50'
-                                        : 'bg-white/[0.02] border-white/10 hover:bg-white/5'
+                                        : 'bg-white/2 border-white/10 hover:bg-white/5'
                                     }
                                 `}
                             >
@@ -471,8 +471,8 @@ export const SettingsPage: React.FC = () => {
                         {user ? (
                             <>
                                 {/* Profile Card */}
-                                <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-white/[0.03] to-transparent border border-white/10 rounded-xl mb-4">
-                                    <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-blue-500/20">
+                                <div className="flex items-center gap-4 p-4 bg-linear-to-r from-white/2 to-transparent border border-white/10 rounded-xl mb-4">
+                                    <div className="w-14 h-14 rounded-full bg-linear-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-blue-500/20">
                                         {user.username?.charAt(0).toUpperCase() || 'U'}
                                     </div>
                                     <div className="flex-1">

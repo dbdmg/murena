@@ -3,7 +3,7 @@ import { X, Zap, Thermometer, Droplets, Snowflake, Wrench, Calendar, MapPin, Bui
 import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
 import client from '../../api/client';
 
-interface APEDetail {
+export interface APEDetail {
     // Basic identification
     file: string;
     unita?: string;
@@ -139,11 +139,12 @@ export const APEDetailModal: React.FC<APEDetailModalProps> = ({ filename, isOpen
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    useEffect(() => {
-        if (!isOpen || !filename) return;
-
+    if (isOpen && filename && !loading && !data && !error) {
         setLoading(true);
-        setError(null);
+    }
+
+    useEffect(() => {
+        if (!isOpen || !filename || data || error) return;
 
         client.get<APEDetail>(`/ape/${encodeURIComponent(filename)}`)
             .then(res => {
@@ -154,12 +155,12 @@ export const APEDetailModal: React.FC<APEDetailModalProps> = ({ filename, isOpen
                 setError(err.response?.data?.detail || 'Errore nel caricamento');
                 setLoading(false);
             });
-    }, [filename, isOpen]);
+    }, [filename, isOpen, data, error]);
 
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4" onClick={onClose}>
+        <div className="fixed inset-0 z-1000 flex items-center justify-center p-4" onClick={onClose}>
             <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
             <div
                 className="relative bg-[#0f1218]/95 border border-white/10 rounded-2xl max-w-lg w-full max-h-[85vh] overflow-hidden shadow-2xl"
@@ -194,7 +195,7 @@ export const APEDetailModal: React.FC<APEDetailModalProps> = ({ filename, isOpen
                         <>
                             {/* Energy Class Hero */}
                             <div className="flex items-center gap-4">
-                                <div className={`w-16 h-16 rounded-xl bg-gradient-to-br ${getClassColor(data.classe)} flex items-center justify-center text-2xl font-bold text-white shadow-lg`}>
+                                <div className={`w-16 h-16 rounded-xl bg-linear-to-br ${getClassColor(data.classe)} flex items-center justify-center text-2xl font-bold text-white shadow-lg`}>
                                     {data.classe || '?'}
                                 </div>
                                 <div className="flex-1">
@@ -229,7 +230,7 @@ export const APEDetailModal: React.FC<APEDetailModalProps> = ({ filename, isOpen
                             {(data.kwh_per_sqm || data.costo_per_mq_anno) && (
                                 <div className="grid grid-cols-2 gap-2">
                                     {data.kwh_per_sqm && (
-                                        <div className="bg-gradient-to-br from-purple-500/10 to-pink-500/10 border border-purple-500/20 rounded-lg p-3 text-center">
+                                        <div className="bg-linear-to-br from-purple-500/10 to-pink-500/10 border border-purple-500/20 rounded-lg p-3 text-center">
                                             <p className="text-[10px] text-gray-500 uppercase mb-1">Consumo per m²</p>
                                             <p className="text-lg font-bold text-purple-400">
                                                 {data.kwh_per_sqm.toFixed(1).replace('.', ',')} <span className="text-xs text-gray-500">kWh/m²</span>
@@ -237,7 +238,7 @@ export const APEDetailModal: React.FC<APEDetailModalProps> = ({ filename, isOpen
                                         </div>
                                     )}
                                     {data.costo_per_mq_anno && (
-                                        <div className="bg-gradient-to-br from-purple-500/10 to-pink-500/10 border border-purple-500/20 rounded-lg p-3 text-center">
+                                        <div className="bg-linear-to-br from-purple-500/10 to-pink-500/10 border border-purple-500/20 rounded-lg p-3 text-center">
                                             <p className="text-[10px] text-gray-500 uppercase mb-1">Costo per m²</p>
                                             <p className="text-lg font-bold text-purple-400">
                                                 €{data.costo_per_mq_anno.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -249,9 +250,9 @@ export const APEDetailModal: React.FC<APEDetailModalProps> = ({ filename, isOpen
 
                             {/* Energy Cost Analysis - Row 3 */}
                             {(data.energy_score !== undefined && data.energy_score !== null) || data.consumo_kwh_tot || data.costo_annuo_euro ? (
-                                <div className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/20 rounded-lg p-3">
+                                <div className="bg-linear-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/20 rounded-lg p-3">
                                     <div className="flex items-center gap-2 mb-3">
-                                        <div className="w-6 h-6 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                                        <div className="w-6 h-6 rounded-full bg-linear-to-br from-purple-500 to-pink-500 flex items-center justify-center">
                                             <span className="text-white text-[10px] font-bold">⚡</span>
                                         </div>
                                         <p className="text-[10px] uppercase text-purple-400 font-medium">Analisi Costi Energetici</p>
@@ -447,7 +448,7 @@ export const APEDetailModal: React.FC<APEDetailModalProps> = ({ filename, isOpen
 
                             {/* APE Scoring Breakdown */}
                             {data.ape_total_points !== undefined && (
-                                <div className="bg-gradient-to-r from-blue-500/10 to-cyan-500/10 border border-blue-500/20 rounded-lg p-3">
+                                <div className="bg-linear-to-r from-blue-500/10 to-cyan-500/10 border border-blue-500/20 rounded-lg p-3">
                                     <div className="flex items-center justify-between mb-2">
                                         <p className="text-[10px] uppercase text-blue-400">Punteggio APE Dettagliato</p>
                                         <div className="relative group">
@@ -478,7 +479,7 @@ export const APEDetailModal: React.FC<APEDetailModalProps> = ({ filename, isOpen
                                             </div>
                                         </div>
                                     </div>
-                                    
+
                                     {/* Radar Chart */}
                                     {(() => {
                                         const radarData = [
@@ -487,9 +488,10 @@ export const APEDetailModal: React.FC<APEDetailModalProps> = ({ filename, isOpen
                                             { subject: 'Involucro', A: data.ape_envelope_score || 0, fullMark: 5 },
                                             { subject: 'Rinnovabili', A: data.ape_renewables_score || 0, fullMark: 5 },
                                         ];
-                                        
+
+                                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                         const renderTick = (props: any) => {
-                                            const { payload, x, y, cx, cy, ...rest } = props;
+                                            const { payload, x, y, cx, ...rest } = props;
                                             const dataPoint = radarData.find(d => d.subject === payload.value);
                                             const value = dataPoint?.A ?? 0;
                                             return (
@@ -503,7 +505,7 @@ export const APEDetailModal: React.FC<APEDetailModalProps> = ({ filename, isOpen
                                                 </g>
                                             );
                                         };
-                                        
+
                                         return (
                                             <div className="w-full h-[160px]">
                                                 <ResponsiveContainer width="100%" height="100%">
@@ -517,10 +519,10 @@ export const APEDetailModal: React.FC<APEDetailModalProps> = ({ filename, isOpen
                                             </div>
                                         );
                                     })()}
-                                    
+
                                     <div className="mt-2 pt-2 border-t border-white/10 flex justify-between items-center">
                                         <span className="text-xs text-gray-400">Punteggio Totale</span>
-                                        <span className="text-lg font-bold text-white">{data.ape_total_points} <span className="text-xs text-gray-500">punti</span></span>
+                                        <span className="text-lg font-bold text-white">{data.ape_total_points} <span className="text-xs text-gray-500">/20 punti</span></span>
                                     </div>
                                 </div>
                             )}

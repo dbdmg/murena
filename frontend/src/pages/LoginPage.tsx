@@ -22,6 +22,7 @@ export const LoginPage: React.FC = () => {
         try {
             await login({ username, password });
             navigate('/');
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (err: any) {
             console.error(err);
             const apiUrl = import.meta.env.VITE_API_URL;

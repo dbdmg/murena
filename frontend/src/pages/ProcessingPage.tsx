@@ -89,7 +89,7 @@ const TypewriterText = ({ text }: { text: string }) => {
     return <span>{displayedText}</span>;
 };
 
-const MicroMetric = ({ label, icon: Icon, valuePrefix = '', suffix = '' }: { label: string, icon: any, valuePrefix?: string, suffix?: string }) => {
+const MicroMetric = ({ label, icon: Icon, valuePrefix = '', suffix = '' }: { label: string, icon: React.ComponentType<{ className?: string }>, valuePrefix?: string, suffix?: string }) => {
     const [value, setValue] = useState(0);
 
     useEffect(() => {
@@ -145,11 +145,19 @@ export const ProcessingPage: React.FC = () => {
 
     const [results, setResults] = useState<AnalysisResults | null>(null);
     const [logs, setLogs] = useState<LogEntry[]>([]);
-    const [currentStepIndex, setCurrentStepIndex] = useState(0);
     const [isComplete, setIsComplete] = useState(false);
     const [buildingsFound, setBuildingsFound] = useState<number | null>(null);
     const [buildingsEvaluated, setBuildingsEvaluated] = useState<number | null>(null);
     const [brokerSummary, setBrokerSummary] = useState<string | null>(null);
+
+    // Use specific progress hook linked to this runId
+    const progress = useAnalysisProgress(runId ?? null, { autoConnect: true });
+
+    // Derived state for step index to avoid useEffect sync
+    const currentStepIndex = isComplete
+        ? TIMELINE_STEPS.length
+        : Math.min(Math.floor((progress.percent / 100) * TIMELINE_STEPS.length), TIMELINE_STEPS.length);
+
     const [, setAgentSteps] = useState<AgentStep[]>([]);
     const [currentInsightIndex, setCurrentInsightIndex] = useState(0);
     const logsEndRef = useRef<HTMLDivElement>(null);
@@ -164,39 +172,6 @@ export const ProcessingPage: React.FC = () => {
         }, 4000);
         return () => clearInterval(interval);
     }, [isComplete]);
-
-    // Use specific progress hook linked to this runId
-    const progress = useAnalysisProgress(runId ?? null, { autoConnect: true });
-
-    // Fetch agent steps when available (polling or on complete)
-    const fetchAgentSteps = useCallback(async () => {
-        if (!runId) return;
-        try {
-            const steps = await analysisApi.getAgentSteps(runId, {
-                include_prompt: false,
-                include_raw: true,
-            });
-            setAgentSteps(steps);
-
-            // Convert steps to log entries with meaningful details
-            const newLogs: LogEntry[] = steps.map(step => ({
-                timestamp: new Date().toLocaleTimeString('it-IT', {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    second: '2-digit',
-                }),
-                message: step.label || step.key,
-                status: 'done' as const,
-                detail: extractStepDetail(step),
-            }));
-
-            if (newLogs.length > 0) {
-                setLogs(newLogs);
-            }
-        } catch {
-            // Steps not ready yet
-        }
-    }, [runId]);
 
     // Extract meaningful detail from agent step response
     const extractStepDetail = (step: AgentStep): string | undefined => {
@@ -237,6 +212,36 @@ export const ProcessingPage: React.FC = () => {
         return undefined;
     };
 
+    // Fetch agent steps when available (polling or on complete)
+    const fetchAgentSteps = useCallback(async () => {
+        if (!runId) return;
+        try {
+            const steps = await analysisApi.getAgentSteps(runId, {
+                include_prompt: false,
+                include_raw: true,
+            });
+            setAgentSteps(steps);
+
+            // Convert steps to log entries with meaningful details
+            const newLogs: LogEntry[] = steps.map(step => ({
+                timestamp: new Date().toLocaleTimeString('it-IT', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                }),
+                message: step.label || step.key,
+                status: 'done' as const,
+                detail: extractStepDetail(step),
+            }));
+
+            if (newLogs.length > 0) {
+                setLogs(newLogs);
+            }
+        } catch {
+            // Steps not ready yet
+        }
+    }, [runId]);
+
     // START CHANGES: UX Improvements
     const [visualStepIndex, setVisualStepIndex] = useState(0);
 
@@ -265,37 +270,29 @@ export const ProcessingPage: React.FC = () => {
 
     // Update UI based on WebSocket progress
     useEffect(() => {
-        if (progress.percent > 0) {
-            // Map progress percentage to timeline step
-            const stepIndex = Math.floor((progress.percent / 100) * TIMELINE_STEPS.length);
-            setCurrentStepIndex(Math.min(stepIndex, TIMELINE_STEPS.length));
-        }
-
         // Add log entry for current step from WebSocket
         if (progress.message && progress.step) {
-            setLogs(prev => {
-                const exists = prev.some(l => l.message === progress.step);
-                if (exists) return prev;
-                return [...prev, {
-                    timestamp: new Date().toLocaleTimeString('it-IT', {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        second: '2-digit',
-                    }),
-                    message: progress.step,
-                    status: 'processing' as const,
-                }];
-            });
+            setTimeout(() => {
+                setLogs(prev => {
+                    const exists = prev.some(l => l.message === progress.step);
+                    if (exists) return prev;
+                    return [...prev, {
+                        timestamp: new Date().toLocaleTimeString(),
+                        message: progress.message,
+                        step: progress.step,
+                        status: 'done'
+                    }];
+                });
+            }, 0);
         }
 
         // Handle WebSocket completion
         if (progress.isComplete) {
-            setIsComplete(true);
-            setCurrentStepIndex(TIMELINE_STEPS.length);
+            setTimeout(() => setIsComplete(true), 0);
             // Fetch final agent steps
             if (!hasFetchedSteps.current) {
                 hasFetchedSteps.current = true;
-                fetchAgentSteps();
+                setTimeout(() => fetchAgentSteps(), 0);
             }
             // Fetch results
             if (runId && !results) {
@@ -311,7 +308,7 @@ export const ProcessingPage: React.FC = () => {
                 }).catch(err => console.error('Failed to fetch results:', err));
             }
         }
-    }, [progress.percent, progress.message, progress.step, progress.isComplete, fetchAgentSteps, runId, results]);
+    }, [progress.message, progress.step, progress.isComplete, fetchAgentSteps, runId, results]); // Removed progress.percent dependency
 
     // Poll for final results
     useEffect(() => {
@@ -328,7 +325,6 @@ export const ProcessingPage: React.FC = () => {
                     );
                     setBrokerSummary(resultsData.broker_summary || null);
                     setIsComplete(true);
-                    setCurrentStepIndex(TIMELINE_STEPS.length);
                     clearInterval(pollInterval);
 
                     if (!hasFetchedSteps.current) {
@@ -686,23 +682,47 @@ export const ProcessingPage: React.FC = () => {
                     <span>Modify Criteria</span>
                 </button>
 
-                <motion.button
-                    onClick={handleViewResults}
-                    disabled={!isComplete}
-                    whileHover={{ scale: isComplete ? 1.02 : 1 }}
-                    whileTap={{ scale: isComplete ? 0.98 : 1 }}
-                    className={`
-                    flex items-center gap-2 px-6 py-2.5 rounded-xl font-medium text-sm
-                    transition-all duration-200
-                    ${isComplete
-                            ? 'bg-linear-to-r from-blue-600 to-cyan-500 text-white shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40'
-                            : 'bg-white/5 text-gray-500 cursor-not-allowed'
-                        }
-                `}
-                >
-                    <span>View Results on Map</span>
-                    <ArrowRight className="w-4 h-4" />
-                </motion.button>
+                {/* View Results Button - Disabled until broker summary arrives */}
+                {(() => {
+                    // Button is ready only when we have results AND broker summary
+                    const isReady = isComplete && brokerSummary && buildingsFound !== null && buildingsFound > 0;
+                    // Show "finalizing" state when complete but waiting for broker
+                    const isFinalizing = isComplete && !brokerSummary;
+
+                    return (
+                        <motion.button
+                            onClick={handleViewResults}
+                            disabled={!isReady}
+                            whileHover={{ scale: isReady ? 1.02 : 1 }}
+                            whileTap={{ scale: isReady ? 0.98 : 1 }}
+                            className={`
+                                flex items-center gap-2 px-6 py-2.5 rounded-xl font-medium text-sm
+                                transition-all duration-200
+                                ${isReady
+                                    ? 'bg-linear-to-r from-blue-600 to-cyan-500 text-white shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40'
+                                    : 'bg-white/5 text-gray-500 cursor-not-allowed'
+                                }
+                            `}
+                        >
+                            {isFinalizing ? (
+                                <>
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                    <span>Finalizing Analysis...</span>
+                                </>
+                            ) : !isComplete ? (
+                                <>
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                    <span>Processing...</span>
+                                </>
+                            ) : (
+                                <>
+                                    <span>View Results on Map</span>
+                                    <ArrowRight className="w-4 h-4" />
+                                </>
+                            )}
+                        </motion.button>
+                    );
+                })()}
 
                 {!isComplete && (
                     <button

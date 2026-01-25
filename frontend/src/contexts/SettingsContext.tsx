@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
+import React, { createContext, useContext, useState, type ReactNode } from 'react';
 
 export type LLMProvider = 'anthropic' | 'google' | 'openai';
 export type DataSource = 'live' | 'sandbox';
@@ -43,79 +43,51 @@ const DEFAULT_SETTINGS: StoredSettings = {
     demoMode: false,
 };
 
-export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-    const [markersLimit, setMarkersLimitState] = useState(DEFAULT_SETTINGS.markersLimit);
-    const [llmProvider, setLLMProviderState] = useState<LLMProvider>(DEFAULT_SETTINGS.llmProvider);
-    const [llmLimit, setLLMLimitState] = useState(DEFAULT_SETTINGS.llmLimit);
-    const [agentTemperature, setAgentTemperatureState] = useState(DEFAULT_SETTINGS.agentTemperature);
-    const [dataSource, setDataSourceState] = useState<DataSource>(DEFAULT_SETTINGS.dataSource);
-    const [demoMode, setDemoModeState] = useState(DEFAULT_SETTINGS.demoMode);
-
-    // Load settings from localStorage on mount
-    useEffect(() => {
-        try {
-            const stored = localStorage.getItem(STORAGE_KEY);
-            if (stored) {
-                const parsed: Partial<StoredSettings> = JSON.parse(stored);
-                if (parsed.markersLimit) setMarkersLimitState(parsed.markersLimit);
-                if (parsed.llmProvider) setLLMProviderState(parsed.llmProvider);
-                if (parsed.llmLimit) setLLMLimitState(parsed.llmLimit);
-                if (parsed.agentTemperature !== undefined) setAgentTemperatureState(parsed.agentTemperature);
-                if (parsed.dataSource) setDataSourceState(parsed.dataSource);
-                if (parsed.demoMode !== undefined) setDemoModeState(parsed.demoMode);
-            }
-        } catch (e) {
-            console.error('Failed to load settings', e);
+const getStoredSettings = (): StoredSettings => {
+    try {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored) {
+            const parsed = JSON.parse(stored);
+            return { ...DEFAULT_SETTINGS, ...parsed };
         }
-    }, []);
+    } catch (e) {
+        console.error('Failed to load settings', e);
+    }
+    return DEFAULT_SETTINGS;
+};
 
-    // Save all settings to localStorage
-    const saveSettings = (settings: Partial<StoredSettings>) => {
+export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+    // Lazy initialization from localStorage
+    const [settings, setSettings] = useState<StoredSettings>(() => getStoredSettings());
+
+    const {
+        markersLimit,
+        llmProvider,
+        llmLimit,
+        agentTemperature,
+        dataSource,
+        demoMode
+    } = settings;
+
+    // Helper to update specific setting and save to local storage
+    const updateSetting = <K extends keyof StoredSettings>(key: K, value: StoredSettings[K]) => {
+        const newSettings = { ...settings, [key]: value };
+        setSettings(newSettings);
         try {
-            const current: StoredSettings = {
-                markersLimit,
-                llmProvider,
-                llmLimit,
-                agentTemperature,
-                dataSource,
-                demoMode,
-                ...settings,
-            };
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(current));
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(newSettings));
         } catch (e) {
             console.error('Failed to save settings', e);
         }
     };
 
-    const setMarkersLimit = (limit: number) => {
-        setMarkersLimitState(limit);
-        saveSettings({ markersLimit: limit });
-    };
+    const setMarkersLimit = (limit: number) => updateSetting('markersLimit', limit);
+    const setLLMProvider = (provider: LLMProvider) => updateSetting('llmProvider', provider);
+    const setLLMLimit = (limit: number) => updateSetting('llmLimit', limit);
+    const setAgentTemperature = (temp: number) => updateSetting('agentTemperature', temp);
+    const setDataSource = (source: DataSource) => updateSetting('dataSource', source);
+    const setDemoMode = (enabled: boolean) => updateSetting('demoMode', enabled);
 
-    const setLLMProvider = (provider: LLMProvider) => {
-        setLLMProviderState(provider);
-        saveSettings({ llmProvider: provider });
-    };
 
-    const setLLMLimit = (limit: number) => {
-        setLLMLimitState(limit);
-        saveSettings({ llmLimit: limit });
-    };
-
-    const setAgentTemperature = (temp: number) => {
-        setAgentTemperatureState(temp);
-        saveSettings({ agentTemperature: temp });
-    };
-
-    const setDataSource = (source: DataSource) => {
-        setDataSourceState(source);
-        saveSettings({ dataSource: source });
-    };
-
-    const setDemoMode = (enabled: boolean) => {
-        setDemoModeState(enabled);
-        saveSettings({ demoMode: enabled });
-    };
 
     return (
         <SettingsContext.Provider value={{
@@ -137,6 +109,7 @@ export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }
     );
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useSettings = (): SettingsContextType => {
     const context = useContext(SettingsContext);
     if (context === undefined) {

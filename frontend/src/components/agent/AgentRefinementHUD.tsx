@@ -157,7 +157,7 @@ const PromptEditor: React.FC<PromptEditorProps> = ({
             {/* Header */}
             <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500/20 to-purple-500/20 border border-violet-500/30 flex items-center justify-center">
+                    <div className="w-8 h-8 rounded-lg bg-linear-to-br from-violet-500/20 to-purple-500/20 border border-violet-500/30 flex items-center justify-center">
                         <Code2 className="w-4 h-4 text-violet-400" />
                     </div>
                     <div>
@@ -177,12 +177,12 @@ const PromptEditor: React.FC<PromptEditorProps> = ({
             {/* Editor Container */}
             <div className="flex-1 relative rounded-2xl overflow-hidden border border-white/10 bg-[#080a0e]">
                 {/* Gradient border effect */}
-                <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-violet-500/10 via-transparent to-cyan-500/10 pointer-events-none" />
-                
+                <div className="absolute inset-0 rounded-2xl bg-linear-to-br from-violet-500/10 via-transparent to-cyan-500/10 pointer-events-none" />
+
                 {/* Editor with line numbers feel */}
                 <div className="absolute inset-0 flex">
                     {/* Line numbers gutter */}
-                    <div className="w-12 bg-white/[0.02] border-r border-white/5 py-4 select-none overflow-hidden">
+                    <div className="w-12 bg-white/2 border-r border-white/5 py-4 select-none overflow-hidden">
                         <div className="flex flex-col items-end pr-3 font-mono text-[11px] text-gray-600 leading-6">
                             {Array.from({ length: Math.max(lineCount, 20) }, (_, i) => (
                                 <span key={i + 1}>{i + 1}</span>
@@ -211,7 +211,7 @@ const PromptEditor: React.FC<PromptEditorProps> = ({
                 </div>
 
                 {/* Bottom fade */}
-                <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-[#080a0e] to-transparent pointer-events-none" />
+                <div className="absolute bottom-0 left-0 right-0 h-8 bg-linear-to-t from-[#080a0e] to-transparent pointer-events-none" />
             </div>
         </div>
     );
@@ -323,7 +323,7 @@ export const AgentRefinementHUD: React.FC<AgentRefinementHUDProps> = ({
                         apiClient.get(`/prompts/overrides/${agentName}/system`),
                         apiClient.get(`/prompts/overrides/${agentName}/user`),
                     ]);
-                    
+
                     const systemPrompt = systemResp.data?.text || '';
                     const userPrompt = userResp.data?.text || '';
                     setOriginalSystemPrompt(systemPrompt);
@@ -358,7 +358,7 @@ export const AgentRefinementHUD: React.FC<AgentRefinementHUDProps> = ({
     const handleAgentChange = useCallback(async (agentKey: string) => {
         setSelectedAgent(agentKey);
         setSimulatedRunId(null);
-        
+
         // Load prompts from config file for the new agent
         const agentName = getAgentNameForStep(agentKey);
         try {
@@ -366,7 +366,7 @@ export const AgentRefinementHUD: React.FC<AgentRefinementHUDProps> = ({
                 apiClient.get(`/prompts/overrides/${agentName}/system`),
                 apiClient.get(`/prompts/overrides/${agentName}/user`),
             ]);
-            
+
             const systemPrompt = systemResp.data?.text || '';
             const userPrompt = userResp.data?.text || '';
             setOriginalSystemPrompt(systemPrompt);
@@ -395,7 +395,7 @@ export const AgentRefinementHUD: React.FC<AgentRefinementHUDProps> = ({
     // Handle Re-Run / Simulate
     const handleReRun = useCallback(async () => {
         console.log('[AgentTuner] handleReRun called', { currentQuery, selectedAgent, hasChanges });
-        
+
         if (!currentQuery) {
             setError('Query non disponibile. Esegui prima una ricerca dalla mappa.');
             return;
@@ -417,7 +417,7 @@ export const AgentRefinementHUD: React.FC<AgentRefinementHUDProps> = ({
                     await apiClient.put(`/prompts/overrides/${agentName}/system`, { text: editedSystemPrompt });
                     await apiClient.put(`/prompts/overrides/${agentName}/user`, { text: editedUserPrompt });
                     setSimulationProgress('Prompt salvati. Avvio analisi...');
-                    
+
                     // Update original prompts since we saved them
                     setOriginalSystemPrompt(editedSystemPrompt);
                     setOriginalUserPrompt(editedUserPrompt);
@@ -590,7 +590,7 @@ export const AgentRefinementHUD: React.FC<AgentRefinementHUDProps> = ({
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[1000] flex items-center justify-center p-8"
+                        className="fixed inset-0 z-1000 flex items-center justify-center p-8"
                     >
                         {/* Backdrop */}
                         <motion.div
@@ -616,7 +616,7 @@ export const AgentRefinementHUD: React.FC<AgentRefinementHUDProps> = ({
                             {/* Header */}
                             <div className="relative flex items-center justify-between px-8 py-6 border-b border-white/10">
                                 <div className="flex items-center gap-4">
-                                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shadow-lg shadow-violet-500/30">
+                                    <div className="w-12 h-12 rounded-2xl bg-linear-to-br from-violet-500 to-purple-600 flex items-center justify-center shadow-lg shadow-violet-500/30">
                                         <Sparkles className="w-6 h-6 text-white" />
                                     </div>
                                     <div>
@@ -772,7 +772,7 @@ export const AgentRefinementHUD: React.FC<AgentRefinementHUDProps> = ({
 
                             {/* Footer - Action Buttons */}
                             {activeRunId && !isLoading && (
-                                <div className="relative px-8 py-6 border-t border-white/10 bg-white/[0.02]">
+                                <div className="relative px-8 py-6 border-t border-white/10 bg-white/2">
                                     <div className="flex items-center justify-between">
                                         <p className="text-xs text-gray-600">
                                             Modalità esperto • Le modifiche salvate influenzeranno tutte le future analisi
@@ -803,7 +803,7 @@ export const AgentRefinementHUD: React.FC<AgentRefinementHUDProps> = ({
                                                     font-medium text-sm transition-all duration-200
                                                     ${hasChanges
                                                         ? 'bg-white/5 text-gray-300 border border-white/10 hover:bg-white/10'
-                                                        : 'bg-white/[0.02] text-gray-600 cursor-not-allowed'
+                                                        : 'bg-white/2 text-gray-600 cursor-not-allowed'
                                                     }
                                                 `}
                                             >
@@ -820,7 +820,7 @@ export const AgentRefinementHUD: React.FC<AgentRefinementHUDProps> = ({
                                                     font-medium text-sm transition-all duration-200
                                                     ${canSave
                                                         ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30'
-                                                        : 'bg-white/[0.02] text-gray-600 cursor-not-allowed'
+                                                        : 'bg-white/2 text-gray-600 cursor-not-allowed'
                                                     }
                                                 `}
                                                 title={canSave ? 'Salva come default globale' : 'Esegui prima una simulazione'}
@@ -838,7 +838,7 @@ export const AgentRefinementHUD: React.FC<AgentRefinementHUDProps> = ({
                                                     font-semibold text-sm transition-all duration-200
                                                     ${isSimulating
                                                         ? 'bg-violet-500/20 text-violet-400 cursor-wait'
-                                                        : 'bg-gradient-to-r from-violet-500 to-purple-500 text-white hover:shadow-lg hover:shadow-violet-500/25 hover:scale-[1.02]'
+                                                        : 'bg-linear-to-r from-violet-500 to-purple-500 text-white hover:shadow-lg hover:shadow-violet-500/25 hover:scale-[1.02]'
                                                     }
                                                 `}
                                             >

@@ -17,12 +17,12 @@ import type { MapConfig, MapMarker, POI } from '../api/types';
 import { Loader2, Sparkles, Building2, List } from 'lucide-react';
 
 import { useSettings } from '../contexts/SettingsContext';
-import { useMapContext } from '../contexts/MapContext';
+import { useMap } from '../contexts/MapContext';
 import { useIntelligenceMap } from '../hooks/useIntelligenceMap';
 
 export const MapPage: React.FC = () => {
     const { markersLimit } = useSettings();
-    const { setMarkersCount, setTotalCount } = useMapContext();
+    const { setMarkersCount, setTotalCount } = useMap();
 
     // Intelligence Map hook
     const {
@@ -38,7 +38,7 @@ export const MapPage: React.FC = () => {
     } = useIntelligenceMap(markersLimit);
 
     const [config, setConfig] = useState<MapConfig | null>(null);
-    const [overlays, setOverlays] = useState<{ municipi?: any }>({});
+    const [overlays, setOverlays] = useState<{ municipi?: unknown }>({});
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -53,7 +53,7 @@ export const MapPage: React.FC = () => {
     // Layer state
     const [layers, setLayers] = useState<LayersState>(defaultLayersState);
     const [pois, setPois] = useState<POI[]>([]);
-    const [zoneOMIOverlay, setZoneOMIOverlay] = useState<any>(null);
+    const [zoneOMIOverlay, setZoneOMIOverlay] = useState<unknown>(null);
 
     // Filter state
     const [filters, setFilters] = useState<FilterState>(defaultFilters);
@@ -116,7 +116,7 @@ export const MapPage: React.FC = () => {
         // 7. Filter by Meta Immobile
         if (filters.isMetaImmobile !== null) {
             result = result.filter(m => {
-                const isMeta = m.meta_immobile === true || (m.meta_immobile as any) === 'true' || m.meta_building === true;
+                const isMeta = m.meta_immobile === true || String(m.meta_immobile) === 'true' || m.meta_building === true;
                 return filters.isMetaImmobile ? isMeta : !isMeta;
             });
         }

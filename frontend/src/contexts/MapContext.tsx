@@ -29,7 +29,8 @@ export const MapProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     );
 };
 
-export const useMapContext = (): MapContextType => {
+// eslint-disable-next-line react-refresh/only-export-components
+export const useMap = (): MapContextType => {
     const context = useContext(MapContext);
     if (!context) {
         // Return default values if not in provider (for non-map pages)

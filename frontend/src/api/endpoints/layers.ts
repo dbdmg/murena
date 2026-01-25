@@ -11,7 +11,7 @@ export const layersApi = {
         bounds?: { min_lat: number; max_lat: number; min_lon: number; max_lon: number },
         limit?: number
     ): Promise<POIResponse> => {
-        const params: any = {};
+        const params: Record<string, string | number> = {};
         if (categories && categories.length > 0) {
             params.categories = categories.join('|');
         }
@@ -34,7 +34,7 @@ export const layersApi = {
     /**
      * Get Zone OMI GeoJSON
      */
-    getZoneOMI: async (): Promise<any> => {
+    getZoneOMI: async (): Promise<Record<string, unknown>> => {
         const response = await apiClient.get('/layers/zone-omi');
         return response.data;
     },

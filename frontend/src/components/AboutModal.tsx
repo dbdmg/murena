@@ -102,9 +102,9 @@ const BentoCard: React.FC<BentoCardProps> = ({
         <motion.div
             variants={cardVariants}
             className={`
-                group relative p-4 bg-gradient-to-br from-white/[0.05] to-transparent
+                group relative p-4 bg-linear-to-br from-white/5 to-transparent
                 border border-white/10 rounded-2xl backdrop-blur-sm
-                hover:border-white/20 hover:from-white/[0.08] transition-all duration-300
+                hover:border-white/20 hover:from-white/8 transition-all duration-300
                 ${sizeClasses[size]}
             `}
         >
@@ -136,9 +136,12 @@ const StatBadge: React.FC<{ label: string; value: string }> = ({ label, value })
 export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
     const [mounted, setMounted] = useState(false);
 
+    if (isOpen && !mounted) {
+        setMounted(true);
+    }
+
     useEffect(() => {
         if (isOpen) {
-            setMounted(true);
             // Prevent body scroll when modal is open
             document.body.style.overflow = 'hidden';
         }
@@ -196,7 +199,7 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
                             <motion.div variants={cardVariants} className="text-center mb-8">
                                 {/* Logo */}
                                 <div className="relative inline-flex mb-4">
-                                    <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-cyan-500 via-blue-500 to-violet-600 flex items-center justify-center shadow-2xl shadow-cyan-500/30">
+                                    <div className="w-20 h-20 rounded-2xl bg-linear-to-br from-cyan-500 via-blue-500 to-violet-600 flex items-center justify-center shadow-2xl shadow-cyan-500/30">
                                         <Brain className="w-10 h-10 text-white" />
                                     </div>
                                     {/* Sparkle decorations */}
@@ -205,7 +208,7 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
 
                                 {/* Title */}
                                 <h1 className="text-3xl font-bold mb-2">
-                                    <span className="bg-gradient-to-r from-cyan-400 via-blue-400 to-violet-400 bg-clip-text text-transparent">
+                                    <span className="bg-linear-to-r from-cyan-400 via-blue-400 to-violet-400 bg-clip-text text-transparent">
                                         Real Estate Analytical System
                                     </span>
                                 </h1>
@@ -224,7 +227,7 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
                             {/* Mission Statement */}
                             <motion.div
                                 variants={cardVariants}
-                                className="p-5 bg-gradient-to-br from-cyan-500/10 to-violet-500/10 border border-cyan-500/20 rounded-2xl mb-6"
+                                className="p-5 bg-linear-to-br from-cyan-500/10 to-violet-500/10 border border-cyan-500/20 rounded-2xl mb-6"
                             >
                                 <div className="flex items-start gap-3">
                                     <div className="p-2 bg-cyan-500/20 rounded-xl">

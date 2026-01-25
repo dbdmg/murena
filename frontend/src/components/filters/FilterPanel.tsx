@@ -32,6 +32,7 @@ export interface FilterState {
     showOnlyResults: boolean;
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const defaultFilters: FilterState = {
     energyClasses: [],
     minSurface: null,
@@ -147,6 +148,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
+    // Toggle array filter
     const toggleArrayFilter = (key: 'energyClasses' | 'epocheCostruzione' | 'tipologiaBene' | 'utilizzo' | 'vincolo', value: string) => {
         const current = filters[key] as string[];
         const newValues = current.includes(value)
@@ -204,72 +206,6 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
         }
     };
 
-    const FilterChip: React.FC<{ type: ActiveDropdown; icon: React.ReactNode }> = ({ type, icon }) => {
-        if (!type) return null;
-        const isActive = isChipActive(type);
-        const isOpen = activeDropdown === type;
-
-        return (
-            <button
-                onClick={() => setActiveDropdown(isOpen ? null : type)}
-                className={`
-                    flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium
-                    transition-all duration-200 border whitespace-nowrap
-                    ${isActive
-                        ? 'bg-cyan-500/20 text-cyan-400 border-cyan-500/50'
-                        : 'bg-white/5 text-gray-400 border-white/10 hover:border-white/20 hover:bg-white/10'
-                    }
-                    ${isOpen ? 'ring-1 ring-cyan-500/50' : ''}
-                `}
-            >
-                {icon}
-                <span>{getChipLabel(type)}</span>
-                <ChevronDown className={`w-3 h-3 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
-            </button>
-        );
-    };
-
-    // Toggle Switch Component
-    const ToggleSwitch: React.FC<{
-        label: string;
-        value: boolean | null;
-        onChange: (val: boolean | null) => void;
-        options?: { on: string; off: string };
-    }> = ({ label, value, onChange, options = { on: 'Sì', off: 'No' } }) => (
-        <div className="flex items-center justify-between gap-4 py-2">
-            <span className="text-xs text-gray-400">{label}</span>
-            <div className="flex items-center gap-1 bg-white/5 rounded-lg p-0.5">
-                <button
-                    onClick={() => onChange(value === false ? null : false)}
-                    className={`px-2 py-1 rounded text-[10px] font-medium transition-all ${value === false
-                        ? 'bg-red-500/20 text-red-400'
-                        : 'text-gray-500 hover:text-gray-300'
-                        }`}
-                >
-                    {options.off}
-                </button>
-                <button
-                    onClick={() => onChange(null)}
-                    className={`px-2 py-1 rounded text-[10px] font-medium transition-all ${value === null
-                        ? 'bg-gray-500/30 text-gray-300'
-                        : 'text-gray-600 hover:text-gray-400'
-                        }`}
-                >
-                    Tutti
-                </button>
-                <button
-                    onClick={() => onChange(value === true ? null : true)}
-                    className={`px-2 py-1 rounded text-[10px] font-medium transition-all ${value === true
-                        ? 'bg-cyan-500/20 text-cyan-400'
-                        : 'text-gray-500 hover:text-gray-300'
-                        }`}
-                >
-                    {options.on}
-                </button>
-            </div>
-        </div>
-    );
-
     return (
         <div ref={panelRef} className="relative">
             {/* Horizontal Filter Bar */}
@@ -312,12 +248,54 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
                     <div className="w-px h-6 bg-white/10 mx-1 shrink-0" />
 
                     {/* Primary Filter Chips */}
-                    <FilterChip type="energy" icon={<Zap className="w-3.5 h-3.5" />} />
-                    <FilterChip type="surface" icon={<Ruler className="w-3.5 h-3.5" />} />
-                    <FilterChip type="epoca" icon={<Calendar className="w-3.5 h-3.5" />} />
-                    <FilterChip type="tipologia" icon={<Building2 className="w-3.5 h-3.5" />} />
-                    <FilterChip type="utilizzo" icon={<Activity className="w-3.5 h-3.5" />} />
-                    <FilterChip type="vincolo" icon={<Shield className="w-3.5 h-3.5" />} />
+                    <FilterChip
+                        type="energy"
+                        icon={<Zap className="w-3.5 h-3.5" />}
+                        isActive={isChipActive('energy')}
+                        isOpen={activeDropdown === 'energy'}
+                        label={getChipLabel('energy')}
+                        onToggle={() => setActiveDropdown(activeDropdown === 'energy' ? null : 'energy')}
+                    />
+                    <FilterChip
+                        type="surface"
+                        icon={<Ruler className="w-3.5 h-3.5" />}
+                        isActive={isChipActive('surface')}
+                        isOpen={activeDropdown === 'surface'}
+                        label={getChipLabel('surface')}
+                        onToggle={() => setActiveDropdown(activeDropdown === 'surface' ? null : 'surface')}
+                    />
+                    <FilterChip
+                        type="epoca"
+                        icon={<Calendar className="w-3.5 h-3.5" />}
+                        isActive={isChipActive('epoca')}
+                        isOpen={activeDropdown === 'epoca'}
+                        label={getChipLabel('epoca')}
+                        onToggle={() => setActiveDropdown(activeDropdown === 'epoca' ? null : 'epoca')}
+                    />
+                    <FilterChip
+                        type="tipologia"
+                        icon={<Building2 className="w-3.5 h-3.5" />}
+                        isActive={isChipActive('tipologia')}
+                        isOpen={activeDropdown === 'tipologia'}
+                        label={getChipLabel('tipologia')}
+                        onToggle={() => setActiveDropdown(activeDropdown === 'tipologia' ? null : 'tipologia')}
+                    />
+                    <FilterChip
+                        type="utilizzo"
+                        icon={<Activity className="w-3.5 h-3.5" />}
+                        isActive={isChipActive('utilizzo')}
+                        isOpen={activeDropdown === 'utilizzo'}
+                        label={getChipLabel('utilizzo')}
+                        onToggle={() => setActiveDropdown(activeDropdown === 'utilizzo' ? null : 'utilizzo')}
+                    />
+                    <FilterChip
+                        type="vincolo"
+                        icon={<Shield className="w-3.5 h-3.5" />}
+                        isActive={isChipActive('vincolo')}
+                        isOpen={activeDropdown === 'vincolo'}
+                        label={getChipLabel('vincolo')}
+                        onToggle={() => setActiveDropdown(activeDropdown === 'vincolo' ? null : 'vincolo')}
+                    />
 
                     {/* More Filters & Agent Tuner */}
                     <button
@@ -685,3 +663,79 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
         </div>
     );
 };
+
+// Extracted Components
+interface FilterChipProps {
+    type: ActiveDropdown;
+    icon: React.ReactNode;
+    isActive: boolean;
+    isOpen: boolean;
+    label: string;
+    onToggle: () => void;
+}
+
+const FilterChip: React.FC<FilterChipProps> = ({ type, icon, isActive, isOpen, label, onToggle }) => {
+    if (!type) return null;
+
+    return (
+        <button
+            onClick={onToggle}
+            className={`
+                flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium
+                transition-all duration-200 border whitespace-nowrap
+                ${isActive
+                    ? 'bg-cyan-500/20 text-cyan-400 border-cyan-500/50'
+                    : 'bg-white/5 text-gray-400 border-white/10 hover:border-white/20 hover:bg-white/10'
+                }
+                ${isOpen ? 'ring-1 ring-cyan-500/50' : ''}
+            `}
+        >
+            {icon}
+            <span>{label}</span>
+            <ChevronDown className={`w-3 h-3 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+        </button>
+    );
+};
+
+// Toggle Switch Component
+interface ToggleSwitchProps {
+    label: string;
+    value: boolean | null;
+    onChange: (val: boolean | null) => void;
+    options?: { on: string; off: string };
+}
+
+const ToggleSwitch: React.FC<ToggleSwitchProps> = ({ label, value, onChange, options = { on: 'Sì', off: 'No' } }) => (
+    <div className="flex items-center justify-between gap-4 py-2">
+        <span className="text-xs text-gray-400">{label}</span>
+        <div className="flex items-center gap-1 bg-white/5 rounded-lg p-0.5">
+            <button
+                onClick={() => onChange(value === false ? null : false)}
+                className={`px-2 py-1 rounded text-[10px] font-medium transition-all ${value === false
+                    ? 'bg-red-500/20 text-red-400'
+                    : 'text-gray-500 hover:text-gray-300'
+                    }`}
+            >
+                {options.off}
+            </button>
+            <button
+                onClick={() => onChange(null)}
+                className={`px-2 py-1 rounded text-[10px] font-medium transition-all ${value === null
+                    ? 'bg-gray-500/30 text-gray-300'
+                    : 'text-gray-600 hover:text-gray-400'
+                    }`}
+            >
+                Tutti
+            </button>
+            <button
+                onClick={() => onChange(value === true ? null : true)}
+                className={`px-2 py-1 rounded text-[10px] font-medium transition-all ${value === true
+                    ? 'bg-cyan-500/20 text-cyan-400'
+                    : 'text-gray-500 hover:text-gray-300'
+                    }`}
+            >
+                {options.on}
+            </button>
+        </div>
+    </div>
+);

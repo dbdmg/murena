@@ -8,6 +8,7 @@ export interface LayersState {
     activePOICategories: string[];
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const defaultLayersState: LayersState = {
     showZoneOMI: false,
     showMunicipi: false,

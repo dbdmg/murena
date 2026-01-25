@@ -16,6 +16,22 @@ const CARD_WIDTH = 200; // Width of each card
 const CARD_GAP = 20; // Gap between cards
 const VISIBLE_CARDS = 4; // Max visible cards
 
+// Helper function for energy class colors (consistent with ResultsSidebar)
+const getEnergyClassColor = (cls?: string) => {
+    if (!cls) return 'bg-gray-500/20 text-gray-400';
+    const base = cls.charAt(0);
+    switch (base) {
+        case 'A': return 'bg-emerald-500/20 text-emerald-400';
+        case 'B': return 'bg-lime-500/20 text-lime-400';
+        case 'C': return 'bg-yellow-500/20 text-yellow-400';
+        case 'D': return 'bg-orange-500/20 text-orange-400';
+        case 'E': return 'bg-orange-600/20 text-orange-500';
+        case 'F': return 'bg-red-500/20 text-red-400';
+        case 'G': return 'bg-red-600/20 text-red-500';
+        default: return 'bg-gray-500/20 text-gray-400';
+    }
+};
+
 export const ResultsCarousel: React.FC<ResultsCarouselProps> = ({
     topPicks,
     selectedId,
@@ -62,7 +78,7 @@ export const ResultsCarousel: React.FC<ResultsCarouselProps> = ({
         const container = scrollContainerRef.current;
         if (container) {
             container.addEventListener('scroll', updateScrollProgress);
-            updateScrollProgress();
+            requestAnimationFrame(updateScrollProgress);
             return () => container.removeEventListener('scroll', updateScrollProgress);
         }
     }, [updateScrollProgress, topPicks]);
@@ -258,11 +274,11 @@ export const ResultsCarousel: React.FC<ResultsCarouselProps> = ({
                                         <div className={`
                                             px-3 py-1.5 rounded-lg font-bold text-base
                                             ${(marker.ranking_score ?? 0) >= 80
-                                                ? 'bg-gradient-to-br from-amber-400 to-yellow-500 text-black shadow-lg shadow-amber-500/30'
+                                                ? 'bg-linear-to-br from-amber-400 to-yellow-500 text-black shadow-lg shadow-amber-500/30'
                                                 : (marker.ranking_score ?? 0) >= 60
-                                                    ? 'bg-gradient-to-br from-amber-500/80 to-orange-500/80 text-white shadow-lg shadow-amber-500/20'
+                                                    ? 'bg-linear-to-br from-amber-500/80 to-orange-500/80 text-white shadow-lg shadow-amber-500/20'
                                                     : (marker.ranking_score ?? 0) >= 40
-                                                        ? 'bg-gradient-to-br from-slate-500 to-slate-600 text-white'
+                                                        ? 'bg-linear-to-br from-slate-500 to-slate-600 text-white'
                                                         : 'bg-slate-700 text-gray-300'
                                             }
                                         `}>
@@ -287,20 +303,20 @@ export const ResultsCarousel: React.FC<ResultsCarouselProps> = ({
                                             </div>
                                         </div>
 
-                                        {/* Quick Stats */}
+                                        {/* Quick Stats - Simplified (consistent with ResultsSidebar) */}
                                         <div className="flex items-center gap-2 text-[10px]">
                                             {marker.surface_area && (
-                                                <span className="bg-white/5 text-gray-400 px-1.5 py-0.5 rounded">
-                                                    {marker.surface_area} m²
+                                                <span className="px-1.5 py-0.5 rounded bg-slate-700/50 text-gray-300">
+                                                    {marker.surface_area.toLocaleString()} m²
                                                 </span>
                                             )}
                                             {marker.energy_class && (
-                                                <span className="bg-emerald-500/10 text-emerald-400 px-1.5 py-0.5 rounded">
+                                                <span className={`px-1.5 py-0.5 rounded font-medium ${getEnergyClassColor(marker.energy_class)}`}>
                                                     Classe {marker.energy_class}
                                                 </span>
                                             )}
                                             {marker.omi_zone && (
-                                                <span className="bg-cyan-500/10 text-cyan-400 px-1.5 py-0.5 rounded">
+                                                <span className="px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-400">
                                                     {marker.omi_zone}
                                                 </span>
                                             )}

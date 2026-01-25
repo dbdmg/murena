@@ -21,7 +21,7 @@ export const mapApi = {
     /**
      * Get map markers
      */
-    getMarkers: async (filters?: any): Promise<MapMarker[]> => {
+    getMarkers: async (filters?: Record<string, unknown>): Promise<MapMarker[]> => {
         const response = await apiClient.get<MapMarker[]>('/map/markers', {
             params: filters,
         });

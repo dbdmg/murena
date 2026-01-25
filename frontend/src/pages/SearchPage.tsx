@@ -132,8 +132,8 @@ export const SearchPage: React.FC = () => {
                 }}
             />
             {/* Gradient overlay for text readability */}
-            <div className="absolute inset-0 z-0 bg-gradient-to-b from-[#0a0d12] via-[#0a0d12]/80 to-[#0a0d12]/95" />
-            <div className="absolute inset-0 z-0 bg-gradient-to-t from-[#0a0d12] via-transparent to-transparent" />
+            <div className="absolute inset-0 z-0 bg-linear-to-b from-[#0a0d12] via-[#0a0d12]/80 to-[#0a0d12]/95" />
+            <div className="absolute inset-0 z-0 bg-linear-to-t from-[#0a0d12] via-transparent to-transparent" />
 
             {/* Main Content */}
             <div className="w-full max-w-3xl mx-auto relative z-10">

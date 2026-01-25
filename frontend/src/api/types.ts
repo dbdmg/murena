@@ -60,6 +60,11 @@ export interface MapMarker {
     data_decorrenza?: string;
     numero_immobili_per_catasto?: number;
     id_list?: string;
+    sub_properties?: {
+        id: string;
+        surface_area?: number;
+        property_type?: string;
+    }[];
     // Extended property info
     property_type?: string;
     legal_nature?: string;
@@ -143,6 +148,20 @@ export interface BuildingResponse {
     poi_scores?: POIScores;
     distance_km?: number;
     poi_reference?: string;
+    // Extended fields
+    ape_files?: string[];
+    property_type?: string;
+    legal_nature?: string;
+    cultural_constraint?: string;
+    purpose?: string;
+    omi_zone?: string;
+    cadastral_sheet?: string;
+    cadastral_parcel?: string;
+    sub_properties?: {
+        id: string;
+        surface_area?: number;
+        property_type?: string;
+    }[];
 }
 
 export interface BuildingsListResponse {

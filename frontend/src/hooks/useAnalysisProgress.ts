@@ -16,13 +16,7 @@ import type {
     WebSocketMessage,
 } from '../api/types';
 
-// WebSocket URL - uses same host as API but with ws:// protocol
-const getWebSocketUrl = (runId: string): string => {
-    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
-    // Convert http:// to ws:// or https:// to wss://
-    const wsUrl = apiUrl.replace(/^http/, 'ws');
-    return `${wsUrl}/ws/analysis/${runId}`;
-};
+
 
 export interface AnalysisProgressState {
     /** Current progress percentage (0-100) */
@@ -70,6 +64,7 @@ export function useAnalysisProgress(
     const { autoConnect = true, onComplete, onError } = options;
 
     const [state, setState] = useState<AnalysisProgressState>(initialState);
+    const [retryTrigger, setRetryTrigger] = useState(0);
     const wsRef = useRef<WebSocket | null>(null);
     const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const reconnectAttemptsRef = useRef(0);
@@ -87,19 +82,18 @@ export function useAnalysisProgress(
         // Clear any pending reconnect
         if (reconnectTimeoutRef.current) {
             clearTimeout(reconnectTimeoutRef.current);
-            reconnectTimeoutRef.current = null;
         }
 
-        // Close existing connection
+        // Cleanup existing
         if (wsRef.current) {
             wsRef.current.close();
         }
 
-        const url = getWebSocketUrl(runId);
-        console.log(`[WS] Connecting to ${url}`);
+        const wsUrl = import.meta.env.VITE_WS_URL || 'ws://localhost:8000/ws';
+        const ws = new WebSocket(`${wsUrl}/analysis/${runId}/progress`);
+        wsRef.current = ws; // Assign immediately
 
-        const ws = new WebSocket(url);
-        wsRef.current = ws;
+        console.log(`[WS] Connecting to ${ws.url}`);
 
         ws.onopen = () => {
             console.log('[WS] Connected');
@@ -122,7 +116,7 @@ export function useAnalysisProgress(
                         ...prev,
                         percent: progressData.progress,
                         step: progressData.step || '',
-                        steps: progressData.steps_state || prev.steps,
+                        steps: progressData.steps_state || prev.steps, // Use 'steps' to match AnalysisProgressState
                         message: progressData.detail || '',
                     }));
                 } else if (data.type === 'complete') {
@@ -137,7 +131,7 @@ export function useAnalysisProgress(
                     onComplete?.(completeData.results_url);
 
                     // Close connection after completion
-                    ws.close();
+                    ws.close(1000, 'Analysis complete'); // Normal closure
                 }
             } catch (err) {
                 console.error('[WS] Failed to parse message:', err);
@@ -156,9 +150,9 @@ export function useAnalysisProgress(
             setState((prev) => ({ ...prev, isConnected: false }));
             wsRef.current = null;
 
-            // Attempt reconnect if not completed and not max attempts
+            // Attempt reconnect if not completed and not max attempts (5)
             if (
-                !isCompleteRef.current &&
+                !isCompleteRef.current && // Use ref for closure scope
                 reconnectAttemptsRef.current < maxReconnectAttempts &&
                 event.code !== 1000 // Normal closure
             ) {
@@ -167,11 +161,18 @@ export function useAnalysisProgress(
                 console.log(`[WS] Reconnecting in ${delay}ms (attempt ${reconnectAttemptsRef.current})`);
 
                 reconnectTimeoutRef.current = setTimeout(() => {
-                    connect();
+                    setRetryTrigger(prev => prev + 1);
                 }, delay);
             }
         };
-    }, [runId, state.isComplete, onComplete, onError]);
+    }, [runId, onComplete, onError]);
+
+    // Reconnect when trigger changes
+    useEffect(() => {
+        if (retryTrigger > 0) {
+            connect();
+        }
+    }, [retryTrigger, connect]);
 
     // Disconnect
     const disconnect = useCallback(() => {
@@ -188,7 +189,7 @@ export function useAnalysisProgress(
 
     // Reset state when runId changes
     useEffect(() => {
-        setState(initialState);
+        setTimeout(() => setState(initialState), 0);
         reconnectAttemptsRef.current = 0;
     }, [runId]);
 

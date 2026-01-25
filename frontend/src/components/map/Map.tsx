@@ -9,7 +9,7 @@ import 'leaflet/dist/leaflet.css';
 import icon from 'leaflet/dist/images/marker-icon.png';
 import iconShadow from 'leaflet/dist/images/marker-shadow.png';
 
-let DefaultIcon = L.icon({
+const DefaultIcon = L.icon({
     iconUrl: icon,
     shadowUrl: iconShadow,
     iconSize: [25, 41],
@@ -258,9 +258,11 @@ interface MapProps {
     tileUrl?: string;
     tileAttribution?: string;
     overlays?: {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         municipi?: any;
     };
     pois?: POI[];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     zoneOMI?: any;
     selectedBuildingIds?: string[];
     focusMarkerId?: string | null;
@@ -474,6 +476,7 @@ export const Map: React.FC<MapProps> = ({
                     if (isCluster) {
                         // Check if this cluster contains any selected markers
                         const leaves = supercluster.getLeaves(cluster.id, Infinity);
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         const clusterMarkerIds = leaves.map((leaf: any) => leaf.properties.markerId);
                         const hasSelectedMarker = clusterMarkerIds.some((id: string) => selectedBuildingIds.includes(id));
 
@@ -493,6 +496,7 @@ export const Map: React.FC<MapProps> = ({
                                         if (rawExpansionZoom >= 20 || currentZoom >= 18) {
                                             // Get all buildings in this cluster and open sidebar
                                             if (onClusterClick) {
+                                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                                 const clusterMarkers = leaves.map((leaf: any) => leaf.properties as MapMarker);
                                                 onClusterClick(clusterMarkers);
                                             }
@@ -512,6 +516,7 @@ export const Map: React.FC<MapProps> = ({
 
 
                     const markerId = cluster.properties.markerId;
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     const markerData = cluster.properties as any as MapMarker;
                     const isSelected = selectedBuildingIds.includes(markerId);
 

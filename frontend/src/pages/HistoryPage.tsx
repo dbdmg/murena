@@ -52,33 +52,33 @@ const FAVORITES_KEY = 'mef_history_favorites';
 
 export const HistoryPage: React.FC = () => {
     const navigate = useNavigate();
-    
+
     // Data state
     const [allRuns, setAllRuns] = useState<AnalysisHistoryItem[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    
+
     // Filter/search state
     const [searchQuery, setSearchQuery] = useState('');
     const [dateFilter, setDateFilter] = useState<DateFilter>('all');
     const [showOnlyFavorites, setShowOnlyFavorites] = useState(false);
-    
+
     // Pagination
     const [currentPage, setCurrentPage] = useState(1);
-    
+
     // Selection state
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [isSelectionMode, setIsSelectionMode] = useState(false);
-    
+
     // Favorites (persisted to localStorage)
     const [favorites, setFavorites] = useState<Set<string>>(() => {
         const stored = localStorage.getItem(FAVORITES_KEY);
         return stored ? new Set(JSON.parse(stored)) : new Set();
     });
-    
+
     // Modal state
     const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
-    
+
     // Delete confirmation
     const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
@@ -87,6 +87,20 @@ export const HistoryPage: React.FC = () => {
     useEffect(() => {
         localStorage.setItem(FAVORITES_KEY, JSON.stringify([...favorites]));
     }, [favorites]);
+
+    // Clean up favorites when runs are deleted (remove orphaned favorites)
+    useEffect(() => {
+        if (allRuns.length > 0) {
+            const existingRunIds = new Set(allRuns.map(r => r.run_id));
+            setFavorites(prev => {
+                const validFavorites = new Set([...prev].filter(id => existingRunIds.has(id)));
+                if (validFavorites.size !== prev.size) {
+                    return validFavorites;
+                }
+                return prev;
+            });
+        }
+    }, [allRuns]);
 
     // Fetch all runs
     const fetchRuns = useCallback(async () => {
@@ -114,7 +128,7 @@ export const HistoryPage: React.FC = () => {
         // Search filter
         if (searchQuery.trim()) {
             const query = searchQuery.toLowerCase();
-            result = result.filter(run => 
+            result = result.filter(run =>
                 run.query.toLowerCase().includes(query) ||
                 run.run_id.toLowerCase().includes(query)
             );
@@ -216,7 +230,7 @@ export const HistoryPage: React.FC = () => {
     // Delete selected runs
     const deleteSelected = useCallback(async () => {
         if (selectedIds.size === 0) return;
-        
+
         try {
             setIsDeleting(true);
             await Promise.all([...selectedIds].map(id => analysisApi.deleteRun(id)));
@@ -247,7 +261,7 @@ export const HistoryPage: React.FC = () => {
         if (diffMins < 60) return `${diffMins}m fa`;
         if (diffHours < 24) return `${diffHours}h fa`;
         if (diffDays < 7) return `${diffDays}g fa`;
-        
+
         return date.toLocaleDateString('it-IT', {
             day: '2-digit',
             month: 'short',
@@ -277,7 +291,7 @@ export const HistoryPage: React.FC = () => {
             {/* Header */}
             <div className="mb-6">
                 <div className="flex items-center gap-3 mb-2">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-purple-500/20">
+                    <div className="w-10 h-10 rounded-xl bg-linear-to-br from-purple-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-purple-500/20">
                         <Clock className="w-5 h-5 text-white" />
                     </div>
                     <div>
@@ -376,7 +390,7 @@ export const HistoryPage: React.FC = () => {
                             {selectedIds.size > 0 && ` su ${filteredRuns.length}`}
                         </span>
                         <div className="flex-1" />
-                        
+
                         {/* Select All Toggle */}
                         <button
                             onClick={allSelected ? clearSelection : selectAllFiltered}
@@ -385,16 +399,16 @@ export const HistoryPage: React.FC = () => {
                             <CheckSquare className={`w-3.5 h-3.5 ${allSelected ? 'fill-indigo-400' : ''}`} />
                             {allSelected ? 'Deseleziona tutto' : `Seleziona tutto (${filteredRuns.length})`}
                         </button>
-                        
+
                         <div className="w-px h-4 bg-indigo-500/30" />
-                        
+
                         <button
                             onClick={selectCurrentPage}
                             className="text-xs text-gray-400 hover:text-white transition-colors"
                         >
                             Solo questa pagina
                         </button>
-                        
+
                         {selectedIds.size > 0 && (
                             <>
                                 <div className="w-px h-4 bg-indigo-500/30" />
@@ -468,9 +482,9 @@ export const HistoryPage: React.FC = () => {
                                     className={`
                                         group relative bg-[#0f1218]/80 backdrop-blur-sm border rounded-2xl overflow-hidden
                                         transition-all duration-200 cursor-pointer hover:shadow-lg hover:shadow-cyan-500/5
-                                        ${isSelected 
-                                            ? 'border-indigo-500/50 bg-indigo-500/5 ring-1 ring-indigo-500/20' 
-                                            : `border-white/5 hover:border-white/10 hover:bg-white/[0.02]`
+                                        ${isSelected
+                                            ? 'border-indigo-500/50 bg-indigo-500/5 ring-1 ring-indigo-500/20'
+                                            : `border-white/5 hover:border-white/10 hover:bg-white/2`
                                         }
                                     `}
                                     onClick={() => {
@@ -488,14 +502,14 @@ export const HistoryPage: React.FC = () => {
                                                 <StatusIcon className={`w-4 h-4 ${status.color} ${status.animate ? 'animate-spin' : ''}`} />
                                                 <span className={`text-sm font-medium ${status.color}`}>{status.label}</span>
                                             </div>
-                                            
+
                                             {/* Selection Checkbox */}
                                             {isSelectionMode && (
-                                                <div 
+                                                <div
                                                     className={`
                                                         w-5 h-5 rounded-md border flex items-center justify-center transition-all
-                                                        ${isSelected 
-                                                            ? 'bg-indigo-500 border-indigo-500' 
+                                                        ${isSelected
+                                                            ? 'bg-indigo-500 border-indigo-500'
                                                             : 'border-white/30 hover:border-white/50'
                                                         }
                                                     `}
@@ -514,8 +528,8 @@ export const HistoryPage: React.FC = () => {
                                                     onClick={(e) => toggleFavorite(run.run_id, e)}
                                                     className={`
                                                         w-6 h-6 rounded-md flex items-center justify-center transition-all
-                                                        ${isFavorite 
-                                                            ? 'text-amber-400' 
+                                                        ${isFavorite
+                                                            ? 'text-amber-400'
                                                             : 'text-gray-500 opacity-0 group-hover:opacity-100 hover:text-amber-400'
                                                         }
                                                     `}
@@ -529,7 +543,7 @@ export const HistoryPage: React.FC = () => {
                                     {/* Card Body */}
                                     <div className="p-4">
                                         {/* Query */}
-                                        <h3 className="text-base font-medium text-white line-clamp-2 mb-3 min-h-[3rem]">
+                                        <h3 className="text-base font-medium text-white line-clamp-2 mb-3 min-h-12">
                                             {run.query}
                                         </h3>
 
@@ -560,7 +574,7 @@ export const HistoryPage: React.FC = () => {
                                             <Eye className="w-4 h-4" />
                                             Dettagli
                                         </button>
-                                        
+
                                         {run.status === 'completed' && (
                                             <button
                                                 onClick={(e) => {
@@ -573,7 +587,7 @@ export const HistoryPage: React.FC = () => {
                                                 Mappa
                                             </button>
                                         )}
-                                        
+
                                         <button
                                             onClick={(e) => {
                                                 e.stopPropagation();
@@ -641,7 +655,7 @@ export const HistoryPage: React.FC = () => {
                         >
                             <ChevronLeft className="w-4 h-4" />
                         </button>
-                        
+
                         {/* Page numbers */}
                         <div className="flex items-center gap-1">
                             {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
@@ -655,7 +669,7 @@ export const HistoryPage: React.FC = () => {
                                 } else {
                                     page = currentPage - 2 + i;
                                 }
-                                
+
                                 return (
                                     <button
                                         key={page}

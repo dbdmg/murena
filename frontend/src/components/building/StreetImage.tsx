@@ -151,7 +151,7 @@ export const StreetImage: React.FC<StreetImageProps> = ({ lat, lng, buildingId, 
     // No coordinates - show placeholder
     if (!lat || !lng) {
         return (
-            <div className={`bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center ${className}`}>
+            <div className={`bg-linear-to-br from-gray-800 to-gray-900 flex items-center justify-center ${className}`}>
                 <Home className="w-10 h-10 text-gray-600" />
             </div>
         );
@@ -160,7 +160,7 @@ export const StreetImage: React.FC<StreetImageProps> = ({ lat, lng, buildingId, 
     // Loading state
     if (isLoading) {
         return (
-            <div className={`bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center ${className}`}>
+            <div className={`bg-linear-to-br from-gray-800 to-gray-900 flex items-center justify-center ${className}`}>
                 <Loader2 className="w-6 h-6 text-cyan-400 animate-spin" />
             </div>
         );
@@ -169,7 +169,7 @@ export const StreetImage: React.FC<StreetImageProps> = ({ lat, lng, buildingId, 
     // Error or no image
     if (hasError || !imageUrl) {
         return (
-            <div className={`bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center ${className}`}>
+            <div className={`bg-linear-to-br from-gray-800 to-gray-900 flex items-center justify-center ${className}`}>
                 <Home className="w-10 h-10 text-gray-600" />
             </div>
         );

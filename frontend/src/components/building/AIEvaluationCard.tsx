@@ -37,16 +37,16 @@ export const AIEvaluationCard: React.FC<AIEvaluationCardProps> = ({
             <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-gradient-to-br from-amber-500/10 to-yellow-500/5 border border-amber-400/20 rounded-lg p-3"
+                className="bg-linear-to-br from-amber-500/10 to-yellow-500/5 border border-amber-400/20 rounded-lg p-3"
             >
                 <div className="flex items-center gap-3">
                     {/* Score Circle */}
                     {score != null && (
-                        <div className={`w-12 h-12 rounded-full bg-gradient-to-br ${scoreColors.bg} flex items-center justify-center shadow-lg ${scoreColors.glow} shrink-0`}>
+                        <div className={`w-12 h-12 rounded-full bg-linear-to-br ${scoreColors.bg} flex items-center justify-center shadow-lg ${scoreColors.glow} shrink-0`}>
                             <span className="text-white font-bold text-base">{score}</span>
                         </div>
                     )}
-                    
+
                     <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5 mb-1">
                             <Sparkles className="w-3 h-3 text-amber-400" />
@@ -88,26 +88,32 @@ export const AIEvaluationCard: React.FC<AIEvaluationCardProps> = ({
         <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-gradient-to-br from-amber-500/10 via-yellow-500/5 to-transparent border border-amber-400/20 rounded-xl overflow-hidden"
+            className="bg-linear-to-br from-amber-500/10 via-yellow-500/5 to-transparent border border-amber-400/20 rounded-xl overflow-hidden"
         >
-            {/* Header */}
-            <div className="px-4 py-3 bg-gradient-to-r from-amber-500/10 to-transparent border-b border-amber-400/10 flex items-center justify-between">
+            {/* Header - Styled like rank card */}
+            <div className="px-4 py-3 bg-linear-to-r from-amber-500/10 to-transparent border-b border-amber-400/10 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-full bg-gradient-to-br from-amber-400 to-yellow-500 flex items-center justify-center">
+                    <div className="w-6 h-6 rounded-full bg-linear-to-br from-amber-400 to-yellow-500 flex items-center justify-center">
                         <Sparkles className="w-3.5 h-3.5 text-white" />
                     </div>
                     <span className="text-sm font-semibold text-amber-400">
                         Valutazione AI
                     </span>
                 </div>
-                
-                {/* Score Circle */}
+
+                {/* Score Badge - Styled exactly like carousel rank badge */}
                 {score != null && (
-                    <div className={`w-14 h-14 rounded-full bg-gradient-to-br ${scoreColors.bg} flex items-center justify-center shadow-lg ${scoreColors.glow}`}>
-                        <div className="text-center">
-                            <span className="text-white font-bold text-lg">{score}</span>
-                            <span className="text-white/60 text-[8px] block -mt-1">/100</span>
-                        </div>
+                    <div className={`px-3 py-1.5 rounded-lg font-bold text-lg
+                        ${score >= 80
+                            ? 'bg-linear-to-br from-amber-400 to-yellow-500 text-black shadow-lg shadow-amber-500/30'
+                            : score >= 60
+                                ? 'bg-linear-to-br from-amber-500/80 to-orange-500/80 text-white shadow-lg shadow-amber-500/20'
+                                : score >= 40
+                                    ? 'bg-linear-to-br from-slate-500 to-slate-600 text-white'
+                                    : 'bg-slate-700 text-gray-300'
+                        }
+                    `}>
+                        {score}
                     </div>
                 )}
             </div>

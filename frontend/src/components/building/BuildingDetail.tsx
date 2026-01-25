@@ -1,6 +1,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
-import { Zap, MapPin, Building2, FileText, Shield, ChevronDown, FileCheck, Sparkles } from 'lucide-react';
+import { Zap, MapPin, Building2, FileText, Shield, ChevronDown, FileCheck, Sparkles, Info } from 'lucide-react';
+import type { APEDetail } from './APEDetailModal';
 import { APEDetailModal } from './APEDetailModal';
 import { AIEvaluationCard } from './AIEvaluationCard';
 import { StreetImage } from './StreetImage';
@@ -111,7 +112,7 @@ const ApeFilesList: React.FC<{ files: string[]; onFileClick: (file: string) => v
             const fileName = getFileName(file);
             if (!fileInfos[fileName]) {
                 setFileInfos(prev => ({ ...prev, [fileName]: { loading: true } }));
-                client.get(`/ape/${encodeURIComponent(fileName)}`)
+                client.get<APEDetail>(`/ape/${fileName}`)
                     .then(res => {
                         setFileInfos(prev => ({
                             ...prev,
@@ -130,7 +131,7 @@ const ApeFilesList: React.FC<{ files: string[]; onFileClick: (file: string) => v
                     });
             }
         });
-    }, [files]);
+    }, [files, fileInfos]);
 
     return (
         <div className="mt-3 pt-3 border-t border-white/10">
@@ -216,8 +217,9 @@ export const BuildingDetail: React.FC<BuildingDetailProps> = ({ data }) => {
     }, [details.ape_scores]);
 
     // Custom tick component for radar chart to show values
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const renderPolarAngleAxisTick = (props: any) => {
-        const { payload, x, y, cx, cy, ...rest } = props;
+        const { payload, x, y, cx, ...rest } = props;
         const dataPoint = poiRadarData.find(d => d.subject === payload.value);
         const value = dataPoint?.A ?? 0;
 
@@ -234,8 +236,9 @@ export const BuildingDetail: React.FC<BuildingDetailProps> = ({ data }) => {
     };
 
     // Custom tick for APE radar
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const renderApeRadarTick = (props: any) => {
-        const { payload, x, y, cx, cy, ...rest } = props;
+        const { payload, x, y, cx, ...rest } = props;
         const dataPoint = apeRadarData.find(d => d.subject === payload.value);
         const value = dataPoint?.A ?? 0;
 
@@ -304,7 +307,7 @@ export const BuildingDetail: React.FC<BuildingDetailProps> = ({ data }) => {
                         {tierBadge.label}
                     </div>
                 )}
-                {(details.meta_immobile === true || details.meta_immobile === 'true' as any) && (
+                {(details.meta_immobile === true || String(details.meta_immobile) === 'true') && (
                     <div className="absolute top-2 right-2 flex flex-col items-end gap-1">
                         {details.omi_zone && (
                             <div className="bg-cyan-900/90 backdrop-blur-md px-2 py-0.5 rounded border border-cyan-400/50 shadow-lg">
@@ -316,7 +319,7 @@ export const BuildingDetail: React.FC<BuildingDetailProps> = ({ data }) => {
                         </div>
                     </div>
                 )}
-                {!((details.meta_immobile === true || details.meta_immobile === 'true' as any)) && details.omi_zone && (
+                {!((details.meta_immobile === true || String(details.meta_immobile) === 'true')) && details.omi_zone && (
                     <div className="absolute top-2 right-2 bg-cyan-900/90 backdrop-blur-md px-2 py-0.5 rounded border border-cyan-400/50 shadow-lg">
                         <p className="text-[10px] font-semibold text-cyan-200">Zona OMI: {details.omi_zone}</p>
                     </div>
@@ -463,23 +466,61 @@ export const BuildingDetail: React.FC<BuildingDetailProps> = ({ data }) => {
                         </div>
                         {details.ape_scores?.total != null && (
                             <div className="flex flex-col">
-                                <span className="text-[10px] text-gray-500">Score Totale</span>
-                                <span className="text-xl font-bold text-white">{details.ape_scores.total.toFixed(1)}</span>
+                                <span className="text-[10px] text-gray-500">Punteggio Totale</span>
+                                <span className="text-xl font-bold text-white">
+                                    {details.ape_scores.total.toFixed(0)} <span className="text-xs text-gray-500 font-normal">/20 punti</span>
+                                </span>
                             </div>
                         )}
                     </div>
-                    {/* APE Radar Chart */}
+                    {/* APE Radar Chart with Info Tooltip */}
                     {hasApeRadarData && (
-                        <div className="w-full h-[160px]">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <RadarChart cx="50%" cy="50%" outerRadius="65%" data={apeRadarData}>
-                                    <PolarGrid stroke="rgba(255,255,255,0.08)" />
-                                    <PolarAngleAxis dataKey="subject" tick={renderApeRadarTick} />
-                                    <PolarRadiusAxis angle={45} domain={[0, 5]} tick={false} axisLine={false} />
-                                    <Radar name="Score" dataKey="A" stroke="#f59e0b" strokeWidth={2} fill="#f59e0b" fillOpacity={0.35} />
-                                </RadarChart>
-                            </ResponsiveContainer>
-                        </div>
+                        <>
+                            <div className="flex items-center justify-between mb-1">
+                                <span className="text-[10px] text-gray-500">Punteggio Dettagliato</span>
+                                <div className="relative group">
+                                    <button className="p-1 rounded-full hover:bg-white/10 transition-colors">
+                                        <Info className="w-3.5 h-3.5 text-amber-400" />
+                                    </button>
+                                    {/* Tooltip */}
+                                    <div className="absolute right-0 bottom-full mb-1 w-64 p-3 bg-[#1a1d24] border border-white/20 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+                                        <p className="text-xs font-semibold text-white mb-2">Criteri di Punteggio (Scala 1-5)</p>
+                                        <div className="space-y-1.5 text-[10px]">
+                                            <div>
+                                                <p className="text-emerald-400 font-medium">Classe Energetica</p>
+                                                <p className="text-gray-400">A1-A4: 5 • B: 4 • C,D: 3 • E: 2 • F,G: 1</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-orange-400 font-medium">Impianto</p>
+                                                <p className="text-gray-400">Pompa calore/Teleriscald.: 5 • Condensazione: 4 • Altro: 2</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-cyan-400 font-medium">Involucro</p>
+                                                <p className="text-gray-400">Alta qualità: 5 • Media: 3 • Bassa: 1</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-green-400 font-medium">Rinnovabili</p>
+                                                <p className="text-gray-400">Presenti: 5 • Assenti: 2</p>
+                                            </div>
+                                        </div>
+                                        <div className="mt-2 pt-2 border-t border-white/10 text-[10px] text-gray-500">
+                                            <p><strong>Totale:</strong> Somma dei 4 punteggi (min 6, max 20)</p>
+                                            <p><strong>Multi-APE:</strong> MODA per classe, MEDIA per punteggi</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="w-full h-[160px]">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <RadarChart cx="50%" cy="50%" outerRadius="65%" data={apeRadarData}>
+                                        <PolarGrid stroke="rgba(255,255,255,0.08)" />
+                                        <PolarAngleAxis dataKey="subject" tick={renderApeRadarTick} />
+                                        <PolarRadiusAxis angle={45} domain={[0, 5]} tick={false} axisLine={false} />
+                                        <Radar name="Score" dataKey="A" stroke="#f59e0b" strokeWidth={2} fill="#f59e0b" fillOpacity={0.35} />
+                                    </RadarChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </>
                     )}
                     {/* APE Files integrated here */}
                     {details.ape_files && details.ape_files.length > 0 && (
@@ -489,7 +530,7 @@ export const BuildingDetail: React.FC<BuildingDetailProps> = ({ data }) => {
             )}
 
             {/* Meta Immobile Sub-Properties List */}
-            {(details.meta_immobile === true || details.meta_immobile === 'true' as any) && details.sub_properties && details.sub_properties.length > 0 && (
+            {(details.meta_immobile === true || String(details.meta_immobile) === 'true') && details.sub_properties && details.sub_properties.length > 0 && (
                 <div className="bg-[#1a1d24]/60 p-3 rounded-lg border border-purple-500/20">
                     <div className="flex items-center gap-1.5 mb-2">
                         <Building2 className="w-3.5 h-3.5 text-purple-400" />

@@ -60,16 +60,16 @@ const AGENT_STEP_CONFIG: Record<string, { icon: React.ElementType; label: string
 };
 
 // JSON Syntax Highlighter Component
-const JsonViewer: React.FC<{ data: unknown; maxHeight?: string; expanded?: boolean }> = ({ 
-    data, 
+const JsonViewer: React.FC<{ data: unknown; maxHeight?: string; expanded?: boolean }> = ({
+    data,
     maxHeight = '300px',
-    expanded = false 
+    expanded = false
 }) => {
     const [isExpanded, setIsExpanded] = useState(expanded);
-    
+
     const syntaxHighlight = (json: string): string => {
         return json.replace(
-            /("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,
+            /("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+-]?\d+)?)/g,
             (match) => {
                 let cls = 'text-amber-300'; // number
                 if (/^"/.test(match)) {
@@ -104,7 +104,7 @@ const JsonViewer: React.FC<{ data: unknown; maxHeight?: string; expanded?: boole
 
     return (
         <div className="relative group">
-            <div 
+            <div
                 className={`
                     bg-[#0d1117] rounded-xl border border-white/5 overflow-hidden
                     ${!isExpanded && needsExpand ? 'max-h-[200px]' : ''}
@@ -112,18 +112,18 @@ const JsonViewer: React.FC<{ data: unknown; maxHeight?: string; expanded?: boole
                 `}
                 style={{ maxHeight: isExpanded ? 'none' : maxHeight }}
             >
-                <pre 
+                <pre
                     className="p-4 text-xs font-mono leading-relaxed overflow-auto"
                     style={{ maxHeight: isExpanded ? '600px' : maxHeight }}
                     dangerouslySetInnerHTML={{ __html: formattedContent }}
                 />
-                
+
                 {/* Fade overlay when collapsed */}
                 {!isExpanded && needsExpand && (
-                    <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-[#0d1117] to-transparent pointer-events-none" />
+                    <div className="absolute bottom-0 left-0 right-0 h-16 bg-linear-to-t from-[#0d1117] to-transparent pointer-events-none" />
                 )}
             </div>
-            
+
             {/* Expand/Collapse button */}
             {needsExpand && (
                 <button
@@ -165,16 +165,16 @@ export const RunDetailModal: React.FC<RunDetailModalProps> = ({
     // Fetch run data
     const fetchRunData = useCallback(async () => {
         if (!runId) return;
-        
+
         try {
             setIsLoading(true);
             setError(null);
-            
+
             const [resultsData, stepsData] = await Promise.all([
                 analysisApi.getResults(runId),
                 analysisApi.getAgentSteps(runId, { include_prompt: true, include_raw: true }).catch(() => []),
             ]);
-            
+
             setResults(resultsData);
             setAgentSteps(stepsData);
         } catch (err) {
@@ -264,7 +264,7 @@ export const RunDetailModal: React.FC<RunDetailModalProps> = ({
                         <div className="flex items-start justify-between p-6 border-b border-white/5 bg-[#0a0d12]/95 backdrop-blur-xl">
                             <div className="flex-1 min-w-0 pr-4">
                                 <div className="flex items-center gap-3 mb-3">
-                                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/20">
+                                    <div className="w-10 h-10 rounded-xl bg-linear-to-br from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/20">
                                         <Bot className="w-5 h-5 text-white" />
                                     </div>
                                     <div>
@@ -288,8 +288,8 @@ export const RunDetailModal: React.FC<RunDetailModalProps> = ({
                                         onClick={() => onToggleFavorite(runId)}
                                         className={`
                                             w-10 h-10 rounded-xl flex items-center justify-center transition-all
-                                            ${isFavorite 
-                                                ? 'bg-amber-500/20 text-amber-400' 
+                                            ${isFavorite
+                                                ? 'bg-amber-500/20 text-amber-400'
                                                 : 'bg-white/5 text-gray-400 hover:text-amber-400 hover:bg-white/10'
                                             }
                                         `}
@@ -301,7 +301,7 @@ export const RunDetailModal: React.FC<RunDetailModalProps> = ({
                                 {results?.status === 'completed' && runId && (
                                     <button
                                         onClick={() => onLoadToMap(runId)}
-                                        className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-cyan-600 rounded-xl text-sm font-medium text-white shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30 transition-all"
+                                        className="flex items-center gap-2 px-4 py-2.5 bg-linear-to-r from-emerald-600 to-cyan-600 rounded-xl text-sm font-medium text-white shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30 transition-all"
                                     >
                                         <MapIcon className="w-4 h-4" />
                                         Carica sulla Mappa
@@ -337,10 +337,9 @@ export const RunDetailModal: React.FC<RunDetailModalProps> = ({
                                                 Stato
                                             </div>
                                             <div className="flex items-center gap-2">
-                                                <CheckCircle2 className={`w-4 h-4 ${
-                                                    results.status === 'completed' ? 'text-emerald-400' : 
+                                                <CheckCircle2 className={`w-4 h-4 ${results.status === 'completed' ? 'text-emerald-400' :
                                                     results.status === 'failed' ? 'text-red-400' : 'text-cyan-400'
-                                                }`} />
+                                                    }`} />
                                                 <span className="text-sm text-white capitalize">{results.status}</span>
                                             </div>
                                         </div>
@@ -371,7 +370,7 @@ export const RunDetailModal: React.FC<RunDetailModalProps> = ({
 
                                     {/* Broker Summary */}
                                     {results.broker_summary && (
-                                        <div className="bg-gradient-to-br from-pink-500/10 to-purple-500/10 rounded-xl p-5 border border-pink-500/20">
+                                        <div className="bg-linear-to-br from-pink-500/10 to-purple-500/10 rounded-xl p-5 border border-pink-500/20">
                                             <div className="flex items-center gap-2 mb-3">
                                                 <MessageSquare className="w-5 h-5 text-pink-400" />
                                                 <h3 className="text-sm font-semibold text-white">Riepilogo AI Broker</h3>
@@ -413,12 +412,12 @@ export const RunDetailModal: React.FC<RunDetailModalProps> = ({
                                                     return (
                                                         <div
                                                             key={step.key}
-                                                            className="bg-white/[0.02] rounded-xl border border-white/5 overflow-hidden"
+                                                            className="bg-white/2 rounded-xl border border-white/5 overflow-hidden"
                                                         >
                                                             {/* Step Header */}
                                                             <button
                                                                 onClick={() => toggleStep(step.key)}
-                                                                className="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-white/[0.02] transition-colors"
+                                                                className="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-white/2 transition-colors"
                                                             >
                                                                 <div className="flex items-center gap-2 text-gray-500 text-xs">
                                                                     <span className="w-6 h-6 rounded-full bg-white/5 flex items-center justify-center text-xs font-medium">
@@ -533,8 +532,8 @@ export const RunDetailModal: React.FC<RunDetailModalProps> = ({
                                                                                         <span className="text-xs text-emerald-400/70 uppercase tracking-wider font-medium">Risposta</span>
                                                                                         <button
                                                                                             onClick={() => copyToClipboard(
-                                                                                                typeof step.response === 'string' 
-                                                                                                    ? step.response 
+                                                                                                typeof step.response === 'string'
+                                                                                                    ? step.response
                                                                                                     : formatJson(step.response),
                                                                                                 `response-${step.key}`
                                                                                             )}

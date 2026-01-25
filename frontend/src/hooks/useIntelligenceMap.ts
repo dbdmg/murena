@@ -106,7 +106,7 @@ export function useIntelligenceMap(
             const history = await analysisApi.getHistory(MAX_HISTORY, 0);
             const completedHistory = history.filter(h => h.status === 'completed');
             setState(prev => ({ ...prev, history: completedHistory }));
-        } catch (err) {
+        } catch {
             // Fallback: add locally if API fails
             setState(prev => {
                 const filtered = prev.history.filter(h => h.run_id !== item.run_id);
@@ -145,20 +145,20 @@ export function useIntelligenceMap(
             // Get evaluation data if available
             const evaluationResults = results.gemini_responses?.evaluation?.results || [];
             const evaluationMap = new Map(
-                evaluationResults.map((e: any) => [String(e.id), e])
+                evaluationResults.map(e => [String(e.id), e])
             );
 
             // Convert buildings to markers with tier assignment
             const allAnalysisMarkers: MapMarker[] = results.buildings
-                .filter((b: any) => b?.coordinates?.lat != null && b?.coordinates?.lon != null)
-                .map((b: any) => {
+                .filter(b => b?.coordinates?.lat != null && b?.coordinates?.lng != null)
+                .map(b => {
                     const evalData = evaluationMap.get(String(b.id));
                     const isEvaluated = !!evalData;
 
                     return {
                         id: String(b.id),
                         lat: b.coordinates.lat,
-                        lng: b.coordinates.lon,
+                        lng: b.coordinates.lng,
                         address: b.address,
                         city: b.city,
                         surface_area: b.surface_area,
@@ -179,6 +179,7 @@ export function useIntelligenceMap(
                         // Scores and extended info
                         ape_scores: b.ape_scores,
                         poi_scores: b.poi_scores,
+                        // Correctly typed fields now
                         ape_files: b.ape_files,
                         property_type: b.property_type,
                         legal_nature: b.legal_nature,

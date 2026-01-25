@@ -153,7 +153,7 @@ export const analysisApi = {
                 .map((item) => {
                     if (typeof item === 'string') return item;
                     if (item && typeof item === 'object' && 'demo_id' in item) {
-                        const demoId = (item as any).demo_id;
+                        const demoId = (item as Record<string, unknown>).demo_id;
                         return typeof demoId === 'string' ? demoId : null;
                     }
                     return null;
