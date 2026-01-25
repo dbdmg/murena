@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { X, Zap, Thermometer, Droplets, Snowflake, Wrench, Calendar, MapPin, Building } from 'lucide-react';
+import { X, Zap, Thermometer, Droplets, Snowflake, Wrench, Calendar, MapPin, Building, Info } from 'lucide-react';
+import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
 import client from '../../api/client';
 
 interface APEDetail {
@@ -447,25 +448,76 @@ export const APEDetailModal: React.FC<APEDetailModalProps> = ({ filename, isOpen
                             {/* APE Scoring Breakdown */}
                             {data.ape_total_points !== undefined && (
                                 <div className="bg-gradient-to-r from-blue-500/10 to-cyan-500/10 border border-blue-500/20 rounded-lg p-3">
-                                    <p className="text-[10px] uppercase text-blue-400 mb-2">Punteggio APE Dettagliato</p>
-                                    <div className="grid grid-cols-2 gap-2">
-                                        <div className="bg-black/20 rounded p-2 text-center">
-                                            <p className="text-[10px] text-gray-500">Classe</p>
-                                            <p className="text-sm font-bold text-emerald-400">{data.ape_class_score ?? '-'}</p>
-                                        </div>
-                                        <div className="bg-black/20 rounded p-2 text-center">
-                                            <p className="text-[10px] text-gray-500">Impianti</p>
-                                            <p className="text-sm font-bold text-orange-400">{data.ape_system_score ?? '-'}</p>
-                                        </div>
-                                        <div className="bg-black/20 rounded p-2 text-center">
-                                            <p className="text-[10px] text-gray-500">Involucro</p>
-                                            <p className="text-sm font-bold text-cyan-400">{data.ape_envelope_score ?? '-'}</p>
-                                        </div>
-                                        <div className="bg-black/20 rounded p-2 text-center">
-                                            <p className="text-[10px] text-gray-500">Rinnovabili</p>
-                                            <p className="text-sm font-bold text-green-400">{data.ape_renewables_score ?? '-'}</p>
+                                    <div className="flex items-center justify-between mb-2">
+                                        <p className="text-[10px] uppercase text-blue-400">Punteggio APE Dettagliato</p>
+                                        <div className="relative group">
+                                            <button className="p-1 rounded-full hover:bg-white/10 transition-colors">
+                                                <Info className="w-4 h-4 text-blue-400" />
+                                            </button>
+                                            {/* Tooltip */}
+                                            <div className="absolute right-0 top-full mt-1 w-72 p-3 bg-[#1a1d24] border border-white/20 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+                                                <p className="text-xs font-semibold text-white mb-2">Criteri di Punteggio (Scala 1-5)</p>
+                                                <div className="space-y-2 text-[10px]">
+                                                    <div>
+                                                        <p className="text-emerald-400 font-medium">Classe Energetica</p>
+                                                        <p className="text-gray-400">A1-A4: 5 • B: 4 • C,D: 3 • E: 2 • F,G: 1</p>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-orange-400 font-medium">Impianto</p>
+                                                        <p className="text-gray-400">Pompa calore/Teleriscald.: 5 • Condensazione/Biomassa: 4 • Altro: 2</p>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-cyan-400 font-medium">Involucro</p>
+                                                        <p className="text-gray-400">Alta qualità: 5 • Media: 3 • Bassa: 1</p>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-green-400 font-medium">Rinnovabili</p>
+                                                        <p className="text-gray-400">Presenti: 5 • Assenti: 2</p>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
+                                    
+                                    {/* Radar Chart */}
+                                    {(() => {
+                                        const radarData = [
+                                            { subject: 'Classe', A: data.ape_class_score || 0, fullMark: 5 },
+                                            { subject: 'Impianto', A: data.ape_system_score || 0, fullMark: 5 },
+                                            { subject: 'Involucro', A: data.ape_envelope_score || 0, fullMark: 5 },
+                                            { subject: 'Rinnovabili', A: data.ape_renewables_score || 0, fullMark: 5 },
+                                        ];
+                                        
+                                        const renderTick = (props: any) => {
+                                            const { payload, x, y, cx, cy, ...rest } = props;
+                                            const dataPoint = radarData.find(d => d.subject === payload.value);
+                                            const value = dataPoint?.A ?? 0;
+                                            return (
+                                                <g>
+                                                    <text {...rest} x={x} y={y} fill="#9ca3af" fontSize={9} textAnchor={x > cx ? 'start' : x < cx ? 'end' : 'middle'}>
+                                                        {payload.value}
+                                                    </text>
+                                                    <text {...rest} x={x} y={y + 10} fill="#f59e0b" fontSize={8} fontWeight="bold" textAnchor={x > cx ? 'start' : x < cx ? 'end' : 'middle'}>
+                                                        {value}
+                                                    </text>
+                                                </g>
+                                            );
+                                        };
+                                        
+                                        return (
+                                            <div className="w-full h-[160px]">
+                                                <ResponsiveContainer width="100%" height="100%">
+                                                    <RadarChart cx="50%" cy="50%" outerRadius="65%" data={radarData}>
+                                                        <PolarGrid stroke="rgba(255,255,255,0.08)" />
+                                                        <PolarAngleAxis dataKey="subject" tick={renderTick} />
+                                                        <PolarRadiusAxis angle={45} domain={[0, 5]} tick={false} axisLine={false} />
+                                                        <Radar name="Score" dataKey="A" stroke="#f59e0b" strokeWidth={2} fill="#f59e0b" fillOpacity={0.35} />
+                                                    </RadarChart>
+                                                </ResponsiveContainer>
+                                            </div>
+                                        );
+                                    })()}
+                                    
                                     <div className="mt-2 pt-2 border-t border-white/10 flex justify-between items-center">
                                         <span className="text-xs text-gray-400">Punteggio Totale</span>
                                         <span className="text-lg font-bold text-white">{data.ape_total_points} <span className="text-xs text-gray-500">punti</span></span>

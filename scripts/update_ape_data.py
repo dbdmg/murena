@@ -84,8 +84,20 @@ def calculate_energy_scores(df: pd.DataFrame) -> pd.DataFrame:
         DataFrame with energy scores added
     """
     from scipy import stats
+    from app.data.processors import calculate_ape_score
 
-    print("\nCalculating energy scores...")
+    print("\nCalculating APE quality scores (Radar Diagram)...")
+
+    # First, calculate the APE radar scores using the new algorithm
+    df = calculate_ape_score(df)
+    print(
+        f"  APE scores calculated: class={df['ape_class_score'].mean():.2f}, "
+        f"system={df['ape_system_score'].mean():.2f}, "
+        f"envelope={df['ape_envelope_score'].mean():.2f}, "
+        f"renewables={df['ape_renewables_score'].mean():.2f}"
+    )
+
+    print("\nCalculating energy efficiency scores (percentile-based)...")
 
     # Convert numeric columns
     df = df.copy()

@@ -720,63 +720,87 @@ def extract_ape_image_b64(xml_text: str):
 
 def calculate_ape_score(ape_df: pd.DataFrame) -> pd.DataFrame:
     """
-    Calcola uno score sintetico (1-5) per ogni APE basato su criteri esperti.
-    Optimized with vectorized operations.
+    Calcola uno score sintetico per ogni APE basato su criteri esperti.
+    Ogni categoria usa una scala 1-5.
 
-    Criteri:
-    1. Classe Energetica (33%): A*=3, B-E=2, F-G=1
-    2. Impianto (33%): PdC/Telerisc=3, Condens/Biomassa=2, Altro=1
-    3. Involucro (17%): Sorridente=3, Basita=2, Triste=1
-    4. Rinnovabili (17%): Sì=3, No=1
+    Criteri (Scala 1-5 per categoria):
+    1. Classe Energetica:
+       - A1, A2, A3, A4 -> 5 punti
+       - B -> 4 punti
+       - C, D -> 3 punti
+       - E -> 2 punti
+       - F, G -> 1 punto
+
+    2. Impianto:
+       - Pompa di calore / Teleriscaldamento -> 5 punti
+       - Caldaia a condensazione / Biomassa -> 4 punti
+       - Altro (caldaia standard, gasolio, etc.) -> 2 punti
+
+    3. Involucro (basato su qualità invernale):
+       - Alta qualità (Faccina sorridente) -> 5 punti
+       - Media qualità (Faccina neutra/basita) -> 3 punti
+       - Bassa qualità (Faccina triste) -> 1 punto
+
+    4. Rinnovabili:
+       - Presenti fonti rinnovabili -> 5 punti
+       - Assenti -> 2 punti
 
     Args:
         ape_df: DataFrame con i dati APE dettagliati
 
     Returns:
-        pd.DataFrame: DataFrame arricchito con colonne score
+        pd.DataFrame: DataFrame arricchito con colonne score (scala 1-5)
     """
     df = ape_df.copy()
 
-    # 1. Score Classe
-    # Normalize input
+    # 1. Score Classe Energetica (1-5)
     classe = df["classe"].astype(str).str.upper().str.strip()
 
-    conditions_class = [classe.str.startswith("A"), classe.isin(["B", "C", "D", "E"])]
-    choices_class = [3, 2]
+    conditions_class = [
+        classe.isin(["A1", "A2", "A3", "A4", "A"]),  # Classe A -> 5
+        classe == "B",  # Classe B -> 4
+        classe.isin(["C", "D"]),  # Classe C, D -> 3
+        classe == "E",  # Classe E -> 2
+        # Default (F, G, altro) -> 1
+    ]
+    choices_class = [5, 4, 3, 2]
     df["ape_class_score"] = np.select(conditions_class, choices_class, default=1)
 
-    # 2. Score Impianto
+    # 2. Score Impianto (1-5)
     desc = df["imp_risc_desc"].astype(str).str.lower()
 
-    # Define regex patterns for faster matching
-    high_score_pattern = "pompa di calore|teleriscaldamento|geotermico"
-    med_score_pattern = "condensazione|biomassa|cippato|legna|pellet"
+    # Pattern per impianti ad alta efficienza (5 punti)
+    high_score_pattern = r"pompa di calore|teleriscaldamento|geotermico"
+    # Pattern per impianti a media efficienza (4 punti)
+    med_score_pattern = r"condensazione|biomassa|cippato|legna|pellet"
 
     conditions_sys = [
-        desc.str.contains(high_score_pattern, regex=True, na=False),
-        desc.str.contains(med_score_pattern, regex=True, na=False),
+        desc.str.contains(high_score_pattern, regex=True, na=False),  # -> 5
+        desc.str.contains(med_score_pattern, regex=True, na=False),  # -> 4
+        # Default (caldaia standard, gasolio, etc.) -> 2
     ]
-    choices_sys = [3, 2]
-    df["ape_system_score"] = np.select(conditions_sys, choices_sys, default=1)
+    choices_sys = [5, 4]
+    df["ape_system_score"] = np.select(conditions_sys, choices_sys, default=2)
 
-    # 3. Score Involucro
+    # 3. Score Involucro (1-5, basato su qualità invernale)
     qualita = df["qualita_invernale"].astype(str).str.lower()
 
     conditions_env = [
-        qualita.str.contains("sorridente", na=False),
-        qualita.str.contains("basita", na=False),
+        qualita.str.contains("sorridente", na=False),  # Alta qualità -> 5
+        qualita.str.contains("basita|neutr", regex=True, na=False),  # Media -> 3
+        # Default (triste, altro) -> 1
     ]
-    choices_env = [3, 2]
+    choices_env = [5, 3]
     df["ape_envelope_score"] = np.select(conditions_env, choices_env, default=1)
 
-    # 4. Score Rinnovabili
+    # 4. Score Rinnovabili (scala 2-5)
     rinnovabili = df["fonti_rinnovabili"].astype(str).str.lower()
-    # Check for 'si' or 'sì'
+    # Check for 'si' or 'sì' -> 5, altrimenti -> 2
     df["ape_renewables_score"] = np.where(
-        rinnovabili.str.contains(r"s[iì]", regex=True, na=False), 3, 1
+        rinnovabili.str.contains(r"s[iì]", regex=True, na=False), 5, 2
     )
 
-    # Calcolo Totale (Max 12, Min 4)
+    # Calcolo Totale (Max 20, Min 6)
     df["ape_total_points"] = (
         df["ape_class_score"]
         + df["ape_system_score"]
@@ -784,14 +808,21 @@ def calculate_ape_score(ape_df: pd.DataFrame) -> pd.DataFrame:
         + df["ape_renewables_score"]
     )
 
-    # Mapping 1-5
-    # 12 -> 5
-    # 10-11 -> 4
-    # 8-9 -> 3
-    # 6-7 -> 2
-    # 4-5 -> 1
+    # Mapping a score finale 1-5 (normalizzato)
+    # Range: 6-20 punti
+    # 18-20 -> 5 (Eccellente)
+    # 15-17 -> 4 (Buono)
+    # 12-14 -> 3 (Sufficiente)
+    # 9-11 -> 2 (Scarso)
+    # 6-8 -> 1 (Insufficiente)
     points = df["ape_total_points"]
-    conditions_total = [points >= 12, points >= 10, points >= 8, points >= 6]
+    conditions_total = [
+        points >= 18,  # -> 5
+        points >= 15,  # -> 4
+        points >= 12,  # -> 3
+        points >= 9,  # -> 2
+        # < 9 -> 1
+    ]
     choices_total = [5, 4, 3, 2]
     df["ape_score"] = np.select(conditions_total, choices_total, default=1)
 
