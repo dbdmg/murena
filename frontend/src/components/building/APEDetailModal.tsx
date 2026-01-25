@@ -208,7 +208,7 @@ export const APEDetailModal: React.FC<APEDetailModalProps> = ({ filename, isOpen
                                 </div>
                             </div>
 
-                            {/* Key Metrics */}
+                            {/* Key Metrics - Row 1 */}
                             <div className="grid grid-cols-3 gap-2">
                                 <div className="bg-white/5 rounded-lg p-2 text-center">
                                     <p className="text-[10px] text-gray-500 uppercase">EP gl,nren</p>
@@ -224,8 +224,30 @@ export const APEDetailModal: React.FC<APEDetailModalProps> = ({ filename, isOpen
                                 </div>
                             </div>
 
-                            {/* Energy Cost Analysis */}
-                            {data.energy_score !== undefined && data.energy_score !== null && (
+                            {/* Per m² values - Row 2 */}
+                            {(data.kwh_per_sqm || data.costo_per_mq_anno) && (
+                                <div className="grid grid-cols-2 gap-2">
+                                    {data.kwh_per_sqm && (
+                                        <div className="bg-gradient-to-br from-purple-500/10 to-pink-500/10 border border-purple-500/20 rounded-lg p-3 text-center">
+                                            <p className="text-[10px] text-gray-500 uppercase mb-1">Consumo per m²</p>
+                                            <p className="text-lg font-bold text-purple-400">
+                                                {data.kwh_per_sqm.toFixed(1).replace('.', ',')} <span className="text-xs text-gray-500">kWh/m²</span>
+                                            </p>
+                                        </div>
+                                    )}
+                                    {data.costo_per_mq_anno && (
+                                        <div className="bg-gradient-to-br from-purple-500/10 to-pink-500/10 border border-purple-500/20 rounded-lg p-3 text-center">
+                                            <p className="text-[10px] text-gray-500 uppercase mb-1">Costo per m²</p>
+                                            <p className="text-lg font-bold text-purple-400">
+                                                €{data.costo_per_mq_anno.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                            </p>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Energy Cost Analysis - Row 3 */}
+                            {(data.energy_score !== undefined && data.energy_score !== null) || data.consumo_kwh_tot || data.costo_annuo_euro ? (
                                 <div className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/20 rounded-lg p-3">
                                     <div className="flex items-center gap-2 mb-3">
                                         <div className="w-6 h-6 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
@@ -235,47 +257,45 @@ export const APEDetailModal: React.FC<APEDetailModalProps> = ({ filename, isOpen
                                     </div>
 
                                     {/* Score display */}
-                                    <div className="flex items-center justify-between mb-3">
-                                        <div className="flex items-center gap-3">
-                                            <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-lg font-bold ${data.energy_score >= 70 ? 'bg-emerald-500/20 text-emerald-400' :
-                                                data.energy_score >= 40 ? 'bg-yellow-500/20 text-yellow-400' :
-                                                    'bg-red-500/20 text-red-400'
-                                                }`}>
-                                                {data.energy_score}
+                                    {data.energy_score !== undefined && data.energy_score !== null && (
+                                        <div className="flex items-center justify-between mb-3">
+                                            <div className="flex items-center gap-3">
+                                                <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-lg font-bold ${data.energy_score >= 70 ? 'bg-emerald-500/20 text-emerald-400' :
+                                                    data.energy_score >= 40 ? 'bg-yellow-500/20 text-yellow-400' :
+                                                        'bg-red-500/20 text-red-400'
+                                                    }`}>
+                                                    {data.energy_score}
+                                                </div>
+                                                <div>
+                                                    <p className="text-sm font-medium text-white">Score Efficienza</p>
+                                                    <p className="text-[10px] text-gray-500">
+                                                        {data.energy_score >= 70 ? 'Ottimo' :
+                                                            data.energy_score >= 40 ? 'Nella media' : 'Sotto la media'}
+                                                    </p>
+                                                </div>
                                             </div>
-                                            <div>
-                                                <p className="text-sm font-medium text-white">Score Efficienza</p>
-                                                <p className="text-[10px] text-gray-500">
-                                                    {data.energy_score >= 70 ? 'Ottimo' :
-                                                        data.energy_score >= 40 ? 'Nella media' : 'Sotto la media'}
-                                                </p>
-                                            </div>
                                         </div>
-                                    </div>
+                                    )}
 
-                                    {/* Cost metrics grid */}
-                                    <div className="grid grid-cols-2 gap-2 mb-3">
-                                        <div className="bg-black/20 rounded-lg p-2">
-                                            <p className="text-[10px] text-gray-500 uppercase">Consumo</p>
-                                            <p className="text-sm font-medium text-white">
-                                                {data.kwh_per_sqm?.toFixed(1)} <span className="text-gray-500 text-xs">kWh/m²/anno</span>
-                                            </p>
-                                        </div>
-                                        <div className="bg-black/20 rounded-lg p-2">
-                                            <p className="text-[10px] text-gray-500 uppercase">Costo/m²</p>
-                                            <p className="text-sm font-medium text-white">
-                                                €{data.costo_per_mq_anno?.toFixed(2)} <span className="text-gray-500 text-xs">/anno</span>
-                                            </p>
-                                        </div>
-                                    </div>
-
-                                    {/* Annual cost */}
-                                    {data.costo_annuo_euro && (
-                                        <div className="bg-black/20 rounded-lg p-2 text-center mb-3">
-                                            <p className="text-[10px] text-gray-500 uppercase">Costo Annuo Stimato</p>
-                                            <p className="text-lg font-bold text-purple-400">
-                                                €{data.costo_annuo_euro.toLocaleString('it-IT', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-                                            </p>
+                                    {/* Total values grid */}
+                                    {(data.consumo_kwh_tot || data.costo_annuo_euro) && (
+                                        <div className="grid grid-cols-2 gap-2 mb-3">
+                                            {data.consumo_kwh_tot && data.consumo_kwh_tot > 0 && (
+                                                <div className="bg-black/20 rounded-lg p-2 text-center">
+                                                    <p className="text-[10px] text-gray-500 uppercase">Consumo TOTALE annuo stimato</p>
+                                                    <p className="text-base font-bold text-yellow-400">
+                                                        {data.consumo_kwh_tot.toLocaleString('it-IT', { maximumFractionDigits: 0 })} <span className="text-xs text-gray-500">kWh</span>
+                                                    </p>
+                                                </div>
+                                            )}
+                                            {data.costo_annuo_euro && (
+                                                <div className="bg-black/20 rounded-lg p-2 text-center">
+                                                    <p className="text-[10px] text-gray-500 uppercase">Costo TOTALE annuo stimato</p>
+                                                    <p className="text-base font-bold text-yellow-400">
+                                                        €{data.costo_annuo_euro.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                    </p>
+                                                </div>
+                                            )}
                                         </div>
                                     )}
 
@@ -294,12 +314,12 @@ export const APEDetailModal: React.FC<APEDetailModalProps> = ({ filename, isOpen
                                         </div>
                                     )}
                                 </div>
-                            )}
+                            ) : null}
 
                             {/* Quality Indicators */}
                             {(data.qualita_invernale || data.qualita_estiva) && (
                                 <div className="bg-white/5 rounded-lg p-3">
-                                    <p className="text-[10px] uppercase text-gray-500 mb-2">Comfort</p>
+                                    <p className="text-[10px] uppercase text-gray-500 mb-2">Involucro</p>
                                     <div className="flex gap-4">
                                         {data.qualita_invernale && (
                                             <div className="flex items-center gap-2">
@@ -477,14 +497,6 @@ export const APEDetailModal: React.FC<APEDetailModalProps> = ({ filename, isOpen
                                             </div>
                                         )}
                                     </div>
-                                </div>
-                            )}
-
-                            {/* Consumption */}
-                            {data.consumo_kwh_tot && data.consumo_kwh_tot > 0 && (
-                                <div className="bg-white/5 rounded-lg p-3 text-center">
-                                    <p className="text-[10px] uppercase text-gray-500 mb-1">Consumo annuo stimato</p>
-                                    <p className="text-lg font-bold text-yellow-400">{data.consumo_kwh_tot.toLocaleString('it-IT')} kWh</p>
                                 </div>
                             )}
 

@@ -1,9 +1,10 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
 import { Zap, MapPin, Building2, FileText, Shield, ChevronDown, FileCheck, Sparkles } from 'lucide-react';
 import { APEDetailModal } from './APEDetailModal';
 import { AIEvaluationCard } from './AIEvaluationCard';
 import { StreetImage } from './StreetImage';
+import client from '../../api/client';
 import type { MarkerTier } from '../../api/types';
 
 // Interface matching the data structure from MapMarker/Backend
@@ -71,9 +72,30 @@ interface BuildingDetailProps {
     data: BuildingData;
 }
 
+// APE file info cache type
+interface ApeFileInfo {
+    classe?: string;
+    costo_annuo_euro?: number;
+    loading: boolean;
+}
+
+// Helper to get color for energy class badge
+const getClassBadgeColor = (cls?: string) => {
+    if (!cls) return 'bg-gray-600 text-gray-300';
+    const c = cls.toUpperCase();
+    if (['A1', 'A2', 'A3', 'A4', 'A'].includes(c)) return 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
+    if (['B'].includes(c)) return 'bg-lime-500/20 text-lime-400 border border-lime-500/30';
+    if (['C'].includes(c)) return 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30';
+    if (['D'].includes(c)) return 'bg-orange-500/20 text-orange-400 border border-orange-500/30';
+    if (['E'].includes(c)) return 'bg-orange-600/20 text-orange-500 border border-orange-600/30';
+    if (['F'].includes(c)) return 'bg-red-500/20 text-red-400 border border-red-500/30';
+    return 'bg-red-600/20 text-red-500 border border-red-600/30';
+};
+
 // Collapsible APE Files List Component
 const ApeFilesList: React.FC<{ files: string[]; onFileClick: (file: string) => void }> = ({ files, onFileClick }) => {
     const [isExpanded, setIsExpanded] = useState(false);
+    const [fileInfos, setFileInfos] = useState<Record<string, ApeFileInfo>>({});
     const displayedFiles = isExpanded ? files : files.slice(0, 2);
     const hasMore = files.length > 2;
 
@@ -83,23 +105,73 @@ const ApeFilesList: React.FC<{ files: string[]; onFileClick: (file: string) => v
         return parts[parts.length - 1] || path;
     };
 
+    // Load APE details for each file
+    useEffect(() => {
+        files.forEach(file => {
+            const fileName = getFileName(file);
+            if (!fileInfos[fileName]) {
+                setFileInfos(prev => ({ ...prev, [fileName]: { loading: true } }));
+                client.get(`/ape/${encodeURIComponent(fileName)}`)
+                    .then(res => {
+                        setFileInfos(prev => ({
+                            ...prev,
+                            [fileName]: {
+                                classe: res.data.classe,
+                                costo_annuo_euro: res.data.costo_annuo_euro,
+                                loading: false
+                            }
+                        }));
+                    })
+                    .catch(() => {
+                        setFileInfos(prev => ({
+                            ...prev,
+                            [fileName]: { loading: false }
+                        }));
+                    });
+            }
+        });
+    }, [files]);
+
     return (
         <div className="mt-3 pt-3 border-t border-white/10">
             <div className="flex items-center gap-1.5 mb-2">
                 <FileCheck className="w-3 h-3 text-green-400" />
                 <span className="text-[10px] uppercase text-gray-500 font-medium">Attestati APE ({files.length})</span>
             </div>
-            <div className="space-y-1">
-                {displayedFiles.map((file, index) => (
-                    <button
-                        key={index}
-                        onClick={() => onFileClick(file)}
-                        className="w-full flex items-center gap-2 px-2 py-1.5 rounded bg-white/5 hover:bg-cyan-500/10 text-xs text-gray-400 hover:text-cyan-400 transition-colors text-left group"
-                    >
-                        <FileText className="w-3 h-3 text-gray-500 group-hover:text-cyan-400" />
-                        <span className="truncate flex-1">{getFileName(file)}</span>
-                    </button>
-                ))}
+            <div className="space-y-1.5">
+                {displayedFiles.map((file, index) => {
+                    const fileName = getFileName(file);
+                    const info = fileInfos[fileName];
+                    return (
+                        <button
+                            key={index}
+                            onClick={() => onFileClick(file)}
+                            className="w-full flex items-center gap-2 px-2 py-2 rounded bg-white/5 hover:bg-cyan-500/10 text-xs text-gray-400 hover:text-cyan-400 transition-colors text-left group"
+                        >
+                            <FileText className="w-3 h-3 text-gray-500 group-hover:text-cyan-400 shrink-0" />
+                            <span className="truncate flex-1 min-w-0">{fileName}</span>
+                            {/* Badges for Classe Energetica and Costo */}
+                            <div className="flex items-center gap-1.5 shrink-0">
+                                {info?.loading ? (
+                                    <span className="w-3 h-3 border border-gray-500/50 border-t-cyan-400 rounded-full animate-spin" />
+                                ) : (
+                                    <>
+                                        {info?.classe && (
+                                            <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${getClassBadgeColor(info.classe)}`}>
+                                                {info.classe}
+                                            </span>
+                                        )}
+                                        {info?.costo_annuo_euro != null && (
+                                            <span className="px-1.5 py-0.5 rounded text-[10px] bg-purple-500/20 text-purple-400 border border-purple-500/30">
+                                                €{info.costo_annuo_euro.toLocaleString('it-IT', { maximumFractionDigits: 0 })}
+                                            </span>
+                                        )}
+                                    </>
+                                )}
+                            </div>
+                        </button>
+                    );
+                })}
             </div>
             {hasMore && (
                 <button
@@ -309,7 +381,7 @@ export const BuildingDetail: React.FC<BuildingDetailProps> = ({ data }) => {
             )}
 
             {/* Key Stats Grid */}
-            <div className="grid grid-cols-3 gap-2 text-xs">
+            <div className="grid grid-cols-2 gap-2 text-xs">
                 <div className="bg-white/5 p-2 rounded-lg border border-white/5">
                     <p className="text-[9px] text-gray-500 uppercase">Superficie</p>
                     <p className="font-semibold text-white">{details.surface_area ? `${details.surface_area} m²` : 'N/A'}</p>
@@ -317,10 +389,6 @@ export const BuildingDetail: React.FC<BuildingDetailProps> = ({ data }) => {
                 <div className="bg-white/5 p-2 rounded-lg border border-white/5">
                     <p className="text-[9px] text-gray-500 uppercase">Epoca</p>
                     <p className="font-semibold text-white">{details.construction_year || 'N/A'}</p>
-                </div>
-                <div className="bg-white/5 p-2 rounded-lg border border-white/5">
-                    <p className="text-[9px] text-gray-500 uppercase">Score APE</p>
-                    <p className="font-semibold text-white">{details.score?.toFixed(1) || 'N/A'}</p>
                 </div>
             </div>
 
