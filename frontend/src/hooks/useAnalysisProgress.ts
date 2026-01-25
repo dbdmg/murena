@@ -151,14 +151,20 @@ export function useAnalysisProgress(
             wsRef.current = null;
 
             // Attempt reconnect if not completed and not max attempts (5)
+            // Stop if code is 4xxx (client error) or normal closure
             if (
                 !isCompleteRef.current && // Use ref for closure scope
                 reconnectAttemptsRef.current < maxReconnectAttempts &&
-                event.code !== 1000 // Normal closure
+                event.code !== 1000 && // Normal closure
+                event.code !== 1008 && // Policy violation/Generic error (often used for Auth fail)
+                event.code !== 1011    // Internal server error (sometimes fatal)
             ) {
                 reconnectAttemptsRef.current += 1;
-                const delay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 10000);
-                console.log(`[WS] Reconnecting in ${delay}ms (attempt ${reconnectAttemptsRef.current})`);
+                // Exponential backoff with jitter
+                const baseDelay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 30000);
+                const delay = baseDelay + (Math.random() * 1000);
+
+                console.log(`[WS] Reconnecting in ${Math.round(delay)}ms (attempt ${reconnectAttemptsRef.current})`);
 
                 reconnectTimeoutRef.current = setTimeout(() => {
                     setRetryTrigger(prev => prev + 1);

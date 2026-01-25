@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
-import { Zap, MapPin, Building2, FileText, Shield, ChevronDown, FileCheck, Sparkles, Info } from 'lucide-react';
+import { Zap, MapPin, Building2, FileText, Shield, ChevronDown, FileCheck, Sparkles, Info, Activity } from 'lucide-react';
 import type { APEDetail } from './APEDetailModal';
 import { APEDetailModal } from './APEDetailModal';
 import { AIEvaluationCard } from './AIEvaluationCard';
@@ -112,7 +112,7 @@ const ApeFilesList: React.FC<{ files: string[]; onFileClick: (file: string) => v
             const fileName = getFileName(file);
             if (!fileInfos[fileName]) {
                 setFileInfos(prev => ({ ...prev, [fileName]: { loading: true } }));
-                client.get<APEDetail>(`/ape/${fileName}`)
+                client.get<APEDetail>(`/ ape / ${fileName} `)
                     .then(res => {
                         setFileInfos(prev => ({
                             ...prev,
@@ -158,7 +158,7 @@ const ApeFilesList: React.FC<{ files: string[]; onFileClick: (file: string) => v
                                 ) : (
                                     <>
                                         {info?.classe && (
-                                            <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${getClassBadgeColor(info.classe)}`}>
+                                            <span className={`px - 1.5 py - 0.5 rounded text - [10px] font - semibold ${getClassBadgeColor(info.classe)} `}>
                                                 {info.classe}
                                             </span>
                                         )}
@@ -179,8 +179,8 @@ const ApeFilesList: React.FC<{ files: string[]; onFileClick: (file: string) => v
                     onClick={() => setIsExpanded(!isExpanded)}
                     className="mt-2 flex items-center gap-1 text-[10px] text-cyan-400 hover:text-cyan-300 transition-colors"
                 >
-                    <ChevronDown className={`w-3 h-3 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
-                    {isExpanded ? 'Mostra meno' : `Mostra altri ${files.length - 2}`}
+                    <ChevronDown className={`w - 3 h - 3 transition - transform ${isExpanded ? 'rotate-180' : ''} `} />
+                    {isExpanded ? 'Mostra meno' : `Mostra altri ${files.length - 2} `}
                 </button>
             )}
         </div>
@@ -219,7 +219,8 @@ export const BuildingDetail: React.FC<BuildingDetailProps> = ({ data }) => {
     // Custom tick component for radar chart to show values
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const renderPolarAngleAxisTick = (props: any) => {
-        const { payload, x, y, cx, ...rest } = props;
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { payload, x, y, cx, cy, verticalAnchor, ...rest } = props;
         const dataPoint = poiRadarData.find(d => d.subject === payload.value);
         const value = dataPoint?.A ?? 0;
 
@@ -238,7 +239,8 @@ export const BuildingDetail: React.FC<BuildingDetailProps> = ({ data }) => {
     // Custom tick for APE radar
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const renderApeRadarTick = (props: any) => {
-        const { payload, x, y, cx, ...rest } = props;
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { payload, x, y, cx, cy, verticalAnchor, ...rest } = props;
         const dataPoint = apeRadarData.find(d => d.subject === payload.value);
         const value = dataPoint?.A ?? 0;
 
@@ -302,7 +304,7 @@ export const BuildingDetail: React.FC<BuildingDetailProps> = ({ data }) => {
                 </div>
                 {/* Tier Badge */}
                 {tierBadge && (
-                    <div className={`absolute top-2 left-2 px-2.5 py-1 rounded-lg flex items-center gap-1.5 text-[10px] font-bold shadow-lg ${tierBadge.className}`}>
+                    <div className={`absolute top - 2 left - 2 px - 2.5 py - 1 rounded - lg flex items - center gap - 1.5 text - [10px] font - bold shadow - lg ${tierBadge.className} `}>
                         {tierBadge.icon}
                         {tierBadge.label}
                     </div>
@@ -329,7 +331,7 @@ export const BuildingDetail: React.FC<BuildingDetailProps> = ({ data }) => {
             {/* Title & Address */}
             <div>
                 <h2 className="text-base font-bold text-white leading-tight">
-                    {details.address || `Immobile ${details.id}`}
+                    {details.address || `Immobile ${details.id} `}
                 </h2>
                 {details.city && <p className="text-gray-400 text-xs mt-0.5">{details.city}</p>}
                 {details.price && details.price > 0 ? (
@@ -353,35 +355,39 @@ export const BuildingDetail: React.FC<BuildingDetailProps> = ({ data }) => {
                 >
                     <MapPin className="w-4 h-4" />
                     Apri in Google Maps
-                </a>
+                </a >
             )}
 
             {/* AI Evaluation Card - Show prominently for evaluated buildings */}
-            {hasAIEvaluation && (
-                <AIEvaluationCard
-                    score={details.ranking_score}
-                    evaluationText={details.evaluation_text}
-                    pros={details.pros}
-                    cons={details.cons}
-                    compact={false}
-                />
-            )}
+            {
+                hasAIEvaluation && (
+                    <AIEvaluationCard
+                        score={details.ranking_score}
+                        evaluationText={details.evaluation_text}
+                        pros={details.pros}
+                        cons={details.cons}
+                        compact={false}
+                    />
+                )
+            }
 
             {/* Property Type & Usage */}
-            {(details.property_type || details.description) && (
-                <div className="bg-white/5 p-3 rounded-lg border border-white/5 space-y-1">
-                    <div className="flex items-center gap-1.5 mb-1">
-                        <Building2 className="w-3.5 h-3.5 text-gray-400" />
-                        <span className="text-[10px] uppercase text-gray-500 font-medium">Tipologia & Uso</span>
+            {
+                (details.property_type || details.description) && (
+                    <div className="bg-white/5 p-3 rounded-lg border border-white/5 space-y-1">
+                        <div className="flex items-center gap-1.5 mb-1">
+                            <Building2 className="w-3.5 h-3.5 text-gray-400" />
+                            <span className="text-[10px] uppercase text-gray-500 font-medium">Tipologia & Uso</span>
+                        </div>
+                        {details.property_type && (
+                            <p className="text-xs text-gray-300">{details.property_type}</p>
+                        )}
+                        {details.description && (
+                            <p className="text-xs text-gray-400">{details.description}</p>
+                        )}
                     </div>
-                    {details.property_type && (
-                        <p className="text-xs text-gray-300">{details.property_type}</p>
-                    )}
-                    {details.description && (
-                        <p className="text-xs text-gray-400">{details.description}</p>
-                    )}
-                </div>
-            )}
+                )
+            }
 
             {/* Key Stats Grid */}
             <div className="grid grid-cols-2 gap-2 text-xs">
@@ -454,132 +460,155 @@ export const BuildingDetail: React.FC<BuildingDetailProps> = ({ data }) => {
             </div>
 
             {/* APE Section with integrated files list */}
-            {details.energy_class && (
-                <div className="bg-[#1a1d24]/60 p-3 rounded-lg border border-white/5">
-                    <div className="flex items-center gap-1.5 mb-2">
-                        <Zap className="w-3.5 h-3.5 text-yellow-400" />
-                        <span className="text-[10px] uppercase text-gray-500 font-medium">Classe Energetica</span>
-                    </div>
-                    <div className="flex items-center gap-3 mb-3">
-                        <div className={`w-12 h-12 shrink-0 rounded-lg bg-linear-to-br ${getApeColor(details.energy_class)} flex flex-col items-center justify-center text-white font-bold border border-white/10`}>
-                            <span className="text-lg leading-none">{details.energy_class}</span>
+            {
+                details.energy_class && (
+                    <div className="bg-[#1a1d24]/60 p-3 rounded-lg border border-white/5">
+                        <div className="flex items-center gap-1.5 mb-2">
+                            <Zap className="w-3.5 h-3.5 text-yellow-400" />
+                            <span className="text-[10px] uppercase text-gray-500 font-medium">Classe Energetica</span>
                         </div>
-                        {details.ape_scores?.total != null && (
-                            <div className="flex flex-col">
-                                <span className="text-[10px] text-gray-500">Punteggio Totale</span>
-                                <span className="text-xl font-bold text-white">
-                                    {details.ape_scores.total.toFixed(0)} <span className="text-xs text-gray-500 font-normal">/20 punti</span>
-                                </span>
+                        <div className="flex items-center gap-3 mb-3">
+                            <div className={`w-12 h-12 shrink-0 rounded-lg bg-linear-to-br ${getApeColor(details.energy_class)} flex flex-col items-center justify-center text-white font-bold border border-white/10`}>
+                                <span className="text-lg leading-none">{details.energy_class}</span>
                             </div>
+                            {details.ape_scores?.total != null && (
+                                <div className="flex flex-col">
+                                    <span className="text-[10px] text-gray-500">Punteggio Totale</span>
+                                    <span className="text-xl font-bold text-white">
+                                        {details.ape_scores.total.toFixed(0)} <span className="text-xs text-gray-500 font-normal">/20 punti</span>
+                                    </span>
+                                </div>
+                            )}
+                        </div>
+                        {/* APE Radar Chart with Info Tooltip */}
+                        {hasApeRadarData && (
+                            <>
+                                <div className="flex items-center justify-between mb-1">
+                                    <span className="text-[10px] text-gray-500">Punteggio Dettagliato</span>
+                                    <div className="relative group">
+                                        <button className="p-1 rounded-full hover:bg-white/10 transition-colors">
+                                            <Info className="w-3.5 h-3.5 text-amber-400" />
+                                        </button>
+                                        {/* Tooltip */}
+                                        <div className="absolute right-0 bottom-full mb-1 w-64 p-3 bg-[#1a1d24] border border-white/20 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+                                            <p className="text-xs font-semibold text-white mb-2">Criteri di Punteggio (Scala 1-5)</p>
+                                            <div className="space-y-1.5 text-[10px]">
+                                                <div>
+                                                    <p className="text-emerald-400 font-medium">Classe Energetica</p>
+                                                    <p className="text-gray-400">A1-A4: 5 • B: 4 • C,D: 3 • E: 2 • F,G: 1</p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-orange-400 font-medium">Impianto</p>
+                                                    <p className="text-gray-400">Pompa calore/Teleriscald.: 5 • Condensazione: 4 • Altro: 2</p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-cyan-400 font-medium">Involucro</p>
+                                                    <p className="text-gray-400">Alta qualità: 5 • Media: 3 • Bassa: 1</p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-green-400 font-medium">Rinnovabili</p>
+                                                    <p className="text-gray-400">Presenti: 5 • Assenti: 2</p>
+                                                </div>
+                                            </div>
+                                            <div className="mt-2 pt-2 border-t border-white/10 text-[10px] text-gray-500">
+                                                <p><strong>Totale:</strong> Somma dei 4 punteggi (min 6, max 20)</p>
+                                                <p><strong>Multi-APE:</strong> MODA per classe, MEDIA per punteggi</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {/* APE Radar Chart */}
+                                <div className="bg-white/5 rounded-xl p-4 border border-white/10 relative h-[300px]">
+                                    <h4 className="text-xs font-semibold text-gray-300 mb-2 flex items-center gap-1.5 absolute top-4 left-4 z-10">
+                                        <Activity className="w-3.5 h-3.5 text-amber-400" />
+                                        Prestazioni Energetiche
+                                    </h4>
+                                    <div className="w-full h-full">
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <RadarChart cx="50%" cy="50%" outerRadius="70%" data={apeRadarData}>
+                                                <PolarGrid stroke="#ffffff20" />
+                                                <PolarAngleAxis
+                                                    dataKey="subject"
+                                                    tick={renderApeRadarTick}
+                                                />
+                                                <PolarRadiusAxis angle={30} domain={[0, 5]} tick={false} axisLine={false} />
+                                                <Radar
+                                                    name="APE"
+                                                    dataKey="A"
+                                                    stroke="#f59e0b"
+                                                    strokeWidth={2}
+                                                    fill="#f59e0b"
+                                                    fillOpacity={0.5}
+                                                />
+                                            </RadarChart>
+                                        </ResponsiveContainer>
+                                    </div>
+                                </div>
+                            </>
+                        )}
+                        {/* APE Files integrated here */}
+                        {details.ape_files && details.ape_files.length > 0 && (
+                            <ApeFilesList files={details.ape_files} onFileClick={setSelectedApeFile} />
                         )}
                     </div>
-                    {/* APE Radar Chart with Info Tooltip */}
-                    {hasApeRadarData && (
-                        <>
-                            <div className="flex items-center justify-between mb-1">
-                                <span className="text-[10px] text-gray-500">Punteggio Dettagliato</span>
-                                <div className="relative group">
-                                    <button className="p-1 rounded-full hover:bg-white/10 transition-colors">
-                                        <Info className="w-3.5 h-3.5 text-amber-400" />
-                                    </button>
-                                    {/* Tooltip */}
-                                    <div className="absolute right-0 bottom-full mb-1 w-64 p-3 bg-[#1a1d24] border border-white/20 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
-                                        <p className="text-xs font-semibold text-white mb-2">Criteri di Punteggio (Scala 1-5)</p>
-                                        <div className="space-y-1.5 text-[10px]">
-                                            <div>
-                                                <p className="text-emerald-400 font-medium">Classe Energetica</p>
-                                                <p className="text-gray-400">A1-A4: 5 • B: 4 • C,D: 3 • E: 2 • F,G: 1</p>
-                                            </div>
-                                            <div>
-                                                <p className="text-orange-400 font-medium">Impianto</p>
-                                                <p className="text-gray-400">Pompa calore/Teleriscald.: 5 • Condensazione: 4 • Altro: 2</p>
-                                            </div>
-                                            <div>
-                                                <p className="text-cyan-400 font-medium">Involucro</p>
-                                                <p className="text-gray-400">Alta qualità: 5 • Media: 3 • Bassa: 1</p>
-                                            </div>
-                                            <div>
-                                                <p className="text-green-400 font-medium">Rinnovabili</p>
-                                                <p className="text-gray-400">Presenti: 5 • Assenti: 2</p>
-                                            </div>
-                                        </div>
-                                        <div className="mt-2 pt-2 border-t border-white/10 text-[10px] text-gray-500">
-                                            <p><strong>Totale:</strong> Somma dei 4 punteggi (min 6, max 20)</p>
-                                            <p><strong>Multi-APE:</strong> MODA per classe, MEDIA per punteggi</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="w-full h-[160px]">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <RadarChart cx="50%" cy="50%" outerRadius="65%" data={apeRadarData}>
-                                        <PolarGrid stroke="rgba(255,255,255,0.08)" />
-                                        <PolarAngleAxis dataKey="subject" tick={renderApeRadarTick} />
-                                        <PolarRadiusAxis angle={45} domain={[0, 5]} tick={false} axisLine={false} />
-                                        <Radar name="Score" dataKey="A" stroke="#f59e0b" strokeWidth={2} fill="#f59e0b" fillOpacity={0.35} />
-                                    </RadarChart>
-                                </ResponsiveContainer>
-                            </div>
-                        </>
-                    )}
-                    {/* APE Files integrated here */}
-                    {details.ape_files && details.ape_files.length > 0 && (
-                        <ApeFilesList files={details.ape_files} onFileClick={setSelectedApeFile} />
-                    )}
-                </div>
-            )}
+                )
+            }
 
             {/* Meta Immobile Sub-Properties List */}
-            {(details.meta_immobile === true || String(details.meta_immobile) === 'true') && details.sub_properties && details.sub_properties.length > 0 && (
-                <div className="bg-[#1a1d24]/60 p-3 rounded-lg border border-purple-500/20">
-                    <div className="flex items-center gap-1.5 mb-2">
-                        <Building2 className="w-3.5 h-3.5 text-purple-400" />
-                        <span className="text-[10px] uppercase text-gray-500 font-medium">Immobili Componenti ({details.sub_properties.length})</span>
-                    </div>
-                    <div className="space-y-1.5 max-h-[180px] overflow-y-auto">
-                        {details.sub_properties.map((prop, index) => (
-                            <div key={index} className="flex items-center gap-3 px-2 py-1.5 rounded bg-white/5 text-xs">
-                                <div className="flex items-center gap-1">
-                                    <span className="text-gray-500">ID:</span>
-                                    <span className="text-white font-mono">{prop.id}</span>
-                                </div>
-                                {prop.surface_area != null && (
+            {
+                (details.meta_immobile === true || String(details.meta_immobile) === 'true') && details.sub_properties && details.sub_properties.length > 0 && (
+                    <div className="bg-[#1a1d24]/60 p-3 rounded-lg border border-purple-500/20">
+                        <div className="flex items-center gap-1.5 mb-2">
+                            <Building2 className="w-3.5 h-3.5 text-purple-400" />
+                            <span className="text-[10px] uppercase text-gray-500 font-medium">Immobili Componenti ({details.sub_properties.length})</span>
+                        </div>
+                        <div className="space-y-1.5 max-h-[180px] overflow-y-auto">
+                            {details.sub_properties.map((prop, index) => (
+                                <div key={index} className="flex items-center gap-3 px-2 py-1.5 rounded bg-white/5 text-xs">
                                     <div className="flex items-center gap-1">
-                                        <span className="text-gray-500">MQ:</span>
-                                        <span className="text-cyan-400">{prop.surface_area}</span>
+                                        <span className="text-gray-500">ID:</span>
+                                        <span className="text-white font-mono">{prop.id}</span>
                                     </div>
-                                )}
-                                {prop.property_type && (
-                                    <div className="flex items-center gap-1 flex-1 min-w-0">
-                                        <span className="text-gray-500">Tipo:</span>
-                                        <span className="text-gray-300 truncate">{prop.property_type}</span>
-                                    </div>
-                                )}
-                            </div>
-                        ))}
+                                    {prop.surface_area != null && (
+                                        <div className="flex items-center gap-1">
+                                            <span className="text-gray-500">MQ:</span>
+                                            <span className="text-cyan-400">{prop.surface_area}</span>
+                                        </div>
+                                    )}
+                                    {prop.property_type && (
+                                        <div className="flex items-center gap-1 flex-1 min-w-0">
+                                            <span className="text-gray-500">Tipo:</span>
+                                            <span className="text-gray-300 truncate">{prop.property_type}</span>
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
             {/* POI Radar Chart */}
-            {hasPoiData && (
-                <div className="bg-[#1a1d24]/60 p-3 rounded-lg border border-white/5">
-                    <div className="flex items-center gap-1.5 mb-1">
-                        <MapPin className="w-3.5 h-3.5 text-cyan-400" />
-                        <span className="text-[10px] uppercase text-gray-500 font-medium">Score Localizzazione (POI)</span>
+            {
+                hasPoiData && (
+                    <div className="bg-[#1a1d24]/60 p-3 rounded-lg border border-white/5">
+                        <div className="flex items-center gap-1.5 mb-1">
+                            <MapPin className="w-3.5 h-3.5 text-cyan-400" />
+                            <span className="text-[10px] uppercase text-gray-500 font-medium">Score Localizzazione (POI)</span>
+                        </div>
+                        <div className="w-full h-[200px]">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <RadarChart cx="50%" cy="50%" outerRadius="60%" data={poiRadarData}>
+                                    <PolarGrid stroke="rgba(255,255,255,0.08)" />
+                                    <PolarAngleAxis dataKey="subject" tick={renderPolarAngleAxisTick} />
+                                    <PolarRadiusAxis angle={30} domain={[0, 10]} tick={false} axisLine={false} />
+                                    <Radar name="Score" dataKey="A" stroke="#06b6d4" strokeWidth={2} fill="#06b6d4" fillOpacity={0.35} />
+                                </RadarChart>
+                            </ResponsiveContainer>
+                        </div>
                     </div>
-                    <div className="w-full h-[200px]">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <RadarChart cx="50%" cy="50%" outerRadius="60%" data={poiRadarData}>
-                                <PolarGrid stroke="rgba(255,255,255,0.08)" />
-                                <PolarAngleAxis dataKey="subject" tick={renderPolarAngleAxisTick} />
-                                <PolarRadiusAxis angle={30} domain={[0, 10]} tick={false} axisLine={false} />
-                                <Radar name="Score" dataKey="A" stroke="#06b6d4" strokeWidth={2} fill="#06b6d4" fillOpacity={0.35} />
-                            </RadarChart>
-                        </ResponsiveContainer>
-                    </div>
-                </div>
-            )}
+                )
+            }
 
             {/* APE Detail Modal */}
             <APEDetailModal
@@ -587,6 +616,6 @@ export const BuildingDetail: React.FC<BuildingDetailProps> = ({ data }) => {
                 isOpen={!!selectedApeFile}
                 onClose={() => setSelectedApeFile(null)}
             />
-        </div>
+        </div >
     );
 };
