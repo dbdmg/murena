@@ -176,12 +176,16 @@ def print_report(stats: dict):
     for col in sorted(stats["used_columns"]):
         print(f"   - {col}")
 
-    print(f"\n🗑️  UNUSED Columns (candidates for removal) ({len(stats['unused_columns'])}):")
+    print(
+        f"\n🗑️  UNUSED Columns (candidates for removal) ({len(stats['unused_columns'])}):"
+    )
     for col in sorted(stats["unused_columns"]):
         print(f"   - {col}")
 
     if stats["unknown_columns"]:
-        print(f"\n⚠️  UNKNOWN Columns (not in either list) ({len(stats['unknown_columns'])}):")
+        print(
+            f"\n⚠️  UNKNOWN Columns (not in either list) ({len(stats['unknown_columns'])}):"
+        )
         for col in sorted(stats["unknown_columns"]):
             print(f"   - {col}")
 
@@ -190,7 +194,7 @@ def print_report(stats: dict):
         status = "✅" if info["scale_valid"] else "❌"
         print(f"   {status} {col}:")
         print(f"      Range: {info['min']} - {info['max']}")
-        print(f"      Mean: {info['mean']:.2f}" if info['mean'] else "      Mean: N/A")
+        print(f"      Mean: {info['mean']:.2f}" if info["mean"] else "      Mean: N/A")
         print(f"      Non-null: {info['non_null_count']:,} / {stats['total_rows']:,}")
 
 

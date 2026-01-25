@@ -6,7 +6,7 @@
  *  ____) |  __/\ V /  __/ | | |
  * |_____/ \___| \_/ \___|_| |_|
  *                              
- *  Built with ❤️ by Seven & Antigravity (Google DeepMind)
+ *  Built with ❤️ by Claudiu & Antigravity
  */
 import React from 'react';
 import ReactDOM from 'react-dom/client';

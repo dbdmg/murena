@@ -440,6 +440,338 @@ def run_ape():
 
 ---
 
+## � Mappatura Colonne per Agente
+
+### Dataset Completo (41 colonne)
+
+Il dataset `immobili_with_meta_and_ape_full_cleaned.parquet` contiene:
+
+| Categoria | Colonne | Descrizione |
+|-----------|---------|-------------|
+| **Identificazione** | id, codice_comune, foglio, particella, subalterno | Identificativi catastali |
+| **Localizzazione** | indirizzo, numero_civico, latitudine, longitudine, zona_omi | Dati geografici |
+| **Caratteristiche** | superficie_di_riferimento_mq, natura_del_bene, tipologia_bene_immobile, epoca_costruzione | Proprietà fisiche |
+| **Stato Giuridico** | vincolo_culturale_paesaggistico, natura_giuridica_del_bene, utilizzo_del_bene, finalita | Status legale/uso |
+| **Contratti** | tipo_detenzione_a_terzi, canone_annuale, data_decorrenza | Info locazione |
+| **APE Grezzi** | classe_energetica_ape, epglnren_ape, classe_target_ape, lista_file_ape, list_file_ape_filtered | Dati certificazione |
+| **APE Scores** | ape_score_classe, ape_score_impianto, ape_score_involucro, ape_score_rinnovabili, ape_score_total | Punteggi 1-5 |
+| **POI Scores** | sanita, mobilita, verde, sport, commerciale, educazione | Punteggi 1-5 |
+| **Meta** | meta_immobile, numero_immobili_per_catasto, id_list | Flag e aggregazioni |
+
+---
+
+### 📖 Legenda Punteggi (da includere nei prompt)
+
+#### APE Scores (Efficienza Energetica) - Scala 1-5
+
+| Punteggio | Campo | Significato |
+|-----------|-------|-------------|
+| **ape_score_classe** | Classe Energetica | 5=A1-A4 (ottimo), 3=B-E (medio), 1=F-G (scarso) |
+| **ape_score_impianto** | Tipo Impianto | 5=Pompa di calore/Teleriscaldamento, 3=Condensazione/Biomassa, 1=Tradizionale |
+| **ape_score_involucro** | Qualità Involucro | 5=Ottimo isolamento, 3=Medio, 1=Scarso/Assente |
+| **ape_score_rinnovabili** | Fonti Rinnovabili | 5=Presenti, 1=Assenti |
+| **ape_score_total** | Media Complessiva | Media ponderata dei 4 punteggi sopra |
+
+#### POI Scores (Servizi di Prossimità) - Scala 1-5
+
+| Punteggio | Campo | Cosa Misura |
+|-----------|-------|-------------|
+| **sanita** | Servizi Sanitari | Ospedali, farmacie, ambulatori nel raggio di 1km |
+| **mobilita** | Trasporti | Fermate metro/bus, stazioni ferroviarie |
+| **verde** | Aree Verdi | Parchi, giardini pubblici, aree naturali |
+| **sport** | Impianti Sportivi | Palestre, piscine, campi sportivi |
+| **commerciale** | Commercio | Negozi, supermercati, centri commerciali |
+| **educazione** | Istruzione | Scuole, università, biblioteche |
+
+> **Interpretazione**: 1=Scarsa copertura, 2=Sufficiente, 3=Buona, 4=Ottima, 5=Eccellente
+
+---
+
+### 🎯 Selezione Colonne per Agente
+
+#### 1. LocationAgent
+**Scopo**: Estrae luoghi/POI dalla query utente  
+**Input necessario**: Solo la query testuale  
+**Colonne nel prompt**: Nessuna (lavora solo sul testo)
+
+```
+Input: query (string)
+Output: places[] con name, city, lat, lon
+```
+
+---
+
+#### 2. TypologyAgent
+**Scopo**: Identifica tipologie di immobile richieste  
+**Input necessario**: Query + lista tipologie disponibili
+
+**Colonne da passare**:
+```python
+TYPOLOGY_COLUMNS = []  # Nessuna colonna, solo metadata
+
+# Passare invece i valori possibili dal db_metadata:
+available_typologies = db_metadata["tipologia_bene_immobile"]["values"]
+```
+
+---
+
+#### 3. NeedsMetricAgent
+**Scopo**: Crea piano di analisi con metriche, filtri, strategia  
+**Input necessario**: Query + schema DB completo
+
+**Colonne da documentare nel prompt** (per generare filtri corretti):
+```python
+NEEDS_METRIC_COLUMNS = {
+    # Filtrabili via SQL (oggettivi)
+    "filterable": [
+        "superficie_di_riferimento_mq",
+        "tipologia_bene_immobile",
+        "natura_del_bene",
+        "epoca_costruzione",
+        "vincolo_culturale_paesaggistico",
+        "natura_giuridica_del_bene",
+        "utilizzo_del_bene",
+        "finalita",
+        "zona_omi",
+        "latitudine",
+        "longitudine",
+    ],
+    # NON filtrabili via SQL (da usare per ranking)
+    "ranking_only": [
+        "ape_score_classe",
+        "ape_score_impianto", 
+        "ape_score_involucro",
+        "ape_score_rinnovabili",
+        "ape_score_total",
+        "sanita",
+        "mobilita",
+        "verde",
+        "sport",
+        "commerciale",
+        "educazione",
+    ],
+}
+```
+
+---
+
+#### 4. SQLAgent
+**Scopo**: Genera query DuckDB per filtrare il dataset  
+**Input necessario**: Query + schema + location + metadata
+
+**Schema da passare** (colonne e tipi):
+```python
+SQL_AGENT_SCHEMA = {
+    "id": "int64 - Identificativo univoco",
+    "codice_comune": "string - Codice catastale (L219=Torino)",
+    "superficie_di_riferimento_mq": "float - Superficie in mq (1-184556)",
+    "latitudine": "float - Coordinata GPS",
+    "longitudine": "float - Coordinata GPS",
+    "tipologia_bene_immobile": "string - Tipo immobile (vedi valori)",
+    "natura_del_bene": "string - FABBRICATO o TERRENO",
+    "epoca_costruzione": "string - Periodo costruzione",
+    "vincolo_culturale_paesaggistico": "string - Vincoli",
+    "natura_giuridica_del_bene": "string - Demanio/Patrimonio",
+    "utilizzo_del_bene": "string - Stato utilizzo attuale",
+    "finalita": "string - Uso previsto",
+    "zona_omi": "string - Zona OMI di riferimento",
+    # APE e POI scores NON devono essere usati in WHERE
+}
+```
+
+**Istruzioni critiche nel prompt**:
+```
+NON filtrare MAI per:
+- ape_score_* (punteggi energetici)
+- sanita, mobilita, verde, sport, commerciale, educazione (punteggi POI)
+Questi campi saranno usati per il RANKING, non per il filtraggio.
+```
+
+---
+
+#### 5. ApeAgent 🔴 (DA ARRICCHIRE)
+**Scopo**: Analizza requisiti energetici e suggerisce strategia APE  
+**Input necessario**: Query + statistiche APE reali
+
+**Colonne specifiche APE**:
+```python
+APE_AGENT_COLUMNS = [
+    "classe_energetica_ape",      # Classe A1-G
+    "epglnren_ape",               # Consumo kWh/m²/anno
+    "classe_target_ape",          # Classe target post-riqualificazione
+    "ape_score_classe",           # Score 1-5
+    "ape_score_impianto",         # Score 1-5
+    "ape_score_involucro",        # Score 1-5
+    "ape_score_rinnovabili",      # Score 1-5
+    "ape_score_total",            # Score 1-5 (media)
+]
+```
+
+**Statistiche da passare** (NUOVO):
+```python
+APE_STATISTICS = {
+    "total_records": 14915,
+    "with_ape_data": 1234,  # Quanti hanno dati APE
+    "classe_energetica_ape": {
+        "G": 450, "F": 320, "E": 180, "D": 120, 
+        "C": 80, "B": 50, "A1": 20, "A2": 10, "A4": 4
+    },
+    "ape_score_total": {
+        "min": 1.0, "max": 5.0, "mean": 2.08, "median": 2.0,
+        "percentiles": {"25%": 1.5, "50%": 2.0, "75%": 2.5}
+    },
+    # ... altre statistiche
+}
+```
+
+**Prompt arricchito**:
+```
+Sei un esperto di efficienza energetica.
+
+STATISTICHE DATASET APE:
+- Totale immobili: {total_records}
+- Con dati APE: {with_ape_data} ({percentage}%)
+- Distribuzione classi: {classe_distribution}
+- Score medio totale: {mean_score} (mediana: {median_score})
+
+LEGENDA PUNTEGGI (1-5):
+- ape_score_classe: 5=A1-A4, 3=B-E, 1=F-G
+- ape_score_impianto: 5=Pompa calore, 3=Condensazione, 1=Tradizionale
+- ape_score_involucro: 5=Ottimo isolamento, 1=Scarso
+- ape_score_rinnovabili: 5=Presenti, 1=Assenti
+
+Analizza la richiesta e suggerisci una strategia energetica.
+```
+
+---
+
+#### 6. PoiAgent
+**Scopo**: Assegna pesi alle categorie POI in base alla query  
+**Input necessario**: Solo query (conosce le 6 categorie)
+
+**Categorie POI** (hardcoded nel prompt):
+```python
+POI_CATEGORIES = {
+    "sanita": "Ospedali, farmacie, ambulatori",
+    "mobilita": "Metro, bus, stazioni",
+    "verde": "Parchi, giardini",
+    "sport": "Palestre, piscine, campi",
+    "commerciale": "Negozi, supermercati",
+    "educazione": "Scuole, università",
+}
+```
+
+**Output**: `poi_weights` dict con valori 0.0-1.0 per categoria
+
+---
+
+#### 7. EvaluationAgent ✅ (Già ottimizzato)
+**Scopo**: Valuta immobili candidati rispetto alla query  
+**Input necessario**: Query + use_case + dati immobili (JSON)
+
+**Colonne selezionate per la valutazione** (già implementate):
+```python
+EVAL_COLUMNS = [
+    # Identificazione e localizzazione
+    "id",
+    "indirizzo",
+    "numero_civico",
+    "zona_omi",
+    
+    # Caratteristiche fisiche
+    "superficie_di_riferimento_mq",
+    "tipologia_bene_immobile",
+    "epoca_costruzione",
+    "utilizzo_del_bene",
+    "finalita",
+    
+    # APE Scores (con legenda nel prompt)
+    "classe_energetica_ape",
+    "ape_score_classe",
+    "ape_score_impianto",
+    "ape_score_involucro",
+    "ape_score_rinnovabili",
+    "ape_score_total",
+    
+    # POI Scores (con legenda nel prompt)
+    "sanita",
+    "mobilita",
+    "verde",
+    "sport",
+    "commerciale",
+    "educazione",
+    
+    # Distanza (se calcolata)
+    "tempo_minuti",
+    "distanza_km",
+]
+```
+
+**Legenda da includere nel prompt**:
+```
+LEGENDA PUNTEGGI (tutti su scala 1-5, dove 5=ottimo):
+
+APE (Efficienza Energetica):
+- ape_score_classe: Classe energetica (5=A, 1=G)
+- ape_score_impianto: Qualità impianto termico
+- ape_score_involucro: Isolamento edificio
+- ape_score_rinnovabili: Presenza fonti rinnovabili
+- ape_score_total: Media complessiva
+
+POI (Servizi di Prossimità):
+- sanita: Vicinanza a servizi sanitari
+- mobilita: Accessibilità trasporti pubblici
+- verde: Presenza aree verdi
+- sport: Vicinanza impianti sportivi
+- commerciale: Servizi commerciali
+- educazione: Scuole e istruzione
+```
+
+---
+
+#### 8. MapAssistantAgent
+**Scopo**: Chatbot per interazione sulla mappa  
+**Input necessario**: Messaggi + contesto analisi precedente
+
+**Colonne nel contesto** (ereditate da EvaluationAgent):
+```python
+MAP_ASSISTANT_CONTEXT = {
+    "current_results": "DataFrame con EVAL_COLUMNS",
+    "filters_applied": "WHERE clause attiva",
+    "user_query": "Query originale",
+    "evaluation_results": "Valutazioni LLM",
+}
+```
+
+---
+
+### 🔧 Template Prompt Standardizzato
+
+Struttura consigliata per tutti gli agenti:
+
+```
+## {AGENT_NAME}
+
+### RUOLO
+[Chi sei e cosa fai - 1-2 righe]
+
+### CONTESTO DATI
+[Legenda punteggi se applicabile]
+[Statistiche dataset se applicabile]
+
+### REGOLE
+✅ Cosa DEVI fare
+❌ Cosa NON devi fare
+
+### OUTPUT
+[Formato richiesto - JSON schema o testo]
+
+### ESEMPI (opzionale)
+[1-2 esempi input/output]
+```
+
+---
+
 ## 📝 Note Finali
 
 ### Cosa Funziona Bene
@@ -450,14 +782,15 @@ def run_ape():
 5. **Tracciamento prompt** - `PromptRecord` per debug
 
 ### Cosa Richiede Attenzione
-1. **APE Agent cieco** - deve vedere i dati, non solo i nomi
+1. **APE Agent cieco** - deve vedere statistiche, non solo nomi colonne
 2. **Parsing duplicato** - consolidare in utility condivisa
-3. **Prompt lunghi** - rischio di confusione per il modello
+3. **Mancanza legenda nei prompt** - agenti non conoscono significato punteggi
 4. **Mancanza caching** - chiamate ripetute costose
 
 ### Metriche di Successo
 Dopo l'implementazione del piano:
 - [ ] APE Agent suggerisce filtri basati su percentili reali
+- [ ] Tutti i prompt includono legenda punteggi (APE + POI)
 - [ ] Zero `_extract_json()` duplicati nel codice
 - [ ] Tutti gli agenti usano `with_structured_output()` o fallback Pydantic
 - [ ] Prompt < 1500 caratteri ciascuno
@@ -465,5 +798,238 @@ Dopo l'implementazione del piano:
 
 ---
 
+## 🚀 Piano di Implementazione Aggiornato
+
+### Sprint 1: Fondamenta (Priorità Critica)
+
+| Task | Descrizione | File | Done |
+|------|-------------|------|------|
+| 1.1 | Creare costante `SCORE_LEGEND` condivisa | `constants.py` | ⬜ |
+| 1.2 | Arricchire ApeAgent con statistiche dataset | `graph_agent.py`, `ape_agent.py` | ⬜ |
+| 1.3 | Aggiungere legenda punteggi a EvaluationAgent | `evaluation_agent.py` | ⬜ |
+| 1.4 | Aggiungere legenda punteggi a NeedsMetricAgent | `needs_metric_agent.py` | ⬜ |
+
+### Sprint 2: Qualità Codice (Priorità Alta)
+
+| Task | Descrizione | File | Done |
+|------|-------------|------|------|
+| 2.1 | Creare `utils/json_parser.py` | `utils/json_parser.py` | ⬜ |
+| 2.2 | Migrare a `with_structured_output()` | Tutti gli agenti | ⬜ |
+| 2.3 | Standardizzare prompt (RUOLO→REGOLE→OUTPUT) | `prompt_config.md` | ⬜ |
+
+### Sprint 3: Ottimizzazione (Priorità Media)
+
+| Task | Descrizione | File | Done |
+|------|-------------|------|------|
+| 3.1 | Ridurre lunghezza prompt NeedsMetricAgent | `needs_metric_agent.py` | ⬜ |
+| 3.2 | Aggiungere few-shot examples a SQLAgent | `sql_agent.py` | ⬜ |
+| 3.3 | Documentare architettura in README | `agents/README.md` | ⬜ |
+
+---
+
+## 📊 Appendice: Configurazione Colonne Consigliata
+
+### File: `app/core/constants.py` (da creare/aggiornare)
+
+```python
+"""Costanti condivise per la selezione colonne e legende punteggi."""
+
+# =============================================================================
+# LEGENDA PUNTEGGI (da includere nei prompt degli agenti)
+# =============================================================================
+
+SCORE_LEGEND = """
+### LEGENDA PUNTEGGI (Scala 1-5, dove 5 = Ottimo)
+
+**APE (Efficienza Energetica):**
+- `ape_score_classe`: Classe energetica certificata (5=A1-A4, 3=B-E, 1=F-G)
+- `ape_score_impianto`: Qualità impianto termico (5=Pompa di calore, 3=Condensazione, 1=Caldaia tradizionale)
+- `ape_score_involucro`: Isolamento termico edificio (5=Cappotto, 3=Parziale, 1=Assente)
+- `ape_score_rinnovabili`: Fonti energia rinnovabile (5=Presenti e certificate, 1=Assenti)
+- `ape_score_total`: Media ponderata dei 4 punteggi APE
+
+**POI (Servizi di Prossimità - raggio 1km):**
+- `sanita`: Ospedali, farmacie, ambulatori, pronto soccorso
+- `mobilita`: Fermate metro/bus, stazioni ferroviarie, parcheggi
+- `verde`: Parchi pubblici, giardini, aree naturali protette
+- `sport`: Palestre, piscine, campi sportivi, centri fitness
+- `commerciale`: Supermercati, negozi, centri commerciali, mercati
+- `educazione`: Scuole (ogni ordine), università, biblioteche
+"""
+
+# =============================================================================
+# SELEZIONE COLONNE PER AGENTE
+# =============================================================================
+
+# Colonne per SQL Agent (schema da passare)
+SQL_FILTERABLE_COLUMNS = [
+    "id",
+    "codice_comune",
+    "superficie_di_riferimento_mq",
+    "latitudine",
+    "longitudine",
+    "natura_del_bene",
+    "tipologia_bene_immobile",
+    "epoca_costruzione",
+    "vincolo_culturale_paesaggistico",
+    "natura_giuridica_del_bene",
+    "utilizzo_del_bene",
+    "finalita",
+    "zona_omi",
+]
+
+# Colonne per RANKING (non filtrare via SQL!)
+RANKING_ONLY_COLUMNS = [
+    "ape_score_classe",
+    "ape_score_impianto",
+    "ape_score_involucro",
+    "ape_score_rinnovabili",
+    "ape_score_total",
+    "sanita",
+    "mobilita",
+    "verde",
+    "sport",
+    "commerciale",
+    "educazione",
+]
+
+# Colonne per Evaluation Agent (invio all'LLM)
+EVAL_COLUMNS = [
+    "id",
+    "indirizzo",
+    "numero_civico",
+    "zona_omi",
+    "superficie_di_riferimento_mq",
+    "tipologia_bene_immobile",
+    "epoca_costruzione",
+    "utilizzo_del_bene",
+    "finalita",
+    # APE
+    "classe_energetica_ape",
+    "ape_score_classe",
+    "ape_score_impianto",
+    "ape_score_involucro",
+    "ape_score_rinnovabili",
+    "ape_score_total",
+    # POI
+    "sanita",
+    "mobilita",
+    "verde",
+    "sport",
+    "commerciale",
+    "educazione",
+    # Calcolati
+    "tempo_minuti",
+    "distanza_km",
+]
+
+# Colonne APE per APE Agent
+APE_AGENT_COLUMNS = [
+    "classe_energetica_ape",
+    "epglnren_ape",
+    "classe_target_ape",
+    "ape_score_classe",
+    "ape_score_impianto",
+    "ape_score_involucro",
+    "ape_score_rinnovabili",
+    "ape_score_total",
+]
+```
+
+---
+
+## 🗂️ Metadata Distribution per Agente
+
+### File Metadata: `backend/app/data/db_metadata.json`
+
+Il file `db_metadata.json` contiene **tutte le informazioni necessarie** per gli agenti LLM:
+- Valori categorici per ogni colonna (es. tipologie, epoche, vincoli)
+- Statistiche numeriche (min, max, mean, median)
+- **Score Legends** (significato dei punteggi 1-5)
+- **SQL Filtering Rules** (quali colonne filtrare vs ranking)
+
+### Matrice di Distribuzione Metadata
+
+| Agente | Riceve Metadata? | Cosa Dovrebbe Ricevere | Stato | Azione |
+|--------|------------------|------------------------|-------|--------|
+| **SQLAgent** | ✅ Sì | Schema + valori categorici + sql_filtering_rules | ✅ OK | Aggiungere filtering_rules |
+| **NeedsMetricAgent** | ✅ Sì | Schema completo + note | ✅ OK | - |
+| **TypologyAgent** | ⚠️ Parziale | Solo `available_typologies` (hardcoded) | ⚠️ Parziale | Leggere da metadata |
+| **LocationAgent** | ❌ No | Non necessita di metadata dataset | ✅ OK | - |
+| **ApeAgent** | ❌ No | `score_legends.ape_scores` + statistiche APE | ❌ CRITICO | **Da implementare** |
+| **PoiAgent** | ❌ No | `score_legends.poi_scores` | ⚠️ Nice-to-have | Aggiungere legenda |
+| **EvaluationAgent** | ❌ No | `score_legends` (ape + poi) | ❌ CRITICO | **Da implementare** |
+| **MapAssistantAgent** | ❌ No | Non necessita di metadata | ✅ OK | - |
+
+### Implementazione Consigliata
+
+#### 1. Caricare Metadata una volta sola (in `graph_agent.py`)
+
+```python
+# graph_agent.py - __init__
+from app.data import get_db_metadata
+
+class GraphOrchestratorAgent:
+    def __init__(self):
+        self.db_metadata = get_db_metadata()  # Carica all'init
+        self.score_legends = self.db_metadata.get("score_legends", {})
+        # ...
+```
+
+#### 2. Passare ai singoli agenti
+
+```python
+# Per APE Agent
+def run_ape():
+    return self.ape_agent.run(
+        query=query,
+        ape_statistics=self.db_metadata.get("ape_score_classe", {}),  # Stats
+        score_legend=self.score_legends.get("ape_scores", {})         # Legend
+    )
+
+# Per Evaluation Agent
+def run_evaluation():
+    return self.eval_agent.run(
+        use_case=use_case,
+        data=estates_data,
+        query=query,
+        score_legends=self.score_legends  # Sia APE che POI
+    )
+
+# Per Typology Agent
+def run_typology():
+    typologies = self.db_metadata.get("tipologia_bene_immobile", {}).get("values", [])
+    return self.typology_agent.run(query, typologies)
+```
+
+#### 3. Aggiornare i Prompt degli Agenti
+
+Ogni agente che riceve `score_legends` deve includerle nel prompt:
+
+```python
+# In ape_agent.py
+prompt = f"""
+...
+## LEGENDA PUNTEGGI APE
+{json.dumps(score_legend, indent=2, ensure_ascii=False)}
+
+## STATISTICHE DATASET
+{json.dumps(ape_statistics, indent=2, ensure_ascii=False)}
+...
+"""
+```
+
+### Checklist Implementazione
+
+- [ ] **Task 1:** Aggiungere loader per `score_legends` in `loaders.py`
+- [ ] **Task 2:** Modificare `ApeAgent.run()` - accetta `ape_statistics` e `score_legend`
+- [ ] **Task 3:** Modificare `EvaluationAgent.run()` - accetta `score_legends`
+- [ ] **Task 4:** Modificare `TypologyAgent.run()` - legge tipologie da metadata
+- [ ] **Task 5:** Aggiornare `graph_agent.py` - passa metadata ai sotto-agenti
+- [ ] **Task 6:** Test end-to-end con query che richiede interpretazione punteggi
+
+---
+
 *Documento generato automaticamente durante la sessione di audit.*  
 *Ultimo aggiornamento: Gennaio 2025*
+

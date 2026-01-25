@@ -1,4 +1,77 @@
 {
+  "_metadata_version": "2.0",
+  "_last_updated": "2025-01-25",
+  "_description": "Metadati del dataset immobili per gli agenti LLM. Include valori, statistiche e legende punteggi.",
+
+  "score_legends": {
+    "ape_scores": {
+      "_description": "Punteggi di efficienza energetica derivati dai certificati APE. Scala 1-5 dove 5=ottimo.",
+      "ape_score_classe": {
+        "meaning": "Classe energetica certificata dell'edificio",
+        "scale": "5=A1-A4 (alta efficienza), 3=B-E (media), 1=F-G (bassa efficienza)"
+      },
+      "ape_score_impianto": {
+        "meaning": "Qualità e tipologia dell'impianto di riscaldamento/raffrescamento",
+        "scale": "5=Pompa di calore/Teleriscaldamento, 3=Caldaia a condensazione/Biomassa, 1=Caldaia tradizionale"
+      },
+      "ape_score_involucro": {
+        "meaning": "Qualità dell'isolamento termico dell'edificio (cappotto, infissi, copertura)",
+        "scale": "5=Ottimo isolamento (cappotto + infissi), 3=Isolamento parziale, 1=Scarso o assente"
+      },
+      "ape_score_rinnovabili": {
+        "meaning": "Presenza di impianti a fonti rinnovabili (fotovoltaico, solare termico)",
+        "scale": "5=Presenti e certificati, 1=Assenti"
+      },
+      "ape_score_total": {
+        "meaning": "Media ponderata dei 4 punteggi APE sopra",
+        "scale": "5=Eccellente efficienza complessiva, 1=Scarsa efficienza"
+      }
+    },
+    "poi_scores": {
+      "_description": "Punteggi di prossimità ai servizi calcolati nel raggio di 1km. Scala 1-5 dove 5=eccellente copertura.",
+      "interpretation": "1=Scarsa copertura, 2=Sufficiente, 3=Buona, 4=Ottima, 5=Eccellente",
+      "sanita": {
+        "meaning": "Vicinanza a servizi sanitari",
+        "includes": "Ospedali, farmacie, ambulatori, pronto soccorso, ASL"
+      },
+      "mobilita": {
+        "meaning": "Accessibilità ai trasporti pubblici",
+        "includes": "Fermate metro, fermate bus, stazioni ferroviarie, parcheggi di scambio"
+      },
+      "verde": {
+        "meaning": "Presenza di aree verdi",
+        "includes": "Parchi pubblici, giardini, aree naturali protette, aiuole attrezzate"
+      },
+      "sport": {
+        "meaning": "Vicinanza a impianti sportivi",
+        "includes": "Palestre, piscine, campi sportivi, centri fitness, impianti comunali"
+      },
+      "commerciale": {
+        "meaning": "Disponibilità di servizi commerciali",
+        "includes": "Supermercati, negozi, centri commerciali, mercati rionali"
+      },
+      "educazione": {
+        "meaning": "Vicinanza a strutture educative",
+        "includes": "Asili, scuole primarie/secondarie, università, biblioteche"
+      }
+    }
+  },
+
+  "sql_filtering_rules": {
+    "_description": "Regole per la generazione di query SQL. Indica quali colonne sono filtrabili e quali no.",
+    "filterable_columns": [
+      "id", "codice_comune", "superficie_di_riferimento_mq", "latitudine", "longitudine",
+      "natura_del_bene", "tipologia_bene_immobile", "epoca_costruzione",
+      "vincolo_culturale_paesaggistico", "natura_giuridica_del_bene",
+      "utilizzo_del_bene", "finalita", "zona_omi"
+    ],
+    "ranking_only_columns": {
+      "_warning": "NON usare queste colonne in WHERE clause SQL! Sono riservate al ranking post-query.",
+      "ape": ["ape_score_classe", "ape_score_impianto", "ape_score_involucro", "ape_score_rinnovabili", "ape_score_total"],
+      "poi": ["sanita", "mobilita", "verde", "sport", "commerciale", "educazione"]
+    }
+  },
+
   "codice_comune": {
     "description": "IMPORTANTE: Il campo codice_comune contiene CODICI CATASTALI, non nomi città. NON filtrare per nome città! Usa SOLO la funzione haversine_km() per filtrare per posizione geografica.",
     "values": [
