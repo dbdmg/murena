@@ -1,103 +1,84 @@
-import json
-from typing import Any, Optional
+from typing import List
 
 from langchain_core.output_parsers import StrOutputParser
-from langchain_core.prompts import PromptTemplate
+from langchain_core.prompts import ChatPromptTemplate
 
 from app.core.config import settings
+from app.core.constants import (
+    SQL_FILTERABLE_COLUMNS,
+    RANKING_ONLY_COLUMNS,
+    POI_CATEGORIES,
+    SCORE_LEGEND,
+)
 
 AGENT_MODELS = settings.agent_models
 from app.services.llm.agents.base import BaseAgent
 from app.services.llm.agents.schema import (
-    ApeUsagePlan,
-    DatasetStrategy,
-    MetricDefinition,
     NeedsMetricPlan,
     PromptRecord,
 )
 from app.services.llm.langchain_client import get_llm
 from app.services.llm.prompt_loader import get_system_prompt, get_user_template
 from app.utils.decorators import handle_agent_error, log_llm_usage
+from app.utils.json_parser import safe_extract_json
 
-DEFAULT_SYSTEM = """Agisci come Needs & Metric Agent per l'applicazione MEF-Immobili.
-Il tuo compito è interpretare il bisogno dell'utente e proporre un piano di analisi strutturato.
+DEFAULT_SYSTEM = """Sei il Needs & Metric Agent per l'applicazione MEF-Immobili.
+Il tuo compito è analizzare la richiesta dell'utente e creare un PIANO DI ANALISI strutturato.
 
-RESTITUISCI SOLO un JSON con la seguente struttura:
+### RUOLO
+Devi tradurre il bisogno (es. "scuole, efficienza energetica") in metriche di ranking e filtri dataset.
+
+### CONTESTO DATI
+Hai a disposizione le seguenti colonne per FILTRARE e ORDINARE:
+
+1. COLONNE FILTRABILI (SQL WHERE):
+{sql_filterable_columns}
+
+2. COLONNE PER RANKING (O Punteggi):
+{ranking_only_columns}
+(Queste colonne NON devono essere usate per filtri rigidi SQL, ma solo per ordinamento o calcolo punteggi)
+
+3. CATEGORIE POI (1-5):
+{poi_categories}
+
+{score_legend}
+
+### REGOLE
+1. **FILTRI SQL**: Usa SOLO le colonne nella lista "COLONNE FILTRABILI".
+   - ❌ NON filtrare MAI per punteggi APE (ape_score_*) o POI (sanita, mobilita...).
+   - ✅ Usa filtri SQL (filters) per: superficie, tipologia, zona, epoca, comune.
+   
+2. **METRICHE & RANKING**: Se l'utente chiede "buone scuole" o "efficiente":
+   - ❌ NON filtrare via SQL (esclude troppi risultati).
+   - ✅ Aggiungi una METRICA con peso alto (es. name="educazione", weight=0.8).
+   - ✅ Oppure usa SORT_BY (es. "educazione DESC").
+
+3. **STRATEGIA DATASET**:
+   - Punta ad avere un set ampio di candidati (100-500) da far valutare all'Evaluation Agent.
+   - Usa "filters" solo per requisiti "hard" (es. "minimo 100mq").
+
+### OUTPUT
+Restituisci ESCLUSIVAMENTE un JSON valido che rispetti questo schema:
 {{
-    "summary": "<riassunto del bisogno/obiettivo>",
+    "summary": "<riassunto obiettivo>",
     "metrics": [
-        {{"name": "<nome>", "goal": "<obiettivo>", "weight": 0.35, "data_points": ["colonna_1", "colonna_2"]}}
+        {{"name": "<nome_colonna>", "goal": "<descrizione>", "weight": 0.5, "data_points": ["<colonna>"]}}
     ],
     "dataset_strategy": {{
-        "filters": ["<descrizione filtro 1>", "<descrizione filtro 2>"],
-        "sort_by": "<colonna> <ASC|DESC>",
-        "notes": "<indicazioni aggiuntive>"
+        "filters": ["<filtro sql like>"],  // Es. "superficie_di_riferimento_mq > 100"
+        "sort_by": "<colonna> DESC",
+        "notes": "<note>"
     }},
     "ape_strategy": {{
-        "use_ape": true,
-        "strategy": "<come sfruttare i dati APE se necessari>"
+        "use_ape": <true|false>,
+        "strategy": "<come usare i dati ape>"
     }}
 }}
-
-Linee guida:
-- Usa i nomi delle colonne presenti nello schema quando suggerisci filtri o metriche.
-- "data_points" deve citare colonne o fonti utili per calcolare la metrica.
-- Se i dati APE non sono rilevanti, imposta use_ape=false e spiega il motivo.
-- Se l'immobile è utilizzato direttamente non penalizzarlo.
-- CRITICO: NON suggerire MAI filtri SQL (clausola WHERE) per metriche soggettive o punteggi.
-- BLACKLIST FILTRI SQL (Vietato usare queste colonne in "filters"):
-  * Colonne POI: [sanita, mobilita, verde, sport, commerciale, educazione]
-  * Colonne APE: [ape_score_total, ape_score_classe, classe_energetica_ape]
-  * Colonne Stato: [stato_manutentivo, utilizzo_del_bene]
-- Se l'utente chiede "buone scuole" o "alta efficienza", NON filtrare via SQL. Inserisci queste colonne in "sort_by" (es. "educazione DESC") o lascia che sia il Ranking Agent a gestirle tramite i pesi.
-- I filtri SQL devono essere usati SOLO per vincoli "duri" e oggettivi:
-  * Superficie (es. superficie_di_riferimento_mq > 100)
-  * Tipologia (es. tipologia_bene_immobile = '...')
-  * Distanza (es. raggio < 2km)
-- L'obiettivo è ottenere un AMPIO set di candidati (es. 100-1000) da ordinare successivamente."""
+"""
 
 DEFAULT_USER = """Query Utente: "{query}"
-Schema Database: {db_schema}
-Colonne di esempio: {dataset_sample}"""
-
-
-def _extract_json(text: str) -> Any:
-    """Prova ad estrarre un JSON valido dalla risposta del modello."""
-    text = (text or "").strip()
-    if not text:
-        return None
-
-    try:
-        return json.loads(text)
-    except json.JSONDecodeError:
-        pass
-
-    start_positions = [pos for pos in (text.find("{"), text.find("[")) if pos != -1]
-    if not start_positions:
-        return None
-
-    start = min(start_positions)
-    for end in range(len(text), start, -1):
-        snippet = text[start:end]
-        try:
-            return json.loads(snippet)
-        except json.JSONDecodeError:
-            continue
-    return None
-
-
-def _safe_float(value: Any, default: float = 1.0) -> float:
-    try:
-        return float(value)
-    except (TypeError, ValueError):
-        return default
-
-
-def _safe_int(value: Any, default: Optional[int] = None) -> Optional[int]:
-    try:
-        return int(value)
-    except (TypeError, ValueError):
-        return default
+Schema Database (riferimento tipi): {db_schema}
+"""
 
 
 class NeedsMetricAgent(BaseAgent):
@@ -105,40 +86,36 @@ class NeedsMetricAgent(BaseAgent):
 
     name = "needs-metric-agent"
 
-    def __init__(self, model_name: Optional[str] = None):
+    def __init__(self, model_name: str = None):
+        from app.core.config import settings
+
         resolved_model = (
             model_name
             or AGENT_MODELS.get("needs_metric_agent")
             or AGENT_MODELS.get("default")
         )
-        self.llm = get_llm(model_name=resolved_model)
+        # Use AGENT_TEMPERATURE for consistency in filter suggestions
+        self.llm = get_llm(
+            model_name=resolved_model, temperature=settings.AGENT_TEMPERATURE
+        )
 
         # Load system and user prompts separately
         self.system_prompt = get_system_prompt("needs_metric_agent", DEFAULT_SYSTEM)
         self.user_template = get_user_template("needs_metric_agent", DEFAULT_USER)
 
-        # Create ChatPromptTemplate with system/user separation
-        from langchain_core.prompts import ChatPromptTemplate
-
-        self.prompt = ChatPromptTemplate.from_messages(
+        # Create ChatPromptTemplate
+        self.prompt_template = ChatPromptTemplate.from_messages(
             [
-                ("system", self.system_prompt),
+                ("system", "{system_content}"),
                 ("user", self.user_template),
             ]
         )
         self.parser = StrOutputParser()
-        self.chain = self.prompt | self.llm | self.parser
+        self.chain = self.prompt_template | self.llm | self.parser
 
     @log_llm_usage
     @handle_agent_error(
-        fallback_value=NeedsMetricPlan(
-            summary="Error generating plan",
-            metrics=[],
-            dataset_strategy=DatasetStrategy(filters=[], sort_by="", notes="Error"),
-            ape_strategy=ApeUsagePlan(use_ape=False, strategy="Error"),
-            raw_text="Error",
-            prompt=None,
-        )
+        fallback_value=None  # Will be handled by return type hint or explicit construction match
     )
     def run(
         self,
@@ -146,68 +123,98 @@ class NeedsMetricAgent(BaseAgent):
         db_schema: str,
         dataset_sample: str = "",
         db_metadata: str = "",
+        categorical_values: dict = None,  # NEW: categorical value lists
     ) -> NeedsMetricPlan:
+        # Construct dynamic lists for prompt
+        sql_filterable = ", ".join(SQL_FILTERABLE_COLUMNS)
+        ranking_only = ", ".join(RANKING_ONLY_COLUMNS)
+        poi_cats = ", ".join([f"{k} ({v})" for k, v in POI_CATEGORIES.items()])
+
+        # Format system prompt
+        system_content = self.system_prompt.format(
+            sql_filterable_columns=sql_filterable,
+            ranking_only_columns=ranking_only,
+            poi_categories=poi_cats,
+            score_legend=SCORE_LEGEND,
+            format_instructions="",  # Optional if we moved json structure into main prompt text
+        )
+
         prompt_inputs = {
+            "system_content": system_content,
             "query": query,
             "db_schema": db_schema,
-            "dataset_sample": dataset_sample or "",
+            "dataset_sample": dataset_sample,
             "db_metadata": db_metadata,
         }
 
-        # Format user prompt with variables
-        user_text = self.user_template.format(**prompt_inputs).strip()
-        full_text = f"[SYSTEM]\n{self.system_prompt}\n\n[USER]\n{user_text}"
-        raw = self.chain.invoke(prompt_inputs)
+        # Add categorical values info to user prompt if available
+        if categorical_values:
+            import json
 
-        data = _extract_json(raw) or {}
-        metrics_cfg = data.get("metrics") or []
-        metrics = []
-        for item in metrics_cfg:
-            if not isinstance(item, dict):
-                continue
-            name = item.get("name")
-            if not isinstance(name, str) or not name.strip():
-                continue
-            metrics.append(
-                MetricDefinition(
-                    name=name.strip(),
-                    goal=item.get("goal"),
-                    weight=_safe_float(item.get("weight"), 1.0),
-                    data_points=[
-                        dp
-                        for dp in (item.get("data_points") or [])
-                        if isinstance(dp, str)
-                    ],
+            categorical_info = json.dumps(
+                categorical_values, indent=2, ensure_ascii=False
+            )
+            categorical_context = f"""
+
+VALORI CATEGORICI DISPONIBILI:
+{categorical_info}
+
+Quando l'utente menziona valori specifici (es. "classe F o G", "epoca recente"), 
+usa questi valori esatti nei filtri. Esempio:
+- "classe energetica bassa (F o G)" → filters: ["classe_energetica_ape IN ('F', 'G')"]
+- "immobili recenti" → filters: ["epoca_costruzione IN ('...valori recenti...)"]  
+"""
+            prompt_inputs["db_metadata"] = db_metadata + categorical_context
+        else:
+            prompt_inputs["db_metadata"] = db_metadata
+
+        user_text = self.user_template.format(
+            query=query,
+            db_schema=db_schema,
+            dataset_sample=dataset_sample,
+            db_metadata=db_metadata,
+        ).strip()
+        full_text = f"[SYSTEM]\n{system_content}\n\n[USER]\n{user_text}"
+
+        try:
+            raw = self.chain.invoke(prompt_inputs)
+
+            # Parse with Pydantic model
+            plan = safe_extract_json(raw, schema=NeedsMetricPlan)
+
+            if not plan:
+                # Fallback empty plan
+                from app.services.llm.agents.schema import (
+                    MetricDefinition,
+                    DatasetStrategy,
+                    ApeUsagePlan,
                 )
+
+                plan = NeedsMetricPlan(
+                    summary="Fallback: could not parse plan",
+                    metrics=[],
+                    dataset_strategy=DatasetStrategy(),
+                    ape_strategy=ApeUsagePlan(),
+                )
+
+            # Inject prompt record (since safe_extract_json returns clean model)
+            plan.raw_text = raw
+            plan.prompt = PromptRecord(
+                system=system_content, user=user_text, full_text=full_text
             )
 
-        dataset_cfg = data.get("dataset_strategy") or {}
-        dataset_strategy = DatasetStrategy(
-            filters=[
-                f for f in (dataset_cfg.get("filters") or []) if isinstance(f, str)
-            ],
-            sort_by=dataset_cfg.get("sort_by"),
-            top_k=_safe_int(dataset_cfg.get("top_k")),
-            notes=dataset_cfg.get("notes"),
-        )
+            return plan
 
-        ape_cfg = data.get("ape_strategy") or {}
-        ape_strategy = ApeUsagePlan(
-            use_ape=bool(ape_cfg.get("use_ape", False)),
-            strategy=ape_cfg.get("strategy"),
-        )
+        except Exception as e:
+            # Re-raise or return empty?
+            # handle_agent_error decorator should handle exceptions, but we need to match return type
+            print(f"Error NeedsMetricAgent: {e}")
+            from app.services.llm.agents.schema import DatasetStrategy, ApeUsagePlan
 
-        prompt_record = PromptRecord(
-            system=self.system_prompt.strip(),
-            user=user_text,
-            full_text=full_text,
-        )
-
-        return NeedsMetricPlan(
-            summary=data.get("summary", ""),
-            raw_text=raw,
-            prompt=prompt_record,
-            metrics=metrics,
-            dataset_strategy=dataset_strategy,
-            ape_strategy=ape_strategy,
-        )
+            return NeedsMetricPlan(
+                summary=f"Error: {str(e)}",
+                raw_text="Error",
+                metrics=[],
+                dataset_strategy=DatasetStrategy(),
+                ape_strategy=ApeUsagePlan(),
+            )

@@ -1,8 +1,9 @@
 import json
-from typing import Any
+from typing import Any, List, Optional
 
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
+from pydantic import BaseModel, Field
 
 from app.core.config import settings
 
@@ -12,57 +13,43 @@ from app.services.llm.agents.schema import LocationAgentResult, Place, PromptRec
 from app.services.llm.langchain_client import get_llm
 from app.services.llm.prompt_loader import get_system_prompt, get_user_template
 from app.utils.decorators import handle_agent_error, log_llm_usage
+from app.utils.json_parser import safe_extract_json
 
-DEFAULT_SYSTEM = """Sei un esperto nell'estrazione di luoghi (POI o aree) da una singola frase in italiano.
 
-Vincoli e regole:
-- Limita l'interpretazione all'area di Torino e provincia.
-- Se presente, restituisci i luoghi nella forma strutturata JSON.
-- Se non è presente alcun riferimento geografico, restituisci un array vuoto.
-- Non aggiungere commenti o testo non-JSON.
+# Modello per la risposta strutturata
+class LocationResponse(BaseModel):
+    places: List[Place] = Field(
+        default_factory=list, description="Lista dei luoghi estratti"
+    )
 
-Restituisci ESCLUSIVAMENTE un JSON con la seguente struttura:
-{{
-    "places": [
-        {{"name": "<nome del luogo>", "city": "<città o null>"}},
-        ...
-    ]
-}}
 
-Esempi validi:
-Input: "mostrami gli edifici abbandonati vicino al centro storico di Torino"
-Output: {{"places": [{{"name": "Centro Storico", "city": "Torino"}}]}}
+DEFAULT_SYSTEM = """# RUOLO
+Sei il Location Agent per l'applicazione Real Estate AI.
+Il tuo compito è estrarre dalla query dell'utente TUTTI i riferimenti geografici (città, zone, POI, indirizzi).
 
-Input: "trovami edifici disponibili per eventi"
-Output: {{"places": []}}"""
+# REGOLE
+1. Identifica OGNI luogo menzionato esplicitamente o implicitamente.
+2. Per ogni luogo, estrai: nome, città (se presente), e coordinate geografiche approssimate.
+3. Se non ci sono luoghi specifici, restituisci una lista vuota.
+4. NON inventare luoghi se non sono nel testo.
+
+# OUTPUT
+Restituisci ESCLUSIVAMENTE un JSON valido:
+{
+  "places": [
+    {"name": "Nome Luogo", "city": "Città", "lat": 45.07, "lon": 7.68}
+  ]
+}
+
+# ESEMPI
+Query: "Trilocale vicino al Politecnico di Torino"
+Output: {{"places": [{{"name": "Politecnico di Torino", "city": "Torino", "lat": 45.0628, "lon": 7.6621}}]}}
+
+Query: "Appartamento economico"
+Output: {{"places": []}}
+"""
 
 DEFAULT_USER = """Frase: "{query}" """
-
-
-def _extract_json(text: str) -> Any:
-    """Prova ad estrarre un JSON dalla risposta del modello.
-    Accetta sia un JSON puro che un blocco con testo circostante.
-    """
-    text = text.strip()
-    # Tenta parsing diretto
-    try:
-        return json.loads(text)
-    except Exception:
-        pass
-
-    # Cerca il primo blocco {...} o [...] plausibile
-    start_positions = [text.find("{"), text.find("[")]
-    start_positions = [p for p in start_positions if p != -1]
-    if not start_positions:
-        return None
-    start = min(start_positions)
-    for end in range(len(text), start, -1):
-        fragment = text[start:end]
-        try:
-            return json.loads(fragment)
-        except Exception:
-            continue
-    return None
 
 
 class LocationAgent(BaseAgent):
@@ -103,16 +90,19 @@ class LocationAgent(BaseAgent):
 
         raw = self.chain.invoke(prompt_inputs)
 
-        data = _extract_json(raw) or {"places": []}
+        # Parse with safe_extract_json using Pydantic model
+        parsed_data = safe_extract_json(raw, schema=LocationResponse)
+
         places = []
-        if isinstance(data, dict) and isinstance(data.get("places"), list):
-            for item in data["places"]:
-                if not isinstance(item, dict):
-                    continue
-                name = item.get("name")
-                city = item.get("city")
-                if isinstance(name, str) and name.strip():
-                    places.append(Place(name=name.strip(), city=(city or None)))
+        if parsed_data and isinstance(parsed_data, LocationResponse):
+            places = parsed_data.places
+        else:
+            # Fallback for manual or partial creation if strict validation failed but we got dict
+            # (safe_extract_json returns None if schema validation fails, maybe check raw dict?)
+            # Actually safe_extract_json returns schema instance if schema provided.
+            # If validation failed, it returns None.
+            # We might want to try parsing without schema if with schema fails, but let's trust strict first.
+            pass
 
         prompt_record = PromptRecord(
             system=self.system_prompt.strip(),

@@ -685,9 +685,11 @@ export const ProcessingPage: React.FC = () => {
                 {/* View Results Button - Disabled until broker summary arrives */}
                 {(() => {
                     // Button is ready only when we have results AND broker summary
-                    const isReady = isComplete && brokerSummary && buildingsFound !== null && buildingsFound > 0;
-                    // Show "finalizing" state when complete but waiting for broker
-                    const isFinalizing = isComplete && !brokerSummary;
+                    const hasResults = buildingsFound !== null && buildingsFound > 0;
+                    const isReady = isComplete && brokerSummary && hasResults;
+                    // Only show finalizing if we have results but are waiting for summary.
+                    // If 0 results, we stop spinning (summary might be skipped or irrelevant).
+                    const isFinalizing = isComplete && !brokerSummary && hasResults;
 
                     return (
                         <motion.button
@@ -714,10 +716,15 @@ export const ProcessingPage: React.FC = () => {
                                     <Loader2 className="w-4 h-4 animate-spin" />
                                     <span>Processing...</span>
                                 </>
-                            ) : (
+                            ) : hasResults ? (
                                 <>
                                     <span>View Results on Map</span>
                                     <ArrowRight className="w-4 h-4" />
+                                </>
+                            ) : (
+                                <>
+                                    <Search className="w-4 h-4" />
+                                    <span>No Results Found</span>
                                 </>
                             )}
                         </motion.button>

@@ -75,6 +75,29 @@ export function useAnalysisProgress(
         isCompleteRef.current = state.isComplete;
     }, [state.isComplete]);
 
+    const buildWebSocketUrl = useCallback((id: string) => {
+        // VITE_WS_URL can be one of:
+        // - ws://host:port (origin)
+        // - ws://host:port/api/v1
+        // - ws://host:port/api/v1/ws
+        // - ws://host:port/ws (legacy)
+        const rawBase = (import.meta.env.VITE_WS_URL || 'ws://localhost:8000').replace(/\/$/, '');
+
+        if (rawBase.includes('/api/v1/ws')) {
+            return `${rawBase.replace(/\/$/, '')}/analysis/${id}`;
+        }
+        if (rawBase.endsWith('/api/v1')) {
+            return `${rawBase}/ws/analysis/${id}`;
+        }
+        if (rawBase.endsWith('/ws')) {
+            // Legacy base; best-effort to keep existing configs working.
+            return `${rawBase}/analysis/${id}`;
+        }
+
+        // Assume origin
+        return `${rawBase}/api/v1/ws/analysis/${id}`;
+    }, []);
+
     // Connect to WebSocket
     const connect = useCallback(() => {
         if (!runId) return;
@@ -89,8 +112,7 @@ export function useAnalysisProgress(
             wsRef.current.close();
         }
 
-        const wsUrl = import.meta.env.VITE_WS_URL || 'ws://localhost:8000/ws';
-        const ws = new WebSocket(`${wsUrl}/analysis/${runId}/progress`);
+        const ws = new WebSocket(buildWebSocketUrl(runId));
         wsRef.current = ws; // Assign immediately
 
         console.log(`[WS] Connecting to ${ws.url}`);
@@ -171,7 +193,7 @@ export function useAnalysisProgress(
                 }, delay);
             }
         };
-    }, [runId, onComplete, onError]);
+    }, [runId, onComplete, onError, buildWebSocketUrl]);
 
     // Reconnect when trigger changes
     useEffect(() => {

@@ -12,6 +12,7 @@ import tabulate
 
 from app.services.analysis.ranking import calculate_ranking_score
 from app.core.config import settings
+from app.core.constants import SCORE_LEGEND, APE_AGENT_COLUMNS
 
 MAX_ITEMS_FOR_LLM = settings.MAX_ITEMS_FOR_LLM
 MAX_ITEMS_FOR_MAP = settings.MAX_ITEMS_FOR_MAP
@@ -45,6 +46,7 @@ from app.services.llm.mocks import (
     MOCK_EVALUATION,
     MOCK_BROKER_SUMMARY,
 )
+from app.utils.run_json_logger import get_run_logger
 
 
 class GraphState(TypedDict):
@@ -262,8 +264,8 @@ class GraphOrchestratorAgent(BaseAgent):
             "relax_constraints": False,
         }
 
-        # Increase recursion limit to handle retry loops safely
-        final_state = self.workflow.invoke(initial_state, {"recursion_limit": 50})
+        # Safe recursion limit to handle retry loops while preventing infinite loops
+        final_state = self.workflow.invoke(initial_state, {"recursion_limit": 30})
 
         # Get results - finalize_results should have added is_evaluated
         result_df = final_state["selected_data"]
@@ -272,6 +274,42 @@ class GraphOrchestratorAgent(BaseAgent):
         if not result_df.empty and "is_evaluated" not in result_df.columns:
             logger.warning("is_evaluated column missing, adding default")
             result_df["is_evaluated"] = False
+
+        # Optional JSON export for LLM analysis/debugging
+        if settings.ENABLE_RUN_JSON_EXPORT:
+            logger.info("JSON export enabled, attempting to save run...")
+            try:
+                # Generate unique run_id if not in state
+                run_id = final_state.get("run_id", f"run_{int(time.time()*1000)}")
+                logger.debug(f"Run ID: {run_id}")
+
+                # Convert result_df to JSON-serializable format
+                results_json = {
+                    "buildings": (
+                        result_df.to_dict(orient="records")
+                        if not result_df.empty
+                        else []
+                    )
+                }
+                logger.debug(
+                    f"Results prepared: {len(results_json['buildings'])} buildings"
+                )
+
+                # Log the run
+                json_logger = get_run_logger()
+                json_logger.log_run(
+                    run_id=run_id,
+                    query=query,
+                    status="completed",
+                    gemini_responses=final_state["gemini_responses"],
+                    results=results_json,
+                )
+                logger.info("✅ Run successfully exported to JSON")
+            except Exception as e:
+                logger.error(f"Failed to export run to JSON: {e}")
+                import traceback
+
+                logger.error(traceback.format_exc())
 
         return OrchestratorResult(
             map_df=result_df,
@@ -310,6 +348,89 @@ class GraphOrchestratorAgent(BaseAgent):
                 )
 
             state["set_progress"]((percent, steps_state))
+
+    def _get_ape_statistics(self, dataset_path: str) -> dict:
+        """Estrae statistiche APE per l'agente."""
+        try:
+            if not dataset_path or not os.path.exists(dataset_path):
+                return {}
+
+            # Read only columns needed for APE analysis to save memory
+            df = pd.read_parquet(dataset_path, columns=APE_AGENT_COLUMNS)
+
+            stats = {
+                "total_records": len(df),
+                "with_ape_data": int(df["classe_energetica_ape"].notna().sum()),
+            }
+
+            if stats["with_ape_data"] > 0:
+                stats["percentage"] = round(
+                    (stats["with_ape_data"] / stats["total_records"]) * 100, 1
+                )
+
+            for col in APE_AGENT_COLUMNS:
+                if col not in df.columns:
+                    continue
+
+                if pd.api.types.is_numeric_dtype(df[col]):
+                    valid_data = df[col].dropna()
+                    if not valid_data.empty:
+                        stats[col] = {
+                            "min": round(float(valid_data.min()), 2),
+                            "max": round(float(valid_data.max()), 2),
+                            "mean": round(float(valid_data.mean()), 2),
+                            "percentiles": {
+                                "25%": round(float(valid_data.quantile(0.25)), 2),
+                                "50%": round(float(valid_data.quantile(0.50)), 2),
+                                "75%": round(float(valid_data.quantile(0.75)), 2),
+                            },
+                        }
+                else:
+                    # Categorie (es. Classe Energetica)
+                    stats[col] = df[col].value_counts().head(10).to_dict()
+
+            return stats
+        except Exception as e:
+            logger.error(f"Error calculating APE statistics: {e}")
+            return {"error": str(e)}
+
+    def _extract_categorical_values(self, db_metadata: dict) -> dict:
+        """
+        Extract categorical value lists for columns with discrete values.
+
+        Returns:
+            Dict mapping column names to list of possible values
+        """
+        categorical_columns = [
+            "classe_energetica_ape",
+            "tipologia_bene_immobile",
+            "epoca_costruzione",
+            "natura_del_bene",
+            "utilizzo_del_bene",
+            "finalita",
+        ]
+
+        categorical_values = {}
+
+        for col in categorical_columns:
+            if col in db_metadata and "values" in db_metadata[col]:
+                categorical_values[col] = db_metadata[col]["values"]
+            elif col == "classe_energetica_ape":
+                # Hardcode energy classes if not in metadata
+                categorical_values[col] = [
+                    "A1",
+                    "A2",
+                    "A3",
+                    "A4",
+                    "B",
+                    "C",
+                    "D",
+                    "E",
+                    "F",
+                    "G",
+                ]
+
+        return categorical_values
 
     def _analyze_request(self, state: GraphState) -> GraphState:
         self._update_progress(state, 1, "Analisi richiesta in parallelo...")
@@ -376,6 +497,11 @@ class GraphOrchestratorAgent(BaseAgent):
 
         def run_strategy():
             if self.is_agent_mode:
+                # Extract categorical values for better filter generation
+                categorical_values = self._extract_categorical_values(
+                    state["db_metadata"]
+                )
+
                 return self.needs_agent.run(
                     query=query,
                     db_schema=str(db_schema),
@@ -383,6 +509,7 @@ class GraphOrchestratorAgent(BaseAgent):
                     db_metadata=json.dumps(
                         state["db_metadata"], indent=2, ensure_ascii=False
                     ),
+                    categorical_values=categorical_values,  # NEW
                 )
             else:
                 return self.use_case_agent.run(query=query, db_schema=str(db_schema))
@@ -391,8 +518,15 @@ class GraphOrchestratorAgent(BaseAgent):
             # Check keywords for classic mode or always run for agent mode if needed
             keywords = ["ape", "energetica", "classe", "consumo", "co2", "emissioni"]
             if self.is_agent_mode or any(k in query.lower() for k in keywords):
-                # Pass columns from metadata instead of dataframe
-                return self.ape_agent.run(query, dataset_metadata.get("columns", []))
+                # Calculate statistics
+                ape_stats = self._get_ape_statistics(state.get("dataset_path"))
+                # Pass stats and legend explicitly
+                return self.ape_agent.run(
+                    query=query,
+                    columns=APE_AGENT_COLUMNS,
+                    statistics=ape_stats,
+                    score_legend=SCORE_LEGEND,
+                )
             return None
 
         def run_poi():
@@ -825,8 +959,98 @@ class GraphOrchestratorAgent(BaseAgent):
         state["context"].filtered_dataset_preview = enriched_data.head(10).to_dict(
             "records"
         )
-        state["selected_data"] = enriched_data
         return state
+
+    def _extract_search_radius(self, sql_query: str) -> float:
+        """Extract search radius from SQL WHERE clause (e.g., '< 15' -> 15.0)."""
+        import re
+
+        if not sql_query:
+            return 5.0
+
+        # Look for pattern like: haversine_km(...) < 15
+        match = re.search(
+            r"haversine_km.*?<\s*(\d+(?:\.\d+)?)", sql_query, re.IGNORECASE
+        )
+        return float(match.group(1)) if match else 5.0
+
+    def _calculate_component_weights(
+        self, metrics_plan: Optional[NeedsMetricPlan], user_location: tuple = None
+    ) -> dict:
+        """
+        Calculate ranking component weights from NeedsMetricAgent metrics.
+
+        Returns:
+            dict with keys: ape_weight, poi_weight_factor, distance_weight
+        """
+        if not metrics_plan or not metrics_plan.metrics:
+            # Fallback to defaults
+            return {
+                "ape_weight": 0.2,
+                "poi_weight_factor": 0.4,
+                "distance_weight": 0.4 if user_location else 0.0,
+            }
+
+        # Sum weights by category based on metric names
+        ape_related = sum(
+            m.weight
+            for m in metrics_plan.metrics
+            if any(
+                kw in m.name.lower()
+                for kw in [
+                    "efficienza",
+                    "ape",
+                    "energetica",
+                    "energetico",
+                    "isolamento",
+                    "involucro",
+                    "impianto",
+                    "rinnovabili",
+                    "classe",
+                    "consumo",
+                ]
+            )
+        )
+
+        poi_related = sum(
+            m.weight
+            for m in metrics_plan.metrics
+            if any(
+                kw in m.name.lower()
+                for kw in [
+                    "sanita",
+                    "mobilita",
+                    "verde",
+                    "sport",
+                    "commerciale",
+                    "educazione",
+                    "servizi",
+                    "trasporti",
+                    "scuole",
+                    "ospedali",
+                    "negozi",
+                ]
+            )
+        )
+
+        # Distance gets weight only if location is specified
+        distance_base = 0.3 if user_location else 0.0
+
+        # Normalize to sum to 1.0
+        total = ape_related + poi_related + distance_base
+        if total == 0:
+            # No specific metrics → balanced defaults
+            return {
+                "ape_weight": 0.3,
+                "poi_weight_factor": 0.3,
+                "distance_weight": 0.4 if user_location else 0.0,
+            }
+
+        return {
+            "ape_weight": ape_related / total if total > 0 else 0.2,
+            "poi_weight_factor": poi_related / total if total > 0 else 0.3,
+            "distance_weight": distance_base / total if total > 0 else 0.4,
+        }
 
     def _rank_results(self, state: GraphState) -> GraphState:
         self._update_progress(state, 6, "Ranking intelligente dei risultati...")
@@ -851,26 +1075,21 @@ class GraphOrchestratorAgent(BaseAgent):
         # Extract weights
         poi_weights = poi_result.poi_weights if poi_result else {}
 
-        # Determine weights dynamically based on strategy
-        ape_weight = 0.2
-        poi_weight_factor = 0.4
-        distance_weight = 0.4 if user_location else 0.0
+        # Extract search radius from SQL query
+        search_radius = self._extract_search_radius(state.get("sql_query", ""))
 
-        # If APE analysis is requested/relevant, boost its weight in ranking
-        # This compensates for the removal of strict SQL filters on APE
-        if metrics_plan and metrics_plan.ape_strategy.use_ape:
-            ape_weight = 0.5
-            poi_weight_factor = 0.3
-            distance_weight = 0.3 if user_location else 0.0
+        # Calculate component weights dynamically from NeedsMetricAgent output
+        weights = self._calculate_component_weights(metrics_plan, user_location)
 
-        # Calculate ranking
+        # Calculate ranking with dynamic weights and adaptive distance
         ranked_df = calculate_ranking_score(
             df,
             poi_weights=poi_weights,
             user_location=user_location,
-            ape_weight=ape_weight,
-            poi_weight_factor=poi_weight_factor,
-            distance_weight=distance_weight,
+            search_radius_km=search_radius,
+            ape_weight=weights["ape_weight"],
+            poi_weight_factor=weights["poi_weight_factor"],
+            distance_weight=weights["distance_weight"],
         )
 
         state["selected_data"] = ranked_df
@@ -1011,7 +1230,8 @@ class GraphOrchestratorAgent(BaseAgent):
             eval_payload: EvaluationAgentResponse = self.evaluation_agent.run(
                 use_case=state["use_case_str"],
                 estates_data=estates_data_str,
-                query=state["query"],
+                original_query=state["query"],  # NEW: pass original query for context
+                score_legend=SCORE_LEGEND,
             )
             return eval_payload
 
@@ -1354,22 +1574,18 @@ class GraphOrchestratorAgent(BaseAgent):
                 f"{joined_typologies}"
             )
 
-        # Force permissive SQL generation
-        permissive_instruction = (
-            "\n\nISTRUZIONI CRITICHE PER SQL:\n"
-            "1. NON filtrare per 'utilizzo', 'finalita', 'stato_manutentivo' o altri "
-            "campi descrittivi nella clausola WHERE.\n"
-            "2. Seleziona un AMPIO set di candidati (es. > 1000) basato SOLO su:\n"
-            "   - Posizione geografica (città, raggio).\n"
-            "   - Tipologia macroscopica (es. 'ufficio', 'abitazione') solo se "
-            "strettamente necessario.\n"
-            "3. La selezione fine avverrà successivamente tramite punteggio LLM.\n"
-            "4. Se la query implica un cambio d'uso, ignora l'uso attuale nei filtri."
+        # SQL generation instructions - respect NeedsMetric filters
+        sql_instructions = (
+            "\n\nISTRUZIONI PER GENERAZIONE SQL:\n"
+            "1. APPLICA i filtri suggeriti nel piano metriche (vedi FILTRI SUGGERITI sopra).\n"
+            "2. NON filtrare su campi soft/descrittivi: 'utilizzo_del_bene', 'finalita', 'stato_manutentivo'.\n"
+            "3. Se la query implica un cambio d'uso, ignora l'uso attuale nei filtri.\n"
+            "4. Il ranking successivo farà la selezione fine, ma applica vincoli hard essenziali."
         )
 
         return (
             f"{query} \n\nPiano di metriche e strategia:\n"
-            f"{plan_text}{typology_text}{permissive_instruction}"
+            f"{plan_text}{typology_text}{sql_instructions}"
         )
 
     def _format_plan_for_evaluation(self, plan: NeedsMetricPlan) -> str:

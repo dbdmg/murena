@@ -1,6 +1,6 @@
 from typing import Any, Optional
 
-from langchain_core.prompts import PromptTemplate
+from langchain_core.prompts import ChatPromptTemplate
 
 from app.core.config import settings
 
@@ -25,6 +25,39 @@ Requisiti:
 - NON usare MAI la clausola LIMIT. Vogliamo tutti i risultati pertinenti.
 - Termina SEMPRE la query con un punto e virgola (;).
 - NON includere commenti, spiegazioni o Markdown nel blocco SQL.
+
+REGOLE CRITICHE DI FILTRAGGIO:
+- NON usare MAI le colonne `ape_score_*` (es. ape_score_total) nella clausola WHERE.
+- NON usare MAI le colonne POI (sanita, mobilita, verde, sport, commerciale, educazione) nella clausola WHERE.
+- Queste colonne servono solo per il ranking successivo, non per filtrare i dati grezzi.
+
+ESEMPI CONCRETI:
+
+1. Filtro geografico con distanza:
+Query: "Appartamenti entro 2km dal Politecnico (45.0628, 7.6621)"
+SQL: SELECT * FROM IMMOBILI 
+     WHERE haversine_km(latitudine, longitudine, 45.0628, 7.6621) < 2
+     AND tipologia_bene_immobile = 'Abitazione'
+     ORDER BY haversine_km(latitudine, longitudine, 45.0628, 7.6621) ASC;
+
+2. Filtro per superficie:
+Query: "Uffici di almeno 150mq"
+SQL: SELECT * FROM IMMOBILI
+     WHERE superficie_di_riferimento_mq >= 150
+     AND tipologia_bene_immobile = 'Ufficio';
+
+3. CORRETTO - Nessun filtro su APE/POI (ranking successivo):
+Query: "Trilocale efficiente vicino scuole"
+SQL: SELECT * FROM IMMOBILI
+     WHERE tipologia_bene_immobile = 'Abitazione'
+     AND haversine_km(latitudine, longitudine, 45.07, 7.68) < 3;
+-- Nota: ape_score_total e educazione NON sono nel WHERE!
+
+4. SBAGLIATO - Da evitare:
+Query: "Immobili con classe A"
+SQL ERRATO: SELECT * FROM IMMOBILI WHERE ape_score_classe >= 4;
+SQL CORRETTO: SELECT * FROM IMMOBILI WHERE classe_energetica_ape LIKE 'A%';
+-- Usa il valore categorico grezzo, NON il punteggio computato.
 
 Restituisci ESCLUSIVAMENTE la query SQL."""
 
@@ -73,10 +106,15 @@ class SQLAgent(BaseAgent):
     name = "sql-agent"
 
     def __init__(self, model_name: str = None):
+        from app.core.config import settings
+
         resolved_model = (
             model_name or AGENT_MODELS.get("sql_agent") or AGENT_MODELS.get("default")
         )
-        self.llm = get_llm(model_name=resolved_model)
+        # Use AGENT_TEMPERATURE for deterministic SQL generation
+        self.llm = get_llm(
+            model_name=resolved_model, temperature=settings.AGENT_TEMPERATURE
+        )
 
         # Load system and user prompts separately
         self.system_prompt = get_system_prompt("sql_agent", DEFAULT_SYSTEM)
@@ -95,8 +133,6 @@ class SQLAgent(BaseAgent):
     ) -> tuple[str, PromptRecord]:
         user_text = user_template.format(**variables).strip()
         full_text = f"[SYSTEM]\n{system}\n\n[USER]\n{user_text}"
-
-        from langchain_core.prompts import ChatPromptTemplate
 
         prompt = ChatPromptTemplate.from_messages(
             [
@@ -142,11 +178,6 @@ class SQLAgent(BaseAgent):
                 location_str = f"Lat: {lat}, Lon: {lon}"
             else:
                 location_str = str(location)
-
-        # Se abbiamo coordinate valide, passiamole al prompt per interpolazione diretta se necessario
-        # Nota: Il prompt template sopra usa {lat} e {lon} solo se location è presente.
-        # Per semplicità, passiamo location_str che contiene tutto.
-        # Ma per haversine servono i numeri.
 
         # Modifica dinamica del prompt per inserire lat/lon se disponibili
         if lat and lon:

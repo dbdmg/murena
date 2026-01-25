@@ -8,6 +8,7 @@ from langchain_core.prompts import PromptTemplate
 from app.core.config import settings
 
 AGENT_MODELS = settings.agent_models
+from app.core.constants import SCORE_LEGEND
 from app.services.llm.agents.base import BaseAgent
 from app.services.llm.agents.schema import (
     AgentContext,
@@ -34,6 +35,8 @@ ISTRUZIONI PER LE AZIONI:
 2. Se l'utente chiede di **resettare** o mostrare tutto, genera un'azione "reset".
 3. Se l'utente chiede cose che richiedono una **nuova ricerca** (es. "Cerca a Milano" se siamo a Roma), genera un'azione "rerun".
 4. Se è una semplice domanda (es. "Qual è il migliore?", "Perché questo edificio?", "Elencami gli uffici"), azione "none" e rispondi nel testo usando i DATI DI CONTESTO e la VALUTAZIONE AI.
+
+{score_legend}
 
 RISPOSTA:
 Devi restituire un oggetto JSON formattato secondo lo schema richiesto.
@@ -80,7 +83,7 @@ class MapAssistantAgent(BaseAgent):
         # Load system and user prompts separately
         format_instructions = self.parser.get_format_instructions()
         self.system_prompt = get_system_prompt("map_assistant", DEFAULT_SYSTEM).format(
-            format_instructions=format_instructions
+            format_instructions=format_instructions, score_legend=SCORE_LEGEND
         )
         self.user_template = get_user_template("map_assistant", DEFAULT_USER)
 

@@ -1,8 +1,8 @@
-import json
-from typing import Any
+from typing import List
 
 from langchain_core.output_parsers import StrOutputParser
-from langchain_core.prompts import PromptTemplate
+from langchain_core.prompts import ChatPromptTemplate
+from pydantic import BaseModel, Field
 
 from app.core.config import settings
 
@@ -12,25 +12,40 @@ from app.services.llm.agents.schema import PromptRecord, TypologyAgentResult
 from app.services.llm.langchain_client import get_llm
 from app.services.llm.prompt_loader import get_system_prompt, get_user_template
 from app.utils.decorators import handle_agent_error, log_llm_usage
+from app.utils.json_parser import safe_extract_json
 
-DEFAULT_SYSTEM = """Sei un esperto immobiliare. Il tuo compito è identificare quali tipologie di immobili sono pertinenti alla richiesta dell'utente, selezionandole da una lista predefinita.
 
-Istruzioni:
-1. Analizza la richiesta dell'utente.
-2. Seleziona dalla lista le tipologie che soddisfano la richiesta.
-3. Se la richiesta è generica o non specifica una tipologia, seleziona tutte le tipologie che potrebbero essere rilevanti o lascia la lista vuota per indicare "nessun filtro".
-4. Sii inclusivo: se l'utente cerca "uffici", includi anche tipologie simili se presenti (es. "Uffici pubblici", "Uffici privati").
-5. Restituisci ESCLUSIVAMENTE un JSON con la seguente struttura:
-{{
-    "typologies": ["<tipologia 1>", "<tipologia 2>", ...]
-}}
+# Modello per la risposta strutturata
+class TypologyResponse(BaseModel):
+    typologies: List[str] = Field(
+        default_factory=list, description="Lista delle tipologie selezionate"
+    )
 
-Esempi:
-Input: "Cerco una scuola"
+
+DEFAULT_SYSTEM = """# RUOLO
+Sei il Typology Agent per l'applicazione Real Estate AI.
+Il tuo compito è identificare quali tipologie di immobili sono pertinenti alla richiesta dell'utente.
+
+# REGOLE
+1. Analizza la richiesta e seleziona le tipologie rilevanti dalla lista fornita.
+2. Se la richiesta è generica, lascia la lista vuota (nessun filtro).
+3. Sii inclusivo: "uffici" include "Ufficio pubblico", "Ufficio privato", ecc.
+4. Se non trovi corrispondenze esatte, usa tipologie semanticamente simili.
+
+# OUTPUT
+Restituisci ESCLUSIVAMENTE un JSON valido:
+{
+  "typologies": ["<tipologia 1>", "<tipologia 2>"]
+}
+
+# ESEMPI
+Query: "Cerco una scuola"
+Tipologie: ["SCUOLA", "ISTITUTO SCOLASTICO", "ASILO"]
 Output: {{"typologies": ["SCUOLA", "ISTITUTO SCOLASTICO"]}}
 
-Input: "Immobili in centro"
-Output: {{"typologies": []}}"""
+Query: "Immobili in centro"
+Output: {{"typologies": []}}
+"""
 
 DEFAULT_USER = """Lista delle tipologie disponibili:
 {available_typologies}
@@ -38,18 +53,6 @@ DEFAULT_USER = """Lista delle tipologie disponibili:
 Richiesta utente: "{query}"
 
 Risposta JSON:"""
-
-
-def _extract_json(text: str) -> Any:
-    text = text.strip()
-    if text.startswith("```json"):
-        text = text[7:]
-    if text.endswith("```"):
-        text = text[:-3]
-    try:
-        return json.loads(text)
-    except Exception:
-        return {"typologies": []}
 
 
 class TypologyAgent(BaseAgent):
@@ -68,8 +71,6 @@ class TypologyAgent(BaseAgent):
         self.user_template = get_user_template("typology_agent", DEFAULT_USER)
 
         # Create ChatPromptTemplate with system/user separation
-        from langchain_core.prompts import ChatPromptTemplate
-
         self.prompt = ChatPromptTemplate.from_messages(
             [
                 ("system", self.system_prompt),
@@ -96,22 +97,23 @@ class TypologyAgent(BaseAgent):
         user_text = self.user_template.format(**prompt_inputs).strip()
         full_text = f"[SYSTEM]\n{self.system_prompt}\n\n[USER]\n{user_text}"
 
-        try:
-            response_text = self.chain.invoke(prompt_inputs)
+        response_text = self.chain.invoke(prompt_inputs)
 
-            parsed = _extract_json(response_text)
-            typologies = parsed.get("typologies", [])
+        parsed_data = safe_extract_json(response_text, schema=TypologyResponse)
 
-            return TypologyAgentResult(
-                raw_text=response_text,
-                typologies=typologies,
-                prompt=PromptRecord(
-                    system=self.system_prompt.strip(),
-                    user=user_text,
-                    full_text=full_text,
-                ),
-            )
+        typologies = []
+        if parsed_data and isinstance(parsed_data, TypologyResponse):
+            typologies = parsed_data.typologies
+        else:
+            # Fallback if validation fail but still parsed as dict
+            pass
 
-        except Exception as e:
-            print(f"Errore TypologyAgent: {e}")
-            return TypologyAgentResult(raw_text=str(e), typologies=[], prompt=None)
+        return TypologyAgentResult(
+            raw_text=response_text,
+            typologies=typologies,
+            prompt=PromptRecord(
+                system=self.system_prompt.strip(),
+                user=user_text,
+                full_text=full_text,
+            ),
+        )

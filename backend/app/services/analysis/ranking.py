@@ -27,6 +27,7 @@ def calculate_ranking_score(
     df: pd.DataFrame,
     poi_weights: dict,
     user_location: tuple = None,
+    search_radius_km: float = 5.0,
     ape_weight: float = 0.2,
     poi_weight_factor: float = 0.5,
     distance_weight: float = 0.3,
@@ -38,6 +39,7 @@ def calculate_ranking_score(
         df: DataFrame con i dati immobiliari.
         poi_weights: Dizionario con pesi per categoria POI (0-1).
         user_location: Tuple (lat, lon) opzionale per calcolo distanza.
+        search_radius_km: Raggio di ricerca in km (default 5.0).
         ape_weight: Peso dello score APE nel totale (0-1).
         poi_weight_factor: Peso complessivo dei POI nel totale (0-1).
         distance_weight: Peso della distanza nel totale (0-1).
@@ -102,8 +104,10 @@ def calculate_ranking_score(
             df["distanza_km"] = dists
 
             # Normalizzazione Distanza:
-            # Score 1 se dist=0, Score 0 se dist >= 5km (o parametrizzabile)
-            max_dist = 5.0  # km
+            # Adaptive max_dist based on search radius:
+            # - Small search (3km) → strict scoring (max_dist = 3km)
+            # - Large search (15km) → lenient scoring (max_dist = 9km)
+            max_dist = min(search_radius_km * 0.6, 10.0)
             dist_score_norm = (1 - (dists / max_dist)).clip(0, 1)
 
             # Pesi con distanza

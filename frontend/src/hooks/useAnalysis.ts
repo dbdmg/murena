@@ -54,7 +54,7 @@ export interface UseAnalysisReturn extends UseAnalysisState {
     /** Load results for an existing run */
     loadResults: (runId: string) => Promise<AnalysisResults>;
     /** Load a demo run */
-    loadDemo: (demoId: string) => Promise<void>;
+    loadDemo: (demoId: string) => Promise<string>;
 }
 
 const initialProgress: AnalysisProgressState = {
@@ -154,7 +154,7 @@ export function useAnalysis(): UseAnalysisReturn {
     }, []);
 
     // Load a demo run
-    const loadDemo = useCallback(async (demoId: string): Promise<void> => {
+    const loadDemo = useCallback(async (demoId: string): Promise<string> => {
         setStatus('starting');
         setError(null);
         setResults(null);
@@ -177,6 +177,7 @@ export function useAnalysis(): UseAnalysisReturn {
             }
 
             console.log('[useAnalysis] Demo started, run_id:', response.run_id, 'status:', response.status);
+            return response.run_id;
         } catch (err) {
             console.error('[useAnalysis] Failed to load demo:', err);
             const errMsg = err instanceof Error ? err.message : 'Failed to load demo';

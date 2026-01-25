@@ -1,8 +1,8 @@
-import json
-import re
+from typing import Dict, List
 
 from langchain_core.output_parsers import StrOutputParser
-from langchain_core.prompts import PromptTemplate
+from langchain_core.prompts import ChatPromptTemplate
+from pydantic import BaseModel, Field
 
 from app.core.config import settings
 
@@ -12,40 +12,54 @@ from app.services.llm.agents.schema import PoiAgentResult, PromptRecord
 from app.services.llm.langchain_client import get_llm
 from app.services.llm.prompt_loader import get_system_prompt, get_user_template
 from app.utils.decorators import handle_agent_error, log_llm_usage
+from app.utils.json_parser import safe_extract_json
 
-DEFAULT_SYSTEM = """Sei un esperto di analisi urbana e servizi (Points of Interest).
-Il tuo compito è analizzare la richiesta dell'utente per capire quali servizi sono importanti per lui e assegnare un peso a ciascuna delle 6 categorie POI disponibili.
 
-Categorie POI disponibili:
-- sanita (Ospedali, farmacie, cliniche)
-- mobilita (Metro, bus, stazioni, parcheggi)
-- verde (Parchi, giardini, aree verdi)
-- sport (Palestre, piscine, centri sportivi)
-- commerciale (Supermercati, negozi, centri commerciali)
-- educazione (Scuole, università, biblioteche)
+# Modello risposta
+class PoiResponse(BaseModel):
+    poi_weights: Dict[str, float] = Field(
+        default_factory=dict, description="Pesi per categoria POI"
+    )
+    constraints: Dict[str, List[str]] = Field(
+        default_factory=dict, description="Vincoli specifici"
+    )
 
-Regole di assegnazione pesi (0.0 - 1.0):
-- Se l'utente menziona esplicitamente una categoria come importante (es. "vicino alla metro"), assegna un peso alto (0.7 - 1.0).
-- Se l'utente menziona una categoria come non importante (es. "non mi interessano le scuole"), assegna peso 0.0.
-- Se l'utente non menziona una categoria, assegna un peso di default basso (0.1 - 0.3) a seconda del contesto generale (es. per una famiglia, educazione e verde sono implicitamente importanti).
-- La somma dei pesi NON deve necessariamente fare 1.0.
 
-Output richiesto:
-Restituisci SOLO un oggetto JSON con la seguente struttura:
-{{
-    "poi_weights": {{
-        "sanita": <float>,
-        "mobilita": <float>,
-        "verde": <float>,
-        "sport": <float>,
-        "commerciale": <float>,
-        "educazione": <float>
-    }},
-    "constraints": {{
-        "must_have": ["<categoria>", ...],  // Categorie che DEVONO avere uno score alto (>3)
-        "must_not_have": ["<categoria>", ...] // Categorie da evitare (raro)
-    }}
-}}"""
+DEFAULT_SYSTEM = """# RUOLO
+Sei il POI Agent per l'applicazione Real Estate AI.
+Il tuo compito è analizzare quali servizi di prossimità (Points of Interest) sono importanti per l'utente.
+
+# REGOLE
+1. Assegna pesi (0.0 - 1.0) alle 6 categorie POI:
+   - sanita (Ospedali, farmacie, cliniche)
+   - mobilita (Metro, bus, stazioni, parcheggi)
+   - verde (Parchi, giardini, aree verdi)
+   - sport (Palestre, piscine, centri sportivi)
+   - commerciale (Supermercati, negozi, centri commerciali)
+   - educazione (Scuole, università, biblioteche)
+
+2. Logica di assegnazione:
+   - Menzionato esplicitamente come importante: peso alto (0.7 - 1.0)
+   - Non rilevante: peso 0.0
+   - Non menzionato: peso di default basso (0.1 - 0.3) in base al contesto
+
+# OUTPUT
+Restituisci ESCLUSIVAMENTE un JSON valido:
+{
+  "poi_weights": {
+    "sanita": <float>,
+    "mobilita": <float>,
+    "verde": <float>,
+    "sport": <float>,
+    "commerciale": <float>,
+    "educazione": <float>
+  },
+  "constraints": {
+    "must_have": ["<categoria>"],
+    "must_not_have": []
+  }
+}
+"""
 
 DEFAULT_USER = """Richiesta utente: "{query}" """
 
@@ -64,8 +78,6 @@ class PoiAgent(BaseAgent):
         self.user_template = get_user_template("poi_agent", DEFAULT_USER)
 
         # Create ChatPromptTemplate with system/user separation
-        from langchain_core.prompts import ChatPromptTemplate
-
         self.prompt = ChatPromptTemplate.from_messages(
             [
                 ("system", self.system_prompt),
@@ -98,41 +110,33 @@ class PoiAgent(BaseAgent):
         user_text = self.user_template.format(**prompt_inputs).strip()
         full_text = f"[SYSTEM]\n{self.system_prompt}\n\n[USER]\n{user_text}"
 
-        try:
-            response_text = self.chain.invoke(prompt_inputs)
+        response_text = self.chain.invoke(prompt_inputs)
 
-            # Extract JSON from response
-            json_match = re.search(r"\{.*\}", response_text, re.DOTALL)
-            if json_match:
-                json_str = json_match.group(0)
-                data = json.loads(json_str)
-                poi_weights = data.get("poi_weights", {})
-                constraints = data.get("constraints", {})
-            else:
-                # Fallback defaults if JSON parsing fails
-                poi_weights = {
-                    "sanita": 0.1,
-                    "mobilita": 0.1,
-                    "verde": 0.1,
-                    "sport": 0.1,
-                    "commerciale": 0.1,
-                    "educazione": 0.1,
-                }
-                constraints = {}
+        # Extract JSON using safe_extract_json with schema
+        parsed_data = safe_extract_json(response_text, schema=PoiResponse)
 
-            return PoiAgentResult(
-                raw_text=response_text,
-                poi_weights=poi_weights,
-                constraints=constraints,
-                prompt=PromptRecord(
-                    system=self.system_prompt.strip(),
-                    user=user_text,
-                    full_text=full_text,
-                ),
-            )
+        if parsed_data and isinstance(parsed_data, PoiResponse):
+            poi_weights = parsed_data.poi_weights
+            constraints = parsed_data.constraints
+        else:
+            # Fallback defaults if parsing fails
+            poi_weights = {
+                "sanita": 0.1,
+                "mobilita": 0.1,
+                "verde": 0.1,
+                "sport": 0.1,
+                "commerciale": 0.1,
+                "educazione": 0.1,
+            }
+            constraints = {}
 
-        except Exception as e:
-            print(f"Errore PoiAgent: {e}")
-            return PoiAgentResult(
-                raw_text=str(e), poi_weights={}, constraints={}, prompt=None
-            )
+        return PoiAgentResult(
+            raw_text=response_text,
+            poi_weights=poi_weights,
+            constraints=constraints,
+            prompt=PromptRecord(
+                system=self.system_prompt.strip(),
+                user=user_text,
+                full_text=full_text,
+            ),
+        )

@@ -196,12 +196,12 @@ export const BuildingDetail: React.FC<BuildingDetailProps> = ({ data }) => {
     const poiRadarData = useMemo(() => {
         if (!details.poi_scores) return [];
         return [
-            { subject: 'Sanità', A: details.poi_scores.health || 0, fullMark: 10 },
-            { subject: 'Mobilità', A: details.poi_scores.mobility || 0, fullMark: 10 },
-            { subject: 'Verde', A: details.poi_scores.green || 0, fullMark: 10 },
-            { subject: 'Sport', A: details.poi_scores.sport || 0, fullMark: 10 },
-            { subject: 'Commercio', A: details.poi_scores.shopping || 0, fullMark: 10 },
-            { subject: 'Istruzione', A: details.poi_scores.education || 0, fullMark: 10 },
+            { subject: 'Sanità', A: details.poi_scores.health || 0, fullMark: 5 },
+            { subject: 'Mobilità', A: details.poi_scores.mobility || 0, fullMark: 5 },
+            { subject: 'Verde', A: details.poi_scores.green || 0, fullMark: 5 },
+            { subject: 'Sport', A: details.poi_scores.sport || 0, fullMark: 5 },
+            { subject: 'Commercio', A: details.poi_scores.shopping || 0, fullMark: 5 },
+            { subject: 'Istruzione', A: details.poi_scores.education || 0, fullMark: 5 },
         ];
     }, [details.poi_scores]);
 
@@ -596,15 +596,45 @@ export const BuildingDetail: React.FC<BuildingDetailProps> = ({ data }) => {
                             <MapPin className="w-3.5 h-3.5 text-cyan-400" />
                             <span className="text-[10px] uppercase text-gray-500 font-medium">Score Localizzazione (POI)</span>
                         </div>
-                        <div className="w-full h-[200px]">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <RadarChart cx="50%" cy="50%" outerRadius="60%" data={poiRadarData}>
-                                    <PolarGrid stroke="rgba(255,255,255,0.08)" />
-                                    <PolarAngleAxis dataKey="subject" tick={renderPolarAngleAxisTick} />
-                                    <PolarRadiusAxis angle={30} domain={[0, 10]} tick={false} axisLine={false} />
-                                    <Radar name="Score" dataKey="A" stroke="#06b6d4" strokeWidth={2} fill="#06b6d4" fillOpacity={0.35} />
-                                </RadarChart>
-                            </ResponsiveContainer>
+                        <div className="flex items-center justify-between mb-1">
+                            <span className="text-[10px] text-gray-500">Punteggio Dettagliato</span>
+                            <div className="relative group">
+                                <button className="p-1 rounded-full hover:bg-white/10 transition-colors" aria-label="Info punteggio POI">
+                                    <Info className="w-3.5 h-3.5 text-cyan-400" />
+                                </button>
+                                <div className="absolute right-0 bottom-full mb-1 w-64 p-3 bg-[#1a1d24] border border-white/20 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+                                    <p className="text-xs font-semibold text-white mb-2">Scala POI (1-5) • raggio 1km</p>
+                                    <div className="space-y-1.5 text-[10px] text-gray-400">
+                                        <p><span className="text-cyan-300 font-medium">5</span> = eccellente copertura servizi</p>
+                                        <p><span className="text-cyan-300 font-medium">3</span> = buona copertura</p>
+                                        <p><span className="text-cyan-300 font-medium">1</span> = copertura scarsa</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="bg-white/5 rounded-xl p-4 border border-white/10 relative h-[300px]">
+                            <h4 className="text-xs font-semibold text-gray-300 mb-2 flex items-center gap-1.5 absolute top-4 left-4 z-10">
+                                <MapPin className="w-3.5 h-3.5 text-cyan-400" />
+                                Servizi di Prossimità
+                            </h4>
+                            <div className="w-full h-full">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <RadarChart cx="50%" cy="50%" outerRadius="70%" data={poiRadarData}>
+                                        <PolarGrid stroke="#ffffff20" />
+                                        <PolarAngleAxis dataKey="subject" tick={renderPolarAngleAxisTick} />
+                                        <PolarRadiusAxis angle={30} domain={[0, 5]} tick={false} axisLine={false} />
+                                        <Radar
+                                            name="POI"
+                                            dataKey="A"
+                                            stroke="#06b6d4"
+                                            strokeWidth={2}
+                                            fill="#06b6d4"
+                                            fillOpacity={0.5}
+                                        />
+                                    </RadarChart>
+                                </ResponsiveContainer>
+                            </div>
                         </div>
                     </div>
                 )

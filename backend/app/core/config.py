@@ -76,6 +76,14 @@ class Settings(BaseSettings):
     OPENAI_MODEL_SMART: str = "gpt-5.2-2025-12-11"  # Modello più potente OpenAI
     USE_MOCK_RESPONSES: bool = False
 
+    # Agent Temperature - 0.0 for fully deterministic outputs (consistency)
+    # Set to 0.0 to eliminate non-determinism, higher values allow creativity
+    AGENT_TEMPERATURE: float = 0.0
+
+    # Enable JSON export of run results for LLM analysis/debugging
+    # Set to False in production to avoid unnecessary file writes
+    ENABLE_RUN_JSON_EXPORT: bool = True
+
     # ==========================================================================
     # External APIs
     # ==========================================================================

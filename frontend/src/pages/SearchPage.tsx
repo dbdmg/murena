@@ -87,14 +87,16 @@ export const SearchPage: React.FC = () => {
         try {
             if (demoMode && availableDemos.length > 0) {
                 // In demo mode, load a pre-computed demo
-                await loadDemo(availableDemos[0]);
+                const id = await loadDemo(availableDemos[0]);
+                navigate(`/processing/${id}`);
             } else {
                 // Pass settings to the analysis
-                await startAnalysis({
+                const id = await startAnalysis({
                     query: query.trim(),
                     llm_limit: llmLimit,
                     map_limit: markersLimit,
                 });
+                navigate(`/processing/${id}`);
             }
         } catch (err) {
             console.error('Failed to start analysis:', err);
@@ -183,56 +185,60 @@ export const SearchPage: React.FC = () => {
                         }
                     `}>
                         {/* Search Icon */}
-                        <div className="absolute left-5 top-4 text-gray-500">
+                        <div className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-500">
                             <Search className="w-5 h-5" />
                         </div>
 
-                        {/* Textarea */}
-                        <textarea
-                            ref={textareaRef}
-                            value={query}
-                            onChange={(e) => setQuery(e.target.value)}
-                            onFocus={() => setIsFocused(true)}
-                            onBlur={() => setIsFocused(false)}
-                            onKeyDown={handleKeyDown}
-                            placeholder="Describe what you're looking for..."
-                            rows={1}
-                            className="
-                                w-full bg-transparent text-white placeholder-gray-500
-                                pl-14 pr-32 py-4 text-base resize-none outline-none
-                                min-h-[56px] max-h-[200px]
-                            "
-                            disabled={isLoading}
-                        />
+                        <div className="flex items-stretch">
+                            {/* Textarea */}
+                            <textarea
+                                ref={textareaRef}
+                                value={query}
+                                onChange={(e) => setQuery(e.target.value)}
+                                onFocus={() => setIsFocused(true)}
+                                onBlur={() => setIsFocused(false)}
+                                onKeyDown={handleKeyDown}
+                                placeholder="Describe what you're looking for..."
+                                rows={1}
+                                className="
+                                    flex-1 bg-transparent text-white placeholder-gray-500
+                                    pl-14 pr-4 py-4 text-base resize-none outline-none
+                                    min-h-[56px] max-h-[200px]
+                                    whitespace-pre-wrap break-words [overflow-wrap:anywhere]
+                                    overflow-y-auto overflow-x-hidden
+                                "
+                                disabled={isLoading}
+                            />
 
-                        {/* Submit Button */}
-                        <div className="absolute right-3 top-2.5">
-                            <motion.button
-                                type="submit"
-                                disabled={!query.trim() || isLoading}
-                                whileHover={{ scale: 1.02 }}
-                                whileTap={{ scale: 0.98 }}
-                                className={`
-                                    flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium text-sm
-                                    transition-all duration-200
-                                    ${query.trim() && !isLoading
-                                        ? 'bg-linear-to-r from-blue-600 to-cyan-500 text-white shadow-lg shadow-cyan-500/25 hover:shadow-cyan-500/40'
-                                        : 'bg-white/5 text-gray-500 cursor-not-allowed'
-                                    }
-                                `}
-                            >
-                                {isLoading ? (
-                                    <>
-                                        <Loader2 className="w-4 h-4 animate-spin" />
-                                        <span>Starting...</span>
-                                    </>
-                                ) : (
-                                    <>
-                                        <span>Initialize</span>
-                                        <ArrowRight className="w-4 h-4" />
-                                    </>
-                                )}
-                            </motion.button>
+                            {/* Submit Button (in flow, no overlap) */}
+                            <div className="shrink-0 pr-3 pl-2 flex items-center">
+                                <motion.button
+                                    type="submit"
+                                    disabled={!query.trim() || isLoading}
+                                    whileHover={{ scale: 1.02 }}
+                                    whileTap={{ scale: 0.98 }}
+                                    className={`
+                                        flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium text-sm whitespace-nowrap
+                                        transition-all duration-200
+                                        ${query.trim() && !isLoading
+                                            ? 'bg-linear-to-r from-blue-600 to-cyan-500 text-white shadow-lg shadow-cyan-500/25 hover:shadow-cyan-500/40'
+                                            : 'bg-white/5 text-gray-500 cursor-not-allowed'
+                                        }
+                                    `}
+                                >
+                                    {isLoading ? (
+                                        <>
+                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                            <span>Starting...</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <span>Initialize</span>
+                                            <ArrowRight className="w-4 h-4" />
+                                        </>
+                                    )}
+                                </motion.button>
+                            </div>
                         </div>
                     </div>
                 </motion.form>
@@ -332,6 +338,7 @@ export const SearchPage: React.FC = () => {
                                         w-full p-4 rounded-xl bg-[#12151a]/60 border border-white/5
                                         hover:bg-[#12151a] hover:border-white/10
                                         transition-all duration-200 text-left group
+                                        overflow-hidden
                                     "
                                 >
                                     <div className="flex items-start justify-between gap-4">
@@ -350,7 +357,15 @@ export const SearchPage: React.FC = () => {
                                                     })}
                                                 </span>
                                             </div>
-                                            <p className="text-sm text-white font-medium truncate group-hover:text-cyan-300 transition-colors">
+                                            <p
+                                                className="text-sm text-white font-medium group-hover:text-cyan-300 transition-colors break-words [overflow-wrap:anywhere]"
+                                                style={{
+                                                    display: '-webkit-box',
+                                                    WebkitLineClamp: 2,
+                                                    WebkitBoxOrient: 'vertical',
+                                                    overflow: 'hidden',
+                                                }}
+                                            >
                                                 {item.query}
                                             </p>
                                             {item.buildings_count !== undefined && (

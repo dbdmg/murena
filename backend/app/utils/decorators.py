@@ -59,17 +59,21 @@ def retry_with_backoff(
 def handle_agent_error(fallback_value: Any = None):
     """
     Decorator to handle exceptions in Agent methods safely.
-    Logs the error and returns a fallback value or raises a custom exception.
+    Logs the error with correlation ID and full traceback, returns a fallback value.
 
     Args:
         fallback_value: Value to return if an exception occurs.
-                        If None, it might return None or re-raise depending on logic.
-                        For now, we'll return None or a safe default if provided.
     """
 
     def decorator(func: Callable) -> Callable:
         @functools.wraps(func)
         def wrapper(*args, **kwargs) -> Any:
+            import traceback
+            import uuid
+
+            # Generate correlation ID for this execution
+            correlation_id = str(uuid.uuid4())[:8]
+
             try:
                 return func(*args, **kwargs)
             except Exception as e:
@@ -78,28 +82,22 @@ def handle_agent_error(fallback_value: Any = None):
                     if args
                     else "Unknown Function"
                 )
-                logger.error(f"Error in {agent_name}.{func.__name__}: {e}")
-                import traceback
 
-                logger.debug(traceback.format_exc())
+                # Log with correlation ID and full context
+                logger.error(
+                    f"[{correlation_id}] Error in {agent_name}.{func.__name__}: {e}",
+                    extra={
+                        "correlation_id": correlation_id,
+                        "agent_name": agent_name,
+                        "function": func.__name__,
+                        "traceback": traceback.format_exc(),
+                    },
+                )
 
                 # If a fallback is provided, return it
                 if fallback_value is not None:
                     return fallback_value
 
-                # If the return type annotation suggests a specific type, we might want to try to match it
-                # But for now, let's re-raise or return None based on critical flag?
-                # The requirement says "return user-friendly error messages instead of stack traces".
-                # But agents usually return structured objects.
-
-                # If we are in an agent run method, we might want to return a "failed" result object.
-                # Since we can't easily know the return type here generically without more complex logic,
-                # we will rely on the caller to handle None or we re-raise a wrapped exception.
-
-                # For now, let's re-raise a custom AgentError that the orchestrator can catch?
-                # Or just return None and let the orchestrator handle it.
-
-                # Let's try to return None and ensure orchestrator handles None.
                 return None
 
         return wrapper

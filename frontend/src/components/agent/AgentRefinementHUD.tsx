@@ -203,6 +203,8 @@ const PromptEditor: React.FC<PromptEditorProps> = ({
                             placeholder:text-gray-700
                             focus:outline-none
                             resize-none
+                            whitespace-pre-wrap break-words [overflow-wrap:anywhere]
+                            overflow-y-auto overflow-x-hidden
                             scrollbar-thin scrollbar-track-transparent scrollbar-thumb-white/10
                             ${readOnly ? 'opacity-60 cursor-not-allowed' : ''}
                         `}

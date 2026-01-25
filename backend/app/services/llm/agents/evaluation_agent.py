@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field
 from app.core.config import settings
 
 AGENT_MODELS = settings.agent_models
+from app.core.constants import SCORE_LEGEND
 from app.services.llm.agents.base import BaseAgent
 from app.services.llm.agents.schema import (
     EvaluationAgentResponse,
@@ -33,13 +34,16 @@ Protocollo di Valutazione:
 2. Fattori Critici:
    - Posizione (zona_omi, punteggi POI: sanita, mobilita, verde, sport, commerciale, educazione)
    - Dimensione (superficie_di_riferimento_mq)
-   - Sostenibilità Energetica (classe_energetica_ape, ape_score_* dove 1=scarso, 5=ottimo)
+   - Sostenibilità Energetica (classe_energetica_ape, ape_score_*)
    - Accessibilità (tempo_minuti, distanza_km se disponibili)
+
 3. Scoring (0-100):
    - 90-100 (Top Prospect): Immobile ideale, nessun ostacolo significativo.
    - 75-89 (High Potential): Ottimo candidato con piccole criticità.
    - 60-74 (Medium Potential): Adatto ma con sfide da gestire.
    - <60 (Low Potential): Scarsa vocazione per l'uso richiesto.
+
+{score_legend}
 
 I dati degli immobili sono forniti in formato JSON. Ogni oggetto rappresenta un immobile con i suoi attributi.
 
@@ -88,10 +92,10 @@ class EvaluationAgent(BaseAgent):
 
         self.parser = PydanticOutputParser(pydantic_object=EvaluationList)
 
-        # Inject format_instructions into system prompt
+        # Inject format_instructions and score_legend into system prompt
         system_with_format = self.system_prompt.replace(
             "{format_instructions}", self.parser.get_format_instructions()
-        )
+        ).replace("{score_legend}", SCORE_LEGEND)
 
         self.prompt = ChatPromptTemplate.from_messages(
             [
@@ -126,20 +130,38 @@ class EvaluationAgent(BaseAgent):
 
     @log_llm_usage
     def run(
-        self, *, use_case: str, estates_data: str, query: str
+        self,
+        *,
+        use_case: str,
+        estates_data: str,
+        query: str = "",  # Kept for backward compat
+        original_query: str = "",  # NEW: original user query for context
+        score_legend: str = "",
     ) -> EvaluationAgentResponse:
-        prompt_inputs = {
-            "use_case": use_case,
-            "estates_data": estates_data,
-            "query": query,
-        }
+        # If query is empty, use original_query for the prompt
+        if not query:
+            query = original_query
+
+        # Add original query context to use_case if available and different
+        if original_query and query != use_case:
+            query_context = f"""
+RICORDA: La richiesta originale dell'utente era:
+"{original_query}"
+
+Assicurati che la tua valutazione sia allineata con i requisiti specifici sopra menzionati.
+"""
+            use_case = query_context + "\n\n" + use_case
 
         # Format user prompt with variables
-        user_text = self.user_template.format(**prompt_inputs).strip()
+        user_text = self.user_template.format(
+            query=query, use_case=use_case, estates_data=estates_data
+        ).strip()
         full_text = f"[SYSTEM]\n{self._system_with_format}\n\n[USER]\n{user_text}"
 
         try:
-            result = self.chain.invoke(prompt_inputs)
+            result = self.chain.invoke(
+                {"query": query, "use_case": use_case, "estates_data": estates_data}
+            )
 
             # Gestione differenziata in base al tipo di output (oggetto Pydantic o altro)
             if isinstance(result, EvaluationList):

@@ -1,3 +1,5 @@
+from typing import Any, Dict, List, Optional
+
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import PromptTemplate
 
@@ -9,30 +11,36 @@ from app.services.llm.agents.schema import ApeAgentResult, PromptRecord
 from app.services.llm.langchain_client import get_llm
 from app.services.llm.prompt_loader import get_system_prompt, get_user_template
 from app.utils.decorators import log_llm_usage
+from app.utils.json_parser import safe_extract_json
 
 DEFAULT_SYSTEM = """Sei un esperto di efficienza energetica e certificazioni APE (Attestato di Prestazione Energetica).
-Hai accesso a un dataset contenente i dati APE degli immobili, arricchito con punteggi di qualità (1-5).
+Hai accesso alle statistiche del dataset immobiliare e alla legenda dei punteggi.
 
-Legenda Punteggi (1-5):
-- ape_score_classe: 5 (A1-A4), 3 (B-E), 1 (F-G)
-- ape_score_impianto: 5 (Pompa di calore/Teleriscaldamento), 3 (Condensazione/Biomassa), 1 (Altro)
-- ape_score_involucro: 5 (Ottimo), 3 (Medio), 1 (Scarso)
-- ape_score_rinnovabili: 5 (Sì), 1 (No)
-- ape_score_total: Media dei punteggi
+{score_legend}
+
+STATISTICHE DATASET:
+{statistics}
 
 Il tuo compito è:
 1. Analizzare la richiesta dell'utente.
 2. Valutare se è utile applicare filtri energetici per favorire gli immobili più efficienti.
 3. Fornire una risposta discorsiva spiegando la strategia energetica.
-4. Elencare eventuali filtri da applicare sui campi `ape_score_*` o altri campi APE.
-   Formato filtri: "FILTRO: <campo> <operatore> <valore>" (es. "FILTRO: ape_score_total >= 4")
+4. Suggerire filtri SPECIFICI sui campi `ape_score_*` o altri campi APE se necessario.
+   NOTA: Usa i filtri solo se l'utente richiede esplicitamente efficienza o risparmio.
+   
+Restituisci ESCLUSIVAMENTE un JSON con la seguente struttura:
+{{
+    "answer": "<spiegazione della strategia>",
+    "suggested_filters": [
+        "ape_score_total >= 4",
+        "classe_energetica_ape IN ('A1', 'A2', 'A3', 'A4')"
+    ]
+}}
 
-Rispondi in modo discorsivo. Se suggerisci filtri, elencali alla fine su righe separate con il prefisso "FILTRO:"."""
+Se non ci sono filtri da suggerire, lascia "suggested_filters" vuoto array [].
+"""
 
-DEFAULT_USER = """Schema del dataset APE (inclusi punteggi):
-{columns}
-
-Richiesta utente: "{query}" """
+DEFAULT_USER = """Richiesta utente: "{query}" """
 
 
 class ApeAgent(BaseAgent):
@@ -49,20 +57,28 @@ class ApeAgent(BaseAgent):
         self.user_template = get_user_template("ape_agent", DEFAULT_USER)
 
         # Create ChatPromptTemplate with system/user separation
+        # Note: We construct the chain dynamically in run() because system prompt changes with stats
         from langchain_core.prompts import ChatPromptTemplate
 
-        self.prompt = ChatPromptTemplate.from_messages(
+        self.prompt_template = ChatPromptTemplate.from_messages(
             [
-                ("system", self.system_prompt),
+                ("system", "{system_content}"),
                 ("user", self.user_template),
             ]
         )
         self.parser = StrOutputParser()
-        self.chain = self.prompt | self.llm | self.parser
+        self.chain = self.prompt_template | self.llm | self.parser
 
     @log_llm_usage
-    def run(self, query: str, columns: list[str] = None) -> ApeAgentResult:
-        if not columns:
+    def run(
+        self,
+        query: str,
+        columns: list[str] = None,
+        statistics: dict = None,
+        score_legend: str = "",
+    ) -> ApeAgentResult:
+        if not statistics and not columns:
+            # Fallback legacy behavior or graceful exit
             return ApeAgentResult(
                 raw_text="Dati APE non disponibili.",
                 answer="Non sono disponibili dati APE per questa analisi.",
@@ -71,35 +87,68 @@ class ApeAgent(BaseAgent):
                 prompt=None,
             )
 
-        columns_desc = ", ".join(columns)
-        prompt_inputs = {"query": query, "columns": columns_desc}
+        # Format statistics string
+        stats_str = "Nessuna statistica disponibile."
+        if statistics:
+            import json
 
-        # Format user prompt with variables
-        user_text = self.user_template.format(**prompt_inputs).strip()
-        full_text = f"[SYSTEM]\n{self.system_prompt}\n\n[USER]\n{user_text}"
+            stats_str = json.dumps(statistics, indent=2, ensure_ascii=False)
+        elif columns:
+            stats_str = "Colonne disponibili: " + ", ".join(columns)
+
+        # Prepare system prompt content
+        # We manually inject variables into the system string before passing to LLM
+        # This is because get_system_prompt returns a string that expects formatting
+        system_content = self.system_prompt.format(
+            statistics=stats_str,
+            score_legend=score_legend or "Nessuna legenda disponibile.",
+        )
+
+        prompt_inputs = {"system_content": system_content, "query": query}
+
+        # User text for record keeping
+        user_text = self.user_template.format(query=query).strip()
+        full_text = f"[SYSTEM]\n{system_content}\n\n[USER]\n{user_text}"
 
         try:
             response_text = self.chain.invoke(prompt_inputs)
 
-            # Parse filters
-            filters = []
-            lines = response_text.split("\n")
-            clean_lines = []
-            for line in lines:
-                if line.strip().startswith("FILTRO:"):
-                    filters.append(line.strip().replace("FILTRO:", "").strip())
-                else:
-                    clean_lines.append(line)
+            # Parse JSON
+            data = safe_extract_json(response_text)
 
-            answer_text = "\n".join(clean_lines).strip()
+            answer = ""
+            suggested_filters = []
+
+            if data and isinstance(data, dict):
+                answer = data.get("answer", "")
+                suggested_filters = data.get("suggested_filters", [])
+
+                # Ensure suggested_filters is a list of strings
+                if isinstance(suggested_filters, list):
+                    suggested_filters = [
+                        str(f)
+                        for f in suggested_filters
+                        if isinstance(f, (str, int, float))
+                    ]
+                else:
+                    suggested_filters = []
+            else:
+                # Fallback text parsing if JSON fails completely
+                answer = response_text
+                # Try simple regex for filters if they appear in text (legacy support)
+                import re
+
+                legacy_filters = re.findall(r"FILTRO:\s*(.*)", response_text)
+                if legacy_filters:
+                    suggested_filters.extend(legacy_filters)
 
             return ApeAgentResult(
                 raw_text=response_text,
-                answer=answer_text,
+                answer=answer,
                 relevant_ape_ids=[],
-                suggested_filters=filters,
+                suggested_filters=suggested_filters,
                 prompt=PromptRecord(
-                    system=self.system_prompt.strip(),
+                    system=system_content,
                     user=user_text,
                     full_text=full_text,
                 ),
@@ -109,7 +158,7 @@ class ApeAgent(BaseAgent):
             print(f"Errore ApeAgent: {e}")
             return ApeAgentResult(
                 raw_text=str(e),
-                answer="Si è verificato un errore nell'analisi dei dati APE.",
+                answer="Si è verificato un errore nell'analisi energetica.",
                 relevant_ape_ids=[],
                 suggested_filters=[],
                 prompt=None,
