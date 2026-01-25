@@ -189,10 +189,10 @@ class RealEstateService:
         Returns:
             File path or None
         """
+        # Note: 'meta' option removed - use 'full' as single source of truth
         dataset_paths = {
             "full": settings.DATASET_FULL,
-            "meta": settings.DATASET_META,
-            "ape": settings.APE_DETAILED_DATA_PATH,  # This one matches
+            "ape": settings.APE_DETAILED_DATA_PATH,
         }
         return dataset_paths.get(dataset_key.lower())
 

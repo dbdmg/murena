@@ -30,12 +30,18 @@ Il tuo obiettivo è analizzare un portafoglio di immobili pubblici per identific
 
 Protocollo di Valutazione:
 1. Analisi del Potenziale: Non limitarti allo stato attuale. Valuta la trasformabilità dell'immobile.
-2. Fattori Critici: Posizione, Dimensione, Stato, Sostenibilità e Analisi APE.
+2. Fattori Critici:
+   - Posizione (zona_omi, punteggi POI: sanita, mobilita, verde, sport, commerciale, educazione)
+   - Dimensione (superficie_di_riferimento_mq)
+   - Sostenibilità Energetica (classe_energetica_ape, ape_score_* dove 1=scarso, 5=ottimo)
+   - Accessibilità (tempo_minuti, distanza_km se disponibili)
 3. Scoring (0-100):
-   - 90-100 (Top Prospect): Immobile ideale.
-   - 75-89 (High Potential): Ottimo candidato.
-   - 60-74 (Medium Potential): Adatto ma con sfide.
-   - <60 (Low Potential): Scarsa vocazione.
+   - 90-100 (Top Prospect): Immobile ideale, nessun ostacolo significativo.
+   - 75-89 (High Potential): Ottimo candidato con piccole criticità.
+   - 60-74 (Medium Potential): Adatto ma con sfide da gestire.
+   - <60 (Low Potential): Scarsa vocazione per l'uso richiesto.
+
+I dati degli immobili sono forniti in formato JSON. Ogni oggetto rappresenta un immobile con i suoi attributi.
 
 {format_instructions}"""
 
@@ -45,7 +51,7 @@ DEFAULT_USER = """Richiesta Utente (Obiettivo Strategico):
 Scenario di Valorizzazione (Use Case):
 {use_case}
 
-Dati degli Immobili Candidati:
+Dati degli Immobili Candidati (JSON):
 {estates_data}"""
 
 

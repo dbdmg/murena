@@ -952,15 +952,60 @@ class GraphOrchestratorAgent(BaseAgent):
         total_batches = len(batches)
         finished_batches = 0
 
+        # Columns relevant for LLM evaluation (reduced set for clarity and token efficiency)
+        EVAL_COLUMNS = [
+            "id",
+            "indirizzo",
+            "numero_civico",
+            "zona_omi",
+            "superficie_di_riferimento_mq",
+            "tipologia_bene_immobile",
+            "epoca_costruzione",
+            "utilizzo_del_bene",
+            "finalita",
+            # APE data
+            "classe_energetica_ape",
+            "ape_score_classe",
+            "ape_score_impianto",
+            "ape_score_involucro",
+            "ape_score_rinnovabili",
+            "ape_score_total",
+            # POI scores
+            "sanita",
+            "mobilita",
+            "verde",
+            "sport",
+            "commerciale",
+            "educazione",
+            # Travel times (if enriched)
+            "tempo_minuti",
+            "distanza_km",
+        ]
+
+        def prepare_estates_json(batch_df: pd.DataFrame) -> str:
+            """Convert DataFrame to JSON with only relevant columns for LLM evaluation."""
+            # Select only columns that exist in the dataframe
+            available_cols = [c for c in EVAL_COLUMNS if c in batch_df.columns]
+            subset = batch_df[available_cols].copy()
+
+            # Convert to list of dicts
+            records = subset.to_dict(orient="records")
+
+            # Clean up NaN/None values to "N/D" for readability
+            for record in records:
+                for key, val in list(record.items()):
+                    # Check for None, NaN (float), or pandas NA
+                    if val is None or (isinstance(val, float) and np.isnan(val)):
+                        record[key] = "N/D"
+
+            return json.dumps(records, indent=2, ensure_ascii=False)
+
         def process_batch(batch_df):
             if batch_df.empty:
                 return []
-            # Replace NaN with "N/D" for cleaner LLM input
-            # Fix FutureWarning: Downcasting object dtype arrays on .fillna
-            clean_batch = batch_df.fillna("N/D").infer_objects(copy=False)
-            estates_data_str = tabulate.tabulate(
-                clean_batch, headers="keys", tablefmt="grid"
-            )
+
+            # Use JSON format instead of tabulate for better LLM comprehension
+            estates_data_str = prepare_estates_json(batch_df)
 
             logger.info(f"Evaluating batch of {len(batch_df)} items")
             eval_payload: EvaluationAgentResponse = self.evaluation_agent.run(

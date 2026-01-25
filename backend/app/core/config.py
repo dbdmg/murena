@@ -98,8 +98,8 @@ class Settings(BaseSettings):
     DATASET_FULL: str = (
         "data/FOLDER_META/immobili_with_meta_and_ape_full_cleaned.parquet"
     )
-    DATASET_META: str = "data/FOLDER_META/immobili_with_meta_only.parquet"
-    DATASET_APE: str = "data/FOLDER_META/immobili_with_ape_only.parquet"
+    # NOTE: DATASET_META and DATASET_APE removed - they were legacy files never used
+    # The application uses DATASET_FULL as the single source of truth
     APE_DETAILED_DATA_PATH: str = "data/FOLDER_META/ape_detailed_data.parquet"
 
     # Static data
@@ -143,11 +143,14 @@ class Settings(BaseSettings):
     # ==========================================================================
     @property
     def dataset_options(self) -> Dict[str, str]:
-        """Return dataset options mapping."""
+        """Return dataset options mapping.
+
+        Note: Only 'full' is actively used. The 'ape' option points to
+        detailed APE data used by the /ape endpoint.
+        """
         return {
             "full": self.DATASET_FULL,
-            "meta": self.DATASET_META,
-            "ape": self.DATASET_APE,
+            "ape": self.APE_DETAILED_DATA_PATH,
         }
 
     @property
