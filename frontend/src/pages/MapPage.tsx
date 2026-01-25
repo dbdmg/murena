@@ -116,7 +116,7 @@ export const MapPage: React.FC = () => {
         // 7. Filter by Meta Immobile
         if (filters.isMetaImmobile !== null) {
             result = result.filter(m => {
-                const isMeta = m.meta_immobile === true || String(m.meta_immobile) === 'true' || m.meta_building === true;
+                const isMeta = m.meta_immobile === true || (m.meta_immobile as unknown as string) === 'true' || m.meta_building === true;
                 return filters.isMetaImmobile ? isMeta : !isMeta;
             });
         }

@@ -150,7 +150,8 @@ export function useIntelligenceMap(
 
             // Convert buildings to markers with tier assignment
             const allAnalysisMarkers: MapMarker[] = results.buildings
-                .filter(b => b?.coordinates?.lat != null && b?.coordinates?.lng != null)
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                .filter(b => (b?.coordinates?.lat != null && b?.coordinates?.lng != null) || ((b?.coordinates as any)?.lon != null))
                 .map(b => {
                     const evalData = evaluationMap.get(String(b.id));
                     const isEvaluated = !!evalData;
@@ -158,7 +159,8 @@ export function useIntelligenceMap(
                     return {
                         id: String(b.id),
                         lat: b.coordinates.lat,
-                        lng: b.coordinates.lng,
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        lng: b.coordinates.lng ?? (b.coordinates as any).lon,
                         address: b.address,
                         city: b.city,
                         surface_area: b.surface_area,
@@ -175,7 +177,8 @@ export function useIntelligenceMap(
                         data_decorrenza: b.data_decorrenza,
                         numero_immobili_per_catasto: b.numero_immobili_per_catasto,
                         id_list: b.id_list,
-                        sub_properties: b.sub_properties,
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        sub_properties: 'sub_properties' in b ? (b as any).sub_properties : undefined,
                         // Scores and extended info
                         ape_scores: b.ape_scores,
                         poi_scores: b.poi_scores,
@@ -230,6 +233,10 @@ export function useIntelligenceMap(
             }));
         } catch (err) {
             console.error('Failed to load analysis run:', err);
+            // Log full error for debugging
+            if (err instanceof Error) {
+                console.error('Error details:', err.message, err.stack);
+            }
             setState(prev => ({ ...prev, isLoading: false }));
         }
     }, [addToHistory]);
