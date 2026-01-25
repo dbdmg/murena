@@ -30,6 +30,7 @@ SQL_FILTERABLE_COLUMNS: List[str] = [
     "utilizzo_del_bene",
     "finalita",
     "zona_omi",
+    "classe_energetica_ape",  # Added to allow filtering by energy class
     "latitudine",
     "longitudine",
     "comune",  # Aggiunto se presente, o codice_comune
@@ -43,7 +44,6 @@ RANKING_ONLY_COLUMNS: List[str] = [
     "ape_score_involucro",
     "ape_score_rinnovabili",
     "ape_score_total",
-    "classe_energetica_ape",  # Meglio ranking che filtro stretto
     # POI Scores
     "sanita",
     "mobilita",

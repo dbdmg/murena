@@ -82,7 +82,7 @@ class Settings(BaseSettings):
 
     # Enable JSON export of run results for LLM analysis/debugging
     # Set to False in production to avoid unnecessary file writes
-    ENABLE_RUN_JSON_EXPORT: bool = True
+    ENABLE_RUN_JSON_EXPORT: bool = False
 
     # ==========================================================================
     # External APIs

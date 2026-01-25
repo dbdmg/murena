@@ -46,7 +46,7 @@ Hai a disposizione le seguenti colonne per FILTRARE e ORDINARE:
 ### REGOLE
 1. **FILTRI SQL**: Usa SOLO le colonne nella lista "COLONNE FILTRABILI".
    - ❌ NON filtrare MAI per punteggi APE (ape_score_*) o POI (sanita, mobilita...).
-   - ✅ Usa filtri SQL (filters) per: superficie, tipologia, zona, epoca, comune.
+   - ✅ Usa filtri SQL (filters) per: superficie, tipologia, zona, epoca, comune, classe energetica.
    
 2. **METRICHE & RANKING**: Se l'utente chiede "buone scuole" o "efficiente":
    - ❌ NON filtrare via SQL (esclude troppi risultati).

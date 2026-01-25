@@ -22,7 +22,8 @@ Requisiti:
 - Se non è presente un luogo, non usare filtri di distanza.
 - Usa WHERE con condizioni ben definite.
 - Usa GROUP BY, ORDER BY o aggregazioni solo se necessario.
-- NON usare MAI la clausola LIMIT. Vogliamo tutti i risultati pertinenti.
+- NON usare MAI la clausola LIMIT. Vogliamo TUTTI i risultati pertinenti per il ranking successivo.
+- Se ti senti costretto a mettere un limite, usa LIMIT 10000.
 - Termina SEMPRE la query con un punto e virgola (;).
 - NON includere commenti, spiegazioni o Markdown nel blocco SQL.
 

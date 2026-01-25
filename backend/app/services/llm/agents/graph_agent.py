@@ -201,7 +201,8 @@ class GraphOrchestratorAgent(BaseAgent):
         ]
 
         # Load metadata
-        metadata_path = os.path.join("app", "data", "db_metadata.json")
+        # Load metadata (lite version for token optimization)
+        metadata_path = os.path.join("app", "data", "db_metadata_lite.json")
         db_metadata = {}
         if os.path.exists(metadata_path):
             try:
@@ -506,9 +507,7 @@ class GraphOrchestratorAgent(BaseAgent):
                     query=query,
                     db_schema=str(db_schema),
                     dataset_sample=sample_columns,
-                    db_metadata=json.dumps(
-                        state["db_metadata"], indent=2, ensure_ascii=False
-                    ),
+                    db_metadata=json.dumps(state["db_metadata"], ensure_ascii=False),
                     categorical_values=categorical_values,  # NEW
                 )
             else:
@@ -734,9 +733,7 @@ class GraphOrchestratorAgent(BaseAgent):
                 query=sql_prompt,
                 scheme=str(db_schema),
                 location=loc_obj,
-                db_metadata=json.dumps(
-                    state["db_metadata"], indent=2, ensure_ascii=False
-                ),
+                db_metadata=json.dumps(state["db_metadata"], ensure_ascii=False),
             )
         else:
             sql_result = self.sql_agent.run(
@@ -745,9 +742,7 @@ class GraphOrchestratorAgent(BaseAgent):
                 location=loc_obj,
                 failed_query=failed_query,
                 error_msg=error_msg,
-                db_metadata=json.dumps(
-                    state["db_metadata"], indent=2, ensure_ascii=False
-                ),
+                db_metadata=json.dumps(state["db_metadata"], ensure_ascii=False),
             )
 
         state["sql_query"] = sql_result.sql_query
@@ -1224,6 +1219,9 @@ class GraphOrchestratorAgent(BaseAgent):
                 return []
 
             # Use JSON format instead of tabulate for better LLM comprehension
+            # The `eval_input_df` is already capped by `llm_cap` (now 10)
+            # and `batch_df` is a slice of `eval_input_df`.
+            # So, `estates_data_str` already represents a subset of the top `llm_cap` results.
             estates_data_str = prepare_estates_json(batch_df)
 
             logger.info(f"Evaluating batch of {len(batch_df)} items")
