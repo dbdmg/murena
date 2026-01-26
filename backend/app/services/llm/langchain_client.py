@@ -14,6 +14,9 @@ else:
 
 load_dotenv()
 
+# Global Langfuse client instance
+_langfuse_client = None
+
 
 @lru_cache(maxsize=8)
 def get_llm(model_name: Optional[str] = None, temperature: Optional[float] = None):
@@ -80,3 +83,140 @@ def get_llm(model_name: Optional[str] = None, temperature: Optional[float] = Non
         api_key=api_key,
         temperature=resolved_temperature,
     )
+
+def get_langfuse_callback(session_id: Optional[str] = None, user_id: Optional[str] = None, tags: Optional[list] = None, trace_name: Optional[str] = None):
+    """Restituisce il callback handler per Langfuse se configurato.
+    
+    Args:
+        session_id: ID sessione per raggruppare le trace (default: da LANGFUSE_SESSION_ID env var)
+        user_id: ID utente (default: da LANGFUSE_USER_ID env var)
+        tags: Tag per categorizzare le trace (default: da LANGFUSE_TAGS env var, comma-separated)
+        trace_name: Nome della trace
+    """
+    try:
+        public_key = os.getenv("LANGFUSE_PUBLIC_KEY", "").strip()
+        secret_key = os.getenv("LANGFUSE_SECRET_KEY", "").strip()
+        
+        if not public_key or not secret_key:
+            return None
+        
+        try:
+            from langfuse.langchain import CallbackHandler
+            from langfuse.types import TraceContext
+        except ImportError:
+            return None
+        
+        # Leggi da env vars se non specificato
+        if not session_id:
+            session_id = os.getenv("LANGFUSE_SESSION_ID", "").strip() or None
+        if not user_id:
+            user_id = os.getenv("LANGFUSE_USER_ID", "").strip() or None
+        if not tags:
+            tags_str = os.getenv("LANGFUSE_TAGS", "").strip()
+            if tags_str:
+                tags = [t.strip() for t in tags_str.split(",")]
+        if not trace_name:
+            trace_name = os.getenv("LANGFUSE_TRACE_NAME", "").strip() or None
+        
+        # Crea TraceContext se ci sono parametri da passare
+        trace_context = None
+        if session_id or user_id or tags or trace_name:
+            trace_context_dict = {}
+            if session_id:
+                trace_context_dict['session_id'] = session_id
+            if user_id:
+                trace_context_dict['user_id'] = user_id
+            if tags:
+                trace_context_dict['tags'] = tags
+            if trace_name:
+                trace_context_dict['name'] = trace_name
+            
+            trace_context = TraceContext(**trace_context_dict)
+        
+        # Le credenziali vengono lette automaticamente dalle variabili d'ambiente
+        # LANGFUSE_PUBLIC_KEY, LANGFUSE_SECRET_KEY, LANGFUSE_HOST
+        return CallbackHandler(trace_context=trace_context)
+    except Exception as e:
+        print(f"Langfuse callback error (tracing disabled): {e}")
+        import traceback
+        traceback.print_exc()
+    return None
+
+
+def invoke_with_langfuse(chain, inputs, session_id=None, user_id=None, tags=None, trace_name=None, **kwargs):
+    """Invoca una chain LangChain con callback Langfuse se configurato.
+    
+    Args:
+        chain: LangChain chain da invocare
+        inputs: Input per la chain
+        session_id: ID sessione per raggruppare le trace
+        user_id: ID utente
+        tags: Tag per categorizzare le trace
+        trace_name: Nome della trace
+        **kwargs: Altri argomenti per chain.invoke()
+    """
+    callback = get_langfuse_callback(session_id=session_id, user_id=user_id, tags=tags, trace_name=trace_name)
+    if callback:
+        callbacks = kwargs.get('callbacks', [])
+        if isinstance(callbacks, list):
+            callbacks.append(callback)
+        else:
+            callbacks = [callback]
+        kwargs['callbacks'] = callbacks
+    
+    return chain.invoke(inputs, **kwargs)
+
+def get_langfuse_client():
+    """Restituisce il client Langfuse singleton se configurato."""
+    global _langfuse_client
+    if _langfuse_client is not None:
+        return _langfuse_client
+        
+    try:
+        public_key = os.getenv("LANGFUSE_PUBLIC_KEY", "").strip()
+        secret_key = os.getenv("LANGFUSE_SECRET_KEY", "").strip()
+        host = os.getenv("LANGFUSE_HOST", "https://cloud.langfuse.com").strip()
+        
+        if not public_key or not secret_key:
+            missing = []
+            if not public_key:
+                missing.append("LANGFUSE_PUBLIC_KEY")
+            if not secret_key:
+                missing.append("LANGFUSE_SECRET_KEY")
+            print(f"Langfuse tracing disabled: missing environment variables: {', '.join(missing)}")
+            return None
+        
+        try:
+            from langfuse import Langfuse
+        except ImportError:
+            print("Langfuse tracing disabled: 'langfuse' package not installed. Install with: pip install langfuse")
+            return None
+            
+        _langfuse_client = Langfuse(
+            public_key=public_key,
+            secret_key=secret_key,
+            host=host,
+            flush_at=0,  # Invia immediatamente ogni evento singolo
+            flush_interval=0.1  # Verifica ogni 0.1 secondi
+        )
+        print(f"✓ Langfuse client initialized successfully (host: {host})")
+        return _langfuse_client
+        
+    except Exception as e:
+        print(f"Langfuse client initialization error: {e}")
+        import traceback
+        traceback.print_exc()
+    return None
+
+def flush_langfuse():
+    """Forza il flush di tutti i dati pendenti su Langfuse."""
+    client = get_langfuse_client()
+    if client:
+        try:
+            print("🔄 Flushing Langfuse data...")
+            client.flush()
+            print("✓ Langfuse data flushed successfully")
+        except Exception as e:
+            print(f"Error flushing Langfuse data: {e}")
+            import traceback
+            traceback.print_exc()

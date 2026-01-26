@@ -9,7 +9,7 @@ from app.core.config import settings
 AGENT_MODELS = settings.agent_models
 from app.services.llm.agents.base import BaseAgent
 from app.services.llm.agents.schema import PromptRecord, TypologyAgentResult
-from app.services.llm.langchain_client import get_llm
+from app.services.llm.langchain_client import get_llm, invoke_with_langfuse
 from app.services.llm.prompt_loader import get_system_prompt, get_user_template
 from app.utils.decorators import handle_agent_error, log_llm_usage
 from app.utils.json_parser import safe_extract_json
@@ -97,7 +97,7 @@ class TypologyAgent(BaseAgent):
         user_text = self.user_template.format(**prompt_inputs).strip()
         full_text = f"[SYSTEM]\n{self.system_prompt}\n\n[USER]\n{user_text}"
 
-        response_text = self.chain.invoke(prompt_inputs)
+        response_text = invoke_with_langfuse(self.chain, prompt_inputs)
 
         parsed_data = safe_extract_json(response_text, schema=TypologyResponse)
 

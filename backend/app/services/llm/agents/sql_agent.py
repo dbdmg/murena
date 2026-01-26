@@ -7,7 +7,7 @@ from app.core.config import settings
 AGENT_MODELS = settings.agent_models
 from app.services.llm.agents.base import BaseAgent
 from app.services.llm.agents.schema import PromptRecord, SQLAgentResult
-from app.services.llm.langchain_client import get_llm
+from app.services.llm.langchain_client import get_llm, invoke_with_langfuse
 from app.services.llm.prompt_loader import get_system_prompt, get_user_template
 from app.utils.decorators import log_llm_usage
 
@@ -142,7 +142,7 @@ class SQLAgent(BaseAgent):
             ]
         )
         chain = prompt | self.llm
-        response = chain.invoke(variables)
+        response = invoke_with_langfuse(chain, variables)
         raw_text = getattr(response, "content", str(response))
 
         prompt_record = PromptRecord(

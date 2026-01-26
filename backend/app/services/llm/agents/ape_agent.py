@@ -2,13 +2,14 @@ from typing import Any, Dict, List, Optional
 
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import PromptTemplate
+from pydantic import BaseModel, Field
 
 from app.core.config import settings
 
 AGENT_MODELS = settings.agent_models
 from app.services.llm.agents.base import BaseAgent
 from app.services.llm.agents.schema import ApeAgentResult, PromptRecord
-from app.services.llm.langchain_client import get_llm
+from app.services.llm.langchain_client import get_llm, invoke_with_langfuse
 from app.services.llm.prompt_loader import get_system_prompt, get_user_template
 from app.utils.decorators import log_llm_usage
 from app.utils.json_parser import safe_extract_json
@@ -43,6 +44,12 @@ Se non ci sono filtri da suggerire, lascia "suggested_filters" vuoto array [].
 DEFAULT_USER = """Richiesta utente: "{query}" """
 
 
+class ApeAgentOutput(BaseModel):
+    """Schema di output strutturato per l'APE Agent."""
+    answer: str = Field(..., description="Spiegazione della strategia energetica")
+    suggested_filters: List[str] = Field(default_factory=list, description="Filtri APE suggeriti (es. 'ape_score_total >= 4')")
+
+
 class ApeAgent(BaseAgent):
     name = "ape-agent"
 
@@ -66,8 +73,9 @@ class ApeAgent(BaseAgent):
                 ("user", self.user_template),
             ]
         )
-        self.parser = StrOutputParser()
-        self.chain = self.prompt_template | self.llm | self.parser
+        # Use with_structured_output for guaranteed structured responses
+        self.structured_llm = self.llm.with_structured_output(ApeAgentOutput)
+        self.chain = self.prompt_template | self.structured_llm
 
     @log_llm_usage
     def run(
@@ -111,39 +119,25 @@ class ApeAgent(BaseAgent):
         full_text = f"[SYSTEM]\n{system_content}\n\n[USER]\n{user_text}"
 
         try:
-            response_text = self.chain.invoke(prompt_inputs)
+            # Use invoke_with_langfuse to get structured output
+            structured_response: ApeAgentOutput = invoke_with_langfuse(self.chain, prompt_inputs)
 
-            # Parse JSON
-            data = safe_extract_json(response_text)
+            # Extract fields from structured output
+            answer = structured_response.answer
+            suggested_filters = structured_response.suggested_filters
 
-            answer = ""
-            suggested_filters = []
-
-            if data and isinstance(data, dict):
-                answer = data.get("answer", "")
-                suggested_filters = data.get("suggested_filters", [])
-
-                # Ensure suggested_filters is a list of strings
-                if isinstance(suggested_filters, list):
-                    suggested_filters = [
-                        str(f)
-                        for f in suggested_filters
-                        if isinstance(f, (str, int, float))
-                    ]
-                else:
-                    suggested_filters = []
+            # Ensure suggested_filters is a list of strings
+            if isinstance(suggested_filters, list):
+                suggested_filters = [
+                    str(f)
+                    for f in suggested_filters
+                    if isinstance(f, (str, int, float))
+                ]
             else:
-                # Fallback text parsing if JSON fails completely
-                answer = response_text
-                # Try simple regex for filters if they appear in text (legacy support)
-                import re
-
-                legacy_filters = re.findall(r"FILTRO:\s*(.*)", response_text)
-                if legacy_filters:
-                    suggested_filters.extend(legacy_filters)
+                suggested_filters = []
 
             return ApeAgentResult(
-                raw_text=response_text,
+                raw_text=answer,  # Use the structured answer as raw_text
                 answer=answer,
                 relevant_ape_ids=[],
                 suggested_filters=suggested_filters,

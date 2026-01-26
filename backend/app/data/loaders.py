@@ -22,7 +22,9 @@ from app.utils.decorators import retry_with_backoff
 from app.utils.logger import logger
 
 # Global cache and lock
-GEOCODE_CACHE_FILE = os.path.join("app", "data", "geocode_cache.json")
+# Use absolute path based on this file's directory
+DATA_DIR = os.path.dirname(os.path.abspath(__file__))
+GEOCODE_CACHE_FILE = os.path.join(DATA_DIR, "geocode_cache.json")
 GEOCODE_CACHE = {}
 CACHE_LOCK = threading.Lock()
 
@@ -171,6 +173,8 @@ def get_coordinates(place_name):
             with CACHE_LOCK:
                 GEOCODE_CACHE[place_name] = (lat, lon)
                 try:
+                    # Ensure directory exists
+                    os.makedirs(os.path.dirname(GEOCODE_CACHE_FILE), exist_ok=True)
                     with open(GEOCODE_CACHE_FILE, "w", encoding="utf-8") as f:
                         json.dump(GEOCODE_CACHE, f, indent=2)
                 except Exception as e:

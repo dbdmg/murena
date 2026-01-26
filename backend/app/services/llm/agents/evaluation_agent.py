@@ -15,7 +15,7 @@ from app.services.llm.agents.schema import (
     EvaluationResult,
     PromptRecord,
 )
-from app.services.llm.langchain_client import get_llm
+from app.services.llm.langchain_client import get_llm, invoke_with_langfuse
 from app.services.llm.prompt_loader import get_system_prompt, get_user_template
 from app.utils.decorators import log_llm_usage
 
@@ -159,8 +159,9 @@ Assicurati che la tua valutazione sia allineata con i requisiti specifici sopra 
         full_text = f"[SYSTEM]\n{self._system_with_format}\n\n[USER]\n{user_text}"
 
         try:
-            result = self.chain.invoke(
-                {"query": query, "use_case": use_case, "estates_data": estates_data}
+            result = invoke_with_langfuse(
+                self.chain,
+                {"query": query, "use_case": use_case, "estates_data": estates_data},
             )
 
             # Gestione differenziata in base al tipo di output (oggetto Pydantic o altro)
@@ -191,8 +192,8 @@ Assicurati che la tua valutazione sia allineata con i requisiti specifici sopra 
     def run_synthesis(self, *, query: str, candidates_data: str) -> str:
         """Genera una sintesi comparativa (Broker Review)."""
         try:
-            res = self.broker_chain.invoke(
-                {"query": query, "candidates_data": candidates_data}
+            res = invoke_with_langfuse(
+                self.broker_chain, {"query": query, "candidates_data": candidates_data}
             )
             # Handle standard langchain response objects (content vs str)
             return res.content if hasattr(res, "content") else str(res)

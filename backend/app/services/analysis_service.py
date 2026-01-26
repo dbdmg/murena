@@ -95,6 +95,7 @@ class AnalysisService:
         llm_limit: int = 25,
         analysis_mode: str = "agent",
         progress_callback: Optional[Callable[[int, List[Dict]], None]] = None,
+        dataset: Optional[pd.DataFrame] = None,
     ) -> Dict[str, Any]:
         """
         Run a complete real estate analysis.
@@ -113,6 +114,7 @@ class AnalysisService:
             llm_limit: Max results to evaluate with LLM
             analysis_mode: 'agent' or 'classic'
             progress_callback: Optional callback for progress updates
+            dataset: Optional custom dataset DataFrame to use instead of loading from file
 
         Returns:
             Dict containing analysis results
@@ -127,16 +129,15 @@ class AnalysisService:
             from app.services.progress_manager import progress_manager
             from app.models.responses import ProgressUpdate, StepState
 
-            # Load dataset
-            base_dataset = await asyncio.to_thread(
-                self._get_or_load_dataset, dataset_key
-            )
-
-            # Note: Data enrichment now happens in graph_agent._enrich_results
-            # via LEFT JOIN with full dataset - no need to preload here
-
-            # Get dataset path
-            dataset_path = settings.dataset_options.get(dataset_key)
+            # Load dataset or use provided one
+            if dataset is not None:
+                base_dataset = dataset
+                dataset_path = None  # No path when using custom dataset
+            else:
+                base_dataset = await asyncio.to_thread(
+                    self._get_or_load_dataset, dataset_key
+                )
+                dataset_path = settings.dataset_options.get(dataset_key)
 
             # Initialize agent
             agent = self._init_graph_agent()
