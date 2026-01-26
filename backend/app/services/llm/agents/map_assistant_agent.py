@@ -16,7 +16,7 @@ from app.services.llm.agents.schema import (
     MapAssistantResponse,
     PromptRecord,
 )
-from app.services.llm.langchain_client import get_llm
+from app.services.llm.langchain_client import get_llm, invoke_with_langfuse
 from app.services.llm.prompt_loader import get_system_prompt, get_user_template
 from app.utils.decorators import log_llm_usage
 
@@ -224,7 +224,7 @@ class MapAssistantAgent(BaseAgent):
         }
 
         try:
-            result = self.chain.invoke(prompt_inputs)
+            result = invoke_with_langfuse(self.chain, prompt_inputs)
 
             # Formatting fallback if result is not Pydantic (e.g. raw dict from some LLMs)
             if not isinstance(result, MapAssistantResponse):

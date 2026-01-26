@@ -26,12 +26,12 @@ from app.services.llm.agents.evaluation_agent import EvaluationAgent
 from app.services.llm.agents.location_agent import LocationAgent
 from app.services.llm.agents.needs_metric_agent import NeedsMetricAgent
 from app.services.llm.agents.orchestrator import OrchestratorResult
-from app.services.llm.agents.poi_agent import PoiAgent
+from app.services.llm.agents.poi_category_agent import PoiCategoryAgent
+from app.services.llm.agents.poi_amenity_agent import PoiAmenityAgent
 from app.services.llm.agents.schema import (
     AgentContext,
     EvaluationAgentResponse,
     NeedsMetricPlan,
-    PoiAgentResult,
     TypologyAgentResult,
 )
 from app.services.llm.agents.sql_agent import SQLAgent
@@ -52,10 +52,8 @@ from app.utils.run_json_logger import get_run_logger
 class GraphState(TypedDict):
     query: str
     dataset_key: str
-    # base_dataset: Any  # REMOVED for Memory Management
+    base_dataset: Any  # ADDED: Reference to dataset DataFrame for APE stats
     dataset_path: Optional[str]  # Path to parquet file
-    # working_dataset: Any # REMOVED for Memory Management
-    # ape_df: Any # REMOVED for Memory Management
     db_schema: Dict[str, Any]
     db_metadata: Dict[str, Any]  # New field for metadata
     dataset_metadata: Dict[
@@ -67,7 +65,7 @@ class GraphState(TypedDict):
     use_case_str: str
     metrics_plan: Optional[NeedsMetricPlan]
     typology_result: Optional[TypologyAgentResult]
-    poi_result: Optional[PoiAgentResult]
+    poi_result: Optional[Any]
     sql_query: str
     selected_data: Any  # pd.DataFrame
     execution_error: Optional[str]
@@ -111,7 +109,8 @@ class GraphOrchestratorAgent(BaseAgent):
         evaluation_agent: Optional[EvaluationAgent] = None,
         typology_agent: Optional[TypologyAgent] = None,
         ape_agent: Optional[ApeAgent] = None,
-        poi_agent: Optional[PoiAgent] = None,
+        poi_category_agent: Optional[PoiCategoryAgent] = None,
+        poi_amenity_agent: Optional[PoiAmenityAgent] = None,
     ) -> None:
         if execute_sql_fn is None:
             raise ValueError("execute_sql_fn is required.")
@@ -127,7 +126,8 @@ class GraphOrchestratorAgent(BaseAgent):
         self.evaluation_agent = evaluation_agent or EvaluationAgent()
         self.typology_agent = typology_agent or TypologyAgent()
         self.ape_agent = ape_agent or ApeAgent()
-        self.poi_agent = poi_agent or PoiAgent()
+        self.poi_category_agent = poi_category_agent or PoiCategoryAgent()
+        self.poi_amenity_agent = poi_amenity_agent or PoiAmenityAgent()
 
         self.workflow = self._build_graph()
 
@@ -233,10 +233,8 @@ class GraphOrchestratorAgent(BaseAgent):
         initial_state: GraphState = {
             "query": query,
             "dataset_key": dataset_key,
-            # "base_dataset": base_dataset, # REMOVED
+            "base_dataset": base_dataset,  # ADDED: Keep reference to dataset for APE stats
             "dataset_path": dataset_path,
-            # "working_dataset": base_dataset, # REMOVED
-            # "ape_df": ape_df, # REMOVED
             "db_schema": db_schema,
             "db_metadata": db_metadata,
             "dataset_metadata": dataset_metadata,
@@ -350,14 +348,27 @@ class GraphOrchestratorAgent(BaseAgent):
 
             state["set_progress"]((percent, steps_state))
 
-    def _get_ape_statistics(self, dataset_path: str) -> dict:
+    def _get_ape_statistics(self, dataset_path: str = None, dataset_df: pd.DataFrame = None) -> dict:
         """Estrae statistiche APE per l'agente."""
         try:
-            if not dataset_path or not os.path.exists(dataset_path):
+            # Get DataFrame either from path or directly
+            if dataset_df is not None:
+                df = dataset_df[APE_AGENT_COLUMNS] if all(col in dataset_df.columns for col in APE_AGENT_COLUMNS) else pd.DataFrame()
+            elif dataset_path and os.path.exists(dataset_path):
+                # Read only columns needed for APE analysis to save memory
+                # Support both parquet and csv formats
+                if dataset_path.endswith('.parquet'):
+                    df = pd.read_parquet(dataset_path, columns=APE_AGENT_COLUMNS)
+                elif dataset_path.endswith('.csv'):
+                    df = pd.read_csv(dataset_path, usecols=lambda col: col in APE_AGENT_COLUMNS)
+                else:
+                    # Try parquet first, fallback to csv
+                    try:
+                        df = pd.read_parquet(dataset_path, columns=APE_AGENT_COLUMNS)
+                    except:
+                        df = pd.read_csv(dataset_path, usecols=lambda col: col in APE_AGENT_COLUMNS)
+            else:
                 return {}
-
-            # Read only columns needed for APE analysis to save memory
-            df = pd.read_parquet(dataset_path, columns=APE_AGENT_COLUMNS)
 
             stats = {
                 "total_records": len(df),
@@ -380,6 +391,7 @@ class GraphOrchestratorAgent(BaseAgent):
                             "min": round(float(valid_data.min()), 2),
                             "max": round(float(valid_data.max()), 2),
                             "mean": round(float(valid_data.mean()), 2),
+                            "median": round(float(valid_data.median()), 2),
                             "percentiles": {
                                 "25%": round(float(valid_data.quantile(0.25)), 2),
                                 "50%": round(float(valid_data.quantile(0.50)), 2),
@@ -517,8 +529,10 @@ class GraphOrchestratorAgent(BaseAgent):
             # Check keywords for classic mode or always run for agent mode if needed
             keywords = ["ape", "energetica", "classe", "consumo", "co2", "emissioni"]
             if self.is_agent_mode or any(k in query.lower() for k in keywords):
-                # Calculate statistics
-                ape_stats = self._get_ape_statistics(state.get("dataset_path"))
+                # Calculate statistics from dataset (prefer DataFrame over file path)
+                base_dataset = state.get("base_dataset")
+                dataset_path = state.get("dataset_path")
+                ape_stats = self._get_ape_statistics(dataset_path=dataset_path, dataset_df=base_dataset)
                 # Pass stats and legend explicitly
                 return self.ape_agent.run(
                     query=query,
@@ -529,7 +543,8 @@ class GraphOrchestratorAgent(BaseAgent):
             return None
 
         def run_poi():
-            return self.poi_agent.run(query=query)
+            category_result = self.poi_category_agent.run(query=query)
+            return self.poi_amenity_agent.run(query=query, category_weights=category_result.category_weights)
 
         # Execute in parallel
         with ThreadPoolExecutor(max_workers=5) as executor:
@@ -610,8 +625,8 @@ class GraphOrchestratorAgent(BaseAgent):
         state["gemini_responses"]["poi_analysis"] = {
             "prompt": poi_result.prompt.model_dump() if poi_result.prompt else None,
             "response": poi_result.raw_text,
-            "weights": poi_result.poi_weights,
-            "constraints": poi_result.constraints,
+            "weights": getattr(poi_result, 'poi_weights', getattr(poi_result, 'category_weights', {})),
+            "constraints": getattr(poi_result, 'constraints', {}),
         }
 
         # Process Strategy & APE
@@ -627,10 +642,12 @@ class GraphOrchestratorAgent(BaseAgent):
         # Process POI Text for Context
         poi_text = ""
         if poi_result:
-            high_priority = [k for k, v in poi_result.poi_weights.items() if v >= 0.6]
+            poi_weights = getattr(poi_result, 'poi_weights', getattr(poi_result, 'category_weights', {}))
+            high_priority = [k for k, v in poi_weights.items() if v >= 0.6]
             poi_text = f"\n\nAnalisi POI: L'utente ha espresso preferenza per: {', '.join(high_priority)}."
-            if poi_result.constraints.get("must_have"):
-                poi_text += f" Vincoli stretti: {', '.join(poi_result.constraints['must_have'])}."
+            constraints = getattr(poi_result, 'constraints', {})
+            if constraints.get("must_have"):
+                poi_text += f" Vincoli stretti: {', '.join(constraints['must_have'])}."
 
         if self.is_agent_mode:
             # strategy_result is NeedsMetricPlan
@@ -762,11 +779,13 @@ class GraphOrchestratorAgent(BaseAgent):
         self._update_progress(state, 5, "Esecuzione query...")
         sql_query = state["sql_query"]
         dataset_path = state.get("dataset_path")
+        base_dataset = state.get("base_dataset")
 
         logger.info(f"Executing SQL: {sql_query}")
-        # Pass None as working_dataset, rely on dataset_path and DuckDB
+        # Use base_dataset if available, otherwise rely on dataset_path
+        pd_data = base_dataset if base_dataset is not None else None
         selected_data, error = self.execute_sql_fn(
-            sql_query, None, dataset_path=dataset_path
+            sql_query, pd_data, dataset_path=dataset_path
         )
 
         if error:
@@ -1068,7 +1087,15 @@ class GraphOrchestratorAgent(BaseAgent):
                 pass
 
         # Extract weights
-        poi_weights = poi_result.poi_weights if poi_result else {}
+        if poi_result:
+            if hasattr(poi_result, 'poi_weights'):
+                poi_weights = poi_result.poi_weights
+            elif hasattr(poi_result, 'category_weights'):
+                poi_weights = poi_result.category_weights
+            else:
+                poi_weights = {}
+        else:
+            poi_weights = {}
 
         # Extract search radius from SQL query
         search_radius = self._extract_search_radius(state.get("sql_query", ""))

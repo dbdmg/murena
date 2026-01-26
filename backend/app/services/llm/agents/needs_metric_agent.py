@@ -17,7 +17,7 @@ from app.services.llm.agents.schema import (
     NeedsMetricPlan,
     PromptRecord,
 )
-from app.services.llm.langchain_client import get_llm
+from app.services.llm.langchain_client import get_llm, invoke_with_langfuse
 from app.services.llm.prompt_loader import get_system_prompt, get_user_template
 from app.utils.decorators import handle_agent_error, log_llm_usage
 from app.utils.json_parser import safe_extract_json
@@ -177,7 +177,7 @@ usa questi valori esatti nei filtri. Esempio:
         full_text = f"[SYSTEM]\n{system_content}\n\n[USER]\n{user_text}"
 
         try:
-            raw = self.chain.invoke(prompt_inputs)
+            raw = invoke_with_langfuse(self.chain, prompt_inputs)
 
             # Parse with Pydantic model
             plan = safe_extract_json(raw, schema=NeedsMetricPlan)

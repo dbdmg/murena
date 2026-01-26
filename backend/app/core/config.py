@@ -106,6 +106,13 @@ class Settings(BaseSettings):
     DATASET_FULL: str = (
         "data/FOLDER_META/immobili_with_meta_and_ape_full_cleaned.parquet"
     )
+    IMMOBILI_MAPPING_PATH: str = os.path.normpath("notebooks/02_quotazione/mapping_immobili.csv")
+    QIP_VALORI_PATH: str = "notebooks/02_quotazione/QIP_1303437_1_20251_VALORI.csv"
+    QIP_MAPPING_PATH: str = "notebooks/02_quotazione/mapping_qip.csv"
+    ZONE_OMI_PROVINCIA_TORINO_GEOJSON: str = "/Users/marcodeluca/Downloads/real-estate-ai/backend/data/FOLDER_STATIC_ROME/zone_omi_provincia_torino.geojson.zip"
+    IMMOBILI_QUOTAZIONE_PATH: str = "notebooks/02_quotazione/quotazione_immobili.csv"
+    ZONE_GRUPPO_QUOTAZIONI_PATH: str = "notebooks/02_quotazione/zone_gruppo_quotazioni.csv"
+    MISSING_QUOTAZIONI_IDS_PATH: str = "notebooks/02_quotazione/missing_quotazioni_ids.csv"
     # NOTE: DATASET_META and DATASET_APE removed - they were legacy files never used
     # The application uses DATASET_FULL as the single source of truth
     APE_DETAILED_DATA_PATH: str = "data/FOLDER_META/ape_detailed_data.parquet"
@@ -120,6 +127,9 @@ class Settings(BaseSettings):
     ZONE_URBANISTICHE_GEOJSON: str = (
         "data/FOLDER_STATIC_ROME/roma_zone_urbanistiche.geojson"
     )
+
+    TORINO_LAT: float = 45.116177
+    TORINO_LON: float = 7.742615
 
     # ==========================================================================
     # Map Configuration
@@ -143,7 +153,7 @@ class Settings(BaseSettings):
     MINUTES_PER_METRO_STATION_SEGMENT: int = 2
 
     model_config = SettingsConfigDict(
-        env_file=".env", case_sensitive=True, extra="ignore"
+        env_file=os.path.join(os.path.dirname(__file__), "../../.env"), case_sensitive=True, extra="ignore"
     )
 
     # ==========================================================================
@@ -182,3 +192,15 @@ class Settings(BaseSettings):
 
 # Global settings instance
 settings = Settings()
+
+# Legacy constants for backward compatibility
+QIP_VALORI_PATH = settings.QIP_VALORI_PATH
+QIP_MAPPING_PATH = settings.QIP_MAPPING_PATH
+ZONE_OMI_PROVINCIA_TORINO_GEOJSON = settings.ZONE_OMI_PROVINCIA_TORINO_GEOJSON
+IMMOBILI_QUOTAZIONE_PATH = settings.IMMOBILI_QUOTAZIONE_PATH
+ZONE_GRUPPO_QUOTAZIONI_PATH = settings.ZONE_GRUPPO_QUOTAZIONI_PATH
+MISSING_QUOTAZIONI_IDS_PATH = settings.MISSING_QUOTAZIONI_IDS_PATH
+DATASET_FULL = settings.DATASET_FULL
+ZONE_OMI_GEOJSON = settings.ZONE_OMI_GEOJSON
+TORINO_LAT = settings.TORINO_LAT
+TORINO_LON = settings.TORINO_LON

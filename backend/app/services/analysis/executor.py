@@ -97,6 +97,12 @@ def execute_sql_query(sql_query, pd_data, dataset_path=None):
                     print(f"DuckDB Native Loading failed, falling back to Pandas: {e}")
                     # Fallback to pandas registration below
 
+            # Check if we have valid data to register
+            if pd_data is None or pd_data.empty:
+                error_msg = "No valid dataset provided for SQL execution"
+                print(f"Errore: {error_msg}")
+                return pd.DataFrame(), error_msg
+
             con.register("IMMOBILI", pd_data)
             return con.execute(sql_query).fetchdf(), None
     except Exception as e:

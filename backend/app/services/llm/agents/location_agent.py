@@ -10,7 +10,7 @@ from app.core.config import settings
 AGENT_MODELS = settings.agent_models
 from app.services.llm.agents.base import BaseAgent
 from app.services.llm.agents.schema import LocationAgentResult, Place, PromptRecord
-from app.services.llm.langchain_client import get_llm
+from app.services.llm.langchain_client import get_llm, invoke_with_langfuse
 from app.services.llm.prompt_loader import get_system_prompt, get_user_template
 from app.utils.decorators import handle_agent_error, log_llm_usage
 from app.utils.json_parser import safe_extract_json
@@ -88,7 +88,7 @@ class LocationAgent(BaseAgent):
         user_text = self.user_template.format(**prompt_inputs).strip()
         full_text = f"[SYSTEM]\n{self.system_prompt}\n\n[USER]\n{user_text}"
 
-        raw = self.chain.invoke(prompt_inputs)
+        raw = invoke_with_langfuse(self.chain, prompt_inputs)
 
         # Parse with safe_extract_json using Pydantic model
         parsed_data = safe_extract_json(raw, schema=LocationResponse)

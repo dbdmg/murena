@@ -127,17 +127,6 @@ class ApeAgentResult(BaseModel):
     prompt: Optional[PromptRecord] = Field(None, description="Prompt utilizzato")
 
 
-class PoiAgentResult(BaseModel):
-    raw_text: str = Field(..., description="Risposta grezza del modello")
-    poi_weights: Dict[str, float] = Field(
-        default_factory=dict, description="Pesi per categoria POI"
-    )
-    constraints: Dict[str, List[str]] = Field(
-        default_factory=dict, description="Vincoli specifici"
-    )
-    prompt: Optional[PromptRecord] = Field(None, description="Prompt utilizzato")
-
-
 class NeedsMetricPlan(BaseModel):
     summary: str = Field(default="", description="Sintesi del bisogno dell'utente")
     raw_text: Optional[str] = Field(
@@ -199,4 +188,17 @@ class MapAssistantResponse(BaseModel):
     action: Optional[ChatAction] = Field(
         None, description="Azione da eseguire sulla UI"
     )
+    prompt: Optional[PromptRecord] = Field(None, description="Prompt utilizzato")
+
+class PoiCategoryAgentResult(BaseModel):
+    raw_text: str = Field(..., description="Risposta grezza del modello")
+    category_weights: Dict[str, float] = Field(default_factory=dict, description="Pesi delle categorie POI")
+    prompt: Optional[PromptRecord] = Field(None, description="Prompt utilizzato")
+
+class PoiAmenityAgentResult(BaseModel):
+    raw_text: str = Field(..., description="Risposta grezza del modello")
+    selected_categories: List[str] = Field(default_factory=list, description="Categorie selezionate come rilevanti")
+    selected_amenities: Dict[str, List[str]] = Field(default_factory=dict, description="Amenity selezionate per categoria")
+    category_weights: Dict[str, float] = Field(default_factory=dict, description="Pesi delle categorie")
+    amenity_weights: Dict[str, Dict[str, float]] = Field(default_factory=dict, description="Pesi delle amenity per categoria basati sull'ordine")
     prompt: Optional[PromptRecord] = Field(None, description="Prompt utilizzato")
