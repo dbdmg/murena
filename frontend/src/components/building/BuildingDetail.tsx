@@ -230,7 +230,7 @@ export const BuildingDetail: React.FC<BuildingDetailProps> = ({ data }) => {
                     {payload.value}
                 </text>
                 <text {...rest} x={x} y={y + 10} fill="#06b6d4" fontSize={8} fontWeight="bold" textAnchor={x > cx ? 'start' : x < cx ? 'end' : 'middle'}>
-                    {value.toFixed(1)}
+                    {Math.round(value)}
                 </text>
             </g>
         );

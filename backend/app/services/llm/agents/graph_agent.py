@@ -1087,15 +1087,19 @@ class GraphOrchestratorAgent(BaseAgent):
                 pass
 
         # Extract weights
+        poi_weights = {}
+        amenity_weights = {}
+        
         if poi_result:
+            # Extract category weights (fallback)
             if hasattr(poi_result, 'poi_weights'):
                 poi_weights = poi_result.poi_weights
             elif hasattr(poi_result, 'category_weights'):
                 poi_weights = poi_result.category_weights
-            else:
-                poi_weights = {}
-        else:
-            poi_weights = {}
+            
+            # Extract amenity weights (granular)
+            if hasattr(poi_result, 'amenity_weights'):
+                amenity_weights = poi_result.amenity_weights
 
         # Extract search radius from SQL query
         search_radius = self._extract_search_radius(state.get("sql_query", ""))
@@ -1107,6 +1111,7 @@ class GraphOrchestratorAgent(BaseAgent):
         ranked_df = calculate_ranking_score(
             df,
             poi_weights=poi_weights,
+            amenity_weights=amenity_weights,  # Pass granular amenity weights
             user_location=user_location,
             search_radius_km=search_radius,
             ape_weight=weights["ape_weight"],
