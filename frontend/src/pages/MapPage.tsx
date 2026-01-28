@@ -191,15 +191,19 @@ export const MapPage: React.FC = () => {
     }, [layers.showZoneOMI, zoneOMIOverlay]);
 
     // Fetch POIs when categories change
+    // Use stringified version to avoid unnecessary re-fetches
+    const activePOICategoriesKey = layers.activePOICategories.sort().join(',');
+    
     useEffect(() => {
         if (layers.activePOICategories.length > 0) {
-            layersApi.getPOIs(layers.activePOICategories, undefined, 1000)
+            layersApi.getPOIs(layers.activePOICategories, undefined, undefined)
                 .then(data => setPois(data.pois))
                 .catch(err => console.error("Error fetching POIs:", err));
         } else {
             setPois([]);
         }
-    }, [layers.activePOICategories]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [activePOICategoriesKey]);
 
     // Handle marker click from map
     const handleMarkerClick = useCallback((marker: MapMarker) => {

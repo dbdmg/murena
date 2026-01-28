@@ -75,6 +75,7 @@ class Settings(BaseSettings):
     )
     OPENAI_MODEL_SMART: str = "gpt-5.2-2025-12-11"  # Modello più potente OpenAI
     USE_MOCK_RESPONSES: bool = False
+    USE_MOCK_NORMATIVE_AGENT: bool = False
 
     # Agent Temperature - 0.0 for fully deterministic outputs (consistency)
     # Set to 0.0 to eliminate non-determinism, higher values allow creativity
@@ -181,6 +182,7 @@ class Settings(BaseSettings):
             "typology_agent": self.OPENAI_MODEL_FAST,
             "map_assistant": self.OPENAI_MODEL_FAST,
             "poi_agent": self.OPENAI_MODEL_FAST,
+            "normative_agent": self.OPENAI_MODEL_SMART,
             # Smart agents
             "needs_metric_agent": self.OPENAI_MODEL_SMART,
             "use_case_agent": self.OPENAI_MODEL_SMART,
@@ -192,6 +194,10 @@ class Settings(BaseSettings):
 
 # Global settings instance
 settings = Settings()
+
+# Export agent-specific settings
+AGENT_MODELS = settings.agent_models
+USE_MOCK_NORMATIVE_AGENT = settings.USE_MOCK_NORMATIVE_AGENT
 
 # Legacy constants for backward compatibility
 QIP_VALORI_PATH = settings.QIP_VALORI_PATH

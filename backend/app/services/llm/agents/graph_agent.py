@@ -25,6 +25,7 @@ from app.services.llm.agents.base import BaseAgent
 from app.services.llm.agents.evaluation_agent import EvaluationAgent
 from app.services.llm.agents.location_agent import LocationAgent
 from app.services.llm.agents.needs_metric_agent import NeedsMetricAgent
+from app.services.llm.agents.normative_agent import NormativeAgent
 from app.services.llm.agents.orchestrator import OrchestratorResult
 from app.services.llm.agents.poi_category_agent import PoiCategoryAgent
 from app.services.llm.agents.poi_amenity_agent import PoiAmenityAgent
@@ -32,6 +33,7 @@ from app.services.llm.agents.schema import (
     AgentContext,
     EvaluationAgentResponse,
     NeedsMetricPlan,
+    NormativeAgentResult,
     TypologyAgentResult,
 )
 from app.services.llm.agents.sql_agent import SQLAgent
@@ -66,6 +68,7 @@ class GraphState(TypedDict):
     metrics_plan: Optional[NeedsMetricPlan]
     typology_result: Optional[TypologyAgentResult]
     poi_result: Optional[Any]
+    normative_result: Optional[NormativeAgentResult]
     sql_query: str
     selected_data: Any  # pd.DataFrame
     execution_error: Optional[str]
@@ -111,6 +114,7 @@ class GraphOrchestratorAgent(BaseAgent):
         ape_agent: Optional[ApeAgent] = None,
         poi_category_agent: Optional[PoiCategoryAgent] = None,
         poi_amenity_agent: Optional[PoiAmenityAgent] = None,
+        normative_agent: Optional[NormativeAgent] = None,
     ) -> None:
         if execute_sql_fn is None:
             raise ValueError("execute_sql_fn is required.")
@@ -128,6 +132,7 @@ class GraphOrchestratorAgent(BaseAgent):
         self.ape_agent = ape_agent or ApeAgent()
         self.poi_category_agent = poi_category_agent or PoiCategoryAgent()
         self.poi_amenity_agent = poi_amenity_agent or PoiAmenityAgent()
+        self.normative_agent = normative_agent or NormativeAgent()
 
         self.workflow = self._build_graph()
 
@@ -545,6 +550,10 @@ class GraphOrchestratorAgent(BaseAgent):
         def run_poi():
             category_result = self.poi_category_agent.run(query=query)
             return self.poi_amenity_agent.run(query=query, category_weights=category_result.category_weights)
+        
+        def run_normative():
+            normative_result = self.normative_agent.run(query=query)
+            return normative_result
 
         # Execute in parallel
         with ThreadPoolExecutor(max_workers=5) as executor:
@@ -553,12 +562,14 @@ class GraphOrchestratorAgent(BaseAgent):
             future_strategy = executor.submit(run_strategy)
             future_ape = executor.submit(run_ape)
             future_poi = executor.submit(run_poi)
+            future_normative = executor.submit(run_normative)
 
             typology_result = future_typology.result()
             loc_result = future_location.result()
             strategy_result = future_strategy.result()
             ape_result = future_ape.result()
             poi_result = future_poi.result()
+            normative_result = future_normative.result()
 
         # Process Typology
         state["typology_result"] = typology_result
@@ -649,6 +660,17 @@ class GraphOrchestratorAgent(BaseAgent):
             if constraints.get("must_have"):
                 poi_text += f" Vincoli stretti: {', '.join(constraints['must_have'])}."
 
+        # Save normative result in state and context
+        state["normative_result"] = normative_result
+        state["context"].normative_result = normative_result
+        if normative_result:
+            state["gemini_responses"]["normative_analysis"] = {
+                "prompt": normative_result.prompt.model_dump() if normative_result.prompt else None,
+                "response": normative_result.raw_text,
+                "normative_info": normative_result.normative_info,
+                "sources": normative_result.sources,
+            }
+
         if self.is_agent_mode:
             # strategy_result is NeedsMetricPlan
             plan = strategy_result
@@ -728,7 +750,10 @@ class GraphOrchestratorAgent(BaseAgent):
             loc_obj = {"lat": lat, "lon": lon}
 
         sql_prompt = self._augment_query_with_plan(
-            query, metrics_plan, state.get("typology_result")
+            query, 
+            metrics_plan, 
+            state.get("typology_result"),
+            state.get("normative_result")
         )
 
         if USE_MOCK_RESPONSES:
@@ -1570,6 +1595,7 @@ class GraphOrchestratorAgent(BaseAgent):
         query: str,
         plan: Optional[NeedsMetricPlan],
         typology_result: Optional[TypologyAgentResult] = None,
+        normative_result: Optional[NormativeAgentResult] = None
     ) -> str:
         plan_text = ""
         if self.is_agent_mode and plan:
@@ -1604,6 +1630,13 @@ class GraphOrchestratorAgent(BaseAgent):
                 f"{joined_typologies}"
             )
 
+        normative_text = ""
+        if normative_result and normative_result.normative_info:
+            normative_text = (
+                "\n\nREQUISITI NORMATIVI ESTRATTI (Usa per filtri oggettivi se applicabili, es. superficie minima):\n"
+                f"{normative_result.normative_info}"
+            )
+
         # SQL generation instructions - respect NeedsMetric filters
         sql_instructions = (
             "\n\nISTRUZIONI PER GENERAZIONE SQL:\n"
@@ -1615,7 +1648,7 @@ class GraphOrchestratorAgent(BaseAgent):
 
         return (
             f"{query} \n\nPiano di metriche e strategia:\n"
-            f"{plan_text}{typology_text}{sql_instructions}"
+            f"{plan_text}{typology_text}{normative_text}{sql_instructions}"
         )
 
     def _format_plan_for_evaluation(self, plan: NeedsMetricPlan) -> str:

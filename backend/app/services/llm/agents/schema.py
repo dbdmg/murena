@@ -158,6 +158,9 @@ class AgentContext(BaseModel):
     metrics_plan: Optional[NeedsMetricPlan] = Field(
         None, description="Piano generato dal NeedsMetricAgent"
     )
+    normative_result: Optional['NormativeAgentResult'] = Field(
+        None, description="Risultato del NormativeAgent per requisiti normativi"
+    )
     filtered_dataset_preview: List[dict] = Field(
         default_factory=list, description="Anteprima del dataset filtrato"
     )
@@ -201,4 +204,10 @@ class PoiAmenityAgentResult(BaseModel):
     selected_amenities: Dict[str, List[str]] = Field(default_factory=dict, description="Amenity selezionate per categoria")
     category_weights: Dict[str, float] = Field(default_factory=dict, description="Pesi delle categorie")
     amenity_weights: Dict[str, Dict[str, float]] = Field(default_factory=dict, description="Pesi delle amenity per categoria basati sull'ordine")
+    prompt: Optional[PromptRecord] = Field(None, description="Prompt utilizzato")
+
+class NormativeAgentResult(BaseModel):
+    raw_text: str = Field(..., description="Risposta grezza del modello")
+    normative_info: str = Field(..., description="Informazioni normative estratte sui requisiti strutturali ed energetici")
+    sources: List[str] = Field(default_factory=list, description="URL o fonti consultate")
     prompt: Optional[PromptRecord] = Field(None, description="Prompt utilizzato")

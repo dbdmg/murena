@@ -20,25 +20,23 @@ interface LayersPanelProps {
     onLayersChange: (layers: LayersState) => void;
 }
 
-// Map POI types to their labels
+// Map POI types to their labels (6 main categories)
 const POI_LABELS: Record<string, string> = {
-    museum: 'Musei',
-    pharmacy: 'Farmacie',
-    subway: 'Metro',
-    supermarket: 'Supermercati',
-    school: 'Scuole',
-    parking: 'Parcheggi',
-    bus: 'Bus / Pullman',
+    'sanità': 'Sanità',
+    'mobilità': 'Mobilità',
+    'verde': 'Verde',
+    'sport': 'Sport',
+    'commerciale': 'Commerciale',
+    'educazione': 'Educazione',
 };
 
 const POI_ICONS: Record<string, string> = {
-    museum: '🏛️',
-    pharmacy: '💊',
-    subway: '🚇',
-    supermarket: '🛒',
-    school: '🏫',
-    parking: '🅿️',
-    bus: '🚌',
+    'sanità': '🏥',
+    'mobilità': '🚇',
+    'verde': '🌳',
+    'sport': '⚽',
+    'commerciale': '🛒',
+    'educazione': '🎓',
 };
 
 export const LayersPanel: React.FC<LayersPanelProps> = ({

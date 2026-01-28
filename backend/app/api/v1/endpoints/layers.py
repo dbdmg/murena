@@ -70,30 +70,84 @@ def _load_zone_omi() -> Dict:
     return _zone_omi_cache
 
 
-# POI category mappings
+# POI category mappings - 6 main categories matching amenities_config.py
 POI_CATEGORIES = {
-    "museum": {"tags": [("tourism", "museum")], "icon": "🏛️", "color": "#a855f7"},
-    "pharmacy": {"tags": [("amenity", "pharmacy")], "icon": "💊", "color": "#22c55e"},
-    "subway": {
-        "tags": [("station", "subway"), ("railway", "subway_entrance")],
+    "sanità": {
+        "tags": [
+            ("healthcare", "*"),
+            ("amenity", "pharmacy"),
+            ("amenity", "dentist"),
+            ("amenity", "veterinary"),
+            ("amenity", "hospital"),
+            ("amenity", "clinic"),
+            ("amenity", "doctors"),
+        ],
+        "icon": "🏥",
+        "color": "#22c55e",
+    },
+    "mobilità": {
+        "tags": [
+            ("railway", "station"),
+            ("railway", "subway_entrance"),
+            ("railway", "tram_stop"),
+            ("highway", "bus_stop"),
+            ("amenity", "charging_station"),
+            ("amenity", "car_sharing"),
+            ("amenity", "taxi"),
+            ("amenity", "parking"),
+            ("amenity", "bicycle_parking"),
+            ("amenity", "bicycle_rental"),
+        ],
         "icon": "🚇",
         "color": "#f97316",
     },
-    "supermarket": {
-        "tags": [("shop", "supermarket")],
-        "icon": "🛒",
+    "verde": {
+        "tags": [
+            ("leisure", "park"),
+            ("leisure", "garden"),
+            ("landuse", "grass"),
+            ("natural", "wood"),
+            ("landuse", "forest"),
+            ("leisure", "playground"),
+        ],
+        "icon": "🌳",
+        "color": "#10b981",
+    },
+    "sport": {
+        "tags": [
+            ("leisure", "sports_centre"),
+            ("leisure", "stadium"),
+            ("leisure", "fitness_centre"),
+            ("leisure", "swimming_pool"),
+            ("leisure", "pitch"),
+            ("sport", "*"),
+        ],
+        "icon": "⚽",
         "color": "#3b82f6",
     },
-    "school": {"tags": [("amenity", "school")], "icon": "🏫", "color": "#eab308"},
-    "parking": {"tags": [("amenity", "parking")], "icon": "🅿️", "color": "#6b7280"},
-    "bus": {
+    "commerciale": {
         "tags": [
-            ("highway", "bus_stop"),
-            ("amenity", "bus_station"),
-            ("public_transport", "platform"),
+            ("shop", "supermarket"),
+            ("shop", "convenience"),
+            ("shop", "mall"),
+            ("shop", "department_store"),
+            ("amenity", "marketplace"),
+            ("shop", "bakery"),
+            ("shop", "butcher"),
         ],
-        "icon": "🚌",
-        "color": "#3b82f6",
+        "icon": "🛒",
+        "color": "#8b5cf6",
+    },
+    "educazione": {
+        "tags": [
+            ("amenity", "school"),
+            ("amenity", "university"),
+            ("amenity", "college"),
+            ("amenity", "kindergarten"),
+            ("amenity", "library"),
+        ],
+        "icon": "🎓",
+        "color": "#eab308",
     },
 }
 
@@ -107,15 +161,20 @@ def _matches_category(poi: Dict, category: str) -> bool:
     category_defs = POI_CATEGORIES[category]["tags"]
 
     for tag_key, tag_value in category_defs:
-        if tags.get(tag_key) == tag_value:
-            # Special check for bus to ensure it's not a generic platform
-            if (
-                category == "bus"
-                and tag_key == "public_transport"
-                and tags.get("bus") != "yes"
-            ):
-                continue
+        # Check if the tag key exists in the POI
+        if tag_key not in tags:
+            continue
+            
+        poi_value = tags[tag_key]
+        
+        # Wildcard match: any value for this key is acceptable
+        if tag_value == "*":
             return True
+            
+        # Exact match
+        if poi_value == tag_value:
+            return True
+            
     return False
 
 
@@ -165,31 +224,29 @@ def _deduplicate_pois(pois: List[Dict], threshold_km: float = 0.2) -> List[Dict]
 @router.get("/pois")
 async def get_pois(
     categories: str = Query(
-        None, description="Pipe-separated list of categories (museum|pharmacy|subway)"
+        None, description="Pipe-separated list of categories (sanità|mobilità|verde|sport|commerciale|educazione)"
     ),
     min_lat: Optional[float] = Query(None, description="Minimum latitude"),
     max_lat: Optional[float] = Query(None, description="Maximum latitude"),
     min_lon: Optional[float] = Query(None, description="Minimum longitude"),
     max_lon: Optional[float] = Query(None, description="Maximum longitude"),
-    limit: int = Query(500, description="Maximum number of POIs to return"),
+    limit: Optional[int] = Query(None, description="Optional maximum number of POIs to return"),
 ) -> Dict[str, Any]:
     """
     Get POIs filtered by category and bounding box.
 
-    Categories: museum, pharmacy, subway, supermarket, school, parking, bus
+    Categories: sanità, mobilità, verde, sport, commerciale, educazione
     """
     all_pois = _load_pois()
 
-    # Parse categories
-    requested_categories = []
+    # Parse and determine categories to collect
     if categories:
-        requested_categories = [c.strip() for c in categories.split("|") if c.strip()]
-
-    # Filter POIs
-    filtered_pois_raw = []
-
-    # Limit raw search to 4x limit to allow for deduplication reduction
-    search_limit = limit * 4
+        categories_to_collect = [c.strip() for c in categories.split("|") if c.strip()]
+    else:
+        categories_to_collect = list(POI_CATEGORIES.keys())
+    
+    # Initialize collection structures - collect all POIs
+    pois_by_category: Dict[str, List[Dict]] = {cat: [] for cat in categories_to_collect}
 
     for poi in all_pois:
         # Must have coordinates
@@ -208,66 +265,56 @@ async def get_pois(
         if max_lon is not None and lon > max_lon:
             continue
 
-        # Category filter
+        # Category matching
         matched_category = None
         matched_icon = "📍"
         matched_color = "#6b7280"
 
-        if requested_categories:
-            for cat in requested_categories:
-                if _matches_category(poi, cat):
-                    matched_category = cat
-                    cat_info = POI_CATEGORIES.get(cat, {})
-                    matched_icon = cat_info.get("icon", "📍")
-                    matched_color = cat_info.get("color", "#6b7280")
-                    break
-            if not matched_category:
-                continue
-        else:
-            # If no categories specified, determine category
-            for cat in POI_CATEGORIES:
-                if _matches_category(poi, cat):
-                    matched_category = cat
-                    cat_info = POI_CATEGORIES.get(cat, {})
-                    matched_icon = cat_info.get("icon", "📍")
-                    matched_color = cat_info.get("color", "#6b7280")
-                    break
-            if not matched_category:
-                continue
+        for cat in categories_to_collect:
+            if _matches_category(poi, cat):
+                matched_category = cat
+                cat_info = POI_CATEGORIES[cat]
+                matched_icon = cat_info["icon"]
+                matched_color = cat_info["color"]
+                break
+        
+        if not matched_category:
+            continue
 
-        # Build simplified POI object
+        # Build POI object
         tags = poi.get("tags", {})
+        poi_obj = {
+            "id": poi.get("id"),
+            "lat": lat,
+            "lon": lon,
+            "name": tags.get("name", ""),
+            "category": matched_category,
+            "icon": matched_icon,
+            "color": matched_color,
+            "details": {
+                "address": f"{tags.get('addr:street', '')} {tags.get('addr:housenumber', '')}".strip(),
+                "city": tags.get("addr:city", ""),
+                "website": tags.get("website", ""),
+                "phone": tags.get("phone", ""),
+                "opening_hours": tags.get("opening_hours", ""),
+                "description": tags.get("description", ""),
+                "operator": tags.get("operator", ""),
+            },
+        }
+        
+        pois_by_category[matched_category].append(poi_obj)
 
-        filtered_pois_raw.append(
-            {
-                "id": poi.get("id"),
-                "lat": lat,
-                "lon": lon,
-                "name": tags.get("name", ""),
-                "category": matched_category,
-                "icon": matched_icon,
-                "color": matched_color,
-                # Pass through key tags for UI details
-                "details": {
-                    "address": f"{tags.get('addr:street', '')} {tags.get('addr:housenumber', '')}".strip(),
-                    "city": tags.get("addr:city", ""),
-                    "website": tags.get("website", ""),
-                    "phone": tags.get("phone", ""),
-                    "opening_hours": tags.get("opening_hours", ""),
-                    "description": tags.get("description", ""),
-                    "operator": tags.get("operator", ""),
-                },
-            }
-        )
+    # Apply deduplication and collect all POIs
+    final_pois = []
+    
+    for cat_pois in pois_by_category.values():
+        deduplicated = _deduplicate_pois(cat_pois)
+        final_pois.extend(deduplicated)
+    
+    # Apply optional limit if specified
+    if limit is not None and limit > 0:
+        final_pois = final_pois[:limit]
 
-        if len(filtered_pois_raw) >= search_limit:
-            break
-
-    # Apply Deduplication
-    final_pois = _deduplicate_pois(filtered_pois_raw)
-
-    # Enforce final limit
-    final_pois = final_pois[:limit]
 
     return {
         "count": len(final_pois),
