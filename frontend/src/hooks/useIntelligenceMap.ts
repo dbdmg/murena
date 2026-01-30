@@ -3,7 +3,7 @@ import type { MapMarker, MarkerTier, AnalysisHistoryItem } from '../api/types';
 import { analysisApi } from '../api/endpoints/analysis';
 import { mapApi } from '../api/endpoints/map';
 
-const MAX_HISTORY = 10;
+const MAX_HISTORY = 50;
 
 export interface IntelligenceMapState {
     backgroundMarkers: MapMarker[]; // Tier 1 - gray

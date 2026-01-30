@@ -38,6 +38,7 @@ import {
 } from 'lucide-react';
 import { analysisApi } from '../../api/endpoints/analysis';
 import type { AnalysisResults, AgentStep } from '../../api/types';
+import { QueryTooltip } from '../common/QueryTooltip';
 
 interface RunDetailModalProps {
     runId: string | null;
@@ -275,9 +276,11 @@ export const RunDetailModal: React.FC<RunDetailModalProps> = ({
                                     </div>
                                 </div>
                                 {results && (
-                                    <p className="text-base text-gray-300 line-clamp-2">
-                                        "{results.query}"
-                                    </p>
+                                    <QueryTooltip text={results.query}>
+                                        <p className="text-base text-gray-300 line-clamp-2 hover:text-white transition-colors cursor-help">
+                                            "{results.query}"
+                                        </p>
+                                    </QueryTooltip>
                                 )}
                             </div>
 

@@ -26,6 +26,7 @@ import { useAnalysis } from '../hooks/useAnalysis';
 import { useSettings } from '../contexts/SettingsContext';
 import { analysisApi } from '../api/endpoints/analysis';
 import type { AnalysisHistoryItem } from '../api/types';
+import { QueryTooltip } from '../components/common/QueryTooltip';
 
 const SUGGESTED_QUERIES = [
     'Uffici vicino a Porta Nuova con classe energetica A',
@@ -357,17 +358,19 @@ export const SearchPage: React.FC = () => {
                                                     })}
                                                 </span>
                                             </div>
-                                            <p
-                                                className="text-sm text-white font-medium group-hover:text-cyan-300 transition-colors break-words [overflow-wrap:anywhere]"
-                                                style={{
-                                                    display: '-webkit-box',
-                                                    WebkitLineClamp: 2,
-                                                    WebkitBoxOrient: 'vertical',
-                                                    overflow: 'hidden',
-                                                }}
-                                            >
-                                                {item.query}
-                                            </p>
+                                            <QueryTooltip text={item.query}>
+                                                <p
+                                                    className="text-sm text-white font-medium group-hover:text-cyan-300 transition-colors break-words [overflow-wrap:anywhere]"
+                                                    style={{
+                                                        display: '-webkit-box',
+                                                        WebkitLineClamp: 2,
+                                                        WebkitBoxOrient: 'vertical',
+                                                        overflow: 'hidden',
+                                                    }}
+                                                >
+                                                    {item.query}
+                                                </p>
+                                            </QueryTooltip>
                                             {item.buildings_count !== undefined && (
                                                 <div className="flex items-center gap-1 mt-1 text-xs text-gray-500">
                                                     <Building2 className="w-3 h-3" />
