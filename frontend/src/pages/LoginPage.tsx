@@ -87,10 +87,7 @@ export const LoginPage: React.FC = () => {
                         </div>
 
                         <div className="space-y-2">
-                            <div className="flex justify-between items-center ml-1">
-                                <label className="text-xs font-medium text-gray-400">Password</label>
-                                <a href="#" className="text-xs text-cyan-400 hover:text-cyan-300 transition-colors">Forgot password?</a>
-                            </div>
+                            <label className="text-xs font-medium text-gray-400 ml-1">Password</label>
                             <div className="relative group">
                                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 group-focus-within:text-cyan-400 transition-colors" />
                                 <input
@@ -101,6 +98,9 @@ export const LoginPage: React.FC = () => {
                                     placeholder="••••••••"
                                     required
                                 />
+                            </div>
+                            <div className="flex justify-end">
+                                <a href="#" className="text-xs text-cyan-400 hover:text-cyan-300 transition-colors">Forgot password?</a>
                             </div>
                         </div>
 
