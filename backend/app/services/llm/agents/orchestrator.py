@@ -13,6 +13,8 @@ MAX_ITEMS_FOR_LLM = settings.MAX_ITEMS_FOR_LLM
 MAX_ITEMS_FOR_MAP = settings.MAX_ITEMS_FOR_MAP
 MAX_LLM_CAP = settings.MAX_LLM_CAP
 
+from app.core.constants import APE_SCORE_LEGEND
+
 from app.data.loaders import get_coordinates
 from app.data.processors import calculate_travel_times_df
 from app.services.llm.agents.ape_agent import ApeAgent
@@ -215,7 +217,7 @@ class OrchestratorAgent(BaseAgent):
             # Check if APE analysis is needed
             if plan.ape_strategy.use_ape and ape_df is not None:
                 update_progress(2, "Analisi dati APE...")
-                ape_result = self.ape_agent.run(query, ape_df)
+                ape_result = self.ape_agent.run(query, ape_df, score_legend=APE_SCORE_LEGEND)
                 gemini_responses["ape_analysis"] = {
                     "prompt": (
                         ape_result.prompt.model_dump() if ape_result.prompt else None
@@ -259,7 +261,7 @@ class OrchestratorAgent(BaseAgent):
             keywords = ["ape", "energetica", "classe", "consumo", "co2", "emissioni"]
             if any(k in query.lower() for k in keywords) and ape_df is not None:
                 update_progress(2, "Analisi dati APE...")
-                ape_result = self.ape_agent.run(query, ape_df)
+                ape_result = self.ape_agent.run(query, ape_df, score_legend=APE_SCORE_LEGEND)
                 gemini_responses["ape_analysis"] = {
                     "prompt": (
                         ape_result.prompt.model_dump() if ape_result.prompt else None
