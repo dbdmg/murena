@@ -53,30 +53,6 @@ def get_category_amenities_str(category_weights):
     return '\n'.join(lines)
 
 
-DEFAULT_SYSTEM = """
-Sei un esperto analista urbano. Data una richiesta utente e una lista di categorie di servizi preselezionate, il tuo compito è selezionare i servizi delle categorie selezionate che devono essere in prossimità per soddisfare la richiesta.
-
-**Istruzioni**:
-- Per ogni categoria, seleziona SOLO i servizi che devono essere in prossimità per la richiesta.
-- Se nessun servizio in una categoria deve essere in prossimità, non selezionare nulla per quella categoria.
-
-**Output** (JSON puro senza testo):
-{{{{
-    "amenities": {{{{
-        "categoria1": ["servizio1_1", "servizio1_2"],
-        "categoria2": ["servizio2_1"]
-    }}}}
-}}}}
-"""
-
-DEFAULT_USER = """**Richiesta Utente**: {query}
-
-**Categorie Selezionate**: {selected_categories}
-
-**Servizi disponibili per categoria**:
-{available_amenities}"""
-
-
 class PoiAmenityAgent(BaseAgent):
     name = "poi-amenity-agent"
 
@@ -85,14 +61,14 @@ class PoiAmenityAgent(BaseAgent):
         self.llm = get_llm(model_name=resolved_model)
         
         # Load system and user prompts separately
-        self.system_prompt = get_system_prompt("poi_amenity_agent", DEFAULT_SYSTEM)
-        self.user_template = get_user_template("poi_amenity_agent", DEFAULT_USER)
+        self.system_prompt = get_system_prompt("poi_amenity_agent")
+        self.user_template = get_user_template("poi_amenity_agent")
         
         # Create ChatPromptTemplate with system/user separation
         self.prompt = ChatPromptTemplate.from_messages(
             [
-                ("system", self.system_prompt),
-                ("user", self.user_template),
+                ("system", "{system_content}"),
+                ("user", "{user_content}"),
             ]
         )
         self.parser = StrOutputParser()
@@ -116,10 +92,16 @@ class PoiAmenityAgent(BaseAgent):
         }
         
         # Format user prompt with variables
-        user_text = self.user_template.format(**prompt_inputs).strip()
+        user_text = self.render_template(self.user_template, **prompt_inputs).strip()
         full_text = f"[SYSTEM]\n{self.system_prompt}\n\n[USER]\n{user_text}"
 
-        raw = invoke_with_langfuse(self.chain, prompt_inputs)
+        raw = invoke_with_langfuse(
+            self.chain,
+            {
+                "system_content": self.system_prompt,
+                "user_content": user_text,
+            },
+        )
 
         # Parse with safe_extract_json using Pydantic model
         parsed_data = safe_extract_json(raw, schema=AmenityResponse)

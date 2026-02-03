@@ -21,55 +21,6 @@ from app.services.llm.prompt_loader import get_system_prompt, get_user_template
 from app.utils.decorators import log_llm_usage
 
 
-DEFAULT_SYSTEM = """Sei un Esperto Senior di Valorizzazione Immobiliare e Rigenerazione Urbana per il Ministero dell'Economia e delle Finanze (MEF).
-Il tuo obiettivo è analizzare un portafoglio di immobili pubblici per identificare le migliori opportunità di valorizzazione.
-
-Protocollo di Valutazione:
-1. Analisi del Potenziale: Non limitarti allo stato attuale. Valuta la trasformabilità dell'immobile.
-2. Fattori Critici:
-   - Posizione (zona_omi, punteggi POI: sanita, mobilita, verde, sport, commerciale, educazione)
-   - Dimensione (superficie_di_riferimento_mq)
-   - Sostenibilità Energetica (classe_energetica_ape, ape_score_*)
-   - Accessibilità (tempo_minuti, distanza_km se disponibili)
-
-3. Scoring (0-100):
-   - 90-100 (Top Prospect): Immobile ideale, nessun ostacolo significativo.
-   - 75-89 (High Potential): Ottimo candidato con piccole criticità.
-   - 60-74 (Medium Potential): Adatto ma con sfide da gestire.
-   - <60 (Low Potential): Scarsa vocazione per l'uso richiesto.
-
-{score_legend}
-
-I dati degli immobili sono forniti in formato JSON. Ogni oggetto rappresenta un immobile con i suoi attributi.
-
-{format_instructions}"""
-
-DEFAULT_USER = """Richiesta Utente (Obiettivo Strategico):
-{query}
-
-Scenario di Valorizzazione (Use Case):
-{use_case}
-
-Dati degli Immobili Candidati (JSON):
-{estates_data}"""
-
-
-BROKER_SYSTEM = """Sei un Senior Real Estate Broker e Consulente Strategico per il Ministero.
-Il tuo compito è scrivere una "Executive Summary" COMPARATIVA per il decisore finale.
-
-Istruzioni:
-1. Sintesi Diretta: Inizia con una frase forte che identifica la migliore opportunità.
-2. Comparazione: Confronta i top 3 candidati. Evidenzia pro e contro relativi.
-3. Raccomandazione: Dai un consiglio finale basato sul miglior compromesso.
-4. Tono: Professionale, sintetico, autorevole. Massimo 10-12 righe."""
-
-BROKER_USER = """Richiesta Utente:
-{query}
-
-Top Candidati Selezionati:
-{candidates_data}"""
-
-
 class EvaluationAgent(BaseAgent):
     name = "evaluation-agent"
 
@@ -82,8 +33,8 @@ class EvaluationAgent(BaseAgent):
         self.llm = get_llm(model_name=resolved_model)
 
         # Load system and user prompts separately
-        self.system_prompt = get_system_prompt("evaluation_agent", DEFAULT_SYSTEM)
-        self.user_template = get_user_template("evaluation_agent", DEFAULT_USER)
+        self.system_prompt = get_system_prompt("evaluation_agent")
+        self.user_template = get_user_template("evaluation_agent")
 
         self.parser = PydanticOutputParser(pydantic_object=EvaluationList)
 
@@ -94,18 +45,18 @@ class EvaluationAgent(BaseAgent):
 
         self.prompt = ChatPromptTemplate.from_messages(
             [
-                ("system", system_with_format),
+                ("system", "{system_content}"),
                 ("user", self.user_template),
             ]
         )
 
         # Broker prompt (system/user separated)
-        broker_system = get_system_prompt("broker_agent", BROKER_SYSTEM)
-        broker_user = get_user_template("broker_agent", BROKER_USER)
+        broker_system = get_system_prompt("broker_agent")
+        broker_user = get_user_template("broker_agent")
         self.broker_prompt = ChatPromptTemplate.from_messages(
             [
-                ("system", broker_system),
-                ("user", broker_user),
+                ("system", "{system_content}"),
+                ("user", "{user_content}"),
             ]
         )
 
@@ -148,15 +99,23 @@ Assicurati che la tua valutazione sia allineata con i requisiti specifici sopra 
             use_case = query_context + "\n\n" + use_case
 
         # Format user prompt with variables
-        user_text = self.user_template.format(
-            query=query, use_case=use_case, estates_data=estates_data
+        user_text = self.render_template(
+            self.user_template,
+            query=query,
+            use_case=use_case,
+            estates_data=estates_data,
         ).strip()
         full_text = f"[SYSTEM]\n{self._system_with_format}\n\n[USER]\n{user_text}"
 
         try:
             result = invoke_with_langfuse(
                 self.chain,
-                {"query": query, "use_case": use_case, "estates_data": estates_data},
+                {
+                    "system_content": self._system_with_format,
+                    "query": query,
+                    "use_case": use_case,
+                    "estates_data": estates_data,
+                },
             )
 
             # Gestione differenziata in base al tipo di output (oggetto Pydantic o altro)
@@ -188,7 +147,15 @@ Assicurati che la tua valutazione sia allineata con i requisiti specifici sopra 
         """Genera una sintesi comparativa (Broker Review)."""
         try:
             res = invoke_with_langfuse(
-                self.broker_chain, {"query": query, "candidates_data": candidates_data}
+                self.broker_chain,
+                {
+                    "system_content": self._broker_system,
+                    "user_content": self.render_template(
+                        self._broker_user,
+                        query=query,
+                        candidates_data=candidates_data,
+                    ),
+                },
             )
             # Handle standard langchain response objects (content vs str)
             return res.content if hasattr(res, "content") else str(res)

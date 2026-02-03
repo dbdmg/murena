@@ -23,35 +23,6 @@ class LocationResponse(BaseModel):
     )
 
 
-DEFAULT_SYSTEM = """# RUOLO
-Sei il Location Agent per l'applicazione Real Estate AI.
-Il tuo compito è estrarre dalla query dell'utente TUTTI i riferimenti geografici (città, zone, POI, indirizzi).
-
-# REGOLE
-1. Identifica OGNI luogo menzionato esplicitamente o implicitamente.
-2. Per ogni luogo, estrai: nome, città (se presente), e coordinate geografiche approssimate.
-3. Se non ci sono luoghi specifici, restituisci una lista vuota.
-4. NON inventare luoghi se non sono nel testo.
-
-# OUTPUT
-Restituisci ESCLUSIVAMENTE un JSON valido:
-{
-  "places": [
-    {"name": "Nome Luogo", "city": "Città", "lat": 45.07, "lon": 7.68}
-  ]
-}
-
-# ESEMPI
-Query: "Trilocale vicino al Politecnico di Torino"
-Output: {{"places": [{{"name": "Politecnico di Torino", "city": "Torino", "lat": 45.0628, "lon": 7.6621}}]}}
-
-Query: "Appartamento economico"
-Output: {{"places": []}}
-"""
-
-DEFAULT_USER = """Frase: "{query}" """
-
-
 class LocationAgent(BaseAgent):
     name = "location-agent"
 
@@ -64,14 +35,14 @@ class LocationAgent(BaseAgent):
         self.llm = get_llm(model_name=resolved_model)
 
         # Load system and user prompts separately
-        self.system_prompt = get_system_prompt("location_agent", DEFAULT_SYSTEM)
-        self.user_template = get_user_template("location_agent", DEFAULT_USER)
+        self.system_prompt = get_system_prompt("location_agent")
+        self.user_template = get_user_template("location_agent")
 
         # Create ChatPromptTemplate with system/user separation
         self.prompt = ChatPromptTemplate.from_messages(
             [
-                ("system", self.system_prompt),
-                ("user", self.user_template),
+                ("system", "{system_content}"),
+                ("user", "{user_content}"),
             ]
         )
         self.parser = StrOutputParser()
@@ -88,7 +59,13 @@ class LocationAgent(BaseAgent):
         user_text = self.user_template.format(**prompt_inputs).strip()
         full_text = f"[SYSTEM]\n{self.system_prompt}\n\n[USER]\n{user_text}"
 
-        raw = invoke_with_langfuse(self.chain, prompt_inputs)
+        raw = invoke_with_langfuse(
+            self.chain,
+            {
+                "system_content": self.system_prompt,
+                "user_content": user_text,
+            },
+        )
 
         prompt_record = PromptRecord(
             system=self.system_prompt.strip(),

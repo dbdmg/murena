@@ -22,65 +22,6 @@ from app.services.llm.prompt_loader import get_system_prompt, get_user_template
 from app.utils.decorators import handle_agent_error, log_llm_usage
 from app.utils.json_parser import safe_extract_json
 
-DEFAULT_SYSTEM = """Sei il Needs & Metric Agent per l'applicazione MEF-Immobili.
-Il tuo compito è analizzare la richiesta dell'utente e creare un PIANO DI ANALISI strutturato.
-
-### RUOLO
-Devi tradurre il bisogno (es. "scuole, efficienza energetica") in metriche di ranking e filtri dataset.
-
-### CONTESTO DATI
-Hai a disposizione le seguenti colonne per FILTRARE e ORDINARE:
-
-1. COLONNE FILTRABILI (SQL WHERE):
-{sql_filterable_columns}
-
-2. COLONNE PER RANKING (O Punteggi):
-{ranking_only_columns}
-(Queste colonne NON devono essere usate per filtri rigidi SQL, ma solo per ordinamento o calcolo punteggi)
-
-3. CATEGORIE POI (1-5):
-{poi_categories}
-
-{score_legend}
-
-### REGOLE
-1. **FILTRI SQL**: Usa SOLO le colonne nella lista "COLONNE FILTRABILI".
-   - ❌ NON filtrare MAI per punteggi APE (ape_score_*) o POI (sanita, mobilita...).
-   - ✅ Usa filtri SQL (filters) per: superficie, tipologia, zona, epoca, comune, classe energetica.
-   
-2. **METRICHE & RANKING**: Se l'utente chiede "buone scuole" o "efficiente":
-   - ❌ NON filtrare via SQL (esclude troppi risultati).
-   - ✅ Aggiungi una METRICA con peso alto (es. name="educazione", weight=0.8).
-   - ✅ Oppure usa SORT_BY (es. "educazione DESC").
-
-3. **STRATEGIA DATASET**:
-   - Punta ad avere un set ampio di candidati (100-500) da far valutare all'Evaluation Agent.
-   - Usa "filters" solo per requisiti "hard" (es. "minimo 100mq").
-
-### OUTPUT
-Restituisci ESCLUSIVAMENTE un JSON valido che rispetti questo schema:
-{{
-    "summary": "<riassunto obiettivo>",
-    "metrics": [
-        {{"name": "<nome_colonna>", "goal": "<descrizione>", "weight": 0.5, "data_points": ["<colonna>"]}}
-    ],
-    "dataset_strategy": {{
-        "filters": ["<filtro sql like>"],  // Es. "superficie_di_riferimento_mq > 100"
-        "sort_by": "<colonna> DESC",
-        "notes": "<note>"
-    }},
-    "ape_strategy": {{
-        "use_ape": <true|false>,
-        "strategy": "<come usare i dati ape>"
-    }}
-}}
-"""
-
-DEFAULT_USER = """Query Utente: "{query}"
-Schema Database (riferimento tipi): {db_schema}
-"""
-
-
 class NeedsMetricAgent(BaseAgent):
     """Agente che sintetizza metriche, filtri e strategia APE a partire dalla query."""
 
@@ -100,8 +41,8 @@ class NeedsMetricAgent(BaseAgent):
         )
 
         # Load system and user prompts separately
-        self.system_prompt = get_system_prompt("needs_metric_agent", DEFAULT_SYSTEM)
-        self.user_template = get_user_template("needs_metric_agent", DEFAULT_USER)
+        self.system_prompt = get_system_prompt("needs_metric_agent")
+        self.user_template = get_user_template("needs_metric_agent")
 
         # Create ChatPromptTemplate
         self.prompt_template = ChatPromptTemplate.from_messages(
@@ -131,12 +72,13 @@ class NeedsMetricAgent(BaseAgent):
         poi_cats = ", ".join([f"{k} ({v})" for k, v in POI_CATEGORIES.items()])
 
         # Format system prompt
-        system_content = self.system_prompt.format(
+        system_content = self.render_template(
+            self.system_prompt,
             sql_filterable_columns=sql_filterable,
             ranking_only_columns=ranking_only,
             poi_categories=poi_cats,
             score_legend=SCORE_LEGEND,
-            format_instructions="",  # Optional if we moved json structure into main prompt text
+            format_instructions="",
         )
 
         prompt_inputs = {
@@ -168,7 +110,8 @@ usa questi valori esatti nei filtri. Esempio:
         else:
             prompt_inputs["db_metadata"] = db_metadata
 
-        user_text = self.user_template.format(
+        user_text = self.render_template(
+            self.user_template,
             query=query,
             db_schema=db_schema,
             dataset_sample=dataset_sample,

@@ -16,45 +16,6 @@ from app.services.llm.prompt_loader import get_system_prompt, get_user_template
 from app.utils.decorators import handle_agent_error, log_llm_usage
 from app.utils.json_parser import safe_extract_json
 
-
-DEFAULT_SYSTEM = """
-ANALIZZA la documentazione normativa fornita ed ESTRAI SOLO i requisiti relativi a superfici e dimensioni che sono DIRETTAMENTE PERTINENTI alla query dell'utente.
-
-IMPORTANTE:
-- Analizza SOLO il testo fornito
-- NON cercare informazioni esterne
-- NON fare supposizioni
-- Usa SOLO valori presenti nella documentazione
-- Restituisci ESCLUSIVAMENTE JSON - niente testo aggiuntivo
-
-JSON richiesto:
-{{
-  "requisiti": [
-    {{
-      "categoria": "superfici_minime_massime|requisiti_a_persona|altezze_dimensioni_verticali|dimensioni_minime_locali|superfici_obbligatorie|altro",
-      "tipo": "descrizione specifica del requisito",
-      "valore": numero,
-      "unita": "unità",
-      "normativa": "riferimento legislativo",
-      "ambito": "contesto di applicazione",
-      "descrizione": "spiegazione breve del requisito"
-    }}
-  ]
-}}
-
-REGOLE:
-- Ogni requisito deve avere una categoria appropriata
-- Valori numerici ESATTI dalla documentazione
-- Includi una descrizione chiara per ogni requisito
-- SOLO JSON - niente altro testo
-"""
-
-DEFAULT_USER = """Documentazione Normativa:
-{normative_documents}
-
-Query dell'utente: {query}"""
-
-
 def _load_normative_documents() -> tuple[str, list[str], List[Dict[str, Any]]]:
     """
     Carica tutti i documenti normativi dalla cartella docs/knowledge/normativa/
@@ -145,14 +106,14 @@ class NormativeAgent(BaseAgent):
         self.llm = get_llm(model_name=resolved_model)
         
         # Load system and user prompts separately
-        self.system_prompt = get_system_prompt("normative_agent", DEFAULT_SYSTEM)
-        self.user_template = get_user_template("normative_agent", DEFAULT_USER)
+        self.system_prompt = get_system_prompt("normative_agent")
+        self.user_template = get_user_template("normative_agent")
 
         # Create ChatPromptTemplate with system/user separation
         self.prompt = ChatPromptTemplate.from_messages(
             [
-                ("system", self.system_prompt),
-                ("user", self.user_template),
+                ("system", "{system_content}"),
+                ("user", "{user_content}"),
             ]
         )
         self.parser = StrOutputParser()
@@ -205,7 +166,7 @@ class NormativeAgent(BaseAgent):
         }
         
         # Format user prompt with variables
-        user_text = self.user_template.format(**prompt_inputs).strip()
+        user_text = self.render_template(self.user_template, **prompt_inputs).strip()
         full_text = f"[SYSTEM]\n{self.system_prompt}\n\n[USER]\n{user_text}"
         
         # Se ci sono immagini, usa il formato multimodale
@@ -231,7 +192,13 @@ class NormativeAgent(BaseAgent):
             raw = chain.invoke([message])
         else:
             # Formato tradizionale solo testo
-            raw = invoke_with_langfuse(self.chain, prompt_inputs)
+            raw = invoke_with_langfuse(
+                self.chain,
+                {
+                    "system_content": self.system_prompt,
+                    "user_content": user_text,
+                },
+            )
         
         return NormativeAgentResult(
             raw_text=raw,

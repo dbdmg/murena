@@ -99,60 +99,6 @@ async def reload_prompt_overrides() -> Dict[str, str]:
     return {"status": "ok"}
 
 
-@router.post("/reset")
-async def reset_all_prompts(
-    current_user: User | None = Depends(get_current_user_optional),
-) -> Dict[str, Any]:
-    """Reset ALL prompts to their default values.
-
-    This copies prompt_config.default.md over prompt_config.md.
-    In non-debug environments this is forbidden.
-    """
-
-    if not settings.DEBUG:
-        raise HTTPException(
-            status_code=403, detail="Prompt reset is disabled in production"
-        )
-
-    _ = current_user
-
-    try:
-        result = prompt_loader.reset_to_defaults(agent=None)
-        return result
-    except FileNotFoundError as e:
-        raise HTTPException(status_code=404, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to reset prompts: {e}")
-
-
-@router.post("/reset/{agent}")
-async def reset_agent_prompts(
-    agent: str,
-    current_user: User | None = Depends(get_current_user_optional),
-) -> Dict[str, Any]:
-    """Reset prompts for a specific agent to default values.
-
-    In non-debug environments this is forbidden.
-    """
-
-    if not settings.DEBUG:
-        raise HTTPException(
-            status_code=403, detail="Prompt reset is disabled in production"
-        )
-
-    _ = current_user
-
-    try:
-        result = prompt_loader.reset_to_defaults(agent=agent)
-        return result
-    except FileNotFoundError as e:
-        raise HTTPException(status_code=404, detail=str(e))
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to reset prompts: {e}")
-
-
 @router.get("/agents")
 async def list_available_agents() -> Dict[str, Any]:
     """List all available agents with their prompt keys."""
