@@ -38,7 +38,6 @@ from app.services.llm.agents.schema import (
 )
 from app.services.llm.agents.sql_agent import SQLAgent
 from app.services.llm.agents.typology_agent import TypologyAgent
-from app.services.llm.agents.use_case_agent import UseCaseAgent
 from app.services.llm.agents.consistency_agent import ConsistencyAgent
 from app.utils.logger import logger
 from app.services.llm.mocks import (
@@ -108,7 +107,6 @@ class GraphOrchestratorAgent(BaseAgent):
             Callable[[str, pd.DataFrame], tuple[pd.DataFrame, Optional[str]]]
         ] = None,
         location_agent: Optional[LocationAgent] = None,
-        use_case_agent: Optional[UseCaseAgent] = None,
         sql_agent: Optional[SQLAgent] = None,
         evaluation_agent: Optional[EvaluationAgent] = None,
         typology_agent: Optional[TypologyAgent] = None,
@@ -126,7 +124,6 @@ class GraphOrchestratorAgent(BaseAgent):
         self.execute_sql_fn = execute_sql_fn
 
         self.location_agent = location_agent or LocationAgent()
-        self.use_case_agent = use_case_agent or UseCaseAgent()
         self.sql_agent = sql_agent or SQLAgent()
         self.evaluation_agent = evaluation_agent or EvaluationAgent()
         self.typology_agent = typology_agent or TypologyAgent()
