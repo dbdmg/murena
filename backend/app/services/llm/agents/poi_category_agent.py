@@ -9,7 +9,7 @@ from app.core.config import settings
 from app.services.llm.agents.base import BaseAgent
 from app.services.llm.agents.schema import PoiCategoryAgentResult
 from app.services.llm.langchain_client import get_llm, invoke_with_langfuse
-from app.services.llm.prompt_loader import get_prompt_template
+from app.services.llm.prompt_loader import get_system_prompt, get_user_template
 from app.utils.decorators import handle_agent_error, log_llm_usage
 
 import pandas as pd
@@ -40,12 +40,10 @@ def get_category_amenities_str():
         lines.append(f"- {category.capitalize()}: {', '.join(amenity_names)}")
     return '\n'.join(lines)
 
-DEFAULT_PROMPT = f"""
+DEFAULT_SYSTEM = f"""
 Sei un esperto analista urbano. Analizza la richiesta dell'utente e seleziona SOLO le categorie di servizi che devono trovarsi in prossimità del progetto immobiliare descritto.
 
 **Categorie disponibili**: {', '.join(PROMPT_CATEGORIES)}
-
-**Richiesta**: {{query}}
 
 **Istruzioni**:
 - Seleziona SOLO le categorie essenziali per il tipo di progetto
@@ -58,6 +56,8 @@ Sei un esperto analista urbano. Analizza la richiesta dell'utente e seleziona SO
 }}}}
 """
 
+DEFAULT_USER = """**Richiesta**: {query}"""
+
 
 class PoiCategoryAgent(BaseAgent):
     name = "poi-category-agent"
@@ -65,6 +65,10 @@ class PoiCategoryAgent(BaseAgent):
     def __init__(self, model_name: str = None):
         resolved_model = model_name or AGENT_MODELS.get("poi_category_agent") or AGENT_MODELS.get("default")
         self.llm = get_llm(model_name=resolved_model)
+        
+        # Load system and user prompts separately
+        self.system_prompt = get_system_prompt("poi_category_agent", DEFAULT_SYSTEM)
+        self.user_template = get_user_template("poi_category_agent", DEFAULT_USER)
 
     @log_llm_usage
     @handle_agent_error(
@@ -74,13 +78,18 @@ class PoiCategoryAgent(BaseAgent):
         )
     )
     def run(self, query: str) -> PoiCategoryAgentResult:
-        template_text = get_prompt_template("poi_category_agent", "template", DEFAULT_PROMPT)
-        prompt_template = PromptTemplate.from_template(template_text)
+        prompt_template = PromptTemplate.from_template(self.user_template)
 
         chain = prompt_template | self.llm | StrOutputParser()
 
+        prompt_inputs = {"query": query}
+        
+        # Format user prompt with variables
+        user_text = self.user_template.format(**prompt_inputs).strip()
+        full_text = f"[SYSTEM]\n{self.system_prompt}\n\n[USER]\n{user_text}"
+
         try:
-            response_text = invoke_with_langfuse(chain, {"query": query})
+            response_text = invoke_with_langfuse(chain, prompt_inputs)
 
             # Extract JSON from response
             json_match = re.search(r"\{.*\}", response_text, re.DOTALL)
@@ -105,6 +114,14 @@ class PoiCategoryAgent(BaseAgent):
                     if cat not in category_weights:
                         category_weights[cat] = 0.0
 
+                return PoiCategoryAgentResult(
+                    raw_text=response_text,
+                    category_weights=category_weights
+                )
+            else:
+                # No JSON found in response, return default
+                print(f"⚠️ PoiCategoryAgent: No JSON found in response")
+                category_weights = {cat: 0.0 for cat in PROMPT_CATEGORIES}
                 return PoiCategoryAgentResult(
                     raw_text=response_text,
                     category_weights=category_weights

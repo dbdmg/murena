@@ -1,4 +1,6 @@
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
+import logging
 from typing import Any, Callable, Dict, List, Optional, Union
 
 import numpy as np
@@ -22,6 +24,9 @@ from app.services.llm.agents.base import BaseAgent
 from app.services.llm.agents.evaluation_agent import EvaluationAgent
 from app.services.llm.agents.location_agent import LocationAgent
 from app.services.llm.agents.needs_metric_agent import NeedsMetricAgent
+from app.services.llm.agents.normative_agent import NormativeAgent
+from app.services.llm.agents.poi_amenity_agent import PoiAmenityAgent
+from app.services.llm.agents.poi_category_agent import PoiCategoryAgent
 from app.services.llm.agents.schema import (
     AgentContext,
     EvaluationAgentResponse,
@@ -48,8 +53,8 @@ class OrchestratorAgent(BaseAgent):
 
     name = "orchestrator-agent"
     CLASSIC_STEPS = [
-        {"key": "location", "label": "Estrazione localita"},
-        {"key": "strategy", "label": "Generazione use case"},
+        {"key": "analysis", "label": "Analisi parallela agenti"},
+        {"key": "processing", "label": "Elaborazione risultati"},
         {"key": "sql", "label": "Generazione query SQL"},
         {"key": "execution", "label": "Esecuzione query"},
         {"key": "evaluation", "label": "Valutazione dataset"},
@@ -57,8 +62,8 @@ class OrchestratorAgent(BaseAgent):
         {"key": "complete", "label": "Completato"},
     ]
     AGENT_STEPS = [
-        {"key": "location", "label": "Estrazione localita"},
-        {"key": "strategy", "label": "Metriche e strategia"},
+        {"key": "analysis", "label": "Analisi parallela agenti"},
+        {"key": "processing", "label": "Elaborazione risultati"},
         {"key": "sql", "label": "Generazione query SQL"},
         {"key": "execution", "label": "Esecuzione query"},
         {"key": "evaluation", "label": "Valutazione dataset"},
@@ -78,6 +83,9 @@ class OrchestratorAgent(BaseAgent):
         evaluation_agent: Optional[EvaluationAgent] = None,
         typology_agent: Optional[TypologyAgent] = None,
         ape_agent: Optional[ApeAgent] = None,
+        poi_category_agent: Optional[PoiCategoryAgent] = None,
+        poi_amenity_agent: Optional[PoiAmenityAgent] = None,
+        normative_agent: Optional[NormativeAgent] = None,
     ) -> None:
         if execute_sql_fn is None:
             raise ValueError("execute_sql_fn e obbligatoria per OrchestratorAgent.")
@@ -93,6 +101,9 @@ class OrchestratorAgent(BaseAgent):
         self.evaluation_agent = evaluation_agent or EvaluationAgent()
         self.typology_agent = typology_agent or TypologyAgent()
         self.ape_agent = ape_agent or ApeAgent()
+        self.poi_category_agent = poi_category_agent or PoiCategoryAgent()
+        self.poi_amenity_agent = poi_amenity_agent or PoiAmenityAgent()
+        self.normative_agent = normative_agent or NormativeAgent()
 
     # ------------------------------------------------------------------
     # Public API
@@ -132,9 +143,11 @@ class OrchestratorAgent(BaseAgent):
         }
 
         # ------------------------------------------------------------------
-        # STEP 0 - Typology Extraction
+        # PARALLEL EXECUTION - All agents run in parallel from user query
         # ------------------------------------------------------------------
-        update_progress(0, "Analisi tipologia...")
+        update_progress(0, "Analisi parallela della query...")
+
+        # Prepare inputs
         available_typologies = []
         if (
             base_dataset is not None
@@ -146,7 +159,69 @@ class OrchestratorAgent(BaseAgent):
                 if pd.notna(x)
             ]
 
-        typology_result = self.typology_agent.run(query, available_typologies)
+        sample_columns = (
+            ", ".join(base_dataset.columns[:15])
+            if hasattr(base_dataset, "columns")
+            else ""
+        )
+
+        # Define tasks for parallel execution
+        def run_typology():
+            logging.info("🔧 Executing TypologyAgent")
+            result = self.typology_agent.run(query, available_typologies)
+            logging.info(f"✅ TypologyAgent completed: {result.typologies}")
+            return result
+
+        def run_location():
+            logging.info("📍 Executing LocationAgent")
+            result = self.location_agent.run(query=query)
+            logging.info(f"✅ LocationAgent completed: {len(result.places)} places")
+            return result
+
+        def run_ape():
+            # Always run APE agent if data is available
+            if ape_df is not None:
+                logging.info("⚡ Executing ApeAgent")
+                result = self.ape_agent.run(query, ape_df, score_legend=APE_SCORE_LEGEND)
+                logging.info(f"✅ ApeAgent completed")
+                return result
+            logging.info("⚠️ ApeAgent skipped: no data")
+            return None
+
+        def run_poi():
+            logging.info("🏪 Executing POI Agents")
+            category_result = self.poi_category_agent.run(query=query)
+            logging.info(f"✅ PoiCategoryAgent completed: {len(category_result.category_weights)} categories")
+            amenity_result = self.poi_amenity_agent.run(
+                query=query, category_weights=category_result.category_weights
+            )
+            logging.info(f"✅ PoiAmenityAgent completed: {len(amenity_result.selected_categories)} categories")
+            return (category_result, amenity_result)
+
+        def run_normative():
+            logging.info("📚 Executing NormativeAgent")
+            result = self.normative_agent.run(query=query)
+            logging.info(f"✅ NormativeAgent completed")
+            return result
+
+        # Execute all agents in parallel
+        with ThreadPoolExecutor(max_workers=5) as executor:
+            future_typology = executor.submit(run_typology)
+            future_location = executor.submit(run_location)
+            future_ape = executor.submit(run_ape)
+            future_poi = executor.submit(run_poi)
+            future_normative = executor.submit(run_normative)
+
+            # Collect results
+            typology_result = future_typology.result()
+            loc_result = future_location.result()
+            ape_result = future_ape.result()
+            poi_results = future_poi.result()
+            normative_result = future_normative.result()
+
+        update_progress(1, "Elaborazione risultati agenti...")
+
+        # Process Typology results
         context.typology_result = typology_result
         gemini_responses["typology_extraction"] = {
             "prompt": (
@@ -163,11 +238,7 @@ class OrchestratorAgent(BaseAgent):
                 base_dataset["tipologia_bene_immobile"].isin(typology_result.typologies)
             ]
 
-        # ------------------------------------------------------------------
-        # STEP 1 - Location extraction
-        # ------------------------------------------------------------------
-        update_progress(1, "Estrazione località...")
-        loc_result = self.location_agent.run(query=query)
+        # Process Location results
         context.locations = loc_result.places
         gemini_responses["location_extraction"] = {
             "prompt": loc_result.prompt.model_dump() if loc_result.prompt else None,
@@ -175,8 +246,8 @@ class OrchestratorAgent(BaseAgent):
             "places": [p.model_dump() for p in loc_result.places],
         }
 
-        location_payload: List[List[Union[str, float]]]
-        location_payload = []
+        # Geocode locations
+        location_payload: List[List[Union[str, float]]] = []
         if loc_result.places:
             for place in loc_result.places:
                 search_query = (
@@ -188,93 +259,65 @@ class OrchestratorAgent(BaseAgent):
                     lat, lon = None, None
                 if lat is not None and lon is not None:
                     location_payload.append([search_query, lat, lon])
-        # Contract: location is always a list; empty list means "no location".
 
-        # ------------------------------------------------------------------
-        # STEP 2 - Needs & metrics (agent) OR use case (classic)
-        # ------------------------------------------------------------------
-        step_two_label = (
-            "Definizione metriche e strategia..."
-            if self.is_agent_mode
-            else "Generazione use case..."
-        )
-        update_progress(2, step_two_label)
-
-        use_case_str: str
+        # Process APE results
         ape_filters: List[str] = []
-
-        if self.is_agent_mode:
-            sample_columns = (
-                ", ".join(working_dataset.columns[:15])
-                if hasattr(working_dataset, "columns")
-                else ""
-            )
-            plan = self.needs_agent.run(
-                query=query, db_schema=str(db_schema), dataset_sample=sample_columns
-            )
-            context.metrics_plan = plan
-
-            # Check if APE analysis is needed
-            if plan.ape_strategy.use_ape and ape_df is not None:
-                update_progress(2, "Analisi dati APE...")
-                ape_result = self.ape_agent.run(query, ape_df, score_legend=APE_SCORE_LEGEND)
-                gemini_responses["ape_analysis"] = {
-                    "prompt": (
-                        ape_result.prompt.model_dump() if ape_result.prompt else None
-                    ),
-                    "response": ape_result.raw_text,
-                    "answer": ape_result.answer,
-                }
-                plan.summary += f"\n\nAnalisi APE: {ape_result.answer}"
-                if (
-                    hasattr(ape_result, "suggested_filters")
-                    and ape_result.suggested_filters
-                ):
-                    ape_filters = ape_result.suggested_filters
-
-            gemini_responses["needs_metric_plan"] = {
-                "prompt": plan.prompt.model_dump() if plan.prompt else None,
-                "response": plan.raw_text,
-                "plan": plan.model_dump(),
-            }
-            use_case_str = self._format_plan_for_evaluation(plan)
-        else:
-            use_case_result = self.use_case_agent.run(
-                query=query, db_schema=str(db_schema)
-            )
-            gemini_responses["use_case_generation"] = {
+        if ape_result is not None:
+            gemini_responses["ape_analysis"] = {
                 "prompt": (
-                    use_case_result.prompt.model_dump()
-                    if use_case_result.prompt
+                    ape_result.prompt.model_dump() if ape_result.prompt else None
+                ),
+                "response": ape_result.raw_text,
+                "answer": ape_result.answer,
+            }
+            if (
+                hasattr(ape_result, "suggested_filters")
+                and ape_result.suggested_filters
+            ):
+                ape_filters = ape_result.suggested_filters
+
+        # Process POI results
+        if poi_results:
+            poi_category_result, poi_amenity_result = poi_results
+            gemini_responses["poi_category_analysis"] = {
+                "prompt": (
+                    poi_category_result.prompt.model_dump()
+                    if poi_category_result.prompt
                     else None
                 ),
-                "response": use_case_result.raw_text,
-                "use_case": use_case_result.model_dump(),
+                "response": poi_category_result.raw_text,
+                "category_weights": poi_category_result.category_weights,
             }
-            use_case_str = (
-                f"Descrizione: {use_case_result.description}\n"
-                f"Target: {use_case_result.target_audience}\n"
-                f"Metriche: {', '.join(use_case_result.key_metrics)}"
-            )
+            gemini_responses["poi_amenity_analysis"] = {
+                "prompt": (
+                    poi_amenity_result.prompt.model_dump()
+                    if poi_amenity_result.prompt
+                    else None
+                ),
+                "response": poi_amenity_result.raw_text,
+                "amenity_weights": poi_amenity_result.amenity_weights,
+            }
+            context.poi_category_result = poi_category_result
+            context.poi_amenity_result = poi_amenity_result
 
-            # Simple keyword check for classic mode APE
-            keywords = ["ape", "energetica", "classe", "consumo", "co2", "emissioni"]
-            if any(k in query.lower() for k in keywords) and ape_df is not None:
-                update_progress(2, "Analisi dati APE...")
-                ape_result = self.ape_agent.run(query, ape_df, score_legend=APE_SCORE_LEGEND)
-                gemini_responses["ape_analysis"] = {
-                    "prompt": (
-                        ape_result.prompt.model_dump() if ape_result.prompt else None
-                    ),
-                    "response": ape_result.raw_text,
-                    "answer": ape_result.answer,
-                }
-                use_case_str += f"\n\nAnalisi APE: {ape_result.answer}"
+        # Process Normative results
+        if normative_result:
+            gemini_responses["normative_analysis"] = {
+                "prompt": (
+                    normative_result.prompt.model_dump()
+                    if normative_result.prompt
+                    else None
+                ),
+                "response": normative_result.raw_text,
+                "constraints": normative_result.constraints,
+                "recommendations": normative_result.recommendations,
+            }
+            context.normative_result = normative_result
 
         # ------------------------------------------------------------------
-        # STEP 3 - SQL generation + STEP 4 execution
+        # STEP 2 - SQL generation + STEP 3 execution
         # ------------------------------------------------------------------
-        update_progress(3, "Generazione query SQL...")
+        update_progress(2, "Generazione query SQL...")
         max_retries = 5
         retry_count = 0
         selected_data = pd.DataFrame()
@@ -285,9 +328,8 @@ class OrchestratorAgent(BaseAgent):
             _, lat, lon = location_payload[0]
             loc_obj = {"lat": lat, "lon": lon}
 
-        sql_prompt = self._augment_query_with_plan(
-            query, context.metrics_plan, ape_filters
-        )
+        # Use query directly without augmentation
+        sql_prompt = query
 
         while retry_count < max_retries:
             if retry_count == 0:
@@ -304,7 +346,7 @@ class OrchestratorAgent(BaseAgent):
                 }
             else:
                 update_progress(
-                    3,
+                    2,
                     f"Rigenerazione query SQL (tentativo {retry_count + 1}/{max_retries})...",
                 )
                 sql_result = self.sql_agent.run(
@@ -322,7 +364,7 @@ class OrchestratorAgent(BaseAgent):
                     "sql_query": sql_query,
                 }
 
-            update_progress(4, f"Esecuzione query (tentativo {retry_count + 1})...")
+            update_progress(3, f"Esecuzione query (tentativo {retry_count + 1})...")
             selected_data = self.execute_sql_fn(sql_query, working_dataset)
             if not selected_data.empty:
                 break
@@ -334,7 +376,7 @@ class OrchestratorAgent(BaseAgent):
             )
             context.filtered_dataset_preview = []
             gemini_responses["agent_context"] = context.model_dump()
-            update_progress(7, "Completato.")
+            update_progress(6, "Completato.")
             return OrchestratorResult(
                 map_df=pd.DataFrame(),
                 location=location_payload,
@@ -387,10 +429,21 @@ class OrchestratorAgent(BaseAgent):
 
         context.filtered_dataset_preview = enriched_data.head(10).to_dict("records")
 
-        llm_cap = self._resolve_llm_cap(llm_limit, context.metrics_plan)
+        llm_cap = min(int(llm_limit) if llm_limit else MAX_ITEMS_FOR_LLM, MAX_LLM_CAP)
         map_cap = self._resolve_map_cap(map_limit)
 
-        update_progress(5, f"Valutazione su top {llm_cap}...")
+        # Build use case from agent results
+        use_case_parts = [f"Query: {query}"]
+        if ape_result:
+            use_case_parts.append(f"APE: {ape_result.answer}")
+        if poi_results:
+            poi_category_result, poi_amenity_result = poi_results
+            use_case_parts.append(f"POI Categories: {list(poi_category_result.category_weights.keys())}")
+        if normative_result:
+            use_case_parts.append(f"Normative: {normative_result.normative_info[:200]}")
+        use_case_str = "\n".join(use_case_parts)
+
+        update_progress(4, f"Valutazione su top {llm_cap}...")
         eval_input_df = enriched_data.head(llm_cap).copy()
         eval_input_df["is_evaluated"] = True
         estates_data_str = tabulate.tabulate(
@@ -409,9 +462,9 @@ class OrchestratorAgent(BaseAgent):
         }
 
         # ------------------------------------------------------------------
-        # STEP 6 - Merge evaluation back into map dataset
+        # STEP 5 - Merge evaluation back into map dataset
         # ------------------------------------------------------------------
-        update_progress(6, "Finalizzazione risultati...")
+        update_progress(5, "Finalizzazione risultati...")
         map_df = enriched_data.head(map_cap).copy()
         map_df["is_evaluated"] = False
 
@@ -474,7 +527,7 @@ class OrchestratorAgent(BaseAgent):
             )
 
         gemini_responses["agent_context"] = context.model_dump()
-        update_progress(7, "Completato.")
+        update_progress(6, "Completato.")
 
         return OrchestratorResult(
             map_df=map_df,

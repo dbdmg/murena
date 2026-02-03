@@ -161,6 +161,12 @@ class AgentContext(BaseModel):
     normative_result: Optional['NormativeAgentResult'] = Field(
         None, description="Risultato del NormativeAgent per requisiti normativi"
     )
+    poi_category_result: Optional['PoiCategoryAgentResult'] = Field(
+        None, description="Risultato del PoiCategoryAgent per categorie POI"
+    )
+    poi_amenity_result: Optional['PoiAmenityAgentResult'] = Field(
+        None, description="Risultato del PoiAmenityAgent per amenities POI"
+    )
     filtered_dataset_preview: List[dict] = Field(
         default_factory=list, description="Anteprima del dataset filtrato"
     )
@@ -209,5 +215,7 @@ class PoiAmenityAgentResult(BaseModel):
 class NormativeAgentResult(BaseModel):
     raw_text: str = Field(..., description="Risposta grezza del modello")
     normative_info: str = Field(..., description="Informazioni normative estratte sui requisiti strutturali ed energetici")
+    constraints: List[str] = Field(default_factory=list, description="Vincoli normativi identificati")
+    recommendations: List[str] = Field(default_factory=list, description="Raccomandazioni basate su normative")
     sources: List[str] = Field(default_factory=list, description="URL o fonti consultate")
     prompt: Optional[PromptRecord] = Field(None, description="Prompt utilizzato")

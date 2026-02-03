@@ -209,13 +209,11 @@ ZONE_TORINO = [
 # Agenti disponibili per ablation
 AVAILABLE_AGENTS = [
     "location_agent",
-    "use_case_agent",
     "typology_agent",
     "poi_category_agent",
     "poi_amenity_agent",
-    "poi_distance_agent",
     "ape_agent",
-    "needs_metric_agent",
+    "normative_agent",
     "sql_agent",
     "evaluation_agent"
 ]
@@ -1451,20 +1449,22 @@ class RankingEvaluator:
         # Importa tutti gli agenti disponibili
         try:
             from app.services.llm.agents.location_agent import LocationAgent
-            from app.services.llm.agents.use_case_agent import UseCaseAgent
             from app.services.llm.agents.typology_agent import TypologyAgent
             from app.services.llm.agents.ape_agent import ApeAgent
-            from app.services.llm.agents.needs_metric_agent import NeedsMetricAgent
+            from app.services.llm.agents.poi_category_agent import PoiCategoryAgent
+            from app.services.llm.agents.poi_amenity_agent import PoiAmenityAgent
+            from app.services.llm.agents.normative_agent import NormativeAgent
             from app.services.llm.agents.sql_agent import SQLAgent
             from app.services.llm.agents.evaluation_agent import EvaluationAgent
             
             # Lista di classi di agenti da patchare
             agent_classes = [
                 LocationAgent,
-                UseCaseAgent,
                 TypologyAgent,
                 ApeAgent,
-                NeedsMetricAgent,
+                PoiCategoryAgent,
+                PoiAmenityAgent,
+                NormativeAgent,
                 SQLAgent,
                 EvaluationAgent
             ]
