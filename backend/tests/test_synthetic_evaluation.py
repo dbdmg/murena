@@ -27,6 +27,7 @@ import json
 import os
 import sys
 import random
+import re
 import time
 import shutil
 import asyncio
@@ -1042,17 +1043,29 @@ class AgentLogger:
             
             return text
         
-        def _process_string_value(text: str) -> Any:
-            """Processa una stringa: unescape + tentativo parsing JSON ricorsivo."""
+        def _process_string_value(text: str, try_json: bool = True) -> Any:
+            """Processa una stringa: unescape + tentativo parsing JSON ricorsivo se richiesto."""
             # Prima unescape
             unescaped = _unescape_string(text)
             
-            # Poi tenta parsing JSON se sembra JSON
-            if unescaped.strip().startswith(('{', '[')):
+            # Poi tenta parsing JSON se sembra JSON e se richiesto
+            if try_json and unescaped.strip().startswith(('{', '[')):
                 try:
                     parsed = json.loads(unescaped)
                     return self._serialize_data(parsed)  # Ricorsione per processare il JSON parsato
-                except (json.JSONDecodeError, ValueError):
+                except (json.JSONDecodeError, ValueError, TypeError):
+                    # Tentativo di riparazione per errori comuni (es. virgolette annidate)
+                    try:
+                        # Ripara virgolette doppie annidate in valori stringa: "key": "valore "interno" finale"
+                        # Sostituisce "interno" con 'interno'
+                        repaired = re.sub(r'(:\s*")(.+?)("\s*[,}])', 
+                                         lambda m: m.group(1) + m.group(2).replace('"', "'") + m.group(3), 
+                                         unescaped, flags=re.DOTALL)
+                        if repaired != unescaped:
+                            parsed = json.loads(repaired)
+                            return self._serialize_data(parsed)
+                    except Exception:
+                        pass
                     pass
             
             # Se molto lunga con newline, splitta per leggibilità
@@ -1071,17 +1084,13 @@ class AgentLogger:
         
         # Dizionari: serializza ricorsivamente con gestione speciale per campi JSON
         elif isinstance(data, dict):
-            # Se il dizionario ha struttura prompt {system, user, full_text}, restituisci solo full_text
+            # Se il dizionario ha struttura prompt {system, user, full_text}, restituisci solo full_text (senza parsing JSON)
             if 'full_text' in data and 'system' in data and 'user' in data:
-                return self._serialize_data(data['full_text'])
+                return _process_string_value(data['full_text'], try_json=False)
             
             result = {}
             for k, v in data.items():
-                # Chiavi speciali che spesso contengono JSON stringato
-                if k in ('raw_text', 'response', 'result', 'prompt', 'query', 'context', 'output', 'input') and isinstance(v, str):
-                    result[k] = _process_string_value(v)
-                else:
-                    result[k] = self._serialize_data(v)
+                result[k] = self._serialize_data(v)
             return result
         
         # Liste e tuple: serializza elementi ricorsivamente

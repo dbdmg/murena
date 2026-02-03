@@ -4,15 +4,16 @@ from typing import Any, Dict
 from datetime import datetime
 
 from langchain_core.output_parsers import StrOutputParser
-from langchain_core.prompts import PromptTemplate
+from langchain_core.prompts import ChatPromptTemplate
 from geopy.distance import geodesic
 
 from app.core.config import settings
 from app.services.llm.agents.base import BaseAgent
-from app.services.llm.agents.schema import PoiAmenityAgentResult
+from app.services.llm.agents.schema import PoiAmenityAgentResult, AmenityResponse, PromptRecord
 from app.services.llm.langchain_client import get_llm, invoke_with_langfuse
 from app.services.llm.prompt_loader import get_system_prompt, get_user_template
 from app.utils.decorators import handle_agent_error, log_llm_usage
+from app.utils.json_parser import safe_extract_json
 
 import pandas as pd
 import os
@@ -87,11 +88,15 @@ class PoiAmenityAgent(BaseAgent):
         self.system_prompt = get_system_prompt("poi_amenity_agent", DEFAULT_SYSTEM)
         self.user_template = get_user_template("poi_amenity_agent", DEFAULT_USER)
         
-        # Carica i dataset per il calcolo dello score
-        if os.path.exists(CLUSTER_AMENITY_COUNTS_PATH):
-            self.cluster_amenity_percentages_df = pd.read_csv(CLUSTER_AMENITY_COUNTS_PATH)
-        else:
-            raise FileNotFoundError(f"Cluster amenity percentages not found at {CLUSTER_AMENITY_COUNTS_PATH}")
+        # Create ChatPromptTemplate with system/user separation
+        self.prompt = ChatPromptTemplate.from_messages(
+            [
+                ("system", self.system_prompt),
+                ("user", self.user_template),
+            ]
+        )
+        self.parser = StrOutputParser()
+        self.chain = self.prompt | self.llm | self.parser
 
     @log_llm_usage
     @handle_agent_error(
@@ -100,17 +105,14 @@ class PoiAmenityAgent(BaseAgent):
             selected_categories=[],
             selected_amenities={},
             category_weights={},
-            amenity_weights={}
+            amenity_weights={},
+            prompt=PromptRecord(system="", user="", full_text="")
         )
     )
-    def run(self, query: str, category_weights: Dict[str, float]) -> PoiAmenityAgentResult:
+    def run(self, *, query: str, category_weights: Dict[str, float]) -> PoiAmenityAgentResult:
         selected_categories = [cat for cat, weight in category_weights.items() if weight > 0]
         available_amenities = get_category_amenities_str(category_weights)
         
-        prompt_template = PromptTemplate.from_template(self.user_template)
-
-        chain = prompt_template | self.llm | StrOutputParser()
-
         prompt_inputs = {
             "query": query,
             "selected_categories": ", ".join(selected_categories),
@@ -121,54 +123,48 @@ class PoiAmenityAgent(BaseAgent):
         user_text = self.user_template.format(**prompt_inputs).strip()
         full_text = f"[SYSTEM]\n{self.system_prompt}\n\n[USER]\n{user_text}"
 
-        try:
-            response_text = invoke_with_langfuse(chain, prompt_inputs)
+        raw = invoke_with_langfuse(self.chain, prompt_inputs)
 
-            # Extract JSON from response
-            json_match = re.search(r"\{.*\}", response_text, re.DOTALL)
-            if json_match:
-                json_str = json_match.group(0)
-                data = json.loads(json_str)
-                amenities_by_category = data.get("amenities", {})
-                
-                # Calcola i pesi delle amenity: 1/n per quelle selezionate, 0 per quelle non selezionate
-                amenity_weights = {}
-                for category, amenities in amenities_by_category.items():
-                    amenity_weights[category] = {}
-                    n = len(amenities)
-                    for amenity in amenities:
-                        amenity_weights[category][amenity] = 1.0 / n
-                
-                # Aggiungi peso 0 per le amenity non selezionate in ogni categoria
-                for category in selected_categories:
-                    if category not in amenity_weights:
-                        amenity_weights[category] = {}
-                    
-                    # Ottieni tutte le amenity possibili per questa categoria
-                    all_amenities = CATEGORY_AMENITIES.get(category, [])
-                    for amenity in all_amenities:
-                        if amenity not in amenity_weights[category]:
-                            amenity_weights[category][amenity] = 0.0
+        # Parse with safe_extract_json using Pydantic model
+        parsed_data = safe_extract_json(raw, schema=AmenityResponse)
+
+        amenities_by_category = {}
+        if parsed_data and isinstance(parsed_data, AmenityResponse):
+            amenities_by_category = parsed_data.amenities
+        else:
+            # Fallback
+            pass
+        
+        # Calcola i pesi delle amenity: 1/n per quelle selezionate, 0 per quelle non selezionate
+        amenity_weights = {}
+        for category, amenities in amenities_by_category.items():
+            amenity_weights[category] = {}
+            n = len(amenities)
+            for amenity in amenities:
+                amenity_weights[category][amenity] = 1.0 / n
+        
+        # Aggiungi peso 0 per le amenity non selezionate in ogni categoria
+        for category in selected_categories:
+            if category not in amenity_weights:
+                amenity_weights[category] = {}
             
-            return PoiAmenityAgentResult(
-                raw_text=response_text,
-                selected_categories=selected_categories,
-                selected_amenities=amenities_by_category,
-                category_weights=category_weights,
-                amenity_weights=amenity_weights
-            )
+            # Ottieni tutte le amenity possibili per questa categoria
+            all_amenities = CATEGORY_AMENITIES.get(category, [])
+            for amenity in all_amenities:
+                if amenity not in amenity_weights[category]:
+                    amenity_weights[category][amenity] = 0.0
+    
+        prompt_record = PromptRecord(
+            system=self.system_prompt.strip(),
+            user=user_text,
+            full_text=full_text,
+        )
 
-        except Exception as e:
-            print(f"Errore PoiAmenityAgent: {e}")
-            # Fallback: tutte le amenity con peso 0 per ogni categoria selezionata
-            amenity_weights = {}
-            for category in selected_categories:
-                all_amenities = CATEGORY_AMENITIES.get(category, [])
-                amenity_weights[category] = {amenity: 0.0 for amenity in all_amenities}
-            return PoiAmenityAgentResult(
-                raw_text="",
-                selected_categories=selected_categories,
-                selected_amenities={},
-                category_weights=category_weights,
-                amenity_weights=amenity_weights
-            )
+        return PoiAmenityAgentResult(
+            raw_text=raw,
+            selected_categories=selected_categories,
+            selected_amenities=amenities_by_category,
+            category_weights=category_weights,
+            amenity_weights=amenity_weights,
+            prompt=prompt_record
+        )
