@@ -35,11 +35,20 @@ from app.services.llm.agents.schema import (
     NormativeAgentResult,
     TypologyAgentResult,
     ConsistencyAgentResult,
+    CategoryResponse,
+    AmenityResponse,
+    NormativeResponse,
+    TypologyResponse,
+    LocationResponse,
+    ConsistencyResponse,
+    EvaluationResult,
+    EvaluationList,
 )
 from app.services.llm.agents.sql_agent import SQLAgent
 from app.services.llm.agents.typology_agent import TypologyAgent
 from app.services.llm.agents.consistency_agent import ConsistencyAgent
 from app.utils.logger import logger
+from app.utils.json_parser import safe_extract_json
 from app.services.llm.mocks import (
     MOCK_TYPOLOGY,
     MOCK_LOCATION,
@@ -503,7 +512,7 @@ class GraphOrchestratorAgent(BaseAgent):
 
         # Define tasks
         def run_typology():
-            self._update_progress(state, 1, "Analisi tipologia in corso...")
+            self._update_progress(state, 1, "Analisi tipologie in corso...")
             logger.info("🔧 Executing TypologyAgent")
             result = self.typology_agent.run(
                 query=query,
@@ -513,14 +522,18 @@ class GraphOrchestratorAgent(BaseAgent):
                     .get("values", [])
                 ),
             )
-            logger.info(f"✅ TypologyAgent completed: {result.typologies}")
+            typ_data = safe_extract_json(result.raw_text, schema=TypologyResponse)
+            typologies = typ_data.typologies if typ_data else []
+            logger.info(f"✅ TypologyAgent completed: {typologies}")
             return result
 
         def run_location():
             self._update_progress(state, 1, "Analisi ubicazione in corso...")
             logger.info("📍 Executing LocationAgent")
             result = self.location_agent.run(query=query)
-            logger.info(f"✅ LocationAgent completed: {len(result.places)} places")
+            loc_data = safe_extract_json(result.raw_text, schema=LocationResponse)
+            places = loc_data.places if loc_data else []
+            logger.info(f"✅ LocationAgent completed: {len(places)} places")
             return result
 
         def run_ape():
@@ -552,15 +565,20 @@ class GraphOrchestratorAgent(BaseAgent):
                 logger.warning("⚠️ PoiCategoryAgent returned None, skipping POI analysis")
                 return None
             
-            logger.info(f"✅ PoiCategoryAgent completed: {len(category_result.category_weights)} categories")
-            result = self.poi_amenity_agent.run(query=query, category_weights=category_result.category_weights)
+            cat_data = safe_extract_json(category_result.raw_text)
+            weights = cat_data.get("category_weights", {})
+            logger.info(f"✅ PoiCategoryAgent completed: {len(weights)} categories")
+
+            result = self.poi_amenity_agent.run(query=query, category_weights=weights)
             
             # Safety check: handle None result from amenity agent
             if result is None:
                 logger.warning("⚠️ PoiAmenityAgent returned None, skipping POI analysis")
                 return None
             
-            logger.info(f"✅ PoiAmenityAgent completed: {len(result.selected_categories)} categories")
+            am_data = safe_extract_json(result.raw_text)
+            sel_cats = am_data.get("selected_categories", [])
+            logger.info(f"✅ PoiAmenityAgent completed: {len(sel_cats)} categories")
             return result
         
         def run_normative():
@@ -585,35 +603,30 @@ class GraphOrchestratorAgent(BaseAgent):
             normative_result = future_normative.result()
 
         # Process Typology
+        typ_data = safe_extract_json(typology_result.raw_text, schema=TypologyResponse)
+        typologies = typ_data.typologies if typ_data else []
         state["typology_result"] = typology_result
         state["gemini_responses"]["typology_extraction"] = {
             "prompt": (
                 typology_result.prompt.model_dump() if typology_result.prompt else None
             ),
             "response": typology_result.raw_text,
-            "typologies": typology_result.typologies,
+            "typologies": typologies,
         }
         state["context"].typology_result = typology_result
-        # REMOVED HARD FILTERING:
-        # if typology_result.typologies:
-        #     state["working_dataset"] = base_dataset[
-        #         base_dataset['tipologia_bene_immobile'].isin(
-        #             typology_result.typologies
-        #         )
-        #     ]
 
         # Process Location
-        # Initialize locations in context (will be updated with coords below)
-        state["context"].locations = loc_result.places
+        loc_data = safe_extract_json(loc_result.raw_text, schema=LocationResponse)
+        places = loc_data.places if loc_data else []
+        state["context"].locations = places
         state["gemini_responses"]["location_extraction"] = {
             "prompt": loc_result.prompt.model_dump() if loc_result.prompt else None,
             "response": loc_result.raw_text,
-            "places": [p.model_dump() for p in loc_result.places],
+            "places": [p.model_dump() for p in places],
         }
 
         location_payload = []
-        if loc_result.places:
-
+        if places:
             def geocode_place(place):
                 search_query = (
                     f"{place.name}, {place.city}" if place.city else place.name
@@ -626,32 +639,30 @@ class GraphOrchestratorAgent(BaseAgent):
 
             # Use ThreadPoolExecutor for parallel geocoding
             with ThreadPoolExecutor(max_workers=5) as executor:
-                # Map places to futures, preserving order
-                futures = [executor.submit(geocode_place, p) for p in loc_result.places]
+                futures = [executor.submit(geocode_place, p) for p in places]
 
                 for i, future in enumerate(futures):
                     search_query, lat, lon = future.result()
 
                     if lat is not None and lon is not None:
                         location_payload.append([search_query, lat, lon])
-                        # Update context with coordinates for UI
                         if i < len(state["context"].locations):
                             state["context"].locations[i].lat = lat
                             state["context"].locations[i].lon = lon
                     else:
                         logger.warning(f"Could not geocode: {search_query}")
 
-        # Contract: location is always a list; empty list means "no location".
         state["location_payload"] = location_payload
 
         # Process POI
         state["poi_result"] = poi_result
+        poi_data = safe_extract_json(poi_result.raw_text) if poi_result else {}
         if poi_result is not None:
             state["gemini_responses"]["poi_analysis"] = {
                 "prompt": poi_result.prompt.model_dump() if poi_result.prompt else None,
                 "response": poi_result.raw_text,
-                "weights": getattr(poi_result, 'poi_weights', getattr(poi_result, 'category_weights', {})),
-                "constraints": getattr(poi_result, 'constraints', {}),
+                "weights": poi_data.get('category_weights', {}),
+                "constraints": poi_data.get('constraints', {}),
             }
         else:
             logger.warning("⚠️ POI analysis skipped: no result available")
@@ -664,23 +675,26 @@ class GraphOrchestratorAgent(BaseAgent):
 
         # Process APE
         ape_text = ""
+        ape_data = safe_extract_json(ape_result.raw_text) if ape_result else {}
         if ape_result:
             state["gemini_responses"]["ape_analysis"] = {
                 "prompt": ape_result.prompt.model_dump() if ape_result.prompt else None,
                 "response": ape_result.raw_text,
-                "answer": ape_result.answer,
-                "suggested_filters": ape_result.suggested_filters,
+                "answer": ape_data.get("answer", ""),
+                "suggested_filters": ape_data.get("suggested_filters", []),
             }
-            ape_text = f"\n\nAnalisi APE: {ape_result.answer}"
+            ape_text = f"\n\nAnalisi APE: {ape_data.get('answer', '')}"
 
         # Process POI Text for Context
         poi_text = ""
-        if poi_result:
-            poi_weights = getattr(poi_result, 'poi_weights', getattr(poi_result, 'category_weights', {}))
+        if poi_data:
+            poi_weights = poi_data.get('category_weights', {})
             high_priority = [k for k, v in poi_weights.items() if v >= 0.6]
-            poi_text = f"\n\nAnalisi POI: L'utente ha espresso preferenza per: {', '.join(high_priority)}."
-            constraints = getattr(poi_result, 'constraints', {})
-            if constraints.get("must_have"):
+            if high_priority:
+                poi_text = f"\n\nAnalisi POI: L'utente ha espresso preferenza per: {', '.join(high_priority)}."
+            
+            constraints = poi_data.get('constraints', {})
+            if isinstance(constraints, dict) and constraints.get("must_have"):
                 poi_text += f" Vincoli stretti: {', '.join(constraints['must_have'])}."
 
         # Save normative result in state and context
@@ -690,7 +704,7 @@ class GraphOrchestratorAgent(BaseAgent):
             state["gemini_responses"]["normative_analysis"] = {
                 "prompt": normative_result.prompt.model_dump() if normative_result.prompt else None,
                 "response": normative_result.raw_text,
-                "normative_info": normative_result.normative_info,
+                "normative_info": normative_result.raw_text,
                 "sources": normative_result.sources,
             }
 
@@ -701,7 +715,7 @@ class GraphOrchestratorAgent(BaseAgent):
         if poi_text:
             use_case_parts.append(poi_text.strip())
         if normative_result:
-            use_case_parts.append(f"Normative: {normative_result.normative_info[:200]}")
+            use_case_parts.append(f"Normative: {normative_result.raw_text[:200]}")
         state["use_case_str"] = "\n".join(use_case_parts)
 
         return state
@@ -723,20 +737,28 @@ class GraphOrchestratorAgent(BaseAgent):
         # Geocode names for consistency agent
         locations = [p[0] for p in location_payload] if location_payload else []
 
+        # Parse results for input
+        typ_data = safe_extract_json(typology_result.raw_text, schema=TypologyResponse) if typology_result else None
+        typologies = typ_data.typologies if typ_data else []
+        norm_data = safe_extract_json(normative_result.raw_text) if normative_result else {}
+        
         # Execute Consistency Agent
         consistency_result = self.consistency_agent.run(
             query=query,
-            typologies=typology_result.typologies if typology_result else [],
+            typologies=typologies,
             locations=locations,
-            normative_info=normative_result.normative_info if normative_result else "",
+            normative_info=str(norm_data),
             ape_info=ape_info
         )
+
+        consc_data = safe_extract_json(consistency_result.raw_text, schema=ConsistencyResponse)
+        requirements = consc_data.requirements if consc_data else []
 
         state["consistency_result"] = consistency_result
         state["gemini_responses"]["consistency_analysis"] = {
             "prompt": consistency_result.prompt.model_dump() if consistency_result.prompt else None,
             "response": consistency_result.raw_text,
-            "requirements": consistency_result.requirements,
+            "requirements": requirements,
         }
         
         return state
@@ -760,8 +782,12 @@ class GraphOrchestratorAgent(BaseAgent):
             loc_obj = {"lat": lat, "lon": lon}
 
         # Use consolidated requirements from consistency_result if available
-        if state.get("consistency_result") and state["consistency_result"].requirements:
-            sql_prompt = "\n".join(state["consistency_result"].requirements)
+        consistency_result = state.get("consistency_result")
+        consc_data = safe_extract_json(consistency_result.raw_text, schema=ConsistencyResponse) if consistency_result else None
+        requirements = consc_data.requirements if consc_data else []
+        
+        if requirements:
+            sql_prompt = "\n".join(requirements)
         else:
             sql_prompt = self._augment_query_with_plan(
                 query, 
@@ -801,7 +827,8 @@ class GraphOrchestratorAgent(BaseAgent):
                 db_metadata=json.dumps(state["db_metadata"], ensure_ascii=False),
             )
 
-        state["sql_query"] = sql_result.sql_query
+        # sql_result.raw_text now contains the cleaned SQL
+        state["sql_query"] = sql_result.raw_text
         key = (
             "sql_generation"
             if retry_count == 0
@@ -810,7 +837,7 @@ class GraphOrchestratorAgent(BaseAgent):
         state["gemini_responses"][key] = {
             "prompt": sql_result.prompt.model_dump() if sql_result.prompt else None,
             "response": sql_result.raw_text,
-            "sql_query": sql_result.sql_query,
+            "sql_query": sql_result.raw_text,
         }
         return state
 
@@ -1187,20 +1214,19 @@ class GraphOrchestratorAgent(BaseAgent):
 
             eval_results = []
             if not enriched_data.empty:
-                for idx, row in enriched_data.head(3).iterrows():
-                    item_id = row.get("id", idx)
-                    # Cycle through mock results
-                    mock_res = MOCK_EVALUATION.results[idx % 2]
-                    # Clone and set ID
-                    res = mock_res.model_copy()
-                    res.id = item_id
-                    eval_results.append(res)
-                    time.sleep(0.5)  # Simulate per-item delay
-                    self._update_progress(
-                        state,
-                        7,
-                        f"Analisi simulata {idx+1}/{min(3, len(enriched_data))}",
-                    )
+                mock_data = json.loads(MOCK_EVALUATION.raw_text)
+                for idx, item_id in enumerate(enriched_data.head(3)["id"].tolist()):
+                    if idx < len(mock_data):
+                        res_dict = mock_data[idx]
+                        res = EvaluationResult(**res_dict)
+                        res.id = item_id
+                        eval_results.append(res)
+                        time.sleep(0.5)
+                        self._update_progress(
+                            state,
+                            7,
+                            f"Analisi simulata {idx+1}/{min(3, len(enriched_data))}",
+                        )
 
             state["context"].evaluation_results = eval_results
             if "evaluation" not in state["gemini_responses"]:
@@ -1314,15 +1340,29 @@ class GraphOrchestratorAgent(BaseAgent):
                 try:
                     payload = future.result()
                     finished_batches += 1
+                    
+                    # Parse results from raw_text using EvaluationList schema
+                    eval_data = safe_extract_json(payload.raw_text, schema=EvaluationList)
+                    batch_results = []
+                    if eval_data and eval_data.evaluations:
+                        batch_results = eval_data.evaluations
+                    else:
+                        # Fallback for unexpected formats
+                        raw_data = safe_extract_json(payload.raw_text)
+                        if isinstance(raw_data, list):
+                            batch_results = [EvaluationResult(**r) if isinstance(r, dict) else r for r in raw_data]
+                        elif isinstance(raw_data, dict) and "evaluations" in raw_data:
+                            batch_results = [EvaluationResult(**r) if isinstance(r, dict) else r for r in raw_data["evaluations"]]
+                    
                     # Update progress dynamically for each batch
                     self._update_progress(
                         state,
                         7,
-                        f"Analizzando batch {finished_batches}/{total_batches} con {len(payload.results) if payload and payload.results else 0} valutazioni...",
+                        f"Analizzando batch {finished_batches}/{total_batches} con {len(batch_results)} valutazioni...",
                     )
 
-                    if payload and payload.results:
-                        all_results.extend(payload.results)
+                    if batch_results:
+                        all_results.extend(batch_results)
                         # We keep the last prompt/response for logging purposes
                         state["gemini_responses"]["evaluation"] = {
                             "prompt": (
@@ -1331,15 +1371,15 @@ class GraphOrchestratorAgent(BaseAgent):
                             "response": payload.raw_text,
                             "results_count": len(all_results),
                         }
-                except Exception:
-                    # Log error silently or use a proper logger
+                except Exception as e:
+                    logger.error(f"Error parsing evaluation batch: {e}")
                     pass
 
         state["context"].evaluation_results = all_results
         # Update full results list in log
         if "evaluation" in state["gemini_responses"]:
             state["gemini_responses"]["evaluation"]["results"] = [
-                res.model_dump() for res in all_results
+                res.model_dump() if hasattr(res, "model_dump") else res for res in all_results
             ]
 
         self._update_progress(
@@ -1366,12 +1406,22 @@ class GraphOrchestratorAgent(BaseAgent):
         # Create structured text for the broker
         candidates = []
         for i, res in enumerate(eval_results[:5]):  # Analyze top 5 max
-            candidates.append(
-                f"Candidato #{i+1} (ID: {res.id}, Score: {res.score}):\n"
-                f"Motivazione: {res.evaluation_text}\n"
-                f"Pro: {', '.join(res.pros)}\n"
-                f"Contro: {', '.join(res.cons)}\n"
-            )
+            if hasattr(res, "id") and hasattr(res, "score"):
+                # Handle as Pydantic model
+                candidates.append(
+                    f"Candidato #{i+1} (ID: {res.id}, Score: {res.score}):\n"
+                    f"Motivazione: {res.evaluation_text}\n"
+                    f"Pro: {', '.join(res.pros)}\n"
+                    f"Contro: {', '.join(res.cons)}\n"
+                )
+            elif isinstance(res, dict):
+                # Handle as dictionary
+                candidates.append(
+                    f"Candidato #{i+1} (ID: {res.get('id')}, Score: {res.get('score')}):\n"
+                    f"Motivazione: {res.get('evaluation_text')}\n"
+                    f"Pro: {', '.join(res.get('pros', []))}\n"
+                    f"Contro: {', '.join(res.get('cons', []))}\n"
+                )
 
         candidates_text = "\n---\n".join(candidates)
 
@@ -1637,18 +1687,21 @@ class GraphOrchestratorAgent(BaseAgent):
             )
 
         typology_text = ""
-        if typology_result and typology_result.typologies:
-            joined_typologies = ", ".join(typology_result.typologies)
-            typology_text = (
-                "\n\nTIPOLOGIE SUGGERITE (Filtra SOLO se coerente con la richiesta):\n"
-                f"{joined_typologies}"
-            )
+        if typology_result and typology_result.raw_text:
+            typ_data = safe_extract_json(typology_result.raw_text, schema=TypologyResponse)
+            typologies = typ_data.typologies if typ_data else []
+            if typologies:
+                joined_typologies = ", ".join(typologies)
+                typology_text = (
+                    "\n\nTIPOLOGIE SUGGERITE (Filtra SOLO se coerente con la richiesta):\n"
+                    f"{joined_typologies}"
+                )
 
         normative_text = ""
-        if normative_result and normative_result.normative_info:
+        if normative_result and normative_result.raw_text:
             normative_text = (
                 "\n\nREQUISITI NORMATIVI ESTRATTI (Usa per filtri oggettivi se applicabili, es. superficie minima):\n"
-                f"{normative_result.normative_info}"
+                f"{normative_result.raw_text}"
             )
 
         # SQL generation instructions - respect NeedsMetric filters

@@ -160,7 +160,7 @@ class NormativeAgent(BaseAgent):
 
     @log_llm_usage
     @handle_agent_error(
-        fallback_value=NormativeAgentResult(raw_text="Error", normative_info="{}", sources=[], prompt=None)
+        fallback_value=NormativeAgentResult(raw_text="{}", sources=[], prompt=None)
     )
     def run(self, query: str) -> NormativeAgentResult:
         if USE_MOCK_NORMATIVE_AGENT:
@@ -183,21 +183,11 @@ class NormativeAgent(BaseAgent):
                         "normativa": "Regolamento Regionale",
                         "ambito": "strutture ricettive",
                         "descrizione": "Spazio minimo per persona in strutture ricettive"
-                    },
-                    {
-                        "categoria": "altezze_dimensioni_verticali",
-                        "tipo": "altezza locale interno",
-                        "valore": 2.7,
-                        "unita": "m",
-                        "normativa": "D.M. 5/7/1975",
-                        "ambito": "locali abitabili",
-                        "descrizione": "Altezza minima interna dei locali abitabili"
                     }
                 ]
             }
             return NormativeAgentResult(
                 raw_text=json.dumps(mock_json, indent=2, ensure_ascii=False),
-                normative_info=json.dumps(mock_json, ensure_ascii=False),
                 sources=["https://mock-normativa.it", "https://mock-comune.torino.it"],
                 prompt=PromptRecord(
                     system="N/D",
@@ -239,30 +229,12 @@ class NormativeAgent(BaseAgent):
             # Per il caso multimodale, creiamo una chain senza callbacks per evitare conflitti
             chain = self.llm | StrOutputParser()
             raw = chain.invoke([message])
-            
-            # Parse with safe_extract_json
-            parsed_data = safe_extract_json(raw, schema=NormativeResponse)
-            if parsed_data and isinstance(parsed_data, NormativeResponse):
-                parsed_data = parsed_data.requisiti
-            else:
-                parsed_data = []
         else:
             # Formato tradizionale solo testo
             raw = invoke_with_langfuse(self.chain, prompt_inputs)
-            
-            # Parse with safe_extract_json
-            parsed_data = safe_extract_json(raw, schema=NormativeResponse)
-            if parsed_data and isinstance(parsed_data, NormativeResponse):
-                parsed_data = parsed_data.requisiti
-            else:
-                parsed_data = []
-        
-        # L'output è già una lista di requisiti
-        normative_info = json.dumps(parsed_data, ensure_ascii=False)
         
         return NormativeAgentResult(
             raw_text=raw,
-            normative_info=normative_info,
             sources=sources,
             prompt=PromptRecord(
                 system=self.system_prompt,

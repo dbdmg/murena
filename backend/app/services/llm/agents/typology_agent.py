@@ -82,7 +82,7 @@ class TypologyAgent(BaseAgent):
 
     @log_llm_usage
     @handle_agent_error(
-        fallback_value=TypologyAgentResult(raw_text="Error", typologies=[], prompt=None)
+        fallback_value=TypologyAgentResult(raw_text="Error", prompt=None)
     )
     def run(self, query: str, available_typologies: str) -> TypologyAgentResult:
         # If available_typologies is a list, join it. If it's already a string (from graph_agent), use it.
@@ -99,18 +99,8 @@ class TypologyAgent(BaseAgent):
 
         response_text = invoke_with_langfuse(self.chain, prompt_inputs)
 
-        parsed_data = safe_extract_json(response_text, schema=TypologyResponse)
-
-        typologies = []
-        if parsed_data and isinstance(parsed_data, TypologyResponse):
-            typologies = parsed_data.typologies
-        else:
-            # Fallback if validation fail but still parsed as dict
-            pass
-
         return TypologyAgentResult(
             raw_text=response_text,
-            typologies=typologies,
             prompt=PromptRecord(
                 system=self.system_prompt.strip(),
                 user=user_text,

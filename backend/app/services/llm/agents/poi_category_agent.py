@@ -84,8 +84,7 @@ class PoiCategoryAgent(BaseAgent):
     @log_llm_usage
     @handle_agent_error(
         fallback_value=PoiCategoryAgentResult(
-            raw_text="",
-            category_weights={cat: 0.0 for cat in PROMPT_CATEGORIES},
+            raw_text="{}",
             prompt=PromptRecord(system="", user="", full_text="")
         )
     )
@@ -104,15 +103,9 @@ class PoiCategoryAgent(BaseAgent):
         categories = []
         if parsed_data and isinstance(parsed_data, CategoryResponse):
             categories = parsed_data.categories
-        else:
-            # Fallback for manual or partial creation if strict validation failed but we got dict
-            pass
 
         # Validate categories are in allowed list
         valid_categories = [cat for cat in categories if cat in PROMPT_CATEGORIES]
-        if len(valid_categories) != len(categories):
-            print(f"⚠️ PoiCategoryAgent: Some categories were invalid: {set(categories) - set(valid_categories)}")
-        
         categories = valid_categories
         
         # Calcola i pesi delle categorie basati sull'ordine di selezione
@@ -126,8 +119,7 @@ class PoiCategoryAgent(BaseAgent):
             category_weights = {cat: weight / total_weight for cat, weight in category_weights.items()}
         
         # Aggiungi peso 0 per le categorie non selezionate
-        all_categories = PROMPT_CATEGORIES
-        for cat in all_categories:
+        for cat in PROMPT_CATEGORIES:
             if cat not in category_weights:
                 category_weights[cat] = 0.0
 
@@ -137,4 +129,10 @@ class PoiCategoryAgent(BaseAgent):
             full_text=full_text,
         )
 
-        return PoiCategoryAgentResult(raw_text=raw, category_weights=category_weights, prompt=prompt_record)
+        # Create a combined JSON response
+        result_payload = {
+            "categories": categories,
+            "category_weights": category_weights
+        }
+
+        return PoiCategoryAgentResult(raw_text=json.dumps(result_payload), prompt=prompt_record)

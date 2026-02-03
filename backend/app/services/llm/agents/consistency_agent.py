@@ -84,7 +84,7 @@ class ConsistencyAgent(BaseAgent):
     @log_llm_usage
     @handle_agent_error(
         fallback_value=ConsistencyAgentResult(
-            raw_text="Error", requirements=[], prompt=None
+            raw_text="{}", prompt=None
         )
     )
     def run(
@@ -108,15 +108,8 @@ class ConsistencyAgent(BaseAgent):
 
         response_text = invoke_with_langfuse(self.chain, prompt_inputs)
 
-        parsed_data = safe_extract_json(response_text, schema=ConsistencyResponse)
-
-        requirements = []
-        if parsed_data and isinstance(parsed_data, ConsistencyResponse):
-            requirements = parsed_data.requirements
-
         return ConsistencyAgentResult(
             raw_text=response_text,
-            requirements=requirements,
             prompt=PromptRecord(
                 system=self.system_prompt.strip(),
                 user=user_text,

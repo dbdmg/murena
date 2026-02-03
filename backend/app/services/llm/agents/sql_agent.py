@@ -209,8 +209,6 @@ class SQLAgent(BaseAgent):
         sql = sql.replace("\\'", "''")
 
         return SQLAgentResult(
-            sql_query=sql,
-            explanation=None,
-            raw_text=raw_text,
+            raw_text=sql,
             prompt=prompt_record,
         )
