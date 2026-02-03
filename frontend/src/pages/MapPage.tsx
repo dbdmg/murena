@@ -9,6 +9,7 @@ import { MapRunSelector } from '../components/map/MapRunSelector';
 import { ResultsCarousel } from '../components/map/ResultsCarousel';
 import { MapLegend } from '../components/map/MapLegend';
 import { AgentRefinementHUD } from '../components/agent/AgentRefinementHUD';
+import { SQLFiltersHUD } from '../components/agent/SQLFiltersHUD';
 import { ResultsSidebar } from '../components/map/ResultsSidebar';
 
 import { mapApi } from '../api/endpoints/map';
@@ -60,6 +61,7 @@ export const MapPage: React.FC = () => {
 
     // Agent Tuner HUD state
     const [isAgentHUDOpen, setIsAgentHUDOpen] = useState(false);
+    const [isSQLHUDOpen, setIsSQLHUDOpen] = useState(false);
 
     // Results list sidebar state
     const [isListSidebarOpen, setIsListSidebarOpen] = useState(false);
@@ -193,7 +195,7 @@ export const MapPage: React.FC = () => {
     // Fetch POIs when categories change
     // Use stringified version to avoid unnecessary re-fetches
     const activePOICategoriesKey = layers.activePOICategories.sort().join(',');
-    
+
     useEffect(() => {
         if (layers.activePOICategories.length > 0) {
             layersApi.getPOIs(layers.activePOICategories, undefined, undefined)
@@ -202,7 +204,7 @@ export const MapPage: React.FC = () => {
         } else {
             setPois([]);
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [activePOICategoriesKey]);
 
     // Handle marker click from map
@@ -309,6 +311,11 @@ export const MapPage: React.FC = () => {
                         onRunSwitch={handleSelectRun}
                         isOpen={isAgentHUDOpen}
                         onToggle={() => setIsAgentHUDOpen(!isAgentHUDOpen)}
+                    />
+                    <SQLFiltersHUD
+                        activeRunId={activeRunId}
+                        isOpen={isSQLHUDOpen}
+                        onToggle={() => setIsSQLHUDOpen(!isSQLHUDOpen)}
                     />
                 </div>
 
