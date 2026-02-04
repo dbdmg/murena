@@ -12,15 +12,20 @@ from app.core.config import AGENT_MODELS, USE_MOCK_NORMATIVE_AGENT
 from app.services.llm.agents.base import BaseAgent
 from app.services.llm.agents.schema import NormativeAgentResult, PromptRecord
 from app.services.llm.langchain_client import get_llm, invoke_with_langfuse, get_langfuse_callback
-from app.services.llm.prompt_loader import get_system_prompt, get_user_template
+from app.services.llm.prompt_loader import get_prompt_template
 from app.utils.decorators import handle_agent_error, log_llm_usage
 
 
-DEFAULT_SYSTEM = """
+DEFAULT_PROMPT = """
 ANALIZZA la documentazione normativa fornita ed ESTRAI SOLO i requisiti relativi a superfici e dimensioni che sono DIRETTAMENTE PERTINENTI alla query dell'utente.
 
+Documentazione Normativa:
+{normative_documents}
+
+Query dell'utente: {query}
+
 IMPORTANTE:
-- Analizza SOLO il testo fornito
+- Analizza SOLO il testo fornito sopra
 - NON cercare informazioni esterne
 - NON fare supposizioni
 - Usa SOLO valori presenti nella documentazione
@@ -47,11 +52,6 @@ REGOLE:
 - Includi una descrizione chiara per ogni requisito
 - SOLO JSON - niente altro testo
 """
-
-DEFAULT_USER = """Documentazione Normativa:
-{normative_documents}
-
-Query dell'utente: {query}"""
 
 
 def _load_normative_documents() -> tuple[str, list[str], List[Dict[str, Any]]]:
@@ -142,10 +142,6 @@ class NormativeAgent(BaseAgent):
             model_name or AGENT_MODELS.get("normative_agent") or AGENT_MODELS.get("default")
         )
         self.llm = get_llm(model_name=resolved_model)
-        
-        # Load system and user prompts separately
-        self.system_prompt = get_system_prompt("normative_agent", DEFAULT_SYSTEM)
-        self.user_template = get_user_template("normative_agent", DEFAULT_USER)
 
     @log_llm_usage
     @handle_agent_error(
@@ -197,21 +193,17 @@ class NormativeAgent(BaseAgent):
         # Carica i documenti normativi
         normative_docs, sources, images = _load_normative_documents()
         
-        # Prepara gli input per il prompt
-        prompt_inputs = {
-            "query": query,
-            "normative_documents": normative_docs
-        }
-        
-        # Format user prompt with variables
-        user_text = self.user_template.format(**prompt_inputs).strip()
-        full_text = f"[SYSTEM]\n{self.system_prompt}\n\n[USER]\n{user_text}"
+        # Usa sempre il template caricato dinamicamente
+        template_text = get_prompt_template("normative_agent", "template", DEFAULT_PROMPT)
         
         # Se ci sono immagini, usa il formato multimodale
         if images:
             # Costruisci il messaggio con testo e immagini
             content = [
-                {"type": "text", "text": full_text}
+                {"type": "text", "text": template_text.format(
+                    query=query,
+                    normative_documents=normative_docs
+                )}
             ]
             
             # Aggiungi tutte le immagini
@@ -230,8 +222,14 @@ class NormativeAgent(BaseAgent):
             parsed_data = chain.invoke([message])
         else:
             # Formato tradizionale solo testo
-            prompt_template = PromptTemplate.from_template(self.user_template)
+            prompt_template = PromptTemplate.from_template(template_text)
             chain = prompt_template | self.llm | JsonOutputParser()
+            
+            # Prepara gli input per il prompt
+            prompt_inputs = {
+                "query": query,
+                "normative_documents": normative_docs
+            }
             
             # Invoca l'LLM
             parsed_data = invoke_with_langfuse(chain, prompt_inputs)
@@ -244,8 +242,8 @@ class NormativeAgent(BaseAgent):
             normative_info=normative_info,
             sources=sources,
             prompt=PromptRecord(
-                system=self.system_prompt,
-                user=user_text,
-                full_text=full_text,
+                system=template_text,
+                user=query,
+                full_text=template_text.format(query=query, normative_documents=normative_docs) if images else prompt_template.format(**prompt_inputs),
             ),
         )

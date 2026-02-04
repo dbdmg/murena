@@ -11,7 +11,7 @@ from app.core.config import settings
 from app.services.llm.agents.base import BaseAgent
 from app.services.llm.agents.schema import PoiAmenityAgentResult
 from app.services.llm.langchain_client import get_llm, invoke_with_langfuse
-from app.services.llm.prompt_loader import get_system_prompt, get_user_template
+from app.services.llm.prompt_loader import get_prompt_template
 from app.utils.decorators import handle_agent_error, log_llm_usage
 
 import pandas as pd
@@ -52,8 +52,15 @@ def get_category_amenities_str(category_weights):
     return '\n'.join(lines)
 
 
-DEFAULT_SYSTEM = """
+DEFAULT_PROMPT = """
 Sei un esperto analista urbano. Data una richiesta utente e una lista di categorie di servizi preselezionate, il tuo compito è selezionare i servizi delle categorie selezionate che devono essere in prossimità per soddisfare la richiesta.
+
+**Richiesta Utente**: {query}
+
+**Categorie Selezionate**: {selected_categories}
+
+**Servizi disponibili per categoria**:
+{available_amenities}
 
 **Istruzioni**:
 - Per ogni categoria, seleziona SOLO i servizi che devono essere in prossimità per la richiesta.
@@ -68,13 +75,6 @@ Sei un esperto analista urbano. Data una richiesta utente e una lista di categor
 }}}}
 """
 
-DEFAULT_USER = """**Richiesta Utente**: {query}
-
-**Categorie Selezionate**: {selected_categories}
-
-**Servizi disponibili per categoria**:
-{available_amenities}"""
-
 
 class PoiAmenityAgent(BaseAgent):
     name = "poi-amenity-agent"
@@ -82,10 +82,6 @@ class PoiAmenityAgent(BaseAgent):
     def __init__(self, model_name: str = None):
         resolved_model = model_name or AGENT_MODELS.get("poi_amenity_agent") or AGENT_MODELS.get("default")
         self.llm = get_llm(model_name=resolved_model)
-        
-        # Load system and user prompts separately
-        self.system_prompt = get_system_prompt("poi_amenity_agent", DEFAULT_SYSTEM)
-        self.user_template = get_user_template("poi_amenity_agent", DEFAULT_USER)
         
         # Carica i dataset per il calcolo dello score
         if os.path.exists(CLUSTER_AMENITY_COUNTS_PATH):
@@ -107,22 +103,17 @@ class PoiAmenityAgent(BaseAgent):
         selected_categories = [cat for cat, weight in category_weights.items() if weight > 0]
         available_amenities = get_category_amenities_str(category_weights)
         
-        prompt_template = PromptTemplate.from_template(self.user_template)
+        template_text = get_prompt_template("poi_amenity_agent", "template", DEFAULT_PROMPT)
+        prompt_template = PromptTemplate.from_template(template_text)
 
         chain = prompt_template | self.llm | StrOutputParser()
 
-        prompt_inputs = {
-            "query": query,
-            "selected_categories": ", ".join(selected_categories),
-            "available_amenities": available_amenities
-        }
-        
-        # Format user prompt with variables
-        user_text = self.user_template.format(**prompt_inputs).strip()
-        full_text = f"[SYSTEM]\n{self.system_prompt}\n\n[USER]\n{user_text}"
-
         try:
-            response_text = invoke_with_langfuse(chain, prompt_inputs)
+            response_text = invoke_with_langfuse(chain, {
+                "query": query,
+                "selected_categories": ", ".join(selected_categories),
+                "available_amenities": available_amenities
+            })
 
             # Extract JSON from response
             json_match = re.search(r"\{.*\}", response_text, re.DOTALL)

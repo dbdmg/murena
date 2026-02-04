@@ -24,6 +24,7 @@ from app.services.llm.agents.ape_agent import ApeAgent
 from app.services.llm.agents.base import BaseAgent
 from app.services.llm.agents.evaluation_agent import EvaluationAgent
 from app.services.llm.agents.location_agent import LocationAgent
+from app.services.llm.agents.needs_metric_agent import NeedsMetricAgent
 from app.services.llm.agents.normative_agent import NormativeAgent
 from app.services.llm.agents.orchestrator import OrchestratorResult
 from app.services.llm.agents.poi_category_agent import PoiCategoryAgent
@@ -105,6 +106,7 @@ class GraphOrchestratorAgent(BaseAgent):
             Callable[[str, pd.DataFrame], tuple[pd.DataFrame, Optional[str]]]
         ] = None,
         location_agent: Optional[LocationAgent] = None,
+        needs_agent: Optional[NeedsMetricAgent] = None,
         use_case_agent: Optional[UseCaseAgent] = None,
         sql_agent: Optional[SQLAgent] = None,
         evaluation_agent: Optional[EvaluationAgent] = None,
@@ -122,6 +124,7 @@ class GraphOrchestratorAgent(BaseAgent):
         self.execute_sql_fn = execute_sql_fn
 
         self.location_agent = location_agent or LocationAgent()
+        self.needs_agent = needs_agent or NeedsMetricAgent()
         self.use_case_agent = use_case_agent or UseCaseAgent()
         self.sql_agent = sql_agent or SQLAgent()
         self.evaluation_agent = evaluation_agent or EvaluationAgent()
@@ -497,9 +500,8 @@ class GraphOrchestratorAgent(BaseAgent):
 
         # Define tasks
         def run_typology():
-            self._update_progress(state, 1, "Analisi tipologia in corso...")
-            logger.info("🔧 Executing TypologyAgent")
-            result = self.typology_agent.run(
+            # Pass metadata to typology agent if supported, otherwise just query
+            return self.typology_agent.run(
                 query=query,
                 available_typologies=str(
                     state["db_metadata"]
@@ -507,73 +509,64 @@ class GraphOrchestratorAgent(BaseAgent):
                     .get("values", [])
                 ),
             )
-            logger.info(f"✅ TypologyAgent completed: {result.typologies}")
-            return result
 
         def run_location():
-            self._update_progress(state, 1, "Analisi ubicazione in corso...")
-            logger.info("📍 Executing LocationAgent")
-            result = self.location_agent.run(query=query)
-            logger.info(f"✅ LocationAgent completed: {len(result.places)} places")
-            return result
+            return self.location_agent.run(query=query)
+
+        def run_strategy():
+            if self.is_agent_mode:
+                # Extract categorical values for better filter generation
+                categorical_values = self._extract_categorical_values(
+                    state["db_metadata"]
+                )
+
+                return self.needs_agent.run(
+                    query=query,
+                    db_schema=str(db_schema),
+                    dataset_sample=sample_columns,
+                    db_metadata=json.dumps(state["db_metadata"], ensure_ascii=False),
+                    categorical_values=categorical_values,  # NEW
+                )
+            else:
+                return self.use_case_agent.run(query=query, db_schema=str(db_schema))
 
         def run_ape():
-            # Always run APE agent if data is available
-            base_dataset = state.get("base_dataset")
-            dataset_path = state.get("dataset_path")
-            if base_dataset is not None or dataset_path is not None:
-                self._update_progress(state, 1, "Analisi energetica APE in corso...")
-                logger.info("⚡ Executing ApeAgent")
+            # Check keywords for classic mode or always run for agent mode if needed
+            keywords = ["ape", "energetica", "classe", "consumo", "co2", "emissioni"]
+            if self.is_agent_mode or any(k in query.lower() for k in keywords):
+                # Calculate statistics from dataset (prefer DataFrame over file path)
+                base_dataset = state.get("base_dataset")
+                dataset_path = state.get("dataset_path")
                 ape_stats = self._get_ape_statistics(dataset_path=dataset_path, dataset_df=base_dataset)
-                result = self.ape_agent.run(
+                # Pass stats and legend explicitly
+                return self.ape_agent.run(
                     query=query,
                     columns=APE_AGENT_COLUMNS,
                     statistics=ape_stats,
                     score_legend=SCORE_LEGEND,
                 )
-                logger.info("✅ ApeAgent completed")
-                return result
-            logger.info("⚠️ ApeAgent skipped: no data")
             return None
 
         def run_poi():
-            self._update_progress(state, 1, "Analisi punti di interesse in corso...")
-            logger.info("🏪 Executing POI Agents")
             category_result = self.poi_category_agent.run(query=query)
-            
-            # Safety check: handle None result
-            if category_result is None:
-                logger.warning("⚠️ PoiCategoryAgent returned None, skipping POI analysis")
-                return None
-            
-            logger.info(f"✅ PoiCategoryAgent completed: {len(category_result.category_weights)} categories")
-            result = self.poi_amenity_agent.run(query=query, category_weights=category_result.category_weights)
-            
-            # Safety check: handle None result from amenity agent
-            if result is None:
-                logger.warning("⚠️ PoiAmenityAgent returned None, skipping POI analysis")
-                return None
-            
-            logger.info(f"✅ PoiAmenityAgent completed: {len(result.selected_categories)} categories")
-            return result
+            return self.poi_amenity_agent.run(query=query, category_weights=category_result.category_weights)
         
         def run_normative():
-            self._update_progress(state, 1, "Analisi normativa in corso...")
-            logger.info("📚 Executing NormativeAgent")
-            result = self.normative_agent.run(query=query)
-            logger.info("✅ NormativeAgent completed")
-            return result
+            normative_result = self.normative_agent.run(query=query)
+            return normative_result
 
         # Execute in parallel
         with ThreadPoolExecutor(max_workers=5) as executor:
             future_typology = executor.submit(run_typology)
             future_location = executor.submit(run_location)
+            future_strategy = executor.submit(run_strategy)
             future_ape = executor.submit(run_ape)
             future_poi = executor.submit(run_poi)
             future_normative = executor.submit(run_normative)
 
             typology_result = future_typology.result()
             loc_result = future_location.result()
+            strategy_result = future_strategy.result()
             ape_result = future_ape.result()
             poi_result = future_poi.result()
             normative_result = future_normative.result()
@@ -640,23 +633,14 @@ class GraphOrchestratorAgent(BaseAgent):
 
         # Process POI
         state["poi_result"] = poi_result
-        if poi_result is not None:
-            state["gemini_responses"]["poi_analysis"] = {
-                "prompt": poi_result.prompt.model_dump() if poi_result.prompt else None,
-                "response": poi_result.raw_text,
-                "weights": getattr(poi_result, 'poi_weights', getattr(poi_result, 'category_weights', {})),
-                "constraints": getattr(poi_result, 'constraints', {}),
-            }
-        else:
-            logger.warning("⚠️ POI analysis skipped: no result available")
-            state["gemini_responses"]["poi_analysis"] = {
-                "prompt": None,
-                "response": "",
-                "weights": {},
-                "constraints": {},
-            }
+        state["gemini_responses"]["poi_analysis"] = {
+            "prompt": poi_result.prompt.model_dump() if poi_result.prompt else None,
+            "response": poi_result.raw_text,
+            "weights": getattr(poi_result, 'poi_weights', getattr(poi_result, 'category_weights', {})),
+            "constraints": getattr(poi_result, 'constraints', {}),
+        }
 
-        # Process APE
+        # Process Strategy & APE
         ape_text = ""
         if ape_result:
             state["gemini_responses"]["ape_analysis"] = {
@@ -687,15 +671,63 @@ class GraphOrchestratorAgent(BaseAgent):
                 "sources": normative_result.sources,
             }
 
-        # Build use_case_str from agent results (no needs_metric)
-        use_case_parts = [f"Query: {query}"]
-        if ape_text:
-            use_case_parts.append(ape_text.strip())
-        if poi_text:
-            use_case_parts.append(poi_text.strip())
-        if normative_result:
-            use_case_parts.append(f"Normative: {normative_result.normative_info[:200]}")
-        state["use_case_str"] = "\n".join(use_case_parts)
+        if self.is_agent_mode:
+            # strategy_result is NeedsMetricPlan
+            plan = strategy_result
+
+            # FORCE APE INTEGRATION: If ApeAgent has something to say, we include it.
+            if ape_result:
+                # Append to summary for context
+                plan.summary += ape_text
+
+                # Update the strategy object to ensure it's passed to Evaluation
+                if not plan.ape_strategy.strategy:
+                    plan.ape_strategy.strategy = ape_result.answer
+                else:
+                    plan.ape_strategy.strategy += f" | {ape_result.answer}"
+
+                # Force flag to true so downstream logic knows to use it
+                plan.ape_strategy.use_ape = True
+
+            # FORCE POI INTEGRATION
+            if poi_result:
+                plan.summary += poi_text
+
+            state["metrics_plan"] = plan
+            state["context"].metrics_plan = plan
+            state["gemini_responses"]["needs_metric_plan"] = {
+                "prompt": plan.prompt.model_dump() if plan.prompt else None,
+                "response": plan.raw_text,
+                "plan": plan.model_dump(),
+            }
+            state["use_case_str"] = self._format_plan_for_evaluation(plan)
+        else:
+            # strategy_result is UseCaseResult
+            use_case_result = strategy_result
+            state["use_case_str"] = use_case_result.description + ape_text + poi_text
+            state["gemini_responses"]["use_case_generation"] = {
+                "prompt": (
+                    use_case_result.prompt.model_dump()
+                    if use_case_result.prompt
+                    else None
+                ),
+                "response": use_case_result.raw_text,
+                "description": use_case_result.description,
+            }
+            state["gemini_responses"]["use_case_generation"] = {
+                "prompt": (
+                    use_case_result.prompt.model_dump()
+                    if use_case_result.prompt
+                    else None
+                ),
+                "response": use_case_result.raw_text,
+                "use_case": use_case_result.model_dump(),
+            }
+            state["use_case_str"] = (
+                f"Descrizione: {use_case_result.description}\n"
+                f"Target: {use_case_result.target_audience}\n"
+                f"Metriche: {', '.join(use_case_result.key_metrics)}"
+            ) + ape_text
 
         return state
 
