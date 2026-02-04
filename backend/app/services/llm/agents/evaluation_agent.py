@@ -13,12 +13,17 @@ from app.services.llm.agents.base import BaseAgent
 from app.services.llm.agents.schema import (
     EvaluationAgentResponse,
     EvaluationResult,
-    EvaluationList,
     PromptRecord,
 )
 from app.services.llm.langchain_client import get_llm, invoke_with_langfuse
 from app.services.llm.prompt_loader import get_system_prompt, get_user_template
 from app.utils.decorators import log_llm_usage
+
+
+class EvaluationList(BaseModel):
+    evaluations: List[EvaluationResult] = Field(
+        description="Lista delle valutazioni degli immobili"
+    )
 
 
 DEFAULT_SYSTEM = """Sei un Esperto Senior di Valorizzazione Immobiliare e Rigenerazione Urbana per il Ministero dell'Economia e delle Finanze (MEF).
@@ -162,8 +167,7 @@ Assicurati che la tua valutazione sia allineata con i requisiti specifici sopra 
             # Gestione differenziata in base al tipo di output (oggetto Pydantic o altro)
             if isinstance(result, EvaluationList):
                 results = result.evaluations
-                # Return the whole object as JSON to match EvaluationList schema
-                raw_text = json.dumps(result.model_dump(), indent=2, ensure_ascii=False)
+                raw_text = json.dumps([r.model_dump() for r in results], indent=2)
             else:
                 # Fallback se la catena restituisce qualcos'altro
                 results = []
@@ -171,7 +175,8 @@ Assicurati che la tua valutazione sia allineata con i requisiti specifici sopra 
 
         except Exception as e:
             print(f"Errore nel parsing della valutazione: {e}")
-            raw_text = json.dumps({"error": str(e), "evaluations": []})
+            results = []
+            raw_text = f"Error: {str(e)}"
 
         prompt_record = PromptRecord(
             system=self._system_with_format.strip(),
@@ -180,7 +185,7 @@ Assicurati che la tua valutazione sia allineata con i requisiti specifici sopra 
         )
 
         return EvaluationAgentResponse(
-            prompt=prompt_record, raw_text=raw_text
+            prompt=prompt_record, raw_text=raw_text, results=results
         )
 
     @log_llm_usage

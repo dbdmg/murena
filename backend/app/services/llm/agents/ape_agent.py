@@ -89,6 +89,9 @@ class ApeAgent(BaseAgent):
             # Fallback legacy behavior or graceful exit
             return ApeAgentResult(
                 raw_text="Dati APE non disponibili.",
+                answer="Non sono disponibili dati APE per questa analisi.",
+                relevant_ape_ids=[],
+                suggested_filters=[],
                 prompt=None,
             )
 
@@ -119,11 +122,25 @@ class ApeAgent(BaseAgent):
             # Use invoke_with_langfuse to get structured output
             structured_response: ApeAgentOutput = invoke_with_langfuse(self.chain, prompt_inputs)
 
-            import json
-            raw_json = json.dumps(structured_response.model_dump(), ensure_ascii=False)
+            # Extract fields from structured output
+            answer = structured_response.answer
+            suggested_filters = structured_response.suggested_filters
+
+            # Ensure suggested_filters is a list of strings
+            if isinstance(suggested_filters, list):
+                suggested_filters = [
+                    str(f)
+                    for f in suggested_filters
+                    if isinstance(f, (str, int, float))
+                ]
+            else:
+                suggested_filters = []
 
             return ApeAgentResult(
-                raw_text=raw_json,
+                raw_text=answer,  # Use the structured answer as raw_text
+                answer=answer,
+                relevant_ape_ids=[],
+                suggested_filters=suggested_filters,
                 prompt=PromptRecord(
                     system=system_content,
                     user=user_text,
@@ -134,6 +151,9 @@ class ApeAgent(BaseAgent):
         except Exception as e:
             print(f"Errore ApeAgent: {e}")
             return ApeAgentResult(
-                raw_text=json.dumps({"error": str(e), "answer": "Si è verificato un errore nell'analisi energetica.", "suggested_filters": []}),
+                raw_text=str(e),
+                answer="Si è verificato un errore nell'analisi energetica.",
+                relevant_ape_ids=[],
+                suggested_filters=[],
                 prompt=None,
             )

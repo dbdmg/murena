@@ -101,7 +101,11 @@ class PoiAmenityAgent(BaseAgent):
     @log_llm_usage
     @handle_agent_error(
         fallback_value=PoiAmenityAgentResult(
-            raw_text="{}",
+            raw_text="",
+            selected_categories=[],
+            selected_amenities={},
+            category_weights={},
+            amenity_weights={},
             prompt=PromptRecord(system="", user="", full_text="")
         )
     )
@@ -127,15 +131,17 @@ class PoiAmenityAgent(BaseAgent):
         amenities_by_category = {}
         if parsed_data and isinstance(parsed_data, AmenityResponse):
             amenities_by_category = parsed_data.amenities
+        else:
+            # Fallback
+            pass
         
         # Calcola i pesi delle amenity: 1/n per quelle selezionate, 0 per quelle non selezionate
         amenity_weights = {}
         for category, amenities in amenities_by_category.items():
             amenity_weights[category] = {}
-            if amenities:
-                n = len(amenities)
-                for amenity in amenities:
-                    amenity_weights[category][amenity] = 1.0 / n
+            n = len(amenities)
+            for amenity in amenities:
+                amenity_weights[category][amenity] = 1.0 / n
         
         # Aggiungi peso 0 per le amenity non selezionate in ogni categoria
         for category in selected_categories:
@@ -154,14 +160,11 @@ class PoiAmenityAgent(BaseAgent):
             full_text=full_text,
         )
 
-        result_payload = {
-            "selected_categories": selected_categories,
-            "selected_amenities": amenities_by_category,
-            "category_weights": category_weights,
-            "amenity_weights": amenity_weights
-        }
-
         return PoiAmenityAgentResult(
-            raw_text=json.dumps(result_payload),
+            raw_text=raw,
+            selected_categories=selected_categories,
+            selected_amenities=amenities_by_category,
+            category_weights=category_weights,
+            amenity_weights=amenity_weights,
             prompt=prompt_record
         )

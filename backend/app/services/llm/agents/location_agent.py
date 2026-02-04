@@ -79,7 +79,7 @@ class LocationAgent(BaseAgent):
 
     @log_llm_usage
     @handle_agent_error(
-        fallback_value=LocationAgentResult(raw_text="Error", prompt=None)
+        fallback_value=LocationAgentResult(raw_text="Error", places=[], prompt=None)
     )
     def run(self, *, query: str) -> LocationAgentResult:
         prompt_inputs = {"query": query}
@@ -90,10 +90,24 @@ class LocationAgent(BaseAgent):
 
         raw = invoke_with_langfuse(self.chain, prompt_inputs)
 
+        # Parse with safe_extract_json using Pydantic model
+        parsed_data = safe_extract_json(raw, schema=LocationResponse)
+
+        places = []
+        if parsed_data and isinstance(parsed_data, LocationResponse):
+            places = parsed_data.places
+        else:
+            # Fallback for manual or partial creation if strict validation failed but we got dict
+            # (safe_extract_json returns None if schema validation fails, maybe check raw dict?)
+            # Actually safe_extract_json returns schema instance if schema provided.
+            # If validation failed, it returns None.
+            # We might want to try parsing without schema if with schema fails, but let's trust strict first.
+            pass
+
         prompt_record = PromptRecord(
             system=self.system_prompt.strip(),
             user=user_text,
             full_text=full_text,
         )
 
-        return LocationAgentResult(raw_text=raw, prompt=prompt_record)
+        return LocationAgentResult(raw_text=raw, places=places, prompt=prompt_record)

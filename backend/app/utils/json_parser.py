@@ -67,7 +67,7 @@ def safe_extract_json(text: str, schema: Optional[Type[T]] = None) -> Any:
     if schema:
         try:
             return schema.model_validate(data)
-        except Exception:
+        except ValidationError:
             # Se la validazione fallisce, potremmo ritornare None o i dati raw
             # Per sicurezza ritorniamo None, così il chiamante sa che non è conforme
             return None
