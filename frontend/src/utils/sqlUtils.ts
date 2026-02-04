@@ -42,6 +42,7 @@ const parseRecursive = (clause: string, initialOperator: 'AND' | 'OR' | null): S
 
     let current = '';
     let parenthesisCount = 0;
+    let betweenCount = 0;
     let inQuote = false;
     let quoteChar = '';
 
@@ -71,15 +72,34 @@ const parseRecursive = (clause: string, initialOperator: 'AND' | 'OR' | null): S
         }
 
         if (!inQuote && parenthesisCount === 0) {
-            const partAnd = clause.substring(i, i + 5).toUpperCase();
-            const partOr = clause.substring(i, i + 4).toUpperCase();
+            const sub = clause.substring(i).toUpperCase();
 
-            if (partAnd === ' AND ') {
-                pushToken();
-                operators.push('AND');
-                i += 4;
+            // Check for BETWEEN to avoid splitting its AND
+            if (sub.startsWith(' BETWEEN ')) {
+                betweenCount++;
+                current += clause.substring(i, i + 9);
+                i += 8;
                 continue;
-            } else if (partOr === ' OR ') {
+            } else if (sub.startsWith('BETWEEN ')) {
+                betweenCount++;
+                current += clause.substring(i, i + 8);
+                i += 7;
+                continue;
+            }
+
+            if (sub.startsWith(' AND ')) {
+                if (betweenCount > 0) {
+                    betweenCount--;
+                    current += clause.substring(i, i + 5);
+                    i += 4;
+                    continue;
+                } else {
+                    pushToken();
+                    operators.push('AND');
+                    i += 4;
+                    continue;
+                }
+            } else if (sub.startsWith(' OR ')) {
                 pushToken();
                 operators.push('OR');
                 i += 3;
@@ -137,6 +157,7 @@ const stripOuterParentheses = (text: string): string => {
 
 const hasTopLevelOperators = (text: string): boolean => {
     let parenthesisCount = 0;
+    let betweenCount = 0;
     let inQuote = false;
     let quoteChar = '';
 
@@ -151,8 +172,27 @@ const hasTopLevelOperators = (text: string): boolean => {
             if (char === ')') parenthesisCount--;
         }
         if (!inQuote && parenthesisCount === 0) {
-            if (text.substring(i, i + 5).toUpperCase() === ' AND ' ||
-                text.substring(i, i + 4).toUpperCase() === ' OR ') {
+            const sub = text.substring(i).toUpperCase();
+
+            if (sub.startsWith(' BETWEEN ')) {
+                betweenCount++;
+                i += 8;
+                continue;
+            } else if (sub.startsWith('BETWEEN ')) {
+                betweenCount++;
+                i += 7;
+                continue;
+            }
+
+            if (sub.startsWith(' AND ')) {
+                if (betweenCount > 0) {
+                    betweenCount--;
+                    i += 4;
+                    continue;
+                }
+                return true;
+            }
+            if (sub.startsWith(' OR ')) {
                 return true;
             }
         }

@@ -62,9 +62,39 @@ const itemPrettify = (content: string) => {
         );
     }
 
-    // 2. Case: Binary operators
+    // 2. Case: BETWEEN (special handling for range)
+    const betweenMatch = cleanContent.match(/^(.*?)\s+BETWEEN\s+(.*?)\s+AND\s+(.*)$/i);
+    if (betweenMatch) {
+        const field = betweenMatch[1].trim();
+        const val1 = betweenMatch[2].trim();
+        const val2 = betweenMatch[3].trim();
+
+        return (
+            <div className="flex items-center gap-3 flex-wrap min-w-0">
+                <span className="text-amber-400 font-bold bg-amber-400/10 px-2 py-0.5 rounded-md text-[13px] border border-amber-400/20 shadow-sm shrink-0">
+                    {field}
+                </span>
+
+                <div className="flex items-center gap-2">
+                    <span className="text-gray-500 text-[10px] font-bold uppercase shrink-0 opacity-70">between</span>
+                    <span className="text-gray-200 font-mono text-sm bg-white/[0.02] px-2 py-0.5 rounded border border-white/5">
+                        {val1}
+                    </span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                    <span className="text-gray-500 text-[10px] font-bold uppercase shrink-0 opacity-70">and</span>
+                    <span className="text-gray-200 font-mono text-sm bg-white/[0.02] px-2 py-0.5 rounded border border-white/5">
+                        {val2}
+                    </span>
+                </div>
+            </div>
+        );
+    }
+
+    // 3. Case: Binary operators
     // Using regex to be more robust against missing spaces (e.g. field>=100)
-    const opRegex = /^(.*?)\s*(>=|<=|!=|<>|=|>|<|IS NOT NULL|IS NULL|LIKE|ILIKE|BETWEEN)\s*(.*)$/i;
+    const opRegex = /^(.*?)\s*(>=|<=|!=|<>|=|>|<|IS NOT NULL|IS NULL|LIKE|ILIKE)\s*(.*)$/i;
     const match = cleanContent.match(opRegex);
 
     if (match) {
@@ -107,8 +137,8 @@ const ConditionItem: React.FC<ConditionItemProps> = ({ condition, depth = 0 }) =
                 <div className="w-12 flex justify-end pt-3">
                     {condition.operator ? (
                         <span className={`px-1.5 py-0.5 rounded border text-[10px] font-bold uppercase tracking-widest shadow-lg ${condition.operator === 'OR'
-                                ? 'bg-cyan-500/20 border-cyan-500/40 text-cyan-400'
-                                : 'bg-amber-500/20 border-amber-500/40 text-amber-400'
+                            ? 'bg-cyan-500/20 border-cyan-500/40 text-cyan-400'
+                            : 'bg-amber-500/20 border-amber-500/40 text-amber-400'
                             }`}>
                             {condition.operator}
                         </span>
