@@ -9,7 +9,6 @@ from __future__ import annotations
 from typing import Any, Dict
 
 from fastapi import APIRouter, Depends, HTTPException
-from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from app.api.deps import get_current_user_optional
@@ -36,8 +35,8 @@ async def list_prompt_overrides() -> Dict[str, Dict[str, str]]:
         )
 
 
-@router.get("/overrides/{agent}/{key}", response_model=None)
-async def get_prompt_override(agent: str, key: str = "template") -> Dict[str, Any] | JSONResponse:
+@router.get("/overrides/{agent}/{key}")
+async def get_prompt_override(agent: str, key: str = "template") -> Dict[str, Any]:
     """Get a single override block (if present)."""
 
     try:
@@ -49,7 +48,7 @@ async def get_prompt_override(agent: str, key: str = "template") -> Dict[str, An
 
     agent_map = overrides.get(agent)
     if not agent_map or key not in agent_map:
-        return JSONResponse(status_code=404, content={"detail": "Prompt override not found"})
+        raise HTTPException(status_code=404, detail="Prompt override not found")
 
     return {"agent": agent, "key": key, "text": agent_map[key]}
 
