@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
@@ -37,18 +37,6 @@ class LocationAgentResult(BaseModel):
     prompt: Optional[PromptRecord] = Field(
         None, description="Metadati sul prompt inviato al modello"
     )
-
-
-class CategoryResponse(BaseModel):
-    categories: List[str] = Field(default_factory=list, description="Lista delle categorie selezionate")
-
-
-class AmenityResponse(BaseModel):
-    amenities: Dict[str, List[str]] = Field(default_factory=dict, description="Amenity selezionate per categoria")
-
-
-class NormativeResponse(BaseModel):
-    requisiti: List[Dict[str, Any]] = Field(default_factory=list, description="Requisiti normativi estratti")
 
 
 class UseCaseResult(BaseModel):

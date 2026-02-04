@@ -4,17 +4,16 @@ import os
 from pathlib import Path
 from typing import Any, List, Dict
 
-from langchain_core.output_parsers import StrOutputParser
-from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.output_parsers import JsonOutputParser
+from langchain_core.prompts import PromptTemplate
 from langchain_core.messages import HumanMessage
 
 from app.core.config import AGENT_MODELS, USE_MOCK_NORMATIVE_AGENT
 from app.services.llm.agents.base import BaseAgent
-from app.services.llm.agents.schema import NormativeAgentResult, PromptRecord, NormativeResponse
+from app.services.llm.agents.schema import NormativeAgentResult, PromptRecord
 from app.services.llm.langchain_client import get_llm, invoke_with_langfuse, get_langfuse_callback
 from app.services.llm.prompt_loader import get_system_prompt, get_user_template
 from app.utils.decorators import handle_agent_error, log_llm_usage
-from app.utils.json_parser import safe_extract_json
 
 
 DEFAULT_SYSTEM = """
@@ -148,16 +147,6 @@ class NormativeAgent(BaseAgent):
         self.system_prompt = get_system_prompt("normative_agent", DEFAULT_SYSTEM)
         self.user_template = get_user_template("normative_agent", DEFAULT_USER)
 
-        # Create ChatPromptTemplate with system/user separation
-        self.prompt = ChatPromptTemplate.from_messages(
-            [
-                ("system", self.system_prompt),
-                ("user", self.user_template),
-            ]
-        )
-        self.parser = StrOutputParser()
-        self.chain = self.prompt | self.llm | self.parser
-
     @log_llm_usage
     @handle_agent_error(
         fallback_value=NormativeAgentResult(raw_text="Error", normative_info="{}", sources=[], prompt=None)
@@ -237,31 +226,21 @@ class NormativeAgent(BaseAgent):
             message = HumanMessage(content=content)
             
             # Per il caso multimodale, creiamo una chain senza callbacks per evitare conflitti
-            chain = self.llm | StrOutputParser()
-            raw = chain.invoke([message])
-            
-            # Parse with safe_extract_json
-            parsed_data = safe_extract_json(raw, schema=NormativeResponse)
-            if parsed_data and isinstance(parsed_data, NormativeResponse):
-                parsed_data = parsed_data.requisiti
-            else:
-                parsed_data = []
+            chain = self.llm | JsonOutputParser()
+            parsed_data = chain.invoke([message])
         else:
             # Formato tradizionale solo testo
-            raw = invoke_with_langfuse(self.chain, prompt_inputs)
+            prompt_template = PromptTemplate.from_template(self.user_template)
+            chain = prompt_template | self.llm | JsonOutputParser()
             
-            # Parse with safe_extract_json
-            parsed_data = safe_extract_json(raw, schema=NormativeResponse)
-            if parsed_data and isinstance(parsed_data, NormativeResponse):
-                parsed_data = parsed_data.requisiti
-            else:
-                parsed_data = []
+            # Invoca l'LLM
+            parsed_data = invoke_with_langfuse(chain, prompt_inputs)
         
-        # L'output è già una lista di requisiti
+        # L'output parser restituisce già un dict JSON
         normative_info = json.dumps(parsed_data, ensure_ascii=False)
         
         return NormativeAgentResult(
-            raw_text=raw,
+            raw_text=json.dumps(parsed_data, indent=2, ensure_ascii=False),
             normative_info=normative_info,
             sources=sources,
             prompt=PromptRecord(
