@@ -39,13 +39,6 @@ from itertools import combinations
 
 import pandas as pd
 import numpy as np
-import logging
-
-# Import per gestire ChatPromptTemplate
-try:
-    from langchain_core.prompts import ChatPromptTemplate
-except ImportError:
-    ChatPromptTemplate = None
 
 # Carica variabili d'ambiente
 from dotenv import load_dotenv
@@ -266,869 +259,6 @@ class ConsistencyMetrics:
     runs_metrics: List[Dict[str, Any]]
 
 
-class AgentLogger:
-    """Logger per tracciare input/output di ogni agente."""
-    
-    def __init__(self, log_dir: Path):
-        self.log_dir = log_dir
-        self.log_dir.mkdir(parents=True, exist_ok=True)
-        self.current_log_file = None
-        self.log_data = []
-    
-    def start_evaluation(self, use_case: str, prompt_id: str, run_number: int, timestamp: str):
-        """Inizializza un nuovo file di log per una specifica valutazione."""
-        log_filename = f"agent_traces_{use_case}_{prompt_id}_run{run_number}_{timestamp}.jsonl"
-        self.current_log_file = self.log_dir / log_filename
-        self.log_data = []
-        
-        # Scrivi header
-        header = {
-            "use_case": use_case,
-            "prompt_id": prompt_id,
-            "run_number": run_number,
-            "timestamp": datetime.now().isoformat()
-        }
-        self.log_data.append(header)  # Aggiungi a log_data per poterlo usare dopo
-        self._write_log_entry(header)
-    
-    def log_agent_execution(self, agent_name: str, input_data: Any, output_data: Any, 
-                           execution_time_ms: float, metadata: Optional[Dict] = None):
-        """Registra l'esecuzione di un singolo agente con campi selezionati."""
-        
-        # Estrai input dall'input (se presente)
-        input_extracted = None
-        if isinstance(input_data, dict):
-            # Se l'input è un PromptRecord (ha chiavi system/user/full_text), usalo direttamente
-            if 'system' in input_data or 'user' in input_data or 'full_text' in input_data:
-                input_extracted = input_data
-            else:
-                # Altrimenti cerca input in vari modi possibili
-                input_extracted = input_data.get('prompt') or input_data.get('query') or input_data.get('input')
-        
-        # Estrai output dall'output (se presente)
-        output_extracted = None
-        if agent_name.lower() == "ape-agent" and hasattr(output_data, 'suggested_filters'):
-            output_extracted = output_data.suggested_filters
-        elif hasattr(output_data, 'raw_text'):
-            output_extracted = output_data.raw_text
-        elif isinstance(output_data, dict) and 'raw_text' in output_data:
-            output_extracted = output_data['raw_text']
-        
-        log_entry = {
-            "agent_name": agent_name,
-            "timestamp": datetime.now().isoformat(),
-            "execution_time_ms": execution_time_ms,
-            "input": self._serialize_data(input_extracted) if input_extracted is not None else None,
-            "output": self._serialize_data(output_extracted) if output_extracted is not None else None,
-            "output_structure": self._serialize_data(output_data) if output_data is not None else None
-        }
-        self.log_data.append(log_entry)
-        self._write_log_entry(log_entry)
-    
-    def end_evaluation(self, success: bool, error_msg: Optional[str] = None):
-        """Finalizza il log per questa valutazione."""
-        footer = {
-            "type": "evaluation_end",
-            "timestamp": datetime.now().isoformat(),
-            "success": success,
-            "error_msg": error_msg,
-            "total_agents_executed": len([e for e in self.log_data if "agent_name" in e])
-        }
-        
-        # Aggiungi info dalla valutazione se disponibile
-        if self.log_data and "use_case" in self.log_data[0] and "prompt_id" in self.log_data[0]:
-            eval_start = self.log_data[0]
-            footer.update({
-                "use_case": eval_start.get("use_case"),
-                "prompt_id": eval_start.get("prompt_id"), 
-                "run_number": eval_start.get("run_number"),
-                "start_timestamp": eval_start.get("timestamp")
-            })
-        
-        # NON scrivere footer nel log
-        
-        # Crea anche un file JSON completo per questa run
-        if self.current_log_file:
-            json_file = self.current_log_file.with_suffix(".json")
-            with open(json_file, 'w', encoding='utf-8') as f:
-                # Prendi l'evaluation_start come base
-                eval_start = self.log_data[0] if self.log_data and "use_case" in self.log_data[0] else {}
-                
-                # Estrai le proprietà della run
-                run_props = {
-                    "use_case": eval_start.get("use_case"),
-                    "prompt_id": eval_start.get("prompt_id"),
-                    "run_number": eval_start.get("run_number"),
-                    "run_timestamp": eval_start.get("timestamp")
-                }
-                
-                # Processa agent_executions SENZA aggregare evaluation-agent
-                agent_executions = []
-                batch_counter = 1
-                
-                for e in self.log_data:
-                    if "agent_name" in e:
-                        if e["agent_name"] == "evaluation-agent":
-                            # Invece di aggregare, crea esecuzioni separate per ogni batch
-                            if isinstance(e.get("output"), list):
-                                for item in e["output"]:
-                                    if isinstance(item, dict):
-                                        agent_entry = {
-                                            **run_props,  # Aggiungi proprietà run
-                                            "agent_name": "evaluation-agent",
-                                            "batch_id": batch_counter,
-                                            "timestamp": e.get("timestamp"),
-                                            "execution_time_ms": e.get("execution_time_ms"),
-                                            "input": e.get("input"),
-                                            "output": item  # Singolo batch invece dell'array completo
-                                        }
-                                        agent_executions.append(agent_entry)
-                                    else:
-                                        # Se item non è un dict, aggiungilo come valore semplice
-                                        agent_entry = {
-                                            **run_props,  # Aggiungi proprietà run
-                                            "agent_name": "evaluation-agent", 
-                                            "batch_id": batch_counter,
-                                            "timestamp": e.get("timestamp"),
-                                            "execution_time_ms": e.get("execution_time_ms"),
-                                            "input": e.get("input"),
-                                            "output": item
-                                        }
-                                        agent_executions.append(agent_entry)
-                                    batch_counter += 1
-                            else:
-                                # Se output non è una lista, trattalo come singola esecuzione
-                                agent_entry = {
-                                    **run_props,  # Aggiungi proprietà run
-                                    "agent_name": "evaluation-agent",
-                                    "batch_id": batch_counter,
-                                    "timestamp": e.get("timestamp"),
-                                    "execution_time_ms": e.get("execution_time_ms"),
-                                    "input": e.get("input"),
-                                    "output": e.get("output")
-                                }
-                                agent_executions.append(agent_entry)
-                                batch_counter += 1
-                        else:
-                            # Altri agenti: aggiungi proprietà run e batch_id=None
-                            agent_entry = {**run_props, **e, "batch_id": None}
-                            agent_executions.append(agent_entry)
-                
-                # Crea oggetto finale solo con agent_executions
-                log_data = {"agent_executions": agent_executions}
-                
-                json.dump(log_data, f, indent=2, ensure_ascii=False)
-            
-            # Elimina il file JSONL dopo aver creato il JSON aggregato
-            if self.current_log_file and self.current_log_file.exists():
-                try:
-                    self.current_log_file.unlink()
-                    print(f"🗑️ JSONL eliminato: {self.current_log_file.name}")
-                except Exception as e:
-                    print(f"⚠️ Errore nell'eliminare JSONL {self.current_log_file.name}: {e}")
-            
-            # === SALVATAGGIO DATAFRAME ===
-            try:
-                # DataFrame per TUTTE le agent executions (inclusi evaluation batch separati)
-                agent_rows = []
-                for execution in agent_executions:
-                    # Funzione helper per convertire input/output in stringa o tabella HTML
-                    def to_display_value(value, field_name=None):
-                        if value is None:
-                            return None
-                        elif field_name == "output_structure" and isinstance(value, dict):
-                            # Per output_structure, mostra solo le chiavi (nomi delle proprietà)
-                            return "\n".join(sorted(value.keys()))
-                        elif isinstance(value, dict):
-                            # Se è un dict (come evaluation batch), crea tabella HTML inline
-                            return self._dict_to_html_table(value)
-                        elif isinstance(value, list):
-                            # Se è una lista di dict, crea tabella con righe multiple
-                            if value and isinstance(value[0], dict):
-                                return self._list_of_dicts_to_html_table(value)
-                            else:
-                                return "\n".join(str(item) for item in value)
-                        else:
-                            # Per output non-JSON, applica parsing markdown semplice
-                            if field_name == "output":
-                                return self._parse_markdown_simple(str(value))
-                            else:
-                                return str(value)
-                    
-                    agent_rows.append({
-                        "use_case": execution.get("use_case"),
-                        "prompt_id": execution.get("prompt_id"),
-                        "run_number": execution.get("run_number"),
-                        "run_timestamp": execution.get("run_timestamp"),
-                        "batch_id": execution.get("batch_id"),
-                        "agent_name": execution.get("agent_name"),
-                        "timestamp": execution.get("timestamp"),
-                        "execution_time_ms": execution.get("execution_time_ms"),
-                        "input": to_display_value(execution.get("input"), "input"),
-                        "output_structure": to_display_value(execution.get("output_structure"), "output_structure"),
-                        "output": to_display_value(execution.get("output"), "output")
-                    })
-                
-                agent_df = pd.DataFrame(agent_rows)
-                
-                # Aggiungi colonna retry_id
-                # Raggruppa per agent_name e run_number per identificare retry
-                agent_df['retry_id'] = agent_df.groupby(['agent_name', 'run_number']).cumcount() + 1
-                
-                # Riordina colonne nell'ordine desiderato
-                desired_order = [
-                    'use_case', 'prompt_id', 'run_number', 'run_timestamp', 
-                    'agent_name', 'batch_id', 'retry_id', 'timestamp',
-                    'execution_time_ms', 'input', 'output_structure', 'output'
-                ]
-                # Mantieni solo le colonne che esistono nel DataFrame
-                existing_columns = [col for col in desired_order if col in agent_df.columns]
-                agent_df = agent_df[existing_columns]
-                
-                # Converti timestamp in datetime se possibile
-                if "run_timestamp" in agent_df.columns:
-                    agent_df["run_timestamp"] = pd.to_datetime(agent_df["run_timestamp"], errors='coerce')
-                if "timestamp" in agent_df.columns:
-                    agent_df["timestamp"] = pd.to_datetime(agent_df["timestamp"], errors='coerce')
-                
-                # Salva HTML per visualizzazione testi lunghi
-                html_dir = self.log_dir
-                agent_html = html_dir / f"agent_executions_{run_props.get('use_case')}_{run_props.get('prompt_id')}_run{run_props.get('run_number')}.html"
-                
-                self._save_as_html(agent_df, agent_html, "Agent Executions (All)")
-                
-                print(f"💾 HTML salvato: {agent_html.name}")
-                
-                # Elimina il file JSON dopo aver creato l'HTML
-                if json_file.exists():
-                    try:
-                        json_file.unlink()
-                        print(f"🗑️ JSON eliminato: {json_file.name}")
-                    except Exception as e:
-                        print(f"⚠️ Errore nell'eliminare JSON {json_file.name}: {e}")
-                    
-            except Exception as e:
-                print(f"⚠️ Errore nel salvare DataFrame Parquet: {e}")
-                import traceback
-                traceback.print_exc()
-    
-    def _write_log_entry(self, entry: Dict):
-        """Scrive una singola entry nel file JSONL."""
-        if self.current_log_file and self.current_log_file.exists():
-            with open(self.current_log_file, 'a', encoding='utf-8') as f:
-                f.write(json.dumps(entry, ensure_ascii=False) + '\n')
-    
-    def _dict_to_html_table(self, data: dict) -> str:
-        """Converte un dizionario in una tabella HTML inline."""
-        if not data:
-            return ""
-        
-        html = '<table class="subtable" style="border-collapse: collapse; font-size: 11px; margin: 2px 0;">'
-        
-        for key, value in data.items():
-            # Gestisci valori complessi ricorsivamente
-            if isinstance(value, dict):
-                display_value = self._dict_to_html_table(value)
-            elif isinstance(value, list):
-                if value and isinstance(value[0], dict):
-                    display_value = self._list_of_dicts_to_html_table(value)
-                else:
-                    display_value = '<br>'.join(str(item) for item in value)
-            else:
-                display_value = str(value).replace('\n', '<br>')
-            
-            html += f'<tr><td style="border: 1px solid #ccc; padding: 2px 4px; background-color: #f9f9f9; font-weight: bold;">{key}</td>'
-            html += f'<td style="border: 1px solid #ccc; padding: 2px 4px;">{display_value}</td></tr>'
-        
-        html += '</table>'
-        return html
-    
-    def _list_of_dicts_to_html_table(self, data: list) -> str:
-        """Converte una lista di dizionari in una tabella HTML inline."""
-        if not data:
-            return ""
-        
-        # Se è una lista di dict, crea tabella
-        if isinstance(data[0], dict):
-            # Ottieni tutte le chiavi possibili
-            all_keys = set()
-            for item in data:
-                if isinstance(item, dict):
-                    all_keys.update(item.keys())
-            
-            if not all_keys:
-                return str(data)
-            
-            html = '<table class="subtable" style="border-collapse: collapse; font-size: 11px; margin: 2px 0;">'
-            
-            # Header
-            html += '<tr>'
-            for key in sorted(all_keys):
-                html += f'<th style="border: 1px solid #ccc; padding: 2px 4px; background-color: #e8f5e8; font-weight: bold;">{key}</th>'
-            html += '</tr>'
-            
-            # Righe
-            for item in data:
-                if isinstance(item, dict):
-                    html += '<tr>'
-                    for key in sorted(all_keys):
-                        value = item.get(key, '')
-                        if isinstance(value, dict):
-                            display_value = self._dict_to_html_table(value)
-                        elif isinstance(value, list):
-                            if value and isinstance(value[0], dict):
-                                display_value = self._list_of_dicts_to_html_table(value)
-                            else:
-                                display_value = '<br>'.join(str(item) for item in value)
-                        else:
-                            display_value = str(value).replace('\n', '<br>')
-                        html += f'<td style="border: 1px solid #ccc; padding: 2px 4px;">{display_value}</td>'
-                    html += '</tr>'
-            
-            html += '</table>'
-            return html
-        else:
-            # Lista semplice: ogni elemento su una riga
-            return '<br>'.join(str(item) for item in data)
-    
-    def _parse_markdown_simple(self, text: str) -> str:
-        """Parsing markdown semplice per output non-JSON: ## diventa <strong>, ** diventa <strong>."""
-        if not isinstance(text, str):
-            return str(text)
-        
-        # Prima gestisci ## (intestazioni)
-        import re
-        text = re.sub(r'^##\s+(.+)$', r'<strong>\1</strong>', text, flags=re.MULTILINE)
-        
-        # Poi gestisci ** (grassetto)
-        text = re.sub(r'\*\*(.*?)\*\*', r'<strong>\1</strong>', text)
-        
-        return text
-    
-    def _save_as_html(self, df: pd.DataFrame, html_path: Path, title: str):
-        """Salva DataFrame come HTML con formattazione ottimizzata per testi lunghi e colonne interattive."""
-        try:
-            # Converti DataFrame in HTML con stili
-            html_content = f"""
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <title>{title}</title>
-    <style>
-        body {{
-            font-family: 'Courier New', monospace;
-            font-size: 12px;
-            margin: 20px;
-            background-color: #f5f5f5;
-        }}
-        h1 {{
-            color: #333;
-            text-align: center;
-            margin-bottom: 30px;
-        }}
-        
-        /* Controlli colonne */
-        .column-controls {{
-            background-color: white;
-            padding: 15px;
-            margin-bottom: 20px;
-            border-radius: 5px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }}
-        .column-controls h3 {{
-            margin-top: 0;
-            color: #333;
-        }}
-        .column-checkboxes {{
-            display: flex;
-            flex-wrap: wrap;
-            gap: 15px;
-        }}
-        .column-checkboxes label {{
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            font-size: 11px;
-        }}
-        
-        table {{
-            width: 100%;
-            border-collapse: collapse;
-            background-color: white;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
-            table-layout: fixed;
-        }}
-        
-        /* Stili per tabella principale */
-        #dataTable {{
-            width: 100%;
-            border-collapse: collapse;
-            background-color: white;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
-            table-layout: fixed;
-        }}
-        #dataTable th {{
-            background-color: #4CAF50;
-            color: white;
-            padding: 12px 8px;
-            text-align: left;
-            font-weight: bold;
-            position: sticky;
-            top: 0;
-            z-index: 10;
-            position: relative;
-        }}
-        
-        /* Stili per sottotabelle */
-        table.subtable {{
-            width: auto;
-            min-width: 200px;
-            margin: 2px 0;
-            box-shadow: none;
-            border: 1px solid #ccc;
-        }}
-        table.subtable th {{
-            background-color: #f0f0f0 !important;
-            color: black !important;
-            padding: 4px 6px;
-            text-align: left;
-            font-weight: bold;
-            font-size: 11px;
-            position: relative;
-            min-width: 50px;
-        }}
-        table.subtable td {{
-            padding: 2px 4px;
-            border-bottom: 1px solid #eee;
-            font-size: 11px;
-        }}
-        table.subtable tr:nth-child(even) {{
-            background-color: #fafafa;
-        }}
-        table.subtable tr:hover {{
-            background-color: #f0f8f0;
-        }}
-        td {{
-            padding: 8px;
-            border-bottom: 1px solid #ddd;
-            vertical-align: top;
-            overflow: hidden;
-        }}
-        tr:nth-child(even) {{
-            background-color: #f9f9f9;
-        }}
-        tr:hover {{
-            background-color: #e8f5e8;
-        }}
-        
-        /* Resize handles per tabella principale */
-        #dataTable th {{
-            position: relative;
-            min-width: 50px;
-        }}
-        #dataTable th:not(:last-child)::after {{
-            content: '';
-            position: absolute;
-            right: 0;
-            top: 0;
-            width: 4px;
-            height: 100%;
-            background-color: #ddd;
-            cursor: col-resize;
-            opacity: 0;
-            transition: opacity 0.2s;
-        }}
-        #dataTable th:not(:last-child):hover::after {{
-            opacity: 1;
-        }}
-        #dataTable th.resizing {{
-            background-color: #e8f5e8;
-        }}
-        
-        /* Resize handles per sottotabelle */
-        table.subtable th {{
-            position: relative;
-            min-width: 50px;
-        }}
-        table.subtable th:not(:last-child)::after {{
-            content: '';
-            position: absolute;
-            right: 0;
-            top: 0;
-            width: 3px;
-            height: 100%;
-            background-color: #bbb;
-            cursor: col-resize;
-            opacity: 0;
-            transition: opacity 0.2s;
-        }}
-        table.subtable th:not(:last-child):hover::after {{
-            opacity: 1;
-        }}
-        table.subtable th.resizing {{
-            background-color: #e8f5e8 !important;
-        }}
-        
-        .wide-column {{
-            width: 200px;
-            word-wrap: break-word;
-            white-space: pre-wrap;
-            font-family: 'Courier New', monospace;
-        }}
-        .narrow-column {{
-            width: 75px;
-            word-wrap: break-word;
-        }}
-        .numeric-column {{
-            text-align: right;
-            font-family: 'Courier New', monospace;
-            width: 50px;
-        }}
-        .timestamp-column {{
-            font-family: 'Courier New', monospace;
-            font-size: 11px;
-            width: 90px;
-        }}
-        
-        /* Hidden column class */
-        .hidden-column {{
-            display: none !important;
-        }}
-        
-        /* Scroll hints */
-        .scroll-hint {{
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            background: rgba(0,0,0,0.8);
-            color: white;
-            padding: 10px;
-            border-radius: 5px;
-            font-size: 12px;
-            display: none;
-        }}
-    </style>
-</head>
-<body>
-    <h1>{title}</h1>
-    
-    <div class="column-controls">
-        <h3>Mostra/Nascondi Colonne</h3>
-        <div class="column-checkboxes" id="columnCheckboxes">
-"""
-
-            # Aggiungi checkbox per ogni colonna
-            wide_columns = ['input', 'output', 'output_structure']  # Colonne che dovrebbero essere wide
-            for col in df.columns:
-                # Per default, nascondi colonne tecniche, mostra colonne dati
-                default_hidden = col in ['run_timestamp', 'timestamp', 'execution_time_ms', 'batch_id'] and col != 'batch_id'
-                checked = "" if default_hidden else "checked"
-                html_content += f'<label><input type="checkbox" {checked} data-column="{col}" onchange="toggleColumn(\'{col}\')"> {col}</label>'
-
-            html_content += """
-        </div>
-    </div>
-    
-    <div style="overflow-x: auto;">
-        <table id="dataTable">
-"""
-
-            # Aggiungi dropdown filtri per ogni colonna visibile
-            # TEMPORANEAMENTE DISABILITATO PER DEBUG
-            # for col in df.columns:
-            #     if col in ['run_timestamp', 'timestamp', 'execution_time_ms', 'batch_id']:
-            #         continue  # Salta colonne tecniche
-            #         
-            #     unique_values = df[col].dropna().unique()
-            #     if len(unique_values) > 1 and len(unique_values) <= 50:  # Max 50 valori per evitare dropdown troppo grandi
-            #         unique_values = sorted(unique_values, key=lambda x: str(x).lower())
-            #         html_content += f'<div class="filter-item"><label for="filter_{col}">{col}</label><select multiple class="filter-dropdown" id="filter_{col}" data-column="{col}"><option value="all" selected>Tutti ({len(unique_values)})</option>'
-            #         
-            #         for value in unique_values:
-            #             # Escape dei caratteri speciali per HTML
-            #             escaped_value = str(value).replace('"', '&quot;').replace('<', '&lt;').replace('>', '&gt;')
-            #             display_value = escaped_value[:50] + "..." if len(escaped_value) > 50 else escaped_value
-            #             html_content += f'<option value="{escaped_value}">{display_value}</option>'
-            #         
-            #         html_content += '</select></div>'
-
-            # Header
-            wide_columns = ['input', 'output', 'output_structure']  # Colonne che dovrebbero essere wide
-            html_content += "        <thead><tr>"
-            for col in df.columns:
-                col_class = "wide-column" if col in wide_columns else "narrow-column"
-                if pd.api.types.is_numeric_dtype(df[col]):
-                    col_class = "numeric-column"
-                elif 'timestamp' in col.lower():
-                    col_class = "timestamp-column"
-                
-                html_content += f'<th class="{col_class}" data-column="{col}">{col}</th>'
-            html_content += "</tr></thead>\n"
-            
-            # Body
-            html_content += "        <tbody>\n"
-            for _, row in df.iterrows():
-                html_content += "        <tr>"
-                for col in df.columns:
-                    value = row[col]
-                    if pd.isna(value):
-                        display_value = ""
-                    else:
-                        # Formattazione speciale per timestamp e execution time
-                        if 'timestamp' in col.lower() and isinstance(value, pd.Timestamp):
-                            display_value = value.strftime('%Y-%m-%d %H:%M:%S')
-                        elif 'execution_time' in col.lower() and isinstance(value, (int, float)):
-                            display_value = f"{int(value)}"
-                        elif col == 'batch_id' and isinstance(value, (int, float)):
-                            display_value = f"{int(value)}"
-                        else:
-                            display_value = str(value).replace('\n', '<br>').replace('\t', '&nbsp;&nbsp;&nbsp;&nbsp;')
-                    
-                    col_class = "wide-column" if col in wide_columns else "narrow-column"
-                    if pd.api.types.is_numeric_dtype(df[col]):
-                        col_class = "numeric-column"
-                    elif 'timestamp' in col.lower():
-                        col_class = "timestamp-column"
-                    
-                    html_content += f'<td class="{col_class}" data-column="{col}">{display_value}</td>'
-                html_content += "</tr>\n"
-            
-            html_content += """        </tbody>
-    </table>
-    </div>
-    
-    <div class="scroll-hint" id="scrollHint">
-        Suggerimento: Trascina le maniglie sui bordi delle colonne per ridimensionarle
-    </div>
-
-    <script>
-        // Toggle colonne visibili/nascoste
-        // NOTA: nasconde solo le celle della tabella (th/td), i checkbox rimangono sempre visibili
-        function toggleColumn(columnName) {
-            // Nasconde/mostra solo le celle della tabella (th e td), non il checkbox
-            const tableElements = document.querySelectorAll(`th[data-column="${columnName}"], td[data-column="${columnName}"]`);
-            const isChecked = document.querySelector(`input[data-column="${columnName}"]`).checked;
-            
-            tableElements.forEach(element => {
-                if (isChecked) {
-                    element.classList.remove('hidden-column');
-                } else {
-                    element.classList.add('hidden-column');
-                }
-            });
-        }
-        
-        // Mostra hint di scroll quando necessario
-        function checkScrollHint() {
-            const table = document.getElementById('dataTable');
-            const hint = document.getElementById('scrollHint');
-            
-            if (table.scrollWidth > table.clientWidth) {
-                hint.style.display = 'block';
-                setTimeout(() => {
-                    hint.style.display = 'none';
-                }, 3000);
-            }
-        }
-        
-        // Inizializzazione
-        document.addEventListener('DOMContentLoaded', function() {
-            // Applica impostazioni iniziali delle colonne
-            const checkboxes = document.querySelectorAll('input[type="checkbox"]');
-            checkboxes.forEach(checkbox => {
-                toggleColumn(checkbox.dataset.column);
-            });
-            
-            // Controlla se mostrare hint di scroll
-            setTimeout(checkScrollHint, 1000);
-            
-            // Salva preferenze colonne nel localStorage
-            checkboxes.forEach(checkbox => {
-                checkbox.addEventListener('change', function() {
-                    const preferences = {};
-                    document.querySelectorAll('input[type="checkbox"]').forEach(cb => {
-                        preferences[cb.dataset.column] = cb.checked;
-                    });
-                    localStorage.setItem('tableColumnPreferences', JSON.stringify(preferences));
-                });
-            });
-            
-            // Carica preferenze salvate
-            const savedPreferences = localStorage.getItem('tableColumnPreferences');
-            if (savedPreferences) {
-                const preferences = JSON.parse(savedPreferences);
-                Object.keys(preferences).forEach(column => {
-                    const checkbox = document.querySelector(`input[data-column="${column}"]`);
-                    if (checkbox) {
-                        checkbox.checked = preferences[column];
-                        toggleColumn(column);
-                    }
-                });
-            }
-        });
-        
-        // Gestione resize colonne con maniglie
-        let isResizing = false;
-        let currentColumn = null;
-        let startX = 0;
-        let startWidth = 0;
-        
-        document.addEventListener('mousedown', function(e) {
-            // Controlla se il click è sulla maniglia di resize
-            if (e.target.tagName === 'TH' && e.offsetX >= e.target.offsetWidth - 4) {
-                isResizing = true;
-                currentColumn = e.target;
-                startX = e.clientX;
-                startWidth = currentColumn.offsetWidth;
-                currentColumn.classList.add('resizing');
-                document.body.style.cursor = 'col-resize';
-                document.body.style.userSelect = 'none';
-                e.preventDefault();
-            }
-        });
-        
-        document.addEventListener('mousemove', function(e) {
-            if (!isResizing || !currentColumn) return;
-            
-            const delta = e.clientX - startX;
-            const newWidth = Math.max(50, startWidth + delta);
-            currentColumn.style.width = newWidth + 'px';
-        });
-        
-        document.addEventListener('mouseup', function() {
-            if (isResizing && currentColumn) {
-                currentColumn.classList.remove('resizing');
-                document.body.style.cursor = '';
-                document.body.style.userSelect = '';
-            }
-            isResizing = false;
-            currentColumn = null;
-        });
-    </script>
-</body>
-</html>"""
-
-            with open(html_path, 'w', encoding='utf-8') as f:
-                f.write(html_content)
-                
-        except Exception as e:
-            print(f"⚠️ Errore nel salvare HTML {html_path.name}: {e}")
-    
-    def _serialize_data(self, data: Any) -> Any:
-        """Serializza i dati in formato JSON-compatibile con parsing intelligente e unescaping ricorsivo."""
-        
-        def _unescape_string(text: str) -> str:
-            """Unescapes caratteri speciali in una stringa in maniera ricorsiva."""
-            if not isinstance(text, str):
-                return text
-            
-            # Gestisci escaping multipli (ricorsivo)
-            while '\\\\' in text:  # Prima gestisci doppi backslash
-                text = text.replace('\\\\', '\\')
-            
-            # Unescape caratteri comuni
-            unescape_map = {
-                '\\n': '\n',
-                '\\t': '\t',
-                '\\r': '\r',
-                '\\"': '"',
-                "\\'": "'",
-                '\\\\': '\\'
-            }
-            
-            for escaped, unescaped in unescape_map.items():
-                text = text.replace(escaped, unescaped)
-            
-            return text
-        
-        def _process_string_value(text: str) -> Any:
-            """Processa una stringa: unescape + tentativo parsing JSON ricorsivo."""
-            # Prima unescape
-            unescaped = _unescape_string(text)
-            
-            # Poi tenta parsing JSON se sembra JSON
-            if unescaped.strip().startswith(('{', '[')):
-                try:
-                    parsed = json.loads(unescaped)
-                    return self._serialize_data(parsed)  # Ricorsione per processare il JSON parsato
-                except (json.JSONDecodeError, ValueError):
-                    pass
-            
-            # Se molto lunga con newline, splitta per leggibilità
-            if len(unescaped) > 200 and '\n' in unescaped:
-                return unescaped.split('\n')
-            
-            return unescaped
-        
-        # Stringhe: unescape e parsing JSON ricorsivo
-        if isinstance(data, str):
-            return _process_string_value(data)
-        
-        # Tipi primitivi
-        elif isinstance(data, (int, float, bool, type(None))):
-            return data
-        
-        # Dizionari: serializza ricorsivamente con gestione speciale per campi JSON
-        elif isinstance(data, dict):
-            # Se il dizionario ha struttura prompt {system, user, full_text}, restituisci solo full_text
-            if 'full_text' in data and 'system' in data and 'user' in data:
-                return self._serialize_data(data['full_text'])
-            
-            result = {}
-            for k, v in data.items():
-                # Chiavi speciali che spesso contengono JSON stringato
-                if k in ('raw_text', 'response', 'result', 'prompt', 'query', 'context', 'output', 'input') and isinstance(v, str):
-                    result[k] = _process_string_value(v)
-                else:
-                    result[k] = self._serialize_data(v)
-            return result
-        
-        # Liste e tuple: serializza elementi ricorsivamente
-        elif isinstance(data, (list, tuple)):
-            return [self._serialize_data(item) for item in data]
-        
-        # DataFrame Pandas
-        elif isinstance(data, pd.DataFrame):
-            return {
-                "_type": "DataFrame",
-                "shape": data.shape,
-                "columns": data.columns.tolist(),
-                "data_preview": data.head(5).to_dict('records') if len(data) > 0 else []
-            }
-        
-        # ChatPromptTemplate: converti a full_text invece di mostrare struttura interna
-        elif ChatPromptTemplate is not None and isinstance(data, ChatPromptTemplate):
-            try:
-                # Estrai i messaggi e formatta come full_text
-                messages = []
-                for msg in data.messages:
-                    if hasattr(msg, 'content'):
-                        msg_type = "SYSTEM" if msg.__class__.__name__ == "SystemMessage" else "USER"
-                        messages.append(f"[{msg_type}]\n{msg.content}")
-                    else:
-                        messages.append(str(msg))
-                return "\n\n".join(messages)
-            except Exception:
-                # Fallback se qualcosa va storto
-                return f"ChatPromptTemplate: {str(data)}"
-        
-        # Pydantic models
-        elif hasattr(data, 'model_dump'):
-            dumped = data.model_dump()
-            return self._serialize_data(dumped)
-        
-        # Oggetti con __dict__
-        elif hasattr(data, '__dict__'):
-            return self._serialize_data(data.__dict__)
-        
-        # Fallback: converti a stringa
-        else:
-            return str(data)
-
-
 # ============================================================================
 # GENERATORE DATASET SINTETICO
 # ============================================================================
@@ -1328,24 +458,18 @@ class SyntheticDataGenerator:
 class RankingEvaluator:
     """Valutatore qualità ranking con ground truth."""
     
-    def __init__(self, ground_truth_path: str, dataset_file: Path, k: int = 10, use_case: str = ""):
+    def __init__(self, ground_truth_path: str, dataset_file: Path, k: int = 10):
         self.ground_truth_path = Path(ground_truth_path)
         self.dataset_file = dataset_file
         self.k = k
-        self.use_case = use_case
         
         with open(self.ground_truth_path, "r") as f:
             self.ground_truth = json.load(f)
         
         self.results_dir = Path("ranking_evaluation_results")
         self.results_dir.mkdir(exist_ok=True)
-        
-        # Crea logger per tracciare gli agenti
-        self.agent_logs_dir = Path(__file__).parent / "agent_logs"
-        self.agent_logs_dir.mkdir(exist_ok=True)
-        self.agent_logger = AgentLogger(self.agent_logs_dir)
     
-    def run_prediction(self, query: str, prompt_id: str = "", run_number: int = 1) -> Tuple[List[str], float, Optional[str]]:
+    def run_prediction(self, query: str) -> Tuple[List[str], float, Optional[str]]:
         """Esegue predizione e ritorna lista ID ordinati."""
         # Genera session_id unico per questa query e imposta env vars per Langfuse
         session_id = f"synthetic_eval_{self.dataset_file.stem}_{hash(query) % 10000}"
@@ -1359,20 +483,12 @@ class RankingEvaluator:
         def mock_set_progress(progress_data):
             pass
         
-        # Inizializza logging per questa run
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        self.agent_logger.start_evaluation(self.use_case, prompt_id, run_number, timestamp)
-        
         start_time = time.time()
         
         # Log per debug Langfuse
         print(f"🔍 Running query with session_id: {session_id}")
-        print(f"📝 Agent logs: {self.agent_logger.current_log_file}")
         
         try:
-            # Monkey patch per catturare le chiamate agli agenti
-            self._setup_agent_logging_hooks()
-            
             # Load synthetic dataset
             if str(self.dataset_file).endswith('.parquet'):
                 synthetic_dataset = pd.read_parquet(str(self.dataset_file))
@@ -1419,15 +535,12 @@ class RankingEvaluator:
                     sorted_df = map_df
                 
                 ids = sorted_df["id"].head(self.k).tolist()
-                self.agent_logger.end_evaluation(success=True)
                 return ids, latency_ms, None
             else:
-                self.agent_logger.end_evaluation(success=False, error_msg="No results returned")
                 return [], latency_ms, "No results returned"
         
         except Exception as e:
             latency_ms = (time.time() - start_time) * 1000
-            self.agent_logger.end_evaluation(success=False, error_msg=str(e))
             return [], latency_ms, str(e)
         
         # Flush immediato dopo ogni query per streaming
@@ -1436,108 +549,6 @@ class RankingEvaluator:
                 flush_langfuse()
             except:
                 pass
-            
-            # Ripristina gli agent hooks
-            try:
-                self._restore_agent_hooks()
-            except:
-                pass
-    
-    def _setup_agent_logging_hooks(self):
-        """Configura hooks per catturare input/output degli agenti."""
-        import os
-        os.environ["_AGENT_LOGGER_ACTIVE"] = "true"
-        
-        # Importa tutti gli agenti disponibili
-        try:
-            from app.services.llm.agents.location_agent import LocationAgent
-            from app.services.llm.agents.use_case_agent import UseCaseAgent
-            from app.services.llm.agents.typology_agent import TypologyAgent
-            from app.services.llm.agents.ape_agent import ApeAgent
-            from app.services.llm.agents.needs_metric_agent import NeedsMetricAgent
-            from app.services.llm.agents.sql_agent import SQLAgent
-            from app.services.llm.agents.evaluation_agent import EvaluationAgent
-            
-            # Lista di classi di agenti da patchare
-            agent_classes = [
-                LocationAgent,
-                UseCaseAgent,
-                TypologyAgent,
-                ApeAgent,
-                NeedsMetricAgent,
-                SQLAgent,
-                EvaluationAgent
-            ]
-            
-            # Salva i metodi originali per ripristinarli dopo
-            if not hasattr(self, '_original_run_methods'):
-                self._original_run_methods = {}
-            
-            # Patch ogni classe di agente
-            for agent_class in agent_classes:
-                agent_name = agent_class.name if hasattr(agent_class, 'name') else agent_class.__name__
-                
-                # Salva metodo originale
-                if agent_class not in self._original_run_methods:
-                    self._original_run_methods[agent_class] = agent_class.run
-                
-                # Crea wrapper con closure per catturare agent_name
-                def create_logged_run(original_run, captured_agent_name, captured_logger):
-                    def logged_run(self_agent, **kwargs):
-                        agent_start = time.time()
-                        input_data = kwargs.copy()
-                        
-                        try:
-                            # Esegui metodo originale
-                            result = original_run(self_agent, **kwargs)
-                            execution_time = (time.time() - agent_start) * 1000
-                            
-                            # Se il result ha un prompt, usalo come input invece di kwargs
-                            if hasattr(result, 'prompt') and result.prompt:
-                                input_data = result.prompt.model_dump()
-                            
-                            # Log dell'esecuzione
-                            captured_logger.log_agent_execution(
-                                agent_name=captured_agent_name,
-                                input_data=input_data,
-                                output_data=result,
-                                execution_time_ms=execution_time,
-                                metadata={}
-                            )
-                            
-                            return result
-                        except Exception as e:
-                            execution_time = (time.time() - agent_start) * 1000
-                            captured_logger.log_agent_execution(
-                                agent_name=captured_agent_name,
-                                input_data=input_data,
-                                output_data={"error": str(e), "error_type": type(e).__name__},
-                                execution_time_ms=execution_time,
-                                metadata={"error": True}
-                            )
-                            raise
-                    return logged_run
-                
-                # Applica il patch
-                agent_class.run = create_logged_run(
-                    self._original_run_methods[agent_class],
-                    agent_name,
-                    self.agent_logger
-                )
-            
-            print(f"✓ Agent logging hooks attivati per {len(agent_classes)} agenti")
-            
-        except Exception as e:
-            print(f"⚠️ Impossibile configurare agent hooks: {e}")
-            import traceback
-            traceback.print_exc()
-    
-    def _restore_agent_hooks(self):
-        """Ripristina i metodi originali degli agenti."""
-        if hasattr(self, '_original_run_methods'):
-            for agent_class, original_run in self._original_run_methods.items():
-                agent_class.run = original_run
-            print(f"✓ Agent hooks ripristinati")
     
     def calculate_ndcg(self, predicted_ids: List[str], expected_items: List[Dict]) -> float:
         """Calcola NDCG."""
@@ -1590,7 +601,7 @@ class RankingEvaluator:
         
         if num_runs == 1:
             # Single run
-            predicted_ids, latency_ms, error_msg = self.run_prediction(query, prompt_id=prompt_id, run_number=1)
+            predicted_ids, latency_ms, error_msg = self.run_prediction(query)
             
             # Flush immediato per streaming
             flush_langfuse()
@@ -1654,7 +665,7 @@ class RankingEvaluator:
                 
                 print(f"  Run {i+1}/{num_runs} - Session ID: {run_session_id}, Trace Name: {trace_name}...", end=" ", flush=True)
                 
-                predicted_ids, latency_ms, error_msg = self.run_prediction(query, prompt_id=prompt_id, run_number=i+1)
+                predicted_ids, latency_ms, error_msg = self.run_prediction(query)
                 
                 # Flush immediato per streaming dopo ogni run
                 flush_langfuse()
@@ -1887,8 +898,7 @@ class SyntheticEvaluationTest:
         evaluator = RankingEvaluator(
             ground_truth_path=str(self.ground_truth_path),
             dataset_file=self.dataset_file,
-            k=10,
-            use_case=self.use_case
+            k=10
         )
         
         # Carica ground truth per sapere quanti prompt ci sono
@@ -1947,7 +957,6 @@ class SyntheticEvaluationTest:
         self.result_file = result_file
         
         print(f"✓ Valutazione completata su {num_prompts} query")
-        print(f"📝 Log dettagliati degli agenti (input/output) salvati in: {evaluator.agent_logs_dir}")
         return True
     
     def step4_analyze_results(self) -> bool:
@@ -2086,7 +1095,6 @@ class SyntheticEvaluationTest:
         else:
             print(f"\n📁 Risultati salvati in: {self.results_dir}")
         print(f"📊 File risultato: {self.result_file.name}")
-        print(f"📝 Log agenti: agent_logs/ (file JSONL e JSON per ogni run)")
         
         return True
     
@@ -2258,9 +1266,8 @@ class SyntheticEvaluationTest:
 
 def run_all_use_cases(num_immobili: int, num_poi: int, num_runs: int) -> bool:
     """Esegue test su tutti gli use case e genera report aggregato."""
-    
     print("\n" + "="*80)
-    print("TEST MULTI-USE-CASE - TUTTI GLI USE CASE".center(80))
+    print("🌟 TEST MULTI-USE-CASE - TUTTI GLI USE CASE".center(80))
     print("="*80)
     print(f"\nConfigurazione:")
     print(f"  - Use Cases: {len(USE_CASE_CONFIGS)}")
@@ -2392,9 +1399,9 @@ def run_all_use_cases(num_immobili: int, num_poi: int, num_runs: int) -> bool:
 # ============================================================================
 
 def main():
-    
+    """Entry point - Esegue test su tutti gli use case."""
     print("\n" + "="*80)
-    print("SYNTHETIC EVALUATION - TEST SISTEMA COMPLETO".center(80))
+    print("🔬 SYNTHETIC EVALUATION - TEST SISTEMA COMPLETO".center(80))
     print("="*80)
     print("\nConfigurazione fissa:")
     print("  - Test multi-use-case su tutti e 5 gli use case")
@@ -2419,20 +1426,9 @@ def main():
     
     # Flush finale dei dati Langfuse prima di terminare
     if langfuse_client:
-        print("\nAttendo completamento invio dati asincroni...")
+        print("\n⏳ Attendo completamento invio dati asincroni...")
         time.sleep(2)  # Attendi che le richieste asincrone completino
         flush_langfuse()
-    
-    print("\n" + "="*80)
-    print("📝 DOVE TROVARE I LOG DEGLI AGENTI:")
-    print("="*80)
-    print("I log dettagliati di input/output per ogni agente sono salvati in:")
-    print("  - agent_logs/")
-    print("\nFormati disponibili:")
-    print("  - .jsonl - Log in formato streaming (una riga per evento)")
-    print("  - .json  - Log strutturato completo per ogni run")
-    print("\nNome file: agent_traces_{use_case}_{prompt_id}_run{N}_{timestamp}.{jsonl|json}")
-    print("="*80)
     
     sys.exit(0 if success else 1)
 
