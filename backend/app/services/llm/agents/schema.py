@@ -231,11 +231,3 @@ class NormativeAgentResult(BaseModel):
     recommendations: List[str] = Field(default_factory=list, description="Raccomandazioni basate su normative")
     sources: List[str] = Field(default_factory=list, description="URL o fonti consultate")
     prompt: Optional[PromptRecord] = Field(None, description="Prompt utilizzato")
-
-
-class ConsistencyAgentResult(BaseModel):
-    raw_text: str = Field(..., description="Risposta grezza del modello")
-    requirements: List[str] = Field(
-        default_factory=list, description="Lista pulita di requisiti consolidati"
-    )
-    prompt: Optional[PromptRecord] = Field(None, description="Prompt utilizzato")

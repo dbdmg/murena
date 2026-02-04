@@ -20,7 +20,6 @@ from app.core.constants import APE_SCORE_LEGEND
 from app.data.loaders import get_coordinates
 from app.data.processors import calculate_travel_times_df
 from app.services.llm.agents.ape_agent import ApeAgent
-from app.services.llm.agents.consistency_agent import ConsistencyAgent
 from app.services.llm.agents.base import BaseAgent
 from app.services.llm.agents.evaluation_agent import EvaluationAgent
 from app.services.llm.agents.location_agent import LocationAgent
@@ -55,7 +54,6 @@ class OrchestratorAgent(BaseAgent):
     name = "orchestrator-agent"
     CLASSIC_STEPS = [
         {"key": "analysis", "label": "Analisi parallela agenti"},
-        {"key": "consistency", "label": "Consolidamento requisiti"},
         {"key": "processing", "label": "Elaborazione risultati"},
         {"key": "sql", "label": "Generazione query SQL"},
         {"key": "execution", "label": "Esecuzione query"},
@@ -65,7 +63,6 @@ class OrchestratorAgent(BaseAgent):
     ]
     AGENT_STEPS = [
         {"key": "analysis", "label": "Analisi parallela agenti"},
-        {"key": "consistency", "label": "Consolidamento requisiti"},
         {"key": "processing", "label": "Elaborazione risultati"},
         {"key": "sql", "label": "Generazione query SQL"},
         {"key": "execution", "label": "Esecuzione query"},
@@ -89,7 +86,6 @@ class OrchestratorAgent(BaseAgent):
         poi_category_agent: Optional[PoiCategoryAgent] = None,
         poi_amenity_agent: Optional[PoiAmenityAgent] = None,
         normative_agent: Optional[NormativeAgent] = None,
-        consistency_agent: Optional[ConsistencyAgent] = None,
     ) -> None:
         if execute_sql_fn is None:
             raise ValueError("execute_sql_fn e obbligatoria per OrchestratorAgent.")
@@ -108,7 +104,6 @@ class OrchestratorAgent(BaseAgent):
         self.poi_category_agent = poi_category_agent or PoiCategoryAgent()
         self.poi_amenity_agent = poi_amenity_agent or PoiAmenityAgent()
         self.normative_agent = normative_agent or NormativeAgent()
-        self.consistency_agent = consistency_agent or ConsistencyAgent()
 
     # ------------------------------------------------------------------
     # Public API
@@ -224,7 +219,7 @@ class OrchestratorAgent(BaseAgent):
             poi_results = future_poi.result()
             normative_result = future_normative.result()
 
-        update_progress(2, "Elaborazione risultati agenti...")
+        update_progress(1, "Elaborazione risultati agenti...")
 
         # Process Typology results
         context.typology_result = typology_result
@@ -320,30 +315,9 @@ class OrchestratorAgent(BaseAgent):
             context.normative_result = normative_result
 
         # ------------------------------------------------------------------
-        # NEW STEP - Consistency Agent to consolidate requirements
-        # ------------------------------------------------------------------
-        update_progress(1, "Consolidamento requisiti (Consistency Agent)...")
-        logging.info("⚖️ Executing ConsistencyAgent")
-        
-        consistency_result = self.consistency_agent.run(
-            query=query,
-            typologies=typology_result.typologies if typology_result else [],
-            locations=[p.name for p in loc_result.places] if loc_result else [],
-            normative_info=normative_result.normative_info if normative_result else "",
-            ape_info=", ".join(ape_result.suggested_filters) if ape_result and ape_result.suggested_filters else ""
-        )
-        logging.info(f"✅ ConsistencyAgent completed: {len(consistency_result.requirements)} requirements")
-        
-        gemini_responses["consistency_analysis"] = {
-            "prompt": consistency_result.prompt.model_dump() if consistency_result.prompt else None,
-            "response": consistency_result.raw_text,
-            "requirements": consistency_result.requirements,
-        }
-
-        # ------------------------------------------------------------------
         # STEP 2 - SQL generation + STEP 3 execution
         # ------------------------------------------------------------------
-        update_progress(3, "Generazione query SQL...")
+        update_progress(2, "Generazione query SQL...")
         max_retries = 5
         retry_count = 0
         selected_data = pd.DataFrame()
@@ -354,12 +328,8 @@ class OrchestratorAgent(BaseAgent):
             _, lat, lon = location_payload[0]
             loc_obj = {"lat": lat, "lon": lon}
 
-        # Use consolidated requirements as query for SQLAgent
-        sql_prompt = (
-            "\n".join(consistency_result.requirements) 
-            if consistency_result.requirements 
-            else query
-        )
+        # Use query directly without augmentation
+        sql_prompt = query
 
         while retry_count < max_retries:
             if retry_count == 0:
@@ -394,7 +364,7 @@ class OrchestratorAgent(BaseAgent):
                     "sql_query": sql_query,
                 }
 
-            update_progress(4, f"Esecuzione query (tentativo {retry_count + 1})...")
+            update_progress(3, f"Esecuzione query (tentativo {retry_count + 1})...")
             selected_data = self.execute_sql_fn(sql_query, working_dataset)
             if not selected_data.empty:
                 break
@@ -406,7 +376,7 @@ class OrchestratorAgent(BaseAgent):
             )
             context.filtered_dataset_preview = []
             gemini_responses["agent_context"] = context.model_dump()
-            update_progress(7, "Completato.")
+            update_progress(6, "Completato.")
             return OrchestratorResult(
                 map_df=pd.DataFrame(),
                 location=location_payload,
@@ -473,7 +443,7 @@ class OrchestratorAgent(BaseAgent):
             use_case_parts.append(f"Normative: {normative_result.normative_info[:200]}")
         use_case_str = "\n".join(use_case_parts)
 
-        update_progress(5, f"Valutazione su top {llm_cap}...")
+        update_progress(4, f"Valutazione su top {llm_cap}...")
         eval_input_df = enriched_data.head(llm_cap).copy()
         eval_input_df["is_evaluated"] = True
         estates_data_str = tabulate.tabulate(
@@ -494,7 +464,7 @@ class OrchestratorAgent(BaseAgent):
         # ------------------------------------------------------------------
         # STEP 5 - Merge evaluation back into map dataset
         # ------------------------------------------------------------------
-        update_progress(6, "Finalizzazione risultati...")
+        update_progress(5, "Finalizzazione risultati...")
         map_df = enriched_data.head(map_cap).copy()
         map_df["is_evaluated"] = False
 
@@ -557,7 +527,7 @@ class OrchestratorAgent(BaseAgent):
             )
 
         gemini_responses["agent_context"] = context.model_dump()
-        update_progress(7, "Completato.")
+        update_progress(6, "Completato.")
 
         return OrchestratorResult(
             map_df=map_df,

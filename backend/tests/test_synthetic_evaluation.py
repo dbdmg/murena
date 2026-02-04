@@ -215,7 +215,6 @@ AVAILABLE_AGENTS = [
     "poi_amenity_agent",
     "ape_agent",
     "normative_agent",
-    "consistency_agent",
     "sql_agent",
     "evaluation_agent"
 ]
@@ -309,8 +308,6 @@ class AgentLogger:
         output_extracted = None
         if agent_name.lower() == "ape-agent" and hasattr(output_data, 'suggested_filters'):
             output_extracted = output_data.suggested_filters
-        elif agent_name == "consistency-agent" and hasattr(output_data, 'requirements'):
-            output_extracted = output_data.requirements
         elif hasattr(output_data, 'raw_text'):
             output_extracted = output_data.raw_text
         elif isinstance(output_data, dict) and 'raw_text' in output_data:
@@ -1047,46 +1044,28 @@ class AgentLogger:
             return text
         
         def _process_string_value(text: str, try_json: bool = True) -> Any:
-            """Processa una stringa: tentativo parsing JSON + unescape."""
-            if not text:
-                return text
-            
-            # 1. Tenta prima il parsing JSON sul testo RAW (perché è già correttamente escaped)
-            if try_json and text.strip().startswith(('{', '[')):
-                try:
-                    parsed = json.loads(text)
-                    return self._serialize_data(parsed)
-                except (json.JSONDecodeError, ValueError, TypeError):
-                    pass # Proseguiamo con tentativo riparazione o unescape
-            
-            # 2. Se non è JSON valido, facciamo unescape per la visualizzazione
+            """Processa una stringa: unescape + tentativo parsing JSON ricorsivo se richiesto."""
+            # Prima unescape
             unescaped = _unescape_string(text)
             
-            # 3. Se sembrava JSON ma è fallito prim, tenta riparazione su testo unescaped
+            # Poi tenta parsing JSON se sembra JSON e se richiesto
             if try_json and unescaped.strip().startswith(('{', '[')):
                 try:
-                    # Ripara virgolette doppie annidate in valori stringa o liste
-                    # Sostituisce "interno" con 'interno'
-                    # Pattern 1: : "valore "interno" finale"
-                    repaired = re.sub(r'(:\s*")(.+?)("\s*[,}])', 
-                                     lambda m: m.group(1) + m.group(2).replace('"', "'") + m.group(3), 
-                                     unescaped, flags=re.DOTALL)
-                    # Pattern 2: [ "valore "interno" finale", ... ]
-                    repaired = re.sub(r'(,\s*")(.+?)("\s*[,\]])', 
-                                     lambda m: m.group(1) + m.group(2).replace('"', "'") + m.group(3), 
-                                     repaired, flags=re.DOTALL)
-                    # Pattern 3: [ "valore "interno" finale" ] (inizio lista)
-                    repaired = re.sub(r'(\[\s*")(.+?)("\s*[,\]])', 
-                                     lambda m: m.group(1) + m.group(2).replace('"', "'") + m.group(3), 
-                                     repaired, flags=re.DOTALL)
-                    
-                    if repaired != unescaped:
-                        try:
+                    parsed = json.loads(unescaped)
+                    return self._serialize_data(parsed)  # Ricorsione per processare il JSON parsato
+                except (json.JSONDecodeError, ValueError, TypeError):
+                    # Tentativo di riparazione per errori comuni (es. virgolette annidate)
+                    try:
+                        # Ripara virgolette doppie annidate in valori stringa: "key": "valore "interno" finale"
+                        # Sostituisce "interno" con 'interno'
+                        repaired = re.sub(r'(:\s*")(.+?)("\s*[,}])', 
+                                         lambda m: m.group(1) + m.group(2).replace('"', "'") + m.group(3), 
+                                         unescaped, flags=re.DOTALL)
+                        if repaired != unescaped:
                             parsed = json.loads(repaired)
                             return self._serialize_data(parsed)
-                        except:
-                            pass
-                except Exception:
+                    except Exception:
+                        pass
                     pass
             
             # Se molto lunga con newline, splitta per leggibilità
@@ -1486,7 +1465,6 @@ class RankingEvaluator:
             from app.services.llm.agents.normative_agent import NormativeAgent
             from app.services.llm.agents.sql_agent import SQLAgent
             from app.services.llm.agents.evaluation_agent import EvaluationAgent
-            from app.services.llm.agents.consistency_agent import ConsistencyAgent
             
             # Lista di classi di agenti da patchare
             agent_classes = [
@@ -1497,8 +1475,7 @@ class RankingEvaluator:
                 PoiAmenityAgent,
                 NormativeAgent,
                 SQLAgent,
-                EvaluationAgent,
-                ConsistencyAgent
+                EvaluationAgent
             ]
             
             # Salva i metodi originali per ripristinarli dopo

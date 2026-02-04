@@ -34,12 +34,10 @@ from app.services.llm.agents.schema import (
     NeedsMetricPlan,
     NormativeAgentResult,
     TypologyAgentResult,
-    ConsistencyAgentResult,
 )
 from app.services.llm.agents.sql_agent import SQLAgent
 from app.services.llm.agents.typology_agent import TypologyAgent
 from app.services.llm.agents.use_case_agent import UseCaseAgent
-from app.services.llm.agents.consistency_agent import ConsistencyAgent
 from app.utils.logger import logger
 from app.services.llm.mocks import (
     MOCK_TYPOLOGY,
@@ -70,7 +68,6 @@ class GraphState(TypedDict):
     typology_result: Optional[TypologyAgentResult]
     poi_result: Optional[Any]
     normative_result: Optional[NormativeAgentResult]
-    consistency_result: Optional[ConsistencyAgentResult]
     sql_query: str
     selected_data: Any  # pd.DataFrame
     execution_error: Optional[str]
@@ -116,7 +113,6 @@ class GraphOrchestratorAgent(BaseAgent):
         poi_category_agent: Optional[PoiCategoryAgent] = None,
         poi_amenity_agent: Optional[PoiAmenityAgent] = None,
         normative_agent: Optional[NormativeAgent] = None,
-        consistency_agent: Optional[ConsistencyAgent] = None,
     ) -> None:
         if execute_sql_fn is None:
             raise ValueError("execute_sql_fn is required.")
@@ -134,7 +130,6 @@ class GraphOrchestratorAgent(BaseAgent):
         self.poi_category_agent = poi_category_agent or PoiCategoryAgent()
         self.poi_amenity_agent = poi_amenity_agent or PoiAmenityAgent()
         self.normative_agent = normative_agent or NormativeAgent()
-        self.consistency_agent = consistency_agent or ConsistencyAgent()
 
         self.workflow = self._build_graph()
 
@@ -143,7 +138,6 @@ class GraphOrchestratorAgent(BaseAgent):
 
         # Add nodes
         workflow.add_node("analyze_request", self._analyze_request)
-        workflow.add_node("consistency_check", self._consistency_check)
         workflow.add_node("generate_sql", self._generate_sql)
         workflow.add_node("execute_sql", self._execute_sql)
         workflow.add_node("handle_retry", self._handle_retry)
@@ -156,8 +150,7 @@ class GraphOrchestratorAgent(BaseAgent):
 
         # Add edges
         workflow.set_entry_point("analyze_request")
-        workflow.add_edge("analyze_request", "consistency_check")
-        workflow.add_edge("consistency_check", "generate_sql")
+        workflow.add_edge("analyze_request", "generate_sql")
         workflow.add_edge("generate_sql", "execute_sql")
         workflow.add_edge("handle_retry", "generate_sql")
 
@@ -200,7 +193,6 @@ class GraphOrchestratorAgent(BaseAgent):
 
         step_definitions = [
             {"key": "analysis", "label": "Analisi"},
-            {"key": "consistency", "label": "Coerenza"},
             {"key": "sql", "label": "SQL"},
             {"key": "execution", "label": "Esecuzione"},
             {"key": "enrichment", "label": "Arricchimento"},
@@ -252,7 +244,6 @@ class GraphOrchestratorAgent(BaseAgent):
             "use_case_str": "",
             "metrics_plan": None,
             "typology_result": None,
-            "consistency_result": None,
             "sql_query": "",
             "selected_data": pd.DataFrame(),
             "execution_error": None,
@@ -672,7 +663,6 @@ class GraphOrchestratorAgent(BaseAgent):
                 "prompt": ape_result.prompt.model_dump() if ape_result.prompt else None,
                 "response": ape_result.raw_text,
                 "answer": ape_result.answer,
-                "suggested_filters": ape_result.suggested_filters,
             }
             ape_text = f"\n\nAnalisi APE: {ape_result.answer}"
 
@@ -708,46 +698,11 @@ class GraphOrchestratorAgent(BaseAgent):
         state["use_case_str"] = "\n".join(use_case_parts)
 
         return state
-    
-    def _consistency_check(self, state: GraphState) -> GraphState:
-        self._update_progress(state, 2, "Consolidamento requisiti...")
-        query = state["query"]
-        typology_result = state.get("typology_result")
-        location_payload = state.get("location_payload")
-        poi_result = state.get("poi_result")
-        normative_result = state.get("normative_result")
-        ape_result = state.get("gemini_responses", {}).get("ape_analysis", {})
-        ape_info = ""
-        if isinstance(ape_result, dict) and "suggested_filters" in ape_result:
-            filters = ape_result.get("suggested_filters", [])
-            if filters:
-                ape_info = ", ".join(filters)
-
-        # Geocode names for consistency agent
-        locations = [p[0] for p in location_payload] if location_payload else []
-
-        # Execute Consistency Agent
-        consistency_result = self.consistency_agent.run(
-            query=query,
-            typologies=typology_result.typologies if typology_result else [],
-            locations=locations,
-            normative_info=normative_result.normative_info if normative_result else "",
-            ape_info=ape_info
-        )
-
-        state["consistency_result"] = consistency_result
-        state["gemini_responses"]["consistency_analysis"] = {
-            "prompt": consistency_result.prompt.model_dump() if consistency_result.prompt else None,
-            "response": consistency_result.raw_text,
-            "requirements": consistency_result.requirements,
-        }
-        
-        return state
 
     def _generate_sql(self, state: GraphState) -> GraphState:
         retry_count = state["retry_count"]
         self._update_progress(
-            state, 3, f"Generazione SQL (tentativo {retry_count + 1})..."
+            state, 4, f"Generazione SQL (tentativo {retry_count + 1})..."
         )
 
         query = state["query"]
@@ -762,16 +717,12 @@ class GraphOrchestratorAgent(BaseAgent):
             _, lat, lon = location_payload[0]
             loc_obj = {"lat": lat, "lon": lon}
 
-        # Use consolidated requirements from consistency_result if available
-        if state.get("consistency_result") and state["consistency_result"].requirements:
-            sql_prompt = "\n".join(state["consistency_result"].requirements)
-        else:
-            sql_prompt = self._augment_query_with_plan(
-                query, 
-                metrics_plan, 
-                state.get("typology_result"),
-                state.get("normative_result")
-            )
+        sql_prompt = self._augment_query_with_plan(
+            query, 
+            metrics_plan, 
+            state.get("typology_result"),
+            state.get("normative_result")
+        )
 
         if USE_MOCK_RESPONSES:
             logger.info("MOCK MODE: Simulating SQL generation...")
@@ -818,7 +769,7 @@ class GraphOrchestratorAgent(BaseAgent):
         return state
 
     def _execute_sql(self, state: GraphState) -> GraphState:
-        self._update_progress(state, 4, "Esecuzione query...")
+        self._update_progress(state, 5, "Esecuzione query...")
         sql_query = state["sql_query"]
         dataset_path = state.get("dataset_path")
         base_dataset = state.get("base_dataset")
@@ -880,7 +831,7 @@ class GraphOrchestratorAgent(BaseAgent):
         Returns top results from full dataset so user always gets something.
         """
         self._update_progress(
-            state, 4, "Nessun risultato trovato. Generazione alternative..."
+            state, 5, "Nessun risultato trovato. Generazione alternative..."
         )
         logger.warning("Fallback activated: loading top results from full dataset")
 
@@ -939,7 +890,7 @@ class GraphOrchestratorAgent(BaseAgent):
         return state
 
     def _enrich_results(self, state: GraphState) -> GraphState:
-        self._update_progress(state, 5, "Arricchimento dati...")
+        self._update_progress(state, 6, "Arricchimento dati...")
         selected_data = state["selected_data"]
         sql_query = state["sql_query"]
         location_payload = state["location_payload"]
@@ -1346,12 +1297,12 @@ class GraphOrchestratorAgent(BaseAgent):
             ]
 
         self._update_progress(
-            state, 7, f"Valutazione completata: {len(all_results)} risultati generati."
+            state, 4, f"Valutazione completata: {len(all_results)} risultati generati."
         )
         return state
 
     def _broker_review(self, state: GraphState) -> GraphState:
-        self._update_progress(state, 8, "Analisi esperta (Senior Broker)...")
+        self._update_progress(state, 5, "Analisi esperta (Senior Broker)...")
 
         if USE_MOCK_RESPONSES:
             logger.info("MOCK MODE: Simulating Broker Review...")
@@ -1387,7 +1338,7 @@ class GraphOrchestratorAgent(BaseAgent):
         return state
 
     def _finalize_results(self, state: GraphState) -> GraphState:
-        self._update_progress(state, 9, "Finalizzazione...")
+        self._update_progress(state, 6, "Finalizzazione...")
 
         if state["selected_data"].empty:
             state["status_msg"] = (
@@ -1415,7 +1366,7 @@ class GraphOrchestratorAgent(BaseAgent):
             state["context"].filtered_dataset_preview = []
             state["gemini_responses"]["agent_context"] = state["context"].model_dump()
             state["gemini_responses"]["agent_context"] = state["context"].model_dump()
-            self._update_progress(state, 9, "Completato (Nessun risultato filtrato).")
+            self._update_progress(state, 7, "Completato (Nessun risultato filtrato).")
             return state
 
         # Dati arricchiti dal percorso agente (solo subset selezionato dalla query)

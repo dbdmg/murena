@@ -180,14 +180,15 @@ class Settings(BaseSettings):
             # Fast agents
             "location_agent": self.OPENAI_MODEL_FAST,
             "typology_agent": self.OPENAI_MODEL_FAST,
-            "poi_category_agent": self.OPENAI_MODEL_FAST,
-            "poi_amenity_agent": self.OPENAI_MODEL_FAST,
-            # Smart agents
+            "map_assistant": self.OPENAI_MODEL_FAST,
+            "poi_agent": self.OPENAI_MODEL_FAST,
             "normative_agent": self.OPENAI_MODEL_SMART,
-            "ape_agent": self.OPENAI_MODEL_SMART,
-            "consistency_agent": self.OPENAI_MODEL_SMART,
+            # Smart agents
+            "needs_metric_agent": self.OPENAI_MODEL_SMART,
+            "use_case_agent": self.OPENAI_MODEL_SMART,
             "sql_agent": self.OPENAI_MODEL_SMART,
-            "evaluation_agent": self.OPENAI_MODEL_SMART
+            "ape_agent": self.OPENAI_MODEL_SMART,
+            "evaluation_agent": self.OPENAI_MODEL_SMART,
         }
 
 
