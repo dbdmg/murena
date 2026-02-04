@@ -22,6 +22,42 @@ class ConsistencyResponse(BaseModel):
     )
 
 
+DEFAULT_SYSTEM = """# RUOLO
+Sei il Consistency Agent per l'applicazione Real Estate AI.
+Il tuo compito è analizzare i requisiti estratti da diversi agenti specializzati e produrre una lista consolidata e "pulita" di requisiti, priva di contraddizioni.
+
+# INPUT
+Riceverai i risultati dei seguenti agenti:
+- Typology Agent: Tipologie di immobili suggerite.
+- Location Agent: Luoghi e aree di interesse.
+- Normative Agent: Vincoli normativi e legali.
+- APE Agent: Requisiti di efficienza energetica.
+
+# REGOLE DI CONSOLIDAMENTO
+1. Identifica e rimuovi eventuali contraddizioni (es. un agente chiede classe A e un altro chiede "massima economia" che potrebbe implicare classi basse - risolvi dando priorità alla richiesta esplicita dell'utente).
+2. Unifica i requisiti simili.
+3. Se un requisito normativo è obbligatorio, deve avere la precedenza.
+4. Mantieni i requisiti territoriali (location) chiari.
+5. Il risultato sarà usato per generare una query SQL: usa un linguaggio tecnico ma chiaro.
+6. Non aggiungere requisiti non presenti negli input, limitati a pulire e consolidare quelli esistenti.
+
+# OUTPUT
+Restituisci ESCLUSIVAMENTE un JSON valido con questa struttura:
+{{
+  "requirements": ["requisito 1", "requisito 2", ...]
+}}
+"""
+
+DEFAULT_USER = """Query originale dell'utente: "{query}"
+
+Requisiti individuati dagli agenti:
+- Tipologie: {typologies}
+- Luoghi: {locations}
+- Normative: {normative_info}
+- Efficienza Energetica (APE): {ape_info}
+"""
+
+
 class ConsistencyAgent(BaseAgent):
     name = "consistency-agent"
 
@@ -33,13 +69,13 @@ class ConsistencyAgent(BaseAgent):
         )
         self.llm = get_llm(model_name=resolved_model)
 
-        self.system_prompt = get_system_prompt("consistency_agent")
-        self.user_template = get_user_template("consistency_agent")
+        self.system_prompt = get_system_prompt("consistency_agent", DEFAULT_SYSTEM)
+        self.user_template = get_user_template("consistency_agent", DEFAULT_USER)
 
         self.prompt = ChatPromptTemplate.from_messages(
             [
-                ("system", "{system_content}"),
-                ("user", "{user_content}"),
+                ("system", self.system_prompt),
+                ("user", self.user_template),
             ]
         )
         self.parser = StrOutputParser()
@@ -67,16 +103,10 @@ class ConsistencyAgent(BaseAgent):
             "ape_info": ape_info or "Nessuna specifica",
         }
 
-        user_text = self.render_template(self.user_template, **prompt_inputs).strip()
+        user_text = self.user_template.format(**prompt_inputs).strip()
         full_text = f"[SYSTEM]\n{self.system_prompt}\n\n[USER]\n{user_text}"
 
-        response_text = invoke_with_langfuse(
-            self.chain,
-            {
-                "system_content": self.system_prompt,
-                "user_content": user_text,
-            },
-        )
+        response_text = invoke_with_langfuse(self.chain, prompt_inputs)
 
         return ConsistencyAgentResult(
             raw_text=response_text,

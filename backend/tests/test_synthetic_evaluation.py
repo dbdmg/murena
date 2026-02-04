@@ -1240,21 +1240,17 @@ class SyntheticDataGenerator:
             classe_energetica_ape = classe_energetica
         
         # Genera punteggi APE
-        ape_score_classe = random.randint(1, 5)
-        ape_score_impianto = random.randint(1, 5)
-        ape_score_involucro = random.randint(1, 5)
-        ape_score_rinnovabili = random.randint(1, 5)
-        ape_score_total = ape_score_classe + ape_score_impianto + ape_score_involucro + ape_score_rinnovabili
+        base_score = random.randint(*score_ranges.get(classe_energetica, (0, 100)))
         
         return {
             "classe_energetica_ape": classe_energetica_ape,
             "epglnren_ape": round(random.uniform(20, 200), 2),  # kWh/m² anno
             "classe_target_ape": random.choice(["A1", "A2", "B1", "B2"]),
-            "ape_score_classe": ape_score_classe,
-            "ape_score_impianto": ape_score_impianto,
-            "ape_score_involucro": ape_score_involucro,
-            "ape_score_rinnovabili": ape_score_rinnovabili,
-            "ape_score_total": ape_score_total,
+            "ape_score_classe": random.randint(0, 100),
+            "ape_score_impianto": random.randint(0, 100),
+            "ape_score_involucro": random.randint(0, 100),
+            "ape_score_rinnovabili": random.randint(0, 100),
+            "ape_score_total": base_score,
         }
     
     def generate_poi(self, category: str, idx: int) -> Dict:

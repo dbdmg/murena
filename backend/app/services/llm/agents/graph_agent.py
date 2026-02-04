@@ -12,7 +12,7 @@ import tabulate
 
 from app.services.analysis.ranking import calculate_ranking_score
 from app.core.config import settings
-from app.core.constants import SCORE_LEGEND, APE_SCORE_LEGEND, APE_AGENT_COLUMNS
+from app.core.constants import SCORE_LEGEND, APE_AGENT_COLUMNS
 
 MAX_ITEMS_FOR_LLM = settings.MAX_ITEMS_FOR_LLM
 MAX_ITEMS_FOR_MAP = settings.MAX_ITEMS_FOR_MAP
@@ -548,7 +548,7 @@ class GraphOrchestratorAgent(BaseAgent):
                     query=query,
                     columns=APE_AGENT_COLUMNS,
                     statistics=ape_stats,
-                    score_legend=APE_SCORE_LEGEND,
+                    score_legend=SCORE_LEGEND,
                 )
                 logger.info("✅ ApeAgent completed")
                 return result

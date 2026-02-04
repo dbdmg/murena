@@ -22,6 +22,39 @@ class TypologyResponse(BaseModel):
     )
 
 
+DEFAULT_SYSTEM = """# RUOLO
+Sei il Typology Agent per l'applicazione Real Estate AI.
+Il tuo compito è identificare quali tipologie di immobili sono pertinenti alla richiesta dell'utente.
+
+# REGOLE
+1. Analizza la richiesta e seleziona le tipologie rilevanti dalla lista fornita.
+2. Se la richiesta è generica, lascia la lista vuota (nessun filtro).
+3. Sii inclusivo: "uffici" include "Ufficio pubblico", "Ufficio privato", ecc.
+4. Se non trovi corrispondenze esatte, usa tipologie semanticamente simili.
+
+# OUTPUT
+Restituisci ESCLUSIVAMENTE un JSON valido:
+{
+  "typologies": ["<tipologia 1>", "<tipologia 2>"]
+}
+
+# ESEMPI
+Query: "Cerco una scuola"
+Tipologie: ["SCUOLA", "ISTITUTO SCOLASTICO", "ASILO"]
+Output: {{"typologies": ["SCUOLA", "ISTITUTO SCOLASTICO"]}}
+
+Query: "Immobili in centro"
+Output: {{"typologies": []}}
+"""
+
+DEFAULT_USER = """Lista delle tipologie disponibili:
+{available_typologies}
+
+Richiesta utente: "{query}"
+
+Risposta JSON:"""
+
+
 class TypologyAgent(BaseAgent):
     name = "typology-agent"
 
@@ -34,14 +67,14 @@ class TypologyAgent(BaseAgent):
         self.llm = get_llm(model_name=resolved_model)
 
         # Load system and user prompts separately
-        self.system_prompt = get_system_prompt("typology_agent")
-        self.user_template = get_user_template("typology_agent")
+        self.system_prompt = get_system_prompt("typology_agent", DEFAULT_SYSTEM)
+        self.user_template = get_user_template("typology_agent", DEFAULT_USER)
 
         # Create ChatPromptTemplate with system/user separation
         self.prompt = ChatPromptTemplate.from_messages(
             [
-                ("system", "{system_content}"),
-                ("user", "{user_content}"),
+                ("system", self.system_prompt),
+                ("user", self.user_template),
             ]
         )
         self.parser = StrOutputParser()
@@ -61,16 +94,10 @@ class TypologyAgent(BaseAgent):
         prompt_inputs = {"query": query, "available_typologies": typologies_str}
 
         # Format user prompt with variables
-        user_text = self.render_template(self.user_template, **prompt_inputs).strip()
+        user_text = self.user_template.format(**prompt_inputs).strip()
         full_text = f"[SYSTEM]\n{self.system_prompt}\n\n[USER]\n{user_text}"
 
-        response_text = invoke_with_langfuse(
-            self.chain,
-            {
-                "system_content": self.system_prompt,
-                "user_content": user_text,
-            },
-        )
+        response_text = invoke_with_langfuse(self.chain, prompt_inputs)
 
         return TypologyAgentResult(
             raw_text=response_text,

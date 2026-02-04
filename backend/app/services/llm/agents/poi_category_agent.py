@@ -41,6 +41,25 @@ def get_category_amenities_str():
         lines.append(f"- {category.capitalize()}: {', '.join(amenity_names)}")
     return '\n'.join(lines)
 
+DEFAULT_SYSTEM = f"""
+Sei un esperto analista urbano. Analizza la richiesta dell'utente e seleziona SOLO le categorie di servizi che devono trovarsi in prossimità del progetto immobiliare descritto.
+
+**Categorie disponibili**: {', '.join(PROMPT_CATEGORIES)}
+
+**Istruzioni**:
+- Seleziona SOLO le categorie essenziali per il tipo di progetto
+- Sii selettivo: non includere categorie poco rilevanti o generiche
+- Ordina per priorità decrescente (più importanti prima)
+
+**Output** (JSON puro senza testo):
+{{{{
+    "categories": ["categoria1", "categoria2"]
+}}}}
+"""
+
+DEFAULT_USER = """**Richiesta**: {query}"""
+
+
 class PoiCategoryAgent(BaseAgent):
     name = "poi-category-agent"
 
@@ -49,14 +68,14 @@ class PoiCategoryAgent(BaseAgent):
         self.llm = get_llm(model_name=resolved_model)
         
         # Load system and user prompts separately
-        self.system_prompt = get_system_prompt("poi_category_agent")
-        self.user_template = get_user_template("poi_category_agent")
+        self.system_prompt = get_system_prompt("poi_category_agent", DEFAULT_SYSTEM)
+        self.user_template = get_user_template("poi_category_agent", DEFAULT_USER)
         
         # Create ChatPromptTemplate with system/user separation
         self.prompt = ChatPromptTemplate.from_messages(
             [
-                ("system", "{system_content}"),
-                ("user", "{user_content}"),
+                ("system", self.system_prompt),
+                ("user", self.user_template),
             ]
         )
         self.parser = StrOutputParser()
@@ -73,16 +92,10 @@ class PoiCategoryAgent(BaseAgent):
         prompt_inputs = {"query": query}
 
         # Format user prompt with variables
-        user_text = self.render_template(self.user_template, **prompt_inputs).strip()
+        user_text = self.user_template.format(**prompt_inputs).strip()
         full_text = f"[SYSTEM]\n{self.system_prompt}\n\n[USER]\n{user_text}"
 
-        raw = invoke_with_langfuse(
-            self.chain,
-            {
-                "system_content": self.system_prompt,
-                "user_content": user_text,
-            },
-        )
+        raw = invoke_with_langfuse(self.chain, prompt_inputs)
 
         # Parse with safe_extract_json using Pydantic model
         parsed_data = safe_extract_json(raw, schema=CategoryResponse)

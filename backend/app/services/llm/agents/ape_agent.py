@@ -14,6 +14,35 @@ from app.services.llm.prompt_loader import get_system_prompt, get_user_template
 from app.utils.decorators import log_llm_usage
 from app.utils.json_parser import safe_extract_json
 
+DEFAULT_SYSTEM = """Sei un esperto di efficienza energetica e certificazioni APE (Attestato di Prestazione Energetica).
+Hai accesso alle statistiche del dataset immobiliare e alla legenda dei punteggi.
+
+{score_legend}
+
+STATISTICHE DATASET:
+{statistics}
+
+Il tuo compito è:
+1. Analizzare la richiesta dell'utente.
+2. Valutare se è utile applicare filtri energetici per favorire gli immobili più efficienti.
+3. Fornire una risposta discorsiva spiegando la strategia energetica.
+4. Suggerire filtri SPECIFICI sui campi `ape_score_*` o altri campi APE se necessario.
+   NOTA: Usa i filtri solo se l'utente richiede esplicitamente efficienza o risparmio.
+   
+Restituisci ESCLUSIVAMENTE un JSON con la seguente struttura:
+{{
+    "answer": "<spiegazione della strategia>",
+    "suggested_filters": [
+        "ape_score_total >= 4",
+        "classe_energetica_ape IN ('A1', 'A2', 'A3', 'A4')"
+    ]
+}}
+
+Se non ci sono filtri da suggerire, lascia "suggested_filters" vuoto array [].
+"""
+
+DEFAULT_USER = """Richiesta utente: "{query}" """
+
 
 class ApeAgentOutput(BaseModel):
     """Schema di output strutturato per l'APE Agent."""
@@ -31,8 +60,8 @@ class ApeAgent(BaseAgent):
         self.llm = get_llm(model_name=resolved_model)
 
         # Load system and user prompts separately
-        self.system_prompt = get_system_prompt("ape_agent")
-        self.user_template = get_user_template("ape_agent")
+        self.system_prompt = get_system_prompt("ape_agent", DEFAULT_SYSTEM)
+        self.user_template = get_user_template("ape_agent", DEFAULT_USER)
 
         # Create ChatPromptTemplate with system/user separation
         # Note: We construct the chain dynamically in run() because system prompt changes with stats
@@ -75,8 +104,7 @@ class ApeAgent(BaseAgent):
         # Prepare system prompt content
         # We manually inject variables into the system string before passing to LLM
         # This is because get_system_prompt returns a string that expects formatting
-        system_content = self.render_template(
-            self.system_prompt,
+        system_content = self.system_prompt.format(
             statistics=stats_str,
             score_legend=score_legend or "Nessuna legenda disponibile.",
         )
@@ -84,7 +112,7 @@ class ApeAgent(BaseAgent):
         prompt_inputs = {"system_content": system_content, "query": query}
 
         # User text for record keeping
-        user_text = self.render_template(self.user_template, query=query).strip()
+        user_text = self.user_template.format(query=query).strip()
         full_text = f"[SYSTEM]\n{system_content}\n\n[USER]\n{user_text}"
 
         try:
