@@ -12,7 +12,7 @@ import tabulate
 
 from app.services.analysis.ranking import calculate_ranking_score
 from app.core.config import settings
-from app.core.constants import SCORE_LEGEND, APE_SCORE_LEGEND, APE_AGENT_COLUMNS
+from app.core.constants import SCORE_LEGEND, APE_SCORE_LEGEND, APE_AGENT_COLUMNS, NORMATIVE_AGENT_COLUMNS, POI_AGENT_COLUMNS
 
 MAX_ITEMS_FOR_LLM = settings.MAX_ITEMS_FOR_LLM
 MAX_ITEMS_FOR_MAP = settings.MAX_ITEMS_FOR_MAP
@@ -26,27 +26,24 @@ from app.services.llm.agents.evaluation_agent import EvaluationAgent
 from app.services.llm.agents.location_agent import LocationAgent
 from app.services.llm.agents.normative_agent import NormativeAgent
 from app.services.llm.agents.orchestrator import OrchestratorResult
-from app.services.llm.agents.poi_category_agent import PoiCategoryAgent
-from app.services.llm.agents.poi_amenity_agent import PoiAmenityAgent
+from app.services.llm.agents.poi_agent import PoiAgent
+from app.services.llm.agents.ranking_agent import RankingAgent
 from app.services.llm.agents.schema import (
     AgentContext,
     EvaluationAgentResponse,
     NeedsMetricPlan,
     NormativeAgentResult,
     TypologyAgentResult,
-    ConsistencyAgentResult,
-    CategoryResponse,
-    AmenityResponse,
+    RankingAgentResult,
+    RankingWeights,
     NormativeResponse,
     TypologyResponse,
     LocationResponse,
-    ConsistencyResponse,
     EvaluationResult,
     EvaluationList,
 )
 from app.services.llm.agents.sql_agent import SQLAgent
 from app.services.llm.agents.typology_agent import TypologyAgent
-from app.services.llm.agents.consistency_agent import ConsistencyAgent
 from app.utils.logger import logger
 from app.utils.json_parser import safe_extract_json
 from app.services.llm.mocks import (
@@ -77,8 +74,9 @@ class GraphState(TypedDict):
     metrics_plan: Optional[NeedsMetricPlan]
     typology_result: Optional[TypologyAgentResult]
     poi_result: Optional[Any]
+    ape_result: Optional[Any]
     normative_result: Optional[NormativeAgentResult]
-    consistency_result: Optional[ConsistencyAgentResult]
+    ranking_result: Optional[RankingAgentResult]
     sql_query: str
     selected_data: Any  # pd.DataFrame
     execution_error: Optional[str]
@@ -120,10 +118,8 @@ class GraphOrchestratorAgent(BaseAgent):
         evaluation_agent: Optional[EvaluationAgent] = None,
         typology_agent: Optional[TypologyAgent] = None,
         ape_agent: Optional[ApeAgent] = None,
-        poi_category_agent: Optional[PoiCategoryAgent] = None,
-        poi_amenity_agent: Optional[PoiAmenityAgent] = None,
+        poi_agent: Optional[PoiAgent] = None,
         normative_agent: Optional[NormativeAgent] = None,
-        consistency_agent: Optional[ConsistencyAgent] = None,
     ) -> None:
         if execute_sql_fn is None:
             raise ValueError("execute_sql_fn is required.")
@@ -137,10 +133,9 @@ class GraphOrchestratorAgent(BaseAgent):
         self.evaluation_agent = evaluation_agent or EvaluationAgent()
         self.typology_agent = typology_agent or TypologyAgent()
         self.ape_agent = ape_agent or ApeAgent()
-        self.poi_category_agent = poi_category_agent or PoiCategoryAgent()
-        self.poi_amenity_agent = poi_amenity_agent or PoiAmenityAgent()
+        self.poi_agent = poi_agent or PoiAgent()
         self.normative_agent = normative_agent or NormativeAgent()
-        self.consistency_agent = consistency_agent or ConsistencyAgent()
+        self.ranking_agent = RankingAgent()
 
         self.workflow = self._build_graph()
 
@@ -149,12 +144,12 @@ class GraphOrchestratorAgent(BaseAgent):
 
         # Add nodes
         workflow.add_node("analyze_request", self._analyze_request)
-        workflow.add_node("consistency_check", self._consistency_check)
         workflow.add_node("generate_sql", self._generate_sql)
         workflow.add_node("execute_sql", self._execute_sql)
         workflow.add_node("handle_retry", self._handle_retry)
         workflow.add_node("fallback_results", self._fallback_results)  # NEW
         workflow.add_node("enrich_results", self._enrich_results)
+        workflow.add_node("calculate_ranking_weights", self._calculate_ranking_weights)
         workflow.add_node("rank_results", self._rank_results)
         workflow.add_node("evaluate_results", self._evaluate_results)
         workflow.add_node("broker_review", self._broker_review)
@@ -162,8 +157,7 @@ class GraphOrchestratorAgent(BaseAgent):
 
         # Add edges
         workflow.set_entry_point("analyze_request")
-        workflow.add_edge("analyze_request", "consistency_check")
-        workflow.add_edge("consistency_check", "generate_sql")
+        workflow.add_edge("analyze_request", "generate_sql")
         workflow.add_edge("generate_sql", "execute_sql")
         workflow.add_edge("handle_retry", "generate_sql")
 
@@ -181,7 +175,8 @@ class GraphOrchestratorAgent(BaseAgent):
 
         # Fallback continues to enrich (so ranking/evaluation still happen)
         workflow.add_edge("fallback_results", "enrich_results")
-        workflow.add_edge("enrich_results", "rank_results")
+        workflow.add_edge("enrich_results", "calculate_ranking_weights")
+        workflow.add_edge("calculate_ranking_weights", "rank_results")
         workflow.add_edge("rank_results", "evaluate_results")
         workflow.add_edge("evaluate_results", "broker_review")
         workflow.add_edge("broker_review", "finalize_results")
@@ -206,10 +201,10 @@ class GraphOrchestratorAgent(BaseAgent):
 
         step_definitions = [
             {"key": "analysis", "label": "Analisi"},
-            {"key": "consistency", "label": "Coerenza"},
             {"key": "sql", "label": "SQL"},
             {"key": "execution", "label": "Esecuzione"},
             {"key": "enrichment", "label": "Arricchimento"},
+            {"key": "ranking", "label": "Ranking"},
             {"key": "evaluation", "label": "Valutazione"},
             {"key": "broker", "label": "Broker"},
             {"key": "merge", "label": "Finalizzazione"},
@@ -218,15 +213,22 @@ class GraphOrchestratorAgent(BaseAgent):
 
         # Load metadata
         # Load metadata (lite version for token optimization)
-        metadata_path = os.path.join("app", "data", "db_metadata_lite.json")
+        # Try multiple paths to be robust against CWD
+        metadata_paths = [
+            os.path.join("app", "data", "db_metadata_lite.json"),
+            os.path.join("backend", "app", "data", "db_metadata_lite.json"),
+            os.path.join(os.path.dirname(__file__), "../../../data/db_metadata_lite.json")
+        ]
+        
         db_metadata = {}
-        if os.path.exists(metadata_path):
-            try:
-                with open(metadata_path, "r", encoding="utf-8") as f:
-                    db_metadata = json.load(f)
-            except Exception:
-                # Fail silently on metadata load error
-                pass
+        for path in metadata_paths:
+            if os.path.exists(path):
+                try:
+                    with open(path, "r", encoding="utf-8") as f:
+                        db_metadata = json.load(f)
+                    break
+                except Exception:
+                    pass
 
         # Extract lightweight metadata from base_dataset to avoid passing it in state
         dataset_metadata = {
@@ -258,7 +260,10 @@ class GraphOrchestratorAgent(BaseAgent):
             "use_case_str": "",
             "metrics_plan": None,
             "typology_result": None,
-            "consistency_result": None,
+            "poi_result": None,
+            "ape_result": None,
+            "normative_result": None,
+            "ranking_result": None,
             "sql_query": "",
             "selected_data": pd.DataFrame(),
             "execution_error": None,
@@ -344,7 +349,7 @@ class GraphOrchestratorAgent(BaseAgent):
     def _update_progress(self, state: GraphState, step_index: int, message: str):
         if state["set_progress"]:
             total_steps = len(state["step_definitions"])
-            percent = step_index * 100 / total_steps
+            percent = min(100, step_index * 100 / total_steps)
 
             # Build step states
             steps_state = []
@@ -365,39 +370,34 @@ class GraphOrchestratorAgent(BaseAgent):
 
             state["set_progress"]((percent, steps_state))
 
-    def _get_ape_statistics(self, dataset_path: str = None, dataset_df: pd.DataFrame = None) -> dict:
-        """Estrae statistiche APE per l'agente."""
+    def _get_column_statistics(self, columns: List[str], dataset_path: str = None, dataset_df: pd.DataFrame = None, target_not_na_col: str = None) -> dict:
+        """Estrae statistiche per un set di colonne per gli agenti LLM."""
         try:
-            # Get DataFrame either from path or directly
             if dataset_df is not None:
-                df = dataset_df[APE_AGENT_COLUMNS] if all(col in dataset_df.columns for col in APE_AGENT_COLUMNS) else pd.DataFrame()
+                # Filtraggio colonne presenti
+                available_cols = [c for c in columns if c in dataset_df.columns]
+                df = dataset_df[available_cols] if available_cols else pd.DataFrame()
             elif dataset_path and os.path.exists(dataset_path):
-                # Read only columns needed for APE analysis to save memory
-                # Support both parquet and csv formats
                 if dataset_path.endswith('.parquet'):
-                    df = pd.read_parquet(dataset_path, columns=APE_AGENT_COLUMNS)
+                    df = pd.read_parquet(dataset_path, columns=[c for c in columns])
                 elif dataset_path.endswith('.csv'):
-                    df = pd.read_csv(dataset_path, usecols=lambda col: col in APE_AGENT_COLUMNS)
+                    df = pd.read_csv(dataset_path, usecols=lambda col: col in columns)
                 else:
-                    # Try parquet first, fallback to csv
                     try:
-                        df = pd.read_parquet(dataset_path, columns=APE_AGENT_COLUMNS)
+                        df = pd.read_parquet(dataset_path, columns=[c for c in columns])
                     except:
-                        df = pd.read_csv(dataset_path, usecols=lambda col: col in APE_AGENT_COLUMNS)
+                        df = pd.read_csv(dataset_path, usecols=lambda col: col in columns)
             else:
                 return {}
 
             stats = {
                 "total_records": len(df),
-                "with_ape_data": int(df["classe_energetica_ape"].notna().sum()),
             }
+            
+            if target_not_na_col and target_not_na_col in df.columns:
+                stats[f"with_{target_not_na_col}_data"] = int(df[target_not_na_col].notna().sum())
 
-            if stats["with_ape_data"] > 0:
-                stats["percentage"] = round(
-                    (stats["with_ape_data"] / stats["total_records"]) * 100, 1
-                )
-
-            for col in APE_AGENT_COLUMNS:
+            for col in columns:
                 if col not in df.columns:
                     continue
 
@@ -416,13 +416,22 @@ class GraphOrchestratorAgent(BaseAgent):
                             },
                         }
                 else:
-                    # Categorie (es. Classe Energetica)
-                    stats[col] = df[col].value_counts().head(10).to_dict()
+                    # Categorie
+                    stats[col] = df[col].value_counts().head(15).to_dict()
 
             return stats
         except Exception as e:
-            logger.error(f"Error calculating APE statistics: {e}")
+            logger.error(f"Error calculating column statistics: {e}")
             return {"error": str(e)}
+
+    def _get_ape_statistics(self, dataset_path: str = None, dataset_df: pd.DataFrame = None) -> dict:
+        """Wrapper per retrocompatibilità o logica specifica APE."""
+        return self._get_column_statistics(
+            columns=APE_AGENT_COLUMNS, 
+            dataset_path=dataset_path, 
+            dataset_df=dataset_df,
+            target_not_na_col="classe_energetica_ape"
+        )
 
     def _extract_categorical_values(self, db_metadata: dict) -> dict:
         """
@@ -516,6 +525,7 @@ class GraphOrchestratorAgent(BaseAgent):
             logger.info("🔧 Executing TypologyAgent")
             result = self.typology_agent.run(
                 query=query,
+                mode="filtering",
                 available_typologies=str(
                     state["db_metadata"]
                     .get("tipologia_bene_immobile", {})
@@ -546,7 +556,7 @@ class GraphOrchestratorAgent(BaseAgent):
                 ape_stats = self._get_ape_statistics(dataset_path=dataset_path, dataset_df=base_dataset)
                 result = self.ape_agent.run(
                     query=query,
-                    columns=APE_AGENT_COLUMNS,
+                    mode="filtering",
                     statistics=ape_stats,
                     score_legend=APE_SCORE_LEGEND,
                 )
@@ -557,34 +567,45 @@ class GraphOrchestratorAgent(BaseAgent):
 
         def run_poi():
             self._update_progress(state, 1, "Analisi punti di interesse in corso...")
-            logger.info("🏪 Executing POI Agents")
-            category_result = self.poi_category_agent.run(query=query)
+            logger.info("🏪 Executing PoiAgent")
             
-            # Safety check: handle None result
-            if category_result is None:
-                logger.warning("⚠️ PoiCategoryAgent returned None, skipping POI analysis")
-                return None
-            
-            cat_data = safe_extract_json(category_result.raw_text)
-            weights = cat_data.get("category_weights", {})
-            logger.info(f"✅ PoiCategoryAgent completed: {len(weights)} categories")
+            base_dataset = state.get("base_dataset")
+            dataset_path = state.get("dataset_path")
+            poi_stats = {}
+            if base_dataset is not None or dataset_path is not None:
+                poi_stats = self._get_column_statistics(
+                    columns=POI_AGENT_COLUMNS,
+                    dataset_path=dataset_path,
+                    dataset_df=base_dataset
+                )
 
-            result = self.poi_amenity_agent.run(query=query, category_weights=weights)
-            
-            # Safety check: handle None result from amenity agent
-            if result is None:
-                logger.warning("⚠️ PoiAmenityAgent returned None, skipping POI analysis")
-                return None
-            
-            am_data = safe_extract_json(result.raw_text)
-            sel_cats = am_data.get("selected_categories", [])
-            logger.info(f"✅ PoiAmenityAgent completed: {len(sel_cats)} categories")
+            result = self.poi_agent.run(
+                query=query,
+                mode="filtering",
+                statistics=poi_stats
+            )
+            logger.info("✅ PoiAgent completed")
             return result
         
         def run_normative():
             self._update_progress(state, 1, "Analisi normativa in corso...")
             logger.info("📚 Executing NormativeAgent")
-            result = self.normative_agent.run(query=query)
+            
+            base_dataset = state.get("base_dataset")
+            dataset_path = state.get("dataset_path")
+            norm_stats = {}
+            if base_dataset is not None or dataset_path is not None:
+                norm_stats = self._get_column_statistics(
+                    columns=NORMATIVE_AGENT_COLUMNS,
+                    dataset_path=dataset_path,
+                    dataset_df=base_dataset
+                )
+
+            result = self.normative_agent.run(
+                query=query,
+                available_columns=NORMATIVE_AGENT_COLUMNS,
+                statistics=norm_stats
+            )
             logger.info("✅ NormativeAgent completed")
             return result
 
@@ -601,6 +622,11 @@ class GraphOrchestratorAgent(BaseAgent):
             ape_result = future_ape.result()
             poi_result = future_poi.result()
             normative_result = future_normative.result()
+
+            state["typology_result"] = typology_result
+            state["poi_result"] = poi_result
+            state["ape_result"] = ape_result
+            state["normative_result"] = normative_result
 
         # Process Typology
         typ_data = safe_extract_json(typology_result.raw_text, schema=TypologyResponse)
@@ -627,63 +653,54 @@ class GraphOrchestratorAgent(BaseAgent):
 
         location_payload = []
         if places:
-            def geocode_place(place):
-                search_query = (
-                    f"{place.name}, {place.city}" if place.city else place.name
-                )
-                try:
-                    lat, lon = get_coordinates(search_query)
-                except Exception:
-                    lat, lon = None, None
-                return search_query, lat, lon
-
-            # Use ThreadPoolExecutor for parallel geocoding
-            with ThreadPoolExecutor(max_workers=5) as executor:
-                futures = [executor.submit(geocode_place, p) for p in places]
-
-                for i, future in enumerate(futures):
-                    search_query, lat, lon = future.result()
-
-                    if lat is not None and lon is not None:
-                        location_payload.append([search_query, lat, lon])
-                        if i < len(state["context"].locations):
-                            state["context"].locations[i].lat = lat
-                            state["context"].locations[i].lon = lon
-                    else:
-                        logger.warning(f"Could not geocode: {search_query}")
+            for p in places:
+                if p.lat is not None and p.lon is not None:
+                    # Construct search query for payload format consistency
+                    search_query = f"{p.name}, {p.city}" if p.city else p.name
+                    location_payload.append([search_query, p.lat, p.lon])
 
         state["location_payload"] = location_payload
 
         # Process POI
         state["poi_result"] = poi_result
+        state["context"].poi_result = poi_result
         poi_data = safe_extract_json(poi_result.raw_text) if poi_result else {}
         if poi_result is not None:
             state["gemini_responses"]["poi_analysis"] = {
                 "prompt": poi_result.prompt.model_dump() if poi_result.prompt else None,
                 "response": poi_result.raw_text,
-                "weights": poi_data.get('category_weights', {}),
-                "constraints": poi_data.get('constraints', {}),
+                "categories": poi_data.get('categories', []),
+                "punteggi_minimi": poi_data.get('punteggi_minimi', {}),
+                "found": poi_data.get('found', False)
             }
         else:
             logger.warning("⚠️ POI analysis skipped: no result available")
             state["gemini_responses"]["poi_analysis"] = {
                 "prompt": None,
                 "response": "",
-                "weights": {},
-                "constraints": {},
+                "categories": [],
+                "punteggi_minimi": {},
+                "found": False
             }
 
         # Process APE
-        ape_text = ""
+        state["ape_result"] = ape_result
+        state["context"].ape_result = ape_result
         ape_data = safe_extract_json(ape_result.raw_text) if ape_result else {}
         if ape_result:
             state["gemini_responses"]["ape_analysis"] = {
                 "prompt": ape_result.prompt.model_dump() if ape_result.prompt else None,
                 "response": ape_result.raw_text,
-                "answer": ape_data.get("answer", ""),
                 "suggested_filters": ape_data.get("suggested_filters", []),
+                "found": ape_data.get("found", False)
             }
-            ape_text = f"\n\nAnalisi APE: {ape_data.get('answer', '')}"
+
+        # Process APE Text for Context
+        ape_text = ""
+        if ape_data and ape_data.get("found"):
+            filters = ape_data.get("suggested_filters", [])
+            if filters:
+                ape_text = f"\n\nAnalisi Energetica: L'utente ha espresso necessità relative all'efficienza (APE). Filtri: {', '.join(filters)}."
 
         # Process POI Text for Context
         poi_text = ""
@@ -720,59 +737,16 @@ class GraphOrchestratorAgent(BaseAgent):
 
         return state
     
-    def _consistency_check(self, state: GraphState) -> GraphState:
-        self._update_progress(state, 2, "Consolidamento requisiti...")
-        query = state["query"]
-        typology_result = state.get("typology_result")
-        location_payload = state.get("location_payload")
-        poi_result = state.get("poi_result")
-        normative_result = state.get("normative_result")
-        ape_result = state.get("gemini_responses", {}).get("ape_analysis", {})
-        ape_info = ""
-        if isinstance(ape_result, dict) and "suggested_filters" in ape_result:
-            filters = ape_result.get("suggested_filters", [])
-            if filters:
-                ape_info = ", ".join(filters)
-
-        # Geocode names for consistency agent
-        locations = [p[0] for p in location_payload] if location_payload else []
-
-        # Parse results for input
-        typ_data = safe_extract_json(typology_result.raw_text, schema=TypologyResponse) if typology_result else None
-        typologies = typ_data.typologies if typ_data else []
-        norm_data = safe_extract_json(normative_result.raw_text) if normative_result else {}
-        
-        # Execute Consistency Agent
-        consistency_result = self.consistency_agent.run(
-            query=query,
-            typologies=typologies,
-            locations=locations,
-            normative_info=str(norm_data),
-            ape_info=ape_info
-        )
-
-        consc_data = safe_extract_json(consistency_result.raw_text, schema=ConsistencyResponse)
-        requirements = consc_data.requirements if consc_data else []
-
-        state["consistency_result"] = consistency_result
-        state["gemini_responses"]["consistency_analysis"] = {
-            "prompt": consistency_result.prompt.model_dump() if consistency_result.prompt else None,
-            "response": consistency_result.raw_text,
-            "requirements": requirements,
-        }
-        
-        return state
 
     def _generate_sql(self, state: GraphState) -> GraphState:
         retry_count = state["retry_count"]
         self._update_progress(
-            state, 3, f"Generazione SQL (tentativo {retry_count + 1})..."
+            state, 2, f"Generazione SQL (tentativo {retry_count + 1})..."
         )
 
         query = state["query"]
         db_schema = state["db_schema"]
         location_payload = state["location_payload"]
-        metrics_plan = state["metrics_plan"]
         failed_query = state["sql_query"] if retry_count > 0 else ""
         error_msg = state.get("execution_error")
 
@@ -781,20 +755,20 @@ class GraphOrchestratorAgent(BaseAgent):
             _, lat, lon = location_payload[0]
             loc_obj = {"lat": lat, "lon": lon}
 
-        # Use consolidated requirements from consistency_result if available
-        consistency_result = state.get("consistency_result")
-        consc_data = safe_extract_json(consistency_result.raw_text, schema=ConsistencyResponse) if consistency_result else None
-        requirements = consc_data.requirements if consc_data else []
+        # Raw agent outputs
+        typology_result = state.get("typology_result")
+        poi_result = state.get("poi_result")
+        ape_result = state.get("ape_result")
+        normative_result = state.get("normative_result")
         
-        if requirements:
-            sql_prompt = "\n".join(requirements)
-        else:
-            sql_prompt = self._augment_query_with_plan(
-                query, 
-                metrics_plan, 
-                state.get("typology_result"),
-                state.get("normative_result")
-            )
+        typologies_raw = typology_result.raw_text if typology_result else "N/D"
+        poi_raw = poi_result.raw_text if poi_result else "N/D"
+        ape_raw = ape_result.raw_text if ape_result else "N/D"
+        normative_raw = normative_result.raw_text if normative_result else "N/D"
+        
+        # Format locations as JSON string for clarity
+        locations_list = state["gemini_responses"].get("location_extraction", {}).get("places", [])
+        locations_raw = json.dumps(locations_list, ensure_ascii=False)
 
         if USE_MOCK_RESPONSES:
             logger.info("MOCK MODE: Simulating SQL generation...")
@@ -806,26 +780,37 @@ class GraphOrchestratorAgent(BaseAgent):
             }
             return state
 
+        # If it's a retry due to empty/few results, augment the prompt
+        current_query = query
         if state.get("relax_constraints"):
-            logger.info("Applying SMART RELAXATION to SQL prompt")
-            sql_prompt += "\n\nATTENZIONE: La ricerca precedente ha prodotto 0 risultati. IL TUO OBIETTIVO ORA È TROVARE ALTERNATIVE. RILASSA I VINCOLI (es. espandi il range di prezzo, rimuovi filtri su piano o ascensore, allarga il raggio geografico). DEVI restituire qualcosa."
+            logger.info("Applying RELAXATION to SQL prompt")
+            error_msg = error_msg or f"RILASSA I VINCOLI: la ricerca ha prodotto solo {len(state.get('selected_data', []))} risultati. Rimuovi i filtri meno importanti per ottenere più risultati. REGOLA: I filtri sono IMMUTABILI; non puoi cambiare i valori (es. range superfici o distanze), puoi solo decidere di non includerli affatto nella WHERE."
 
-        if retry_count == 0:
-            sql_result = self.sql_agent.run(
-                query=sql_prompt,
-                scheme=str(db_schema),
-                location=loc_obj,
-                db_metadata=json.dumps(state["db_metadata"], ensure_ascii=False),
+        # Get statistics for filterable columns to help SQL Agent with ranges
+        filterable_cols = state.get("db_metadata", {}).get("sql_filtering_rules", {}).get("filterable_columns", [])
+        stats = {}
+        if filterable_cols:
+            stats = self._get_column_statistics(
+                columns=filterable_cols,
+                dataset_path=state.get("dataset_path"),
+                dataset_df=state.get("base_dataset")
             )
-        else:
-            sql_result = self.sql_agent.run(
-                query=sql_prompt,
-                scheme=str(db_schema),
-                location=loc_obj,
-                failed_query=failed_query,
-                error_msg=error_msg,
-                db_metadata=json.dumps(state["db_metadata"], ensure_ascii=False),
-            )
+        stats_raw = json.dumps(stats, indent=2, ensure_ascii=False)
+
+        sql_result = self.sql_agent.run(
+            query=current_query,
+            scheme=str(db_schema),
+            typologies=typologies_raw,
+            locations=locations_raw,
+            ape_requirements=ape_raw,
+            poi_requirements=poi_raw,
+            normative_requirements=normative_raw,
+            statistics=stats_raw,
+            location=loc_obj,
+            failed_query=failed_query,
+            error_msg=error_msg,
+            db_metadata=json.dumps(state["db_metadata"], ensure_ascii=False),
+        )
 
         # sql_result.raw_text now contains the cleaned SQL
         state["sql_query"] = sql_result.raw_text
@@ -842,7 +827,7 @@ class GraphOrchestratorAgent(BaseAgent):
         return state
 
     def _execute_sql(self, state: GraphState) -> GraphState:
-        self._update_progress(state, 4, "Esecuzione query...")
+        self._update_progress(state, 3, "Esecuzione query...")
         sql_query = state["sql_query"]
         dataset_path = state.get("dataset_path")
         base_dataset = state.get("base_dataset")
@@ -873,27 +858,22 @@ class GraphOrchestratorAgent(BaseAgent):
             logger.error("Max retries reached with error. Activating fallback.")
             return "fallback"
 
-        if not state["selected_data"].empty:
+        if len(state["selected_data"]) >= 10:
             return "continue"
 
         if state["retry_count"] < 5:
             logger.warning(
-                f"Retrying due to empty results (Attempt {state['retry_count'] + 1})"
+                f"Retrying due to few results ({len(state['selected_data'])}). Attempt {state['retry_count'] + 1}"
             )
             return "retry_relax"
 
-        logger.warning("Max retries reached with empty results. Activating fallback.")
+        logger.warning("Max retries reached. Activating fallback.")
         return "fallback"
 
     def _handle_retry(self, state: GraphState) -> GraphState:
-        # Check if we need to relax constraints based on the edge that brought us here
-        # LangGraph doesn't pass edge metadata easily, but we can infer or use specific nodes.
-        # However, since we use the same handle_retry node, we can just check the previous state logic
-        # OR we can make _check_sql_execution return different edges.
-
-        # Simplified: If selected_data is empty and no error, it's a relaxation retry
+        # If results < 10 and no error, it's a relaxation retry
         relax = False
-        if not state.get("execution_error") and state["selected_data"].empty:
+        if not state.get("execution_error") and len(state.get("selected_data", [])) < 10:
             relax = True
 
         return {"retry_count": state["retry_count"] + 1, "relax_constraints": relax}
@@ -904,7 +884,7 @@ class GraphOrchestratorAgent(BaseAgent):
         Returns top results from full dataset so user always gets something.
         """
         self._update_progress(
-            state, 4, "Nessun risultato trovato. Generazione alternative..."
+            state, 3, "Nessun risultato trovato. Generazione alternative..."
         )
         logger.warning("Fallback activated: loading top results from full dataset")
 
@@ -963,7 +943,7 @@ class GraphOrchestratorAgent(BaseAgent):
         return state
 
     def _enrich_results(self, state: GraphState) -> GraphState:
-        self._update_progress(state, 5, "Arricchimento dati...")
+        self._update_progress(state, 4, "Arricchimento dati...")
         selected_data = state["selected_data"]
         sql_query = state["sql_query"]
         location_payload = state["location_payload"]
@@ -1054,138 +1034,118 @@ class GraphOrchestratorAgent(BaseAgent):
         )
         return float(match.group(1)) if match else 5.0
 
-    def _calculate_component_weights(
-        self, metrics_plan: Optional[NeedsMetricPlan], user_location: tuple = None
-    ) -> dict:
-        """
-        Calculate ranking component weights from NeedsMetricAgent metrics.
-
-        Returns:
-            dict with keys: ape_weight, poi_weight_factor, distance_weight
-        """
-        if not metrics_plan or not metrics_plan.metrics:
-            # Fallback to defaults
-            return {
-                "ape_weight": 0.2,
-                "poi_weight_factor": 0.4,
-                "distance_weight": 0.4 if user_location else 0.0,
+    def _calculate_ranking_weights(self, state: GraphState) -> GraphState:
+        self._update_progress(state, 5, "Analisi pesi per ranking...")
+        query = state["query"]
+        
+        # In mock mode, use defaults or simulated weights
+        if USE_MOCK_RESPONSES:
+            weights = RankingWeights(location=0.3, normative=0.1, ape=0.2, typology=0.2, poi=0.2)
+            state["ranking_result"] = RankingAgentResult(raw_text="{}", weights=weights)
+        else:
+            ranking_result = self.ranking_agent.run(query=query)
+            state["ranking_result"] = ranking_result
+            state["context"].ranking_result = ranking_result
+            
+            state["gemini_responses"]["ranking_weights"] = {
+                "prompt": ranking_result.prompt.model_dump() if ranking_result.prompt else None,
+                "response": ranking_result.raw_text,
+                "weights": ranking_result.weights.model_dump()
             }
+        
+        return state
 
-        # Sum weights by category based on metric names
-        ape_related = sum(
-            m.weight
-            for m in metrics_plan.metrics
-            if any(
-                kw in m.name.lower()
-                for kw in [
-                    "efficienza",
-                    "ape",
-                    "energetica",
-                    "energetico",
-                    "isolamento",
-                    "involucro",
-                    "impianto",
-                    "rinnovabili",
-                    "classe",
-                    "consumo",
-                ]
-            )
-        )
-
-        poi_related = sum(
-            m.weight
-            for m in metrics_plan.metrics
-            if any(
-                kw in m.name.lower()
-                for kw in [
-                    "sanita",
-                    "mobilita",
-                    "verde",
-                    "sport",
-                    "commerciale",
-                    "educazione",
-                    "servizi",
-                    "trasporti",
-                    "scuole",
-                    "ospedali",
-                    "negozi",
-                ]
-            )
-        )
-
-        # Distance gets weight only if location is specified
-        distance_base = 0.3 if user_location else 0.0
-
-        # Normalize to sum to 1.0
-        total = ape_related + poi_related + distance_base
-        if total == 0:
-            # No specific metrics → balanced defaults
-            return {
-                "ape_weight": 0.3,
-                "poi_weight_factor": 0.3,
-                "distance_weight": 0.4 if user_location else 0.0,
-            }
-
-        return {
-            "ape_weight": ape_related / total if total > 0 else 0.2,
-            "poi_weight_factor": poi_related / total if total > 0 else 0.3,
-            "distance_weight": distance_base / total if total > 0 else 0.4,
-        }
 
     def _rank_results(self, state: GraphState) -> GraphState:
-        self._update_progress(state, 6, "Ranking intelligente dei risultati...")
+        self._update_progress(state, 5, "Ranking parallelo e pesatura...")
         df = state["selected_data"]
-        poi_result = state.get("poi_result")
-        metrics_plan = state.get("metrics_plan")
-
         if df is None or df.empty:
             return state
 
-        # Extract user location if available
-        user_location = None
-        loc_payload = state.get("location_payload")
-        if isinstance(loc_payload, list) and len(loc_payload) > 0:
-            # Take the first location found
-            # Format: [name, lat, lon]
-            try:
-                user_location = (float(loc_payload[0][1]), float(loc_payload[0][2]))
-            except Exception:
-                pass
+        ranking_res = state.get("ranking_result")
+        weights = ranking_res.weights if ranking_res else RankingWeights()
 
-        # Extract weights
-        poi_weights = {}
-        amenity_weights = {}
-        
-        if poi_result:
-            # Extract category weights (fallback)
-            if hasattr(poi_result, 'poi_weights'):
-                poi_weights = poi_result.poi_weights
-            elif hasattr(poi_result, 'category_weights'):
-                poi_weights = poi_result.category_weights
+        # Define ranking tasks for parallel execution
+        def rank_typology():
+            res = state.get("typology_result")
+            if res:
+                data = safe_extract_json(res.raw_text, schema=TypologyResponse)
+                if data and data.typologies:
+                    tmp = self.typology_agent.run(mode="ranking", df=df.copy(), ranked_typologies=data.typologies)
+                    return tmp[["id", "typology_score"]]
+            tmp = df.copy()
+            tmp["typology_score"] = 0.0
+            return tmp[["id", "typology_score"]]
+
+        def rank_location():
+            if state["context"].locations:
+                 tmp = self.location_agent.run(mode="ranking", df=df.copy(), places=state["context"].locations)
+                 return tmp[["id", "location_score"]]
+            tmp = df.copy()
+            tmp["location_score"] = 0.0
+            return tmp[["id", "location_score"]]
+
+        def rank_ape():
+            tmp = self.ape_agent.run(mode="ranking", df=df.copy())
+            return tmp[["id", "energy_score"]]
+
+        def rank_normative():
+            res = state.get("normative_result")
+            if res:
+                data = safe_extract_json(res.raw_text, schema=NormativeResponse)
+                if data and data.found:
+                    tmp = self.normative_agent.run(mode="ranking", df=df.copy(), requirements=data.requisiti)
+                    return tmp[["id", "normative_score"]]
+            tmp = df.copy()
+            tmp["normative_score"] = 0.0
+            return tmp[["id", "normative_score"]]
+
+        def rank_poi():
+            res = state.get("poi_result")
+            if res:
+                data = safe_extract_json(res.raw_text)
+                if data and data.get("categories"):
+                    tmp = self.poi_agent.run(mode="ranking", df=df.copy(), ranked_categories=data.get("categories"))
+                    return tmp[["id", "poi_score"]]
+            tmp = df.copy()
+            tmp["poi_score"] = 0.0
+            return tmp[["id", "poi_score"]]
+
+        # Execute parallel ranking tasks
+        with ThreadPoolExecutor(max_workers=5) as executor:
+            task_map = {
+                executor.submit(rank_typology): "typology",
+                executor.submit(rank_location): "location",
+                executor.submit(rank_ape): "ape",
+                executor.submit(rank_normative): "normative",
+                executor.submit(rank_poi): "poi",
+            }
             
-            # Extract amenity weights (granular)
-            if hasattr(poi_result, 'amenity_weights'):
-                amenity_weights = poi_result.amenity_weights
+            for future in as_completed(task_map):
+                name = task_map[future]
+                try:
+                    res_df = future.result()
+                    # Aggiungiamo solo le colonne di score evitando duplicazioni (usiamo 'id' come chiave)
+                    df = df.merge(res_df, on="id", how="left")
+                except Exception as e:
+                    logger.error(f"Error in parallel ranking part {name}: {e}")
+                    col = "energy_score" if name == "ape" else f"{name}_score"
+                    if col not in df.columns:
+                        df[col] = 0.0
 
-        # Extract search radius from SQL query
-        search_radius = self._extract_search_radius(state.get("sql_query", ""))
-
-        # Calculate component weights dynamically from NeedsMetricAgent output
-        weights = self._calculate_component_weights(metrics_plan, user_location)
-
-        # Calculate ranking with dynamic weights and adaptive distance
-        ranked_df = calculate_ranking_score(
-            df,
-            poi_weights=poi_weights,
-            amenity_weights=amenity_weights,  # Pass granular amenity weights
-            user_location=user_location,
-            search_radius_km=search_radius,
-            ape_weight=weights["ape_weight"],
-            poi_weight_factor=weights["poi_weight_factor"],
-            distance_weight=weights["distance_weight"],
+        # Calculate final weighted score
+        df["final_ranking_score"] = (
+            weights.location * df.get("location_score", 0.0) +
+            weights.normative * df.get("normative_score", 0.0) +
+            weights.ape * df.get("energy_score", 0.0) +
+            weights.typology * df.get("typology_score", 0.0) +
+            weights.poi * df.get("poi_score", 0.0)
         )
 
-        state["selected_data"] = ranked_df
+        # Sort by total score
+        df = df.sort_values(by="final_ranking_score", ascending=False)
+        state["selected_data"] = df
+        
         return state
 
     def _evaluate_results(self, state: GraphState) -> GraphState:
@@ -1196,7 +1156,7 @@ class GraphOrchestratorAgent(BaseAgent):
         if USE_MOCK_RESPONSES:
             logger.info("MOCK MODE: Simulating Evaluation...")
             self._update_progress(
-                state, 7, f"Avvio valutazione qualitativa simulata..."
+                state, 6, f"Avvio valutazione qualitativa simulata..."
             )
             time.sleep(1)
 
@@ -1224,7 +1184,7 @@ class GraphOrchestratorAgent(BaseAgent):
                         time.sleep(0.5)
                         self._update_progress(
                             state,
-                            7,
+                            6,
                             f"Analisi simulata {idx+1}/{min(3, len(enriched_data))}",
                         )
 
@@ -1237,18 +1197,19 @@ class GraphOrchestratorAgent(BaseAgent):
 
             self._update_progress(
                 state,
-                4,
+                6,
                 f"Valutazione completata: {len(eval_results)} risultati generati.",
             )
             return state
 
-        eval_input_df = enriched_data.head(llm_cap).copy()
+        # Limit evaluation to top 10 as per user request
+        eval_input_df = enriched_data.head(10).copy()
         eval_input_df["is_evaluated"] = True
 
         total_items = len(eval_input_df)
         self._update_progress(
             state,
-            7,
+            6,
             f"Avvio valutazione qualitativa su {total_items} immobili candidati...",
         )
 
@@ -1291,6 +1252,12 @@ class GraphOrchestratorAgent(BaseAgent):
             # Travel times (if enriched)
             "tempo_minuti",
             "distanza_km",
+            # Agent scores
+            "energy_score",
+            "location_score",
+            "normative_score",
+            "typology_score",
+            "poi_score",
         ]
 
         def prepare_estates_json(batch_df: pd.DataFrame) -> str:
@@ -1357,7 +1324,7 @@ class GraphOrchestratorAgent(BaseAgent):
                     # Update progress dynamically for each batch
                     self._update_progress(
                         state,
-                        7,
+                        6,
                         f"Analizzando batch {finished_batches}/{total_batches} con {len(batch_results)} valutazioni...",
                     )
 
@@ -1383,12 +1350,12 @@ class GraphOrchestratorAgent(BaseAgent):
             ]
 
         self._update_progress(
-            state, 7, f"Valutazione completata: {len(all_results)} risultati generati."
+            state, 6, f"Valutazione completata: {len(all_results)} risultati generati."
         )
         return state
 
     def _broker_review(self, state: GraphState) -> GraphState:
-        self._update_progress(state, 8, "Analisi esperta (Senior Broker)...")
+        self._update_progress(state, 7, "Analisi esperta (Senior Broker)...")
 
         if USE_MOCK_RESPONSES:
             logger.info("MOCK MODE: Simulating Broker Review...")
@@ -1434,7 +1401,7 @@ class GraphOrchestratorAgent(BaseAgent):
         return state
 
     def _finalize_results(self, state: GraphState) -> GraphState:
-        self._update_progress(state, 9, "Finalizzazione...")
+        self._update_progress(state, 8, "Finalizzazione...")
 
         if state["selected_data"].empty:
             state["status_msg"] = (
@@ -1633,7 +1600,7 @@ class GraphOrchestratorAgent(BaseAgent):
 
         state["selected_data"] = map_df  # Risultato finale per la mappa
         state["gemini_responses"]["agent_context"] = state["context"].model_dump()
-        self._update_progress(state, 8, "Completato.")
+        self._update_progress(state, 9, "Completato.")
         return state
 
     # ------------------------------------------------------------------

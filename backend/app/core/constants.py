@@ -75,6 +75,15 @@ APE_AGENT_COLUMNS: List[str] = [
     "ape_score_total",
 ]
 
+# Colonne specifiche per Normative Agent
+NORMATIVE_AGENT_COLUMNS: List[str] = [
+    "superficie_di_riferimento_mq",
+    "tipologia_bene_immobile",
+    "natura_del_bene",
+    "utilizzo_del_bene",
+    "finalita",
+]
+
 # Categorie POI
 POI_CATEGORIES: Dict[str, str] = {
     "sanita": "Ospedali, farmacie, ambulatori",
@@ -84,3 +93,12 @@ POI_CATEGORIES: Dict[str, str] = {
     "commerciale": "Negozi, supermercati",
     "educazione": "Scuole, università",
 }
+# Colonne specifiche per POI Agent
+POI_AGENT_COLUMNS: List[str] = [
+    "sanita",
+    "mobilita",
+    "verde",
+    "sport",
+    "commerciale",
+    "educazione",
+]

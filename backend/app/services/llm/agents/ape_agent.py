@@ -1,7 +1,10 @@
-from typing import Any, Dict, List, Optional
+import json
+from typing import Any, Dict, List, Optional, Union
+import pandas as pd
+import numpy as np
 
 from langchain_core.output_parsers import StrOutputParser
-from langchain_core.prompts import PromptTemplate
+from langchain_core.prompts import ChatPromptTemplate
 from pydantic import BaseModel, Field
 
 from app.core.config import settings
@@ -17,8 +20,8 @@ from app.utils.json_parser import safe_extract_json
 
 class ApeAgentOutput(BaseModel):
     """Schema di output strutturato per l'APE Agent."""
-    answer: str = Field(..., description="Spiegazione della strategia energetica")
-    suggested_filters: List[str] = Field(default_factory=list, description="Filtri APE suggeriti (es. 'ape_score_total >= 4')")
+    found: bool = Field(default=False, description="True se ci sono criteri energetici rilevanti")
+    suggested_filters: List[str] = Field(default_factory=list, description="Filtri APE suggeriti")
 
 
 class ApeAgent(BaseAgent):
@@ -30,13 +33,8 @@ class ApeAgent(BaseAgent):
         )
         self.llm = get_llm(model_name=resolved_model)
 
-        # Load system and user prompts separately
         self.system_prompt = get_system_prompt("ape_agent")
         self.user_template = get_user_template("ape_agent")
-
-        # Create ChatPromptTemplate with system/user separation
-        # Note: We construct the chain dynamically in run() because system prompt changes with stats
-        from langchain_core.prompts import ChatPromptTemplate
 
         self.prompt_template = ChatPromptTemplate.from_messages(
             [
@@ -44,37 +42,44 @@ class ApeAgent(BaseAgent):
                 ("user", self.user_template),
             ]
         )
-        # Use with_structured_output for guaranteed structured responses
-        self.structured_llm = self.llm.with_structured_output(ApeAgentOutput)
+        self.structured_llm = self.llm.with_structured_output(ApeAgentOutput, method="function_calling")
         self.chain = self.prompt_template | self.structured_llm
 
     @log_llm_usage
     def run(
         self,
+        *,
+        query: str = None,
+        mode: str = "filtering",
+        **kwargs
+    ) -> Union[ApeAgentResult, pd.DataFrame]:
+        """
+        Esegue l'agente in due modalità:
+        - filtering: Suggerisce filtri SQL basati sulla query (LLM).
+        - ranking: Calcola uno score 0-100 basato sulle colonne APE (Deterministico).
+        """
+        if mode == "filtering":
+            return self._run_filtering(
+                query=query,
+                statistics=kwargs.get("statistics"),
+                score_legend=kwargs.get("score_legend")
+            )
+        elif mode == "ranking":
+            return self._run_ranking(**kwargs)
+        else:
+            raise ValueError(f"Modalità '{mode}' non supportata dall'ApeAgent.")
+
+    def _run_filtering(
+        self,
         query: str,
-        columns: list[str] = None,
         statistics: dict = None,
         score_legend: str = "",
     ) -> ApeAgentResult:
-        if not statistics and not columns:
-            # Fallback legacy behavior or graceful exit
-            return ApeAgentResult(
-                raw_text="Dati APE non disponibili.",
-                prompt=None,
-            )
+        if not statistics and not query:
+            return ApeAgentResult(raw_text="Dati APE non disponibili.", prompt=None)
 
-        # Format statistics string
-        stats_str = "Nessuna statistica disponibile."
-        if statistics:
-            import json
-
-            stats_str = json.dumps(statistics, indent=2, ensure_ascii=False)
-        elif columns:
-            stats_str = "Colonne disponibili: " + ", ".join(columns)
-
-        # Prepare system prompt content
-        # We manually inject variables into the system string before passing to LLM
-        # This is because get_system_prompt returns a string that expects formatting
+        stats_str = json.dumps(statistics, indent=2, ensure_ascii=False) if statistics else "N/D"
+        
         system_content = self.render_template(
             self.system_prompt,
             statistics=stats_str,
@@ -82,30 +87,48 @@ class ApeAgent(BaseAgent):
         )
 
         prompt_inputs = {"system_content": system_content, "query": query}
-
-        # User text for record keeping
         user_text = self.render_template(self.user_template, query=query).strip()
         full_text = f"[SYSTEM]\n{system_content}\n\n[USER]\n{user_text}"
 
         try:
-            # Use invoke_with_langfuse to get structured output
             structured_response: ApeAgentOutput = invoke_with_langfuse(self.chain, prompt_inputs)
-
-            import json
-            raw_json = json.dumps(structured_response.model_dump(), ensure_ascii=False)
+            has_filters = structured_response.found
 
             return ApeAgentResult(
-                raw_text=raw_json,
+                raw_text=json.dumps(structured_response.model_dump(), ensure_ascii=False),
+                has_filters=has_filters,
                 prompt=PromptRecord(
                     system=system_content,
                     user=user_text,
                     full_text=full_text,
                 ),
             )
-
         except Exception as e:
-            print(f"Errore ApeAgent: {e}")
             return ApeAgentResult(
-                raw_text=json.dumps({"error": str(e), "answer": "Si è verificato un errore nell'analisi energetica.", "suggested_filters": []}),
+                raw_text=json.dumps({"error": str(e), "found": False, "suggested_filters": []}),
                 prompt=None,
             )
+
+    def _run_ranking(self, *, df: pd.DataFrame) -> pd.DataFrame:
+        """Modalità ranking: calcolo score deterministico 0-100 basato sulla qualità energetica."""
+        if df is None or df.empty:
+            if df is not None:
+                df["energy_score"] = 0
+            return df
+
+        df_ranked = df.copy()
+        
+        # Le colonne APE sono calcolate in processors.py: calculate_ape_score
+        # ape_total_points va da 6 a 20. Normalizziamo 100 * (points - 6) / (20 - 6)
+        if "ape_total_points" in df_ranked.columns:
+            points = pd.to_numeric(df_ranked["ape_total_points"], errors="coerce").fillna(6)
+            df_ranked["energy_score"] = (100 * (points - 6) / (20 - 6)).clip(0, 100)
+        elif "ape_score_total" in df_ranked.columns:
+            # Fallback se abbiamo solo lo score 1-5
+            score = pd.to_numeric(df_ranked["ape_score_total"], errors="coerce").fillna(1)
+            df_ranked["energy_score"] = ((score - 1) * 25).clip(0, 100)
+        else:
+            df_ranked["energy_score"] = 0
+            
+        df_ranked["energy_score"] = df_ranked["energy_score"].round(1)
+        return df_ranked

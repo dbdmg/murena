@@ -11,16 +11,46 @@ from app.services.llm.langchain_client import get_llm, invoke_with_langfuse
 from app.services.llm.prompt_loader import get_system_prompt, get_user_template
 from app.utils.decorators import log_llm_usage
 
+import re
+
 def _clean_sql(text: str) -> str:
-    """Pulisce la stringa SQL da markdown e commenti."""
-    text = text.strip()
-    if text.startswith("```sql"):
-        text = text[6:]
-    if text.startswith("```"):
-        text = text[3:]
-    if text.endswith("```"):
-        text = text[:-3]
+    """
+    Pulisce la stringa SQL da markdown, commenti e testo addizionale.
+    Estrae solo la prima query SELECT valida se presente.
+    """
+    # Rimuove blocchi di codice markdown
+    text = re.sub(r'```sql\s*', '', text, flags=re.IGNORECASE)
+    text = re.sub(r'```\s*', '', text)
+    
+    # Rimuove commenti SQL inline (-- commento)
+    text = re.sub(r'--.*$', '', text, flags=re.MULTILINE)
+    
+    # Cerca il primo SELECT e prende tutto fino alla fine o al primo punto e virgola
+    # Questo aiuta se l'LLM aggiunge chiacchiere prima o dopo
+    match = re.search(r'(SELECT\s+.*)', text, re.IGNORECASE | re.DOTALL)
+    if match:
+        sql = match.group(1).strip()
+        # Se c'è un punto e virgola, prendiamo solo fino a lì (evita comandi multipli)
+        if ';' in sql:
+            sql = sql.split(';')[0].strip()
+        return sql
+    
     return text.strip()
+
+def _validate_sql(sql: str) -> bool:
+    """Verifica che la query sia un SELECT sicuro e valido per DuckDB."""
+    sql_upper = sql.upper().strip()
+    if not sql_upper.startswith("SELECT"):
+        return False
+    
+    # Lista di parole chiave proibite per sicurezza (anche se DuckDB in memory è isolato)
+    prohibited = ["INSERT", "UPDATE", "DELETE", "DROP", "ALTER", "TRUNCATE", "CREATE", "EXECUTE", "ATTACH"]
+    for word in prohibited:
+        # Cerchiamo la parola intera
+        if re.search(r'\b' + word + r'\b', sql_upper):
+            return False
+            
+    return True
 
 
 class SQLAgent(BaseAgent):
@@ -80,6 +110,12 @@ class SQLAgent(BaseAgent):
         *,
         query: str,
         scheme: str,
+        typologies: str = "N/D",
+        locations: str = "N/D",
+        ape_requirements: str = "N/D",
+        poi_requirements: str = "N/D",
+        normative_requirements: str = "N/D",
+        statistics: str = "N/D",
         location: Optional[Any] = None,
         failed_query: Optional[str] = None,
         error_msg: Optional[str] = None,
@@ -113,6 +149,12 @@ class SQLAgent(BaseAgent):
         variables = {
             "query": query,
             "scheme": scheme,
+            "typologies": typologies,
+            "locations": locations,
+            "ape_requirements": ape_requirements,
+            "poi_requirements": poi_requirements,
+            "normative_requirements": normative_requirements,
+            "statistics": statistics,
             "failed_query": failed_query or "",
             "location_str": location_str,
             "lat": lat,
@@ -129,6 +171,12 @@ class SQLAgent(BaseAgent):
         # Fix common SQL syntax errors from LLM
         # 1. Fix single quote escaping: replace \' with ''
         sql = sql.replace("\\'", "''")
+
+        # Basic Validation
+        if not _validate_sql(sql):
+            # If invalid, we return it anyway but the orchestrator will catch the execution failure
+            # or we could prepend a comment to help debugging.
+            pass
 
         return SQLAgentResult(
             raw_text=sql,

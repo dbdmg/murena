@@ -29,10 +29,13 @@ class Place(BaseModel):
     city: Optional[str] = Field(None, description="Città se disponibile")
     lat: Optional[float] = Field(None, description="Latitudine")
     lon: Optional[float] = Field(None, description="Longitudine")
+    radius_km: float = Field(default=3.0, description="Distanza soglia in km per il filtraggio")
+
 
 
 class CategoryResponse(BaseModel):
     categories: List[str] = Field(default_factory=list, description="Lista delle categorie selezionate")
+    punteggi_minimi: Dict[str, float] = Field(default_factory=dict, description="Punteggio minimo (1-5) richiesto per ciascuna categoria")
 
 
 class AmenityResponse(BaseModel):
@@ -41,6 +44,8 @@ class AmenityResponse(BaseModel):
 
 class NormativeResponse(BaseModel):
     requisiti: List[Dict[str, Any]] = Field(default_factory=list, description="Requisiti normativi estratti")
+    found: bool = Field(default=False, description="True se sono stati trovati requisiti pertinenti")
+
 
 
 class TypologyResponse(BaseModel):
@@ -49,9 +54,11 @@ class TypologyResponse(BaseModel):
 
 class LocationResponse(BaseModel):
     places: List[Place] = Field(default_factory=list, description="Luoghi identificati")
+    found: bool = Field(default=False, description="True se sono stati trovati riferimenti geografici")
 
 
 class ConsistencyResponse(BaseModel):
+
     requirements: List[str] = Field(default_factory=list, description="Requisiti consolidati")
 
 
@@ -105,15 +112,37 @@ class NeedsMetricPlan(AgentResult):
     ape_strategy: ApeUsagePlan = Field(default_factory=ApeUsagePlan)
 
 # Alias o classi specifiche che ora seguono lo stesso schema per retrocompatibilità di tipo
-class LocationAgentResult(AgentResult): pass
+class LocationAgentResult(AgentResult): 
+    has_locations: bool = False
+
 class TypologyAgentResult(AgentResult): pass
 class SQLAgentResult(AgentResult): pass
 class EvaluationAgentResponse(AgentResult): pass
-class ApeAgentResult(AgentResult): pass
-class NormativeAgentResult(AgentResult): pass
-class ConsistencyAgentResult(AgentResult): pass
-class PoiCategoryAgentResult(AgentResult): pass
-class PoiAmenityAgentResult(AgentResult): pass
+class RankingWeights(BaseModel):
+    location: float = Field(default=0.2)
+    normative: float = Field(default=0.2)
+    ape: float = Field(default=0.2)
+    typology: float = Field(default=0.2)
+    poi: float = Field(default=0.2)
+
+class RankingAgentResult(AgentResult): 
+    weights: RankingWeights = Field(default_factory=RankingWeights)
+
+class ApeAgentResult(AgentResult): 
+    has_filters: bool = False
+
+class NormativeAgentResult(AgentResult): 
+    has_requirements: bool = False
+
+class PoiAgentResult(AgentResult): 
+    has_pois: bool = False
+
+# Classi legacy per retrocompatibilità
+class PoiCategoryAgentResult(PoiAgentResult): pass
+class PoiAmenityAgentResult(PoiAgentResult): pass
+class ConsistencyAgentResult(AgentResult): 
+    requirements: List[str] = Field(default_factory=list)
+
 
 
 class AgentContext(BaseModel):
@@ -130,11 +159,14 @@ class AgentContext(BaseModel):
     normative_result: Optional[NormativeAgentResult] = Field(
         None, description="Risultato del NormativeAgent per requisiti normativi"
     )
-    poi_category_result: Optional[PoiCategoryAgentResult] = Field(
-        None, description="Risultato del PoiCategoryAgent per categorie POI"
+    poi_result: Optional[PoiAgentResult] = Field(
+        None, description="Risultato del PoiAgent per analisi POI"
     )
-    poi_amenity_result: Optional[PoiAmenityAgentResult] = Field(
-        None, description="Risultato del PoiAmenityAgent per amenities POI"
+    ape_result: Optional[ApeAgentResult] = Field(
+        None, description="Risultato dell'ApeAgent per analisi energetica"
+    )
+    ranking_result: Optional[RankingAgentResult] = Field(
+        None, description="Risultato del RankingAgent per definire i pesi del ranking"
     )
     filtered_dataset_preview: List[dict] = Field(
         default_factory=list, description="Anteprima del dataset filtrato"

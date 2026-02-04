@@ -211,11 +211,10 @@ ZONE_TORINO = [
 AVAILABLE_AGENTS = [
     "location_agent",
     "typology_agent",
-    "poi_category_agent",
-    "poi_amenity_agent",
+    "poi_agent",
     "ape_agent",
     "normative_agent",
-    "consistency_agent",
+    "ranking_agent",
     "sql_agent",
     "evaluation_agent"
 ]
@@ -309,12 +308,14 @@ class AgentLogger:
         output_extracted = None
         if agent_name.lower() == "ape-agent" and hasattr(output_data, 'suggested_filters'):
             output_extracted = output_data.suggested_filters
-        elif agent_name == "consistency-agent" and hasattr(output_data, 'requirements'):
-            output_extracted = output_data.requirements
+        elif agent_name == "ranking-agent" and hasattr(output_data, 'weights'):
+            output_extracted = output_data.weights.model_dump()
         elif hasattr(output_data, 'raw_text'):
             output_extracted = output_data.raw_text
         elif isinstance(output_data, dict) and 'raw_text' in output_data:
             output_extracted = output_data['raw_text']
+        elif isinstance(output_data, pd.DataFrame):
+            output_extracted = f"DataFrame: {output_data.shape} rows. Cols: {list(output_data.columns)}"
         
         log_entry = {
             "agent_name": agent_name,
@@ -1202,6 +1203,11 @@ class SyntheticDataGenerator:
             "zona_omi": zone["name"],
             "classe_energetica": classe_energetica,
             "anno_costruzione": random.randint(1970, 2023),
+            "utilizzo_del_bene": random.choices(
+                ["Non utilizzato", "Inutilizzabile", "In ristrutturazione/manutenzione", "Utilizzato direttamente"],
+                weights=[0.5, 0.3, 0.1, 0.1],
+                k=1
+            )[0]
         }
         
         # Aggiungi dati APE
@@ -1485,24 +1491,22 @@ class RankingEvaluator:
             from app.services.llm.agents.location_agent import LocationAgent
             from app.services.llm.agents.typology_agent import TypologyAgent
             from app.services.llm.agents.ape_agent import ApeAgent
-            from app.services.llm.agents.poi_category_agent import PoiCategoryAgent
-            from app.services.llm.agents.poi_amenity_agent import PoiAmenityAgent
+            from app.services.llm.agents.poi_agent import PoiAgent
+            from app.services.llm.agents.ranking_agent import RankingAgent
             from app.services.llm.agents.normative_agent import NormativeAgent
             from app.services.llm.agents.sql_agent import SQLAgent
             from app.services.llm.agents.evaluation_agent import EvaluationAgent
-            from app.services.llm.agents.consistency_agent import ConsistencyAgent
             
             # Lista di classi di agenti da patchare
             agent_classes = [
                 LocationAgent,
                 TypologyAgent,
                 ApeAgent,
-                PoiCategoryAgent,
-                PoiAmenityAgent,
+                PoiAgent,
+                RankingAgent,
                 NormativeAgent,
                 SQLAgent,
-                EvaluationAgent,
-                ConsistencyAgent
+                EvaluationAgent
             ]
             
             # Salva i metodi originali per ripristinarli dopo

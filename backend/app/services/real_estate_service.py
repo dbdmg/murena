@@ -590,7 +590,7 @@ class RealEstateService:
             energy_class=safe_get(
                 "energy_class", alternatives=["classe_energetica_ape"]
             ),
-            score=safe_get("score", alternatives=["ape_score_total"]),
+            score=safe_get("score", alternatives=["final_ranking_score", "ape_score_total"]),
             rooms=None,  # Not present in provided columns
             bathrooms=None,  # Not present in provided columns
             floor=None,  # Not present in provided columns

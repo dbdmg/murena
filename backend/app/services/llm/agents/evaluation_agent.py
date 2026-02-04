@@ -67,7 +67,7 @@ class EvaluationAgent(BaseAgent):
 
         # Se il modello supporta structured output nativo (es. Gemini/OpenAI), usiamolo
         if hasattr(self.llm, "with_structured_output"):
-            self.chain = self.prompt | self.llm.with_structured_output(EvaluationList)
+            self.chain = self.prompt | self.llm.with_structured_output(EvaluationList, method="function_calling")
         else:
             self.chain = self.prompt | self.llm | self.parser
 
