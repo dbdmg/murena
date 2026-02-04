@@ -9,6 +9,7 @@ from app.services.llm.agents.poi_amenity_agent import PoiAmenityAgent
 from app.services.llm.agents.poi_category_agent import PoiCategoryAgent
 from app.services.llm.agents.sql_agent import SQLAgent
 from app.services.llm.agents.typology_agent import TypologyAgent
+from app.services.llm.agents.use_case_agent import UseCaseAgent
 from app.services.llm.agents.graph_agent import GraphOrchestratorAgent
 from app.services.llm.agents.consistency_agent import ConsistencyAgent
 
