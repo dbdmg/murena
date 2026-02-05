@@ -144,15 +144,19 @@ class NormativeAgent(BaseAgent):
         if statistics:
             stats_str = json.dumps(statistics, indent=2, ensure_ascii=False)
 
-        prompt_inputs = {
+        # Prepare inputs for templates
+        user_inputs = {
             "query": query, 
             "normative_documents": normative_docs,
-            "available_columns": columns_str,
             "statistics": stats_str
         }
         
-        user_text = self.render_template(self.user_template, **prompt_inputs).strip()
-        system_text = self.render_template(self.system_prompt, **prompt_inputs).strip()
+        system_inputs = {
+            "available_columns": columns_str
+        }
+        
+        user_text = self.render_template(self.user_template, **user_inputs).strip()
+        system_text = self.render_template(self.system_prompt, **system_inputs).strip()
         full_text = f"[SYSTEM]\n{system_text}\n\n[USER]\n{user_text}"
 
         
@@ -186,7 +190,7 @@ class NormativeAgent(BaseAgent):
             ),
         )
 
-    def _run_ranking(self, *, df: pd.DataFrame, requirements: List[Dict[str, Any]]) -> pd.DataFrame:
+    def _run_ranking(self, *, df: pd.DataFrame, requirements: List[Dict[str, Any]], available_columns: List[str] = None) -> pd.DataFrame:
         """Modalità ranking: calcolo score deterministico 0-100 basato sui requisiti normativi."""
         if df is None or df.empty or not requirements:
             if df is not None:
@@ -197,16 +201,22 @@ class NormativeAgent(BaseAgent):
         
         total_scores = pd.Series(0.0, index=df_ranked.index)
         valid_req_count = 0
+        used_columns = set()
 
         for req in requirements:
             col = req.get("colonna_target")
             target_val = req.get("valore")
             op = str(req.get("operatore", ">=")).upper()
 
+            # Filtro rigoroso sulle colonne ammesse
             if not col or col not in df_ranked.columns or target_val is None:
+                continue
+            
+            if available_columns and col not in available_columns:
                 continue
 
             valid_req_count += 1
+            used_columns.add(col)
             
             # Gestione tipi numerici vs categorici
             if op in [">=", "<=", "=="] and isinstance(target_val, (int, float)):
@@ -266,4 +276,4 @@ class NormativeAgent(BaseAgent):
         else:
             df_ranked["normative_score"] = 0.0
 
-        return df_ranked
+        return df_ranked[["id", "normative_score"] + list(used_columns)]

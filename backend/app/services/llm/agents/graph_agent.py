@@ -8,11 +8,12 @@ from langgraph.graph import END, StateGraph
 import numpy as np
 import pandas as pd
 import sqlparse
+import sqlparse.tokens
 import tabulate
 
 from app.services.analysis.ranking import calculate_ranking_score
 from app.core.config import settings
-from app.core.constants import SCORE_LEGEND, APE_SCORE_LEGEND, APE_AGENT_COLUMNS, NORMATIVE_AGENT_COLUMNS, POI_AGENT_COLUMNS
+from app.core.constants import SCORE_LEGEND, APE_SCORE_LEGEND, APE_AGENT_COLUMNS, NORMATIVE_AGENT_COLUMNS, POI_AGENT_COLUMNS, TYPOLOGY_AGENT_COLUMNS
 
 MAX_ITEMS_FOR_LLM = settings.MAX_ITEMS_FOR_LLM
 MAX_ITEMS_FOR_MAP = settings.MAX_ITEMS_FOR_MAP
@@ -39,6 +40,7 @@ from app.services.llm.agents.schema import (
     NormativeResponse,
     TypologyResponse,
     LocationResponse,
+    ApeResponse,
     EvaluationResult,
     EvaluationList,
 )
@@ -97,6 +99,7 @@ class GraphState(TypedDict):
     set_progress: Optional[Callable[[Any], None]]
     step_definitions: List[Dict[str, str]]
     relax_constraints: bool  # Flag for smart relaxation
+    last_retry_reason: Optional[str]  # Why we are retrying (error or few_results)
 
 
 class GraphOrchestratorAgent(BaseAgent):
@@ -283,6 +286,7 @@ class GraphOrchestratorAgent(BaseAgent):
             "set_progress": set_progress,
             "step_definitions": step_definitions,
             "relax_constraints": False,
+            "last_retry_reason": None,
         }
 
         # Safe recursion limit to handle retry loops while preventing infinite loops
@@ -370,7 +374,7 @@ class GraphOrchestratorAgent(BaseAgent):
 
             state["set_progress"]((percent, steps_state))
 
-    def _get_column_statistics(self, columns: List[str], dataset_path: str = None, dataset_df: pd.DataFrame = None, target_not_na_col: str = None) -> dict:
+    def _get_column_statistics(self, columns: List[str], dataset_path: str = None, dataset_df: pd.DataFrame = None, target_not_na_col: str = None, db_metadata: dict = None) -> dict:
         """Estrae statistiche per un set di colonne per gli agenti LLM."""
         try:
             if dataset_df is not None:
@@ -378,15 +382,16 @@ class GraphOrchestratorAgent(BaseAgent):
                 available_cols = [c for c in columns if c in dataset_df.columns]
                 df = dataset_df[available_cols] if available_cols else pd.DataFrame()
             elif dataset_path and os.path.exists(dataset_path):
+                available_cols = [c for c in columns] # Initial list
                 if dataset_path.endswith('.parquet'):
-                    df = pd.read_parquet(dataset_path, columns=[c for c in columns])
+                    df = pd.read_parquet(dataset_path, columns=available_cols)
                 elif dataset_path.endswith('.csv'):
-                    df = pd.read_csv(dataset_path, usecols=lambda col: col in columns)
+                    df = pd.read_csv(dataset_path, usecols=lambda col: col in available_cols)
                 else:
                     try:
-                        df = pd.read_parquet(dataset_path, columns=[c for c in columns])
+                        df = pd.read_parquet(dataset_path, columns=available_cols)
                     except:
-                        df = pd.read_csv(dataset_path, usecols=lambda col: col in columns)
+                        df = pd.read_csv(dataset_path, usecols=lambda col: col in available_cols)
             else:
                 return {}
 
@@ -399,6 +404,9 @@ class GraphOrchestratorAgent(BaseAgent):
 
             for col in columns:
                 if col not in df.columns:
+                    # Se la colonna non è nel DF, mostriamo 0 per ogni valore possibile dai metadati (se presenti)
+                    if db_metadata and col in db_metadata and "values" in db_metadata[col]:
+                        stats[col] = {str(val): 0 for val in db_metadata[col]["values"]}
                     continue
 
                 if pd.api.types.is_numeric_dtype(df[col]):
@@ -416,21 +424,36 @@ class GraphOrchestratorAgent(BaseAgent):
                             },
                         }
                 else:
-                    # Categorie
-                    stats[col] = df[col].value_counts().head(15).to_dict()
+                    # Categorie - Semplificato: mostra direttamente il count per ogni valore
+                    counts = df[col].value_counts().to_dict()
+                    
+                    real_values = []
+                    if db_metadata and col in db_metadata and "values" in db_metadata[col]:
+                        real_values = db_metadata[col]["values"]
+                    
+                    if real_values:
+                        # Mostra 0 per i valori reali non presenti nel dataset
+                        stats[col] = {str(val): int(counts.get(val, 0)) for val in real_values}
+                        # Aggiungiamo eventuali valori nel dataset non presenti nei metadati (safety)
+                        for val, count in counts.items():
+                            if str(val) not in stats[col]:
+                                stats[col][str(val)] = int(count)
+                    else:
+                        stats[col] = {str(k): int(v) for k, v in counts.items()}
 
             return stats
         except Exception as e:
             logger.error(f"Error calculating column statistics: {e}")
             return {"error": str(e)}
 
-    def _get_ape_statistics(self, dataset_path: str = None, dataset_df: pd.DataFrame = None) -> dict:
+    def _get_ape_statistics(self, dataset_path: str = None, dataset_df: pd.DataFrame = None, db_metadata: dict = None) -> dict:
         """Wrapper per retrocompatibilità o logica specifica APE."""
         return self._get_column_statistics(
             columns=APE_AGENT_COLUMNS, 
             dataset_path=dataset_path, 
             dataset_df=dataset_df,
-            target_not_na_col="classe_energetica_ape"
+            target_not_na_col="classe_energetica_ape",
+            db_metadata=db_metadata
         )
 
     def _extract_categorical_values(self, db_metadata: dict) -> dict:
@@ -523,6 +546,18 @@ class GraphOrchestratorAgent(BaseAgent):
         def run_typology():
             self._update_progress(state, 1, "Analisi tipologie in corso...")
             logger.info("🔧 Executing TypologyAgent")
+
+            base_dataset = state.get("base_dataset")
+            dataset_path = state.get("dataset_path")
+            typ_stats = {}
+            if base_dataset is not None or dataset_path is not None:
+                typ_stats = self._get_column_statistics(
+                    columns=TYPOLOGY_AGENT_COLUMNS,
+                    dataset_path=dataset_path,
+                    dataset_df=base_dataset,
+                    db_metadata=state.get("db_metadata")
+                )
+
             result = self.typology_agent.run(
                 query=query,
                 mode="filtering",
@@ -531,6 +566,7 @@ class GraphOrchestratorAgent(BaseAgent):
                     .get("tipologia_bene_immobile", {})
                     .get("values", [])
                 ),
+                statistics=typ_stats
             )
             typ_data = safe_extract_json(result.raw_text, schema=TypologyResponse)
             typologies = typ_data.typologies if typ_data else []
@@ -553,7 +589,7 @@ class GraphOrchestratorAgent(BaseAgent):
             if base_dataset is not None or dataset_path is not None:
                 self._update_progress(state, 1, "Analisi energetica APE in corso...")
                 logger.info("⚡ Executing ApeAgent")
-                ape_stats = self._get_ape_statistics(dataset_path=dataset_path, dataset_df=base_dataset)
+                ape_stats = self._get_ape_statistics(dataset_path=dataset_path, dataset_df=base_dataset, db_metadata=state.get("db_metadata"))
                 result = self.ape_agent.run(
                     query=query,
                     mode="filtering",
@@ -576,7 +612,8 @@ class GraphOrchestratorAgent(BaseAgent):
                 poi_stats = self._get_column_statistics(
                     columns=POI_AGENT_COLUMNS,
                     dataset_path=dataset_path,
-                    dataset_df=base_dataset
+                    dataset_df=base_dataset,
+                    db_metadata=state.get("db_metadata")
                 )
 
             result = self.poi_agent.run(
@@ -598,7 +635,8 @@ class GraphOrchestratorAgent(BaseAgent):
                 norm_stats = self._get_column_statistics(
                     columns=NORMATIVE_AGENT_COLUMNS,
                     dataset_path=dataset_path,
-                    dataset_df=base_dataset
+                    dataset_df=base_dataset,
+                    db_metadata=state.get("db_metadata")
                 )
 
             result = self.normative_agent.run(
@@ -670,7 +708,7 @@ class GraphOrchestratorAgent(BaseAgent):
                 "prompt": poi_result.prompt.model_dump() if poi_result.prompt else None,
                 "response": poi_result.raw_text,
                 "categories": poi_data.get('categories', []),
-                "punteggi_minimi": poi_data.get('punteggi_minimi', {}),
+                "percentili_minimi": poi_data.get('percentili_minimi', {}),
                 "found": poi_data.get('found', False)
             }
         else:
@@ -679,7 +717,7 @@ class GraphOrchestratorAgent(BaseAgent):
                 "prompt": None,
                 "response": "",
                 "categories": [],
-                "punteggi_minimi": {},
+                "percentili_minimi": {},
                 "found": False
             }
 
@@ -705,14 +743,13 @@ class GraphOrchestratorAgent(BaseAgent):
         # Process POI Text for Context
         poi_text = ""
         if poi_data:
-            poi_weights = poi_data.get('category_weights', {})
-            high_priority = [k for k, v in poi_weights.items() if v >= 0.6]
+            poi_percentiles = poi_data.get('percentili_minimi', {})
+            # Consider high priority if percentile >= 50
+            high_priority = [k for k, v in poi_percentiles.items() if v >= 50]
             if high_priority:
-                poi_text = f"\n\nAnalisi POI: L'utente ha espresso preferenza per: {', '.join(high_priority)}."
-            
-            constraints = poi_data.get('constraints', {})
-            if isinstance(constraints, dict) and constraints.get("must_have"):
-                poi_text += f" Vincoli stretti: {', '.join(constraints['must_have'])}."
+                poi_text = f"\n\nAnalisi POI: L'utente ha espresso preferenza per: {', '.join(high_priority)} con soglie di qualità (percentili)."
+            elif poi_data.get("categories"):
+                poi_text = f"\n\nAnalisi POI: Categorie rilevanti: {', '.join(poi_data.get('categories'))}."
 
         # Save normative result in state and context
         state["normative_result"] = normative_result
@@ -736,7 +773,104 @@ class GraphOrchestratorAgent(BaseAgent):
         state["use_case_str"] = "\n".join(use_case_parts)
 
         return state
-    
+
+    def _deterministic_relaxation(self, sql_query: str) -> str:
+        """
+        Relaxes the SQL query by removing the last condition from the WHERE clause.
+        Does not use an LLM. Handles BETWEEN and ensures proper spacing.
+        """
+        if not sql_query:
+            return sql_query
+            
+        try:
+            # Basic cleanup of markdown/comments
+            sql_query = sql_query.strip()
+            if sql_query.startswith("```sql"):
+                sql_query = sql_query.split("```sql")[1].split("```")[0].strip()
+            elif sql_query.startswith("```"):
+                sql_query = sql_query.split("```")[1].split("```")[0].strip()
+
+            parsed_list = sqlparse.parse(sql_query)
+            if not parsed_list:
+                return sql_query
+            parsed = parsed_list[0]
+        except Exception as e:
+            logger.error(f"Failed to parse SQL for relaxation: {e}")
+            return sql_query
+
+        # Find WHERE clause
+        where_token = None
+        where_index = -1
+        for i, token in enumerate(parsed.tokens):
+            if isinstance(token, sqlparse.sql.Where):
+                where_token = token
+                where_index = i
+                break
+        
+        if not where_token:
+            logger.warning("No WHERE clause found to relax.")
+            return sql_query
+
+        # tokens in Where contain [WHERE, space, cond1, space, AND, space, cond2...]
+        tokens = list(where_token.tokens)
+        
+        # Identify top-level separators (AND/OR) and potential terminators (LIMIT, etc.)
+        separators = []
+        terminator_index = -1
+        between_stack = 0
+        
+        for i, t in enumerate(tokens):
+            if t.is_whitespace:
+                continue
+            
+            val = t.value.upper() if t.value else ""
+            if val == "BETWEEN":
+                between_stack += 1
+            elif val in ("AND", "OR"):
+                if between_stack > 0:
+                    between_stack -= 1 # This AND belongs to a BETWEEN
+                else:
+                    separators.append(i) # Top-level logical separator
+            elif val in ("LIMIT", "ORDER", "GROUP", "HAVING"):
+                if between_stack == 0:
+                    terminator_index = i
+                    break # Stop at first terminator
+        
+        if separators:
+            # Remove from last separator to terminator or end
+            last_sep_index = separators[-1]
+            end_index = terminator_index if terminator_index != -1 else len(tokens)
+            
+            head = tokens[:last_sep_index]
+            tail = tokens[end_index:]
+            
+            where_head_str = "".join(str(t) for t in head).strip()
+            where_tail_str = "".join(str(t) for t in tail).strip()
+            
+            new_where_str = where_head_str
+            if where_tail_str:
+                new_where_str += " " + where_tail_str
+            
+            statement_tokens = [str(t) for t in parsed.tokens]
+            statement_tokens[where_index] = new_where_str
+            
+            result = "".join(statement_tokens).strip()
+            logger.info(f"DETERMINISTIC RELAXATION: Removed last condition. Query: {result}")
+            return result
+        else:
+            # No separators: remove whole condition but keep terminator
+            statement_tokens = [str(t) for t in parsed.tokens]
+            if terminator_index != -1:
+                # Keep only the part from terminator onwards (with a space)
+                trailing = "".join(str(t) for t in tokens[terminator_index:]).strip()
+                statement_tokens[where_index] = " " + trailing
+            else:
+                # Remove entire WHERE clause
+                statement_tokens.pop(where_index)
+            
+            result = "".join(statement_tokens).strip()
+            logger.info(f"DETERMINISTIC RELAXATION: Removed only condition. Query: {result}")
+            return result
 
     def _generate_sql(self, state: GraphState) -> GraphState:
         retry_count = state["retry_count"]
@@ -766,6 +900,7 @@ class GraphOrchestratorAgent(BaseAgent):
         ape_raw = ape_result.raw_text if ape_result else "N/D"
         normative_raw = normative_result.raw_text if normative_result else "N/D"
         
+
         # Format locations as JSON string for clarity
         locations_list = state["gemini_responses"].get("location_extraction", {}).get("places", [])
         locations_raw = json.dumps(locations_list, ensure_ascii=False)
@@ -780,11 +915,31 @@ class GraphOrchestratorAgent(BaseAgent):
             }
             return state
 
-        # If it's a retry due to empty/few results, augment the prompt
-        current_query = query
-        if state.get("relax_constraints"):
-            logger.info("Applying RELAXATION to SQL prompt")
-            error_msg = error_msg or f"RILASSA I VINCOLI: la ricerca ha prodotto solo {len(state.get('selected_data', []))} risultati. Rimuovi i filtri meno importanti per ottenere più risultati. REGOLA: I filtri sono IMMUTABILI; non puoi cambiare i valori (es. range superfici o distanze), puoi solo decidere di non includerli affatto nella WHERE."
+        # Determination of whether to use Retry Prompt
+        # Prepare failed query and error message for the SQL Agent.
+        # This is used both for fixing SQL errors and for query relaxation.
+        is_sql_error = bool(state.get("execution_error"))
+        effective_failed_query = failed_query
+        effective_error_msg = error_msg
+
+        # DETERMINISTIC RELAXATION: If we are retrying because of few results (not a SQL error),
+        # we relax the query by removing the last condition without using the LLM.
+        if state.get("relax_constraints") and not is_sql_error and failed_query:
+            logger.info(f"Applying DETERMINISTIC RELAXATION (Attempt {retry_count + 1})")
+            relaxed_sql = self._deterministic_relaxation(failed_query)
+            state["sql_query"] = relaxed_sql
+            
+            key = f"sql_generation_retry_{retry_count}"
+            state["gemini_responses"][key] = {
+                "prompt": None,
+                "response": f"-- RELAXATION DETERMINISTICA (Rimozione ultimo vincolo)\n{relaxed_sql}",
+                "sql_query": relaxed_sql,
+                "is_deterministic": True
+            }
+            return state
+
+        if state.get("relax_constraints") and not is_sql_error:
+            logger.info(f"Applying RELAXATION to SQL prompt (Attempt {retry_count + 1})")
 
         # Get statistics for filterable columns to help SQL Agent with ranges
         filterable_cols = state.get("db_metadata", {}).get("sql_filtering_rules", {}).get("filterable_columns", [])
@@ -798,7 +953,7 @@ class GraphOrchestratorAgent(BaseAgent):
         stats_raw = json.dumps(stats, indent=2, ensure_ascii=False)
 
         sql_result = self.sql_agent.run(
-            query=current_query,
+            query=query, # use original query
             scheme=str(db_schema),
             typologies=typologies_raw,
             locations=locations_raw,
@@ -807,8 +962,8 @@ class GraphOrchestratorAgent(BaseAgent):
             normative_requirements=normative_raw,
             statistics=stats_raw,
             location=loc_obj,
-            failed_query=failed_query,
-            error_msg=error_msg,
+            failed_query=effective_failed_query,
+            error_msg=effective_error_msg,
             db_metadata=json.dumps(state["db_metadata"], ensure_ascii=False),
         )
 
@@ -871,12 +1026,22 @@ class GraphOrchestratorAgent(BaseAgent):
         return "fallback"
 
     def _handle_retry(self, state: GraphState) -> GraphState:
-        # If results < 10 and no error, it's a relaxation retry
-        relax = False
-        if not state.get("execution_error") and len(state.get("selected_data", [])) < 10:
-            relax = True
+        # Determine if it's an error retry or a relaxation retry
+        error = state.get("execution_error")
+        few_results = not error and len(state.get("selected_data", [])) < 10
+        
+        relax = state.get("relax_constraints", False)
+        reason = "error" if error else "few_results" if few_results else None
 
-        return {"retry_count": state["retry_count"] + 1, "relax_constraints": relax}
+        if few_results:
+            relax = True
+            logger.info("Relaxing constraints due to zero/few results")
+        
+        return {
+            "retry_count": state["retry_count"] + 1, 
+            "relax_constraints": relax,
+            "last_retry_reason": reason
+        }
 
     def _fallback_results(self, state: GraphState) -> GraphState:
         """
@@ -889,14 +1054,20 @@ class GraphOrchestratorAgent(BaseAgent):
         logger.warning("Fallback activated: loading top results from full dataset")
 
         dataset_path = state.get("dataset_path")
-        if not dataset_path:
-            logger.error("No dataset path for fallback")
+        base_dataset = state.get("base_dataset")
+        
+        if not dataset_path and base_dataset is None:
+            logger.error("No dataset path or base_dataset for fallback")
             state["status_msg"] = "Errore: impossibile generare alternative."
             return state
 
         try:
-            full_df = pd.read_parquet(dataset_path)
-            logger.info(f"Fallback loaded {len(full_df)} rows from dataset")
+            if dataset_path:
+                full_df = pd.read_parquet(dataset_path)
+                logger.info(f"Fallback loaded {len(full_df)} rows from dataset file")
+            else:
+                full_df = base_dataset.copy()
+                logger.info(f"Fallback using base_dataset ({len(full_df)} rows)")
 
             # Get user location if available for sorting
             user_location = None
@@ -1043,7 +1214,7 @@ class GraphOrchestratorAgent(BaseAgent):
             weights = RankingWeights(location=0.3, normative=0.1, ape=0.2, typology=0.2, poi=0.2)
             state["ranking_result"] = RankingAgentResult(raw_text="{}", weights=weights)
         else:
-            ranking_result = self.ranking_agent.run(query=query)
+            ranking_result = self.ranking_agent.run(query=query, mode="ranking")
             state["ranking_result"] = ranking_result
             state["context"].ranking_result = ranking_result
             
@@ -1086,15 +1257,22 @@ class GraphOrchestratorAgent(BaseAgent):
             return tmp[["id", "location_score"]]
 
         def rank_ape():
-            tmp = self.ape_agent.run(mode="ranking", df=df.copy())
-            return tmp[["id", "energy_score"]]
+            res = state.get("ape_result")
+            requirements = None
+            if res:
+                data = safe_extract_json(res.raw_text, schema=ApeResponse)
+                if data and data.found:
+                    requirements = data.requisiti
+            
+            tmp = self.ape_agent.run(mode="ranking", df=df.copy(), requirements=requirements)
+            return tmp[["id", "ape_score"]]
 
         def rank_normative():
             res = state.get("normative_result")
             if res:
                 data = safe_extract_json(res.raw_text, schema=NormativeResponse)
                 if data and data.found:
-                    tmp = self.normative_agent.run(mode="ranking", df=df.copy(), requirements=data.requisiti)
+                    tmp = self.normative_agent.run(mode="ranking", df=df.copy(), requirements=data.requisiti, available_columns=NORMATIVE_AGENT_COLUMNS)
                     return tmp[["id", "normative_score"]]
             tmp = df.copy()
             tmp["normative_score"] = 0.0
@@ -1125,11 +1303,21 @@ class GraphOrchestratorAgent(BaseAgent):
                 name = task_map[future]
                 try:
                     res_df = future.result()
+                    
+                    # Log ranking results as JSON for UI visualization
+                    if not res_df.empty:
+                        # Transform to clean JSON (handles NaNs by converting to null)
+                        # and put it at the top level for the UI to show an accordion
+                        clean_json = res_df.to_json(orient="records")
+                        state["gemini_responses"][f"{name}_ranking"] = {
+                            "response": json.loads(clean_json)
+                        }
+
                     # Aggiungiamo solo le colonne di score evitando duplicazioni (usiamo 'id' come chiave)
                     df = df.merge(res_df, on="id", how="left")
                 except Exception as e:
                     logger.error(f"Error in parallel ranking part {name}: {e}")
-                    col = "energy_score" if name == "ape" else f"{name}_score"
+                    col = "ape_score" if name == "ape" else f"{name}_score"
                     if col not in df.columns:
                         df[col] = 0.0
 
@@ -1137,7 +1325,7 @@ class GraphOrchestratorAgent(BaseAgent):
         df["final_ranking_score"] = (
             weights.location * df.get("location_score", 0.0) +
             weights.normative * df.get("normative_score", 0.0) +
-            weights.ape * df.get("energy_score", 0.0) +
+            weights.ape * df.get("ape_score", 0.0) +
             weights.typology * df.get("typology_score", 0.0) +
             weights.poi * df.get("poi_score", 0.0)
         )
@@ -1253,7 +1441,7 @@ class GraphOrchestratorAgent(BaseAgent):
             "tempo_minuti",
             "distanza_km",
             # Agent scores
-            "energy_score",
+            "ape_score",
             "location_score",
             "normative_score",
             "typology_score",

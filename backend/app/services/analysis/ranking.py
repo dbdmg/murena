@@ -99,8 +99,8 @@ def calculate_ranking_score(
         poi_score_norm = _calculate_poi_score_granular(df, amenity_weights, poi_weights)
 
     # 2. Calcolo Score APE
-    if "energy_score" in df.columns:
-        ape_score_norm = pd.to_numeric(df["energy_score"], errors="coerce").fillna(0) / 100
+    if "ape_score" in df.columns:
+        ape_score_norm = pd.to_numeric(df["ape_score"], errors="coerce").fillna(0) / 100
     elif "ape_score_total" in df.columns:
         ape_values = pd.to_numeric(df["ape_score_total"], errors="coerce").fillna(1)
         ape_score_norm = (ape_values - 1) / 4
@@ -141,11 +141,12 @@ def calculate_ranking_score(
     # Sommiamo i pesi solo se le relative colonne di score sono state popolate
     active_normative_weight = normative_weight if "normative_score" in df.columns else 0
     active_typology_weight = typology_weight if "typology_score" in df.columns else 0
+    active_ape_weight = ape_weight if "ape_score" in df.columns else (ape_weight if "ape_score_total" in df.columns else 0)
     
-    tot_w = ape_weight + poi_weight_factor + w_dist + active_normative_weight + active_typology_weight
+    tot_w = active_ape_weight + poi_weight_factor + w_dist + active_normative_weight + active_typology_weight
     
     if tot_w > 0:
-        w_ape = ape_weight / tot_w
+        w_ape = active_ape_weight / tot_w
         w_poi = poi_weight_factor / tot_w
         w_dist_final = w_dist / tot_w
         w_normative = active_normative_weight / tot_w

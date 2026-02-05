@@ -107,10 +107,10 @@ class APEDetailResponse(BaseModel):
     ape_envelope_score: Optional[int] = None  # Score based on building envelope
     ape_renewables_score: Optional[int] = None  # Score based on renewables
     ape_total_points: Optional[int] = None  # Total points
-    ape_score: Optional[int] = None  # Final APE score
+    ape_raw_score: Optional[int] = None  # Original APE score from data
 
     # Energy cost analysis (calculated)
-    energy_score: Optional[int] = None  # Efficiency percentile score (0-100)
+    ape_score: Optional[int] = None  # Efficiency percentile score (0-100)
     kwh_per_sqm: Optional[float] = None  # kWh/m²/anno
     costo_annuo_euro: Optional[float] = None  # Estimated annual cost €
     costo_per_mq_anno: Optional[float] = None  # €/m²/anno
@@ -244,9 +244,9 @@ async def get_ape_detail(filename: str):
         ape_envelope_score=safe_int(r.get("ape_envelope_score")),
         ape_renewables_score=safe_int(r.get("ape_renewables_score")),
         ape_total_points=safe_int(r.get("ape_total_points")),
-        ape_score=safe_int(r.get("ape_score")),
+        ape_raw_score=safe_int(r.get("ape_score")),
         # Energy cost analysis (calculated)
-        energy_score=score_details.get("energy_score") if score_details else None,
+        ape_score=score_details.get("ape_score") if score_details else None,
         kwh_per_sqm=score_details.get("kwh_per_sqm") if score_details else None,
         costo_annuo_euro=(
             score_details.get("costo_annuo_euro") if score_details else None

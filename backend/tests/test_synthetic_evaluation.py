@@ -72,7 +72,7 @@ USE_CASE_CONFIGS = {
         "poi_categories": ["università", "mensa", "biblioteca", "supermercato", "trasporti"],
         "poi_max_distance": 2000,
         "required_features": ["internet", "riscaldamento", "ascensore"],
-        "preferred_typologies": ["ufficio", "residenziale", "commerciale"],
+        "preferred_typologies": ["Ufficio strutturato ed assimilabili", "Abitazione", "Struttura residenziale collettiva (es.: collegi e convitti, educandati, ricoveri, orfanotrofi, ospizi, conventi, seminari)"],
         "ape_classes": ["A", "B", "C"],
         "test_queries": [
             "Cerca un edificio dismesso vicino a Palazzo Nuovo con superficie totale di 500 m² per farne uno studentato strutturato a micro alloggi di circa 40-60 m² ciascuno. Preferirei un edificio con classe energetica alta per ridurre i costi di gestione.",
@@ -90,7 +90,7 @@ USE_CASE_CONFIGS = {
         "poi_categories": ["parco", "ospedale", "farmacia", "supermercato", "trasporti"],
         "poi_max_distance": 500,
         "required_features": ["giardino", "accesso_disabili", "sicurezza"],
-        "preferred_typologies": ["residenziale", "scolastico", "commerciale"],
+        "preferred_typologies": ["Abitazione", "Edificio scolastico (es.: scuola di ogni ordine e grado, università, scuola di formazione)", "Locale commerciale, negozio"],
         "ape_classes": ["A", "B"],
         "test_queries": [
             "Cerca un edificio abbandonato in zona residenziale, possibilmente con spazio esterno, da riconvertire in asilo nido per 30-40 bambini. Superficie indicativa 350 m². Vicinanza a parchi e servizi sanitari fondamentale. Classe energetica minima B per sostenibilità gestionale.",
@@ -108,7 +108,7 @@ USE_CASE_CONFIGS = {
         "poi_categories": ["parco", "farmacia", "supermercato", "trasporti"],
         "poi_max_distance": 400,
         "required_features": ["giardino", "accesso_disabili"],
-        "preferred_typologies": ["residenziale", "commerciale"],
+        "preferred_typologies": ["Abitazione", "Locale commerciale, negozio"],
         "ape_classes": ["A", "B", "C"],
         "test_queries": [
             "Cerca un immobile dismesso adatto per micronido (max 12 bambini) in zona residenziale tranquilla. Superficie circa 150-180 m², preferibilmente con piccolo giardino o terrazzo. Vicinanza a parchi verde e collegamenti mezzi pubblici importante.",
@@ -126,7 +126,7 @@ USE_CASE_CONFIGS = {
         "poi_categories": ["ospedale", "farmacia", "parco", "supermercato", "trasporti"],
         "poi_max_distance": 800,
         "required_features": ["ascensore", "accesso_disabili", "sicurezza"],
-        "preferred_typologies": ["residenziale", "sanitario", "ufficio"],
+        "preferred_typologies": ["Abitazione", "Ufficio strutturato ed assimilabili"],
         "ape_classes": ["B", "C"],
         "test_queries": [
             "Cerca un edificio pubblico dismesso da riconvertire in centro diurno per anziani. Superficie minima 400 m² con possibilità di sale attività, ambulatorio e mensa. Essenziale presenza ascensore e accessibilità totale. Vicinanza presidi sanitari e farmacie entro 500m.",
@@ -144,7 +144,7 @@ USE_CASE_CONFIGS = {
         "poi_categories": ["trasporti", "parcheggio", "supermercato"],
         "poi_max_distance": 1000,
         "required_features": ["accesso_disabili", "parcheggio"],
-        "preferred_typologies": ["residenziale", "commerciale", "culturale", "ufficio"],
+        "preferred_typologies": ["Abitazione", "Locale commerciale, negozio", "Palazzo storico, castello", "Ufficio strutturato ed assimilabili"],
         "ape_classes": ["B", "C", "D"],
         "test_queries": [
             "Cerca un edificio abbandonato da valorizzare come centro di aggregazione sociale e culturale. Superficie circa 250-300 m² con spazi flessibili per attività multiple. Buoni collegamenti trasporti pubblici e possibilità parcheggio nelle vicinanze. Preferibile zona centrale o semi-centrale.",
@@ -291,7 +291,7 @@ class AgentLogger:
         self._write_log_entry(header)
     
     def log_agent_execution(self, agent_name: str, input_data: Any, output_data: Any, 
-                           execution_time_ms: float, metadata: Optional[Dict] = None):
+                           execution_time_ms: float, agent_mode: str = "filtering", metadata: Optional[Dict] = None):
         """Registra l'esecuzione di un singolo agente con campi selezionati."""
         
         # Estrai input dall'input (se presente)
@@ -315,10 +315,12 @@ class AgentLogger:
         elif isinstance(output_data, dict) and 'raw_text' in output_data:
             output_extracted = output_data['raw_text']
         elif isinstance(output_data, pd.DataFrame):
-            output_extracted = f"DataFrame: {output_data.shape} rows. Cols: {list(output_data.columns)}"
+            # Safe conversion to list of dicts to handle NaNs for JSON serialization
+            output_extracted = json.loads(output_data.to_json(orient="records"))
         
         log_entry = {
             "agent_name": agent_name,
+            "agent_mode": agent_mode,
             "timestamp": datetime.now().isoformat(),
             "execution_time_ms": execution_time_ms,
             "input": self._serialize_data(input_extracted) if input_extracted is not None else None,
@@ -379,6 +381,7 @@ class AgentLogger:
                                         agent_entry = {
                                             **run_props,  # Aggiungi proprietà run
                                             "agent_name": "evaluation-agent",
+                                            "agent_mode": e.get("agent_mode", "filtering"),
                                             "batch_id": batch_counter,
                                             "timestamp": e.get("timestamp"),
                                             "execution_time_ms": e.get("execution_time_ms"),
@@ -391,6 +394,7 @@ class AgentLogger:
                                         agent_entry = {
                                             **run_props,  # Aggiungi proprietà run
                                             "agent_name": "evaluation-agent", 
+                                            "agent_mode": e.get("agent_mode", "filtering"),
                                             "batch_id": batch_counter,
                                             "timestamp": e.get("timestamp"),
                                             "execution_time_ms": e.get("execution_time_ms"),
@@ -404,6 +408,7 @@ class AgentLogger:
                                 agent_entry = {
                                     **run_props,  # Aggiungi proprietà run
                                     "agent_name": "evaluation-agent",
+                                    "agent_mode": e.get("agent_mode", "filtering"),
                                     "batch_id": batch_counter,
                                     "timestamp": e.get("timestamp"),
                                     "execution_time_ms": e.get("execution_time_ms"),
@@ -465,6 +470,7 @@ class AgentLogger:
                         "run_timestamp": execution.get("run_timestamp"),
                         "batch_id": execution.get("batch_id"),
                         "agent_name": execution.get("agent_name"),
+                        "agent_mode": execution.get("agent_mode"),
                         "timestamp": execution.get("timestamp"),
                         "execution_time_ms": execution.get("execution_time_ms"),
                         "input": to_display_value(execution.get("input"), "input"),
@@ -474,14 +480,14 @@ class AgentLogger:
                 
                 agent_df = pd.DataFrame(agent_rows)
                 
-                # Aggiungi colonna retry_id
-                # Raggruppa per agent_name e run_number per identificare retry
-                agent_df['retry_id'] = agent_df.groupby(['agent_name', 'run_number']).cumcount() + 1
+                # Raggruppa per agent_name, run_number, batch_id e agent_mode per identificare retry reali
+                # batch_id=None per agenti non-batch permette l'incremento di retry_id se lo stesso agente con stessa modalità viene rieseguito
+                agent_df['retry_id'] = agent_df.groupby(['agent_name', 'run_number', 'batch_id', 'agent_mode'], dropna=False).cumcount() + 1
                 
                 # Riordina colonne nell'ordine desiderato
                 desired_order = [
                     'use_case', 'prompt_id', 'run_number', 'run_timestamp', 
-                    'agent_name', 'batch_id', 'retry_id', 'timestamp',
+                    'agent_name', 'agent_mode', 'batch_id', 'retry_id', 'timestamp',
                     'execution_time_ms', 'input', 'output_structure', 'output'
                 ]
                 # Mantieni solo le colonne che esistono nel DataFrame
@@ -1193,13 +1199,13 @@ class SyntheticDataGenerator:
         immobile = {
             "id": f"IMM{idx:03d}",
             "tipologia_bene_immobile": random.choice(config["preferred_typologies"]),
-            "superficie_totale": superficie,
+            "superficie_di_riferimento_mq": superficie,
             "prezzo": superficie * prezzo_mq,
             "prezzo_mq": prezzo_mq,
             "piano": random.randint(*config["piano_range"]),
             "numero_locali": random.randint(*config["locali_range"]),
-            "lat": lat,
-            "lon": lon,
+            "latitudine": lat,
+            "longitudine": lon,
             "zona_omi": zone["name"],
             "classe_energetica": classe_energetica,
             "anno_costruzione": random.randint(1970, 2023),
@@ -1212,6 +1218,10 @@ class SyntheticDataGenerator:
         
         # Aggiungi dati APE
         immobile.update(ape_data)
+        
+        # Aggiungi dati POI (punteggi casuali 1-5 per le categorie principali)
+        for cat in ["sanita", "mobilita", "verde", "sport", "commerciale", "educazione"]:
+            immobile[cat] = round(random.uniform(1.0, 5.0), 1)
         
         return immobile
     
@@ -1326,7 +1336,7 @@ class SyntheticDataGenerator:
         for immobile in immobili:
             for poi in pois:
                 dist = self.haversine_distance(
-                    immobile["lat"], immobile["lon"],
+                    immobile["latitudine"], immobile["longitudine"],
                     poi["latitude"], poi["longitude"]
                 )
                 distances.append({
@@ -1542,6 +1552,7 @@ class RankingEvaluator:
                                 input_data=input_data,
                                 output_data=result,
                                 execution_time_ms=execution_time,
+                                agent_mode=kwargs.get("mode", "filtering"),
                                 metadata={}
                             )
                             
@@ -1553,6 +1564,7 @@ class RankingEvaluator:
                                 input_data=input_data,
                                 output_data={"error": str(e), "error_type": type(e).__name__},
                                 execution_time_ms=execution_time,
+                                agent_mode=kwargs.get("mode", "filtering"),
                                 metadata={"error": True}
                             )
                             raise
@@ -2331,7 +2343,7 @@ def run_all_use_cases(num_immobili: int, num_poi: int, num_runs: int) -> bool:
                 "ranking_metrics": asdict(tester.ranking_metrics),
                 "consistency_metrics": asdict(tester.consistency_metrics) if tester.consistency_metrics else None,
                 "result_file": str(tester.result_file),
-                "query": USE_CASE_CONFIGS[use_case]["test_query"]
+                "query": USE_CASE_CONFIGS[use_case]["test_queries"][0]
             }
         else:
             print(f"\n⚠️ Test fallito per {use_case}")
@@ -2462,17 +2474,6 @@ def main():
         print("\nAttendo completamento invio dati asincroni...")
         time.sleep(2)  # Attendi che le richieste asincrone completino
         flush_langfuse()
-    
-    print("\n" + "="*80)
-    print("📝 DOVE TROVARE I LOG DEGLI AGENTI:")
-    print("="*80)
-    print("I log dettagliati di input/output per ogni agente sono salvati in:")
-    print("  - agent_logs/")
-    print("\nFormati disponibili:")
-    print("  - .jsonl - Log in formato streaming (una riga per evento)")
-    print("  - .json  - Log strutturato completo per ogni run")
-    print("\nNome file: agent_traces_{use_case}_{prompt_id}_run{N}_{timestamp}.{jsonl|json}")
-    print("="*80)
     
     sys.exit(0 if success else 1)
 

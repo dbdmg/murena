@@ -42,7 +42,8 @@ class LocationAgent(BaseAgent):
             ]
         )
         self.parser = StrOutputParser()
-        self.chain = self.prompt | self.llm | self.parser
+        self.structured_llm = self.llm.with_structured_output(LocationResponse, method="function_calling")
+        self.chain = self.prompt | self.structured_llm
 
     @log_llm_usage
     @handle_agent_error(
@@ -66,22 +67,17 @@ class LocationAgent(BaseAgent):
         from app.data.loaders import get_coordinates
         from concurrent.futures import ThreadPoolExecutor
 
-        prompt_inputs = {"query": query}
+        prompt_inputs = {
+            "system_content": self.system_prompt,
+            "user_content": self.user_template.format(query=query).strip()
+        }
 
-        # Format user prompt with variables
-        user_text = self.user_template.format(**prompt_inputs).strip()
-        full_text = f"[SYSTEM]\n{self.system_prompt}\n\n[USER]\n{user_text}"
-
-        raw = invoke_with_langfuse(
+        # Invocation with structured output
+        loc_data: LocationResponse = invoke_with_langfuse(
             self.chain,
-            {
-                "system_content": self.system_prompt,
-                "user_content": user_text,
-            },
+            prompt_inputs,
         )
-
-        # Parsing per estrarre l'indicazione di successo/presenza luoghi
-        loc_data = safe_extract_json(raw, schema=LocationResponse)
+        
         places = loc_data.places if loc_data else []
 
         # Geocoding logic
@@ -112,6 +108,7 @@ class LocationAgent(BaseAgent):
         has_locations = len(valid_places) > 0
         
         # Update raw_text with enriched data
+        raw = "{}"
         if loc_data:
             loc_data.places = valid_places
             loc_data.found = has_locations
@@ -119,8 +116,8 @@ class LocationAgent(BaseAgent):
 
         prompt_record = PromptRecord(
             system=self.system_prompt.strip(),
-            user=user_text,
-            full_text=full_text,
+            user=prompt_inputs["user_content"],
+            full_text=f"[SYSTEM]\n{self.system_prompt}\n\n[USER]\n{prompt_inputs['user_content']}",
         )
 
         return LocationAgentResult(
@@ -175,5 +172,5 @@ class LocationAgent(BaseAgent):
         # Arrotondiamo per pulizia
         df_ranked["location_score"] = df_ranked["location_score"].round(1)
         
-        return df_ranked
+        return df_ranked[["id", "location_score", "distanza_km", "poi_riferimento", "tempo_minuti"]]
 

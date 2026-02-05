@@ -75,6 +75,11 @@ APE_AGENT_COLUMNS: List[str] = [
     "ape_score_total",
 ]
 
+# Colonne specifiche per Typology Agent
+TYPOLOGY_AGENT_COLUMNS: List[str] = [
+    "tipologia_bene_immobile",
+]
+
 # Colonne specifiche per Normative Agent
 NORMATIVE_AGENT_COLUMNS: List[str] = [
     "superficie_di_riferimento_mq",

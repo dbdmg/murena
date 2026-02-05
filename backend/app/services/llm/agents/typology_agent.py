@@ -54,20 +54,30 @@ class TypologyAgent(BaseAgent):
         - ranking: Calcola uno score 0-100 basato sulla posizione della tipologia nel ranking.
         """
         if mode == "filtering":
-            return self._run_filtering(query=query, available_typologies=kwargs.get("available_typologies"))
+            return self._run_filtering(
+                query=query, 
+                available_typologies=kwargs.get("available_typologies"),
+                statistics=kwargs.get("statistics")
+            )
         elif mode == "ranking":
             return self._run_ranking(**kwargs)
         else:
             raise ValueError(f"Modalità '{mode}' non supportata dal TypologyAgent.")
 
-    def _run_filtering(self, query: str, available_typologies: Union[str, List[str]]) -> TypologyAgentResult:
+    def _run_filtering(self, query: str, available_typologies: Union[str, List[str]], statistics: dict = None) -> TypologyAgentResult:
         # If available_typologies is a list, join it.
         if isinstance(available_typologies, list):
             typologies_str = ", ".join([f'"{t}"' for t in available_typologies])
         else:
             typologies_str = available_typologies or "N/D"
+            
+        stats_str = json.dumps(statistics, indent=2, ensure_ascii=False) if statistics else "N/D"
 
-        prompt_inputs = {"query": query, "available_typologies": typologies_str}
+        prompt_inputs = {
+            "query": query, 
+            "available_typologies": typologies_str,
+            "statistics": stats_str
+        }
 
         # Format user prompt with variables
         user_text = self.render_template(self.user_template, **prompt_inputs).strip()
@@ -124,4 +134,4 @@ class TypologyAgent(BaseAgent):
 
         df_ranked["typology_score"] = df_ranked["tipologia_bene_immobile"].apply(get_score)
         
-        return df_ranked
+        return df_ranked[["id", "tipologia_bene_immobile", "typology_score"]]

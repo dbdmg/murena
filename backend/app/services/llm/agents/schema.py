@@ -35,7 +35,7 @@ class Place(BaseModel):
 
 class CategoryResponse(BaseModel):
     categories: List[str] = Field(default_factory=list, description="Lista delle categorie selezionate")
-    punteggi_minimi: Dict[str, float] = Field(default_factory=dict, description="Punteggio minimo (1-5) richiesto per ciascuna categoria")
+    percentili_minimi: Dict[str, int] = Field(default_factory=dict, description="Percentile minimo (25, 50, 75) richiesto per ciascuna categoria")
 
 
 class AmenityResponse(BaseModel):
@@ -45,6 +45,12 @@ class AmenityResponse(BaseModel):
 class NormativeResponse(BaseModel):
     requisiti: List[Dict[str, Any]] = Field(default_factory=list, description="Requisiti normativi estratti")
     found: bool = Field(default=False, description="True se sono stati trovati requisiti pertinenti")
+
+
+class ApeResponse(BaseModel):
+    requisiti: List[Dict[str, Any]] = Field(default_factory=list, description="Requisiti energetici estratti")
+    found: bool = Field(default=False, description="True se sono stati trovati requisiti pertinenti")
+    suggested_filters: List[str] = Field(default_factory=list, description="Filtri SQL suggeriti")
 
 
 
@@ -136,6 +142,8 @@ class NormativeAgentResult(AgentResult):
 
 class PoiAgentResult(AgentResult): 
     has_pois: bool = False
+    categories: List[str] = Field(default_factory=list)
+    percentili_minimi: Dict[str, int] = Field(default_factory=dict)
 
 # Classi legacy per retrocompatibilità
 class PoiCategoryAgentResult(PoiAgentResult): pass

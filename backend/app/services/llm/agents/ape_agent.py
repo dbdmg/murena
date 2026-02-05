@@ -11,17 +11,16 @@ from app.core.config import settings
 
 AGENT_MODELS = settings.agent_models
 from app.services.llm.agents.base import BaseAgent
-from app.services.llm.agents.schema import ApeAgentResult, PromptRecord
+from app.services.llm.agents.schema import ApeAgentResult, PromptRecord, ApeResponse
 from app.services.llm.langchain_client import get_llm, invoke_with_langfuse
 from app.services.llm.prompt_loader import get_system_prompt, get_user_template
 from app.utils.decorators import log_llm_usage
 from app.utils.json_parser import safe_extract_json
 
 
-class ApeAgentOutput(BaseModel):
-    """Schema di output strutturato per l'APE Agent."""
-    found: bool = Field(default=False, description="True se ci sono criteri energetici rilevanti")
-    suggested_filters: List[str] = Field(default_factory=list, description="Filtri APE suggeriti")
+class ApeAgentOutput(ApeResponse):
+    """Schema di output strutturato per l'APE Agent (eredita da ApeResponse)."""
+    pass
 
 
 class ApeAgent(BaseAgent):
@@ -42,7 +41,7 @@ class ApeAgent(BaseAgent):
                 ("user", self.user_template),
             ]
         )
-        self.structured_llm = self.llm.with_structured_output(ApeAgentOutput, method="function_calling")
+        self.structured_llm = self.llm.with_structured_output(ApeAgentOutput, method="json_mode")
         self.chain = self.prompt_template | self.structured_llm
 
     @log_llm_usage
@@ -82,12 +81,15 @@ class ApeAgent(BaseAgent):
         
         system_content = self.render_template(
             self.system_prompt,
-            statistics=stats_str,
             score_legend=score_legend or "Nessuna legenda disponibile.",
         )
 
-        prompt_inputs = {"system_content": system_content, "query": query}
-        user_text = self.render_template(self.user_template, query=query).strip()
+        prompt_inputs = {
+            "system_content": system_content, 
+            "query": query,
+            "statistics": stats_str
+        }
+        user_text = self.render_template(self.user_template, query=query, statistics=stats_str).strip()
         full_text = f"[SYSTEM]\n{system_content}\n\n[USER]\n{user_text}"
 
         try:
@@ -109,26 +111,73 @@ class ApeAgent(BaseAgent):
                 prompt=None,
             )
 
-    def _run_ranking(self, *, df: pd.DataFrame) -> pd.DataFrame:
-        """Modalità ranking: calcolo score deterministico 0-100 basato sulla qualità energetica."""
+    def _run_ranking(self, *, df: pd.DataFrame, requirements: List[Dict[str, Any]] = None) -> pd.DataFrame:
+        """Modalità ranking: calcolo score 0-100 basato su requisiti LLM o logica deterministica."""
         if df is None or df.empty:
             if df is not None:
-                df["energy_score"] = 0
+                df["ape_score"] = 0
             return df
 
         df_ranked = df.copy()
         
-        # Le colonne APE sono calcolate in processors.py: calculate_ape_score
-        # ape_total_points va da 6 a 20. Normalizziamo 100 * (points - 6) / (20 - 6)
+        # 1. Se abbiamo requisiti dinamici dall'LLM (filtering), usiamoli per calcolare lo score
+        if requirements:
+            total_scores = pd.Series(0.0, index=df_ranked.index)
+            valid_req_count = 0
+            used_columns = set()
+
+            for req in requirements:
+                col = req.get("colonna_target")
+                target_val = req.get("valore")
+                op = str(req.get("operatore", "==")).upper()
+
+                if not col or col not in df_ranked.columns or target_val is None:
+                    continue
+
+                valid_req_count += 1
+                used_columns.add(col)
+                
+                # Special handling for energy class (categorical)
+                if col == "classe_energetica_ape":
+                    mapping = {"A4": 100, "A3": 95, "A2": 90, "A1": 85, "B": 75, "C": 65, "D": 50, "E": 35, "F": 20, "G": 5}
+                    vals = df_ranked[col].astype(str).str.upper().str.strip()
+                    req_score = vals.map(mapping).fillna(0)
+                else:
+                    # Generic numeric handling
+                    vals = pd.to_numeric(df_ranked[col], errors="coerce").fillna(0)
+                    target_num = float(target_val)
+                    if op == ">=":
+                        max_val = vals.max() or 1.0
+                        req_score = np.where(vals >= target_num, 100, (vals / (target_num + 1e-6)) * 80)
+                    elif op == "<=":
+                        req_score = np.where(vals <= target_num, 100, (target_num / (vals + 1e-6)) * 80)
+                    else: # ==
+                        req_score = (vals == target_num).astype(float) * 100
+                
+                total_scores += req_score
+
+            if valid_req_count > 0:
+                df_ranked["ape_score"] = (total_scores / valid_req_count).round(1)
+            else:
+                df_ranked["ape_score"] = 0.0
+                
+            return df_ranked[["id", "ape_score"] + list(used_columns)]
+
+        # 2. Logica Fallback (Deterministica standard)
         if "ape_total_points" in df_ranked.columns:
             points = pd.to_numeric(df_ranked["ape_total_points"], errors="coerce").fillna(6)
-            df_ranked["energy_score"] = (100 * (points - 6) / (20 - 6)).clip(0, 100)
+            df_ranked["ape_score"] = (100 * (points - 6) / (20 - 6)).clip(0, 100)
         elif "ape_score_total" in df_ranked.columns:
-            # Fallback se abbiamo solo lo score 1-5
             score = pd.to_numeric(df_ranked["ape_score_total"], errors="coerce").fillna(1)
-            df_ranked["energy_score"] = ((score - 1) * 25).clip(0, 100)
+            df_ranked["ape_score"] = ((score - 1) * 25).clip(0, 100)
         else:
-            df_ranked["energy_score"] = 0
+            df_ranked["ape_score"] = 0
             
-        df_ranked["energy_score"] = df_ranked["energy_score"].round(1)
-        return df_ranked
+        df_ranked["ape_score"] = df_ranked["ape_score"].round(1)
+        
+        cols_to_return = ["id", "ape_score"]
+        for col in ["classe_energetica_ape", "ape_total_points", "ape_score_total"]:
+            if col in df_ranked.columns:
+                cols_to_return.append(col)
+                
+        return df_ranked[cols_to_return]

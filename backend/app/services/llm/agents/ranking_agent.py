@@ -46,7 +46,14 @@ class RankingAgent(BaseAgent):
             raw_text="{}", weights=RankingWeights(), prompt=None
         )
     )
-    def run(self, *, query: str) -> RankingAgentResult:
+    def run(self, *, query: str = None, mode: str = "ranking") -> RankingAgentResult:
+        """
+        Esegue l'agente per definire i pesi.
+        Il RankingAgent opera esclusivamente in modalità 'ranking'.
+        """
+        if mode != "ranking":
+            raise ValueError(f"RankingAgent non supporta la modalità '{mode}'.")
+            
         if not query:
             return RankingAgentResult(raw_text="{}", weights=RankingWeights(), prompt=None)
 

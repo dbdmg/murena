@@ -20,9 +20,9 @@ from app.utils.json_parser import safe_extract_json
 
 class PoiAgentOutput(BaseModel):
     """Schema di output strutturato per il Poi Agent."""
-    found: bool = Field(default=False, description="True se sono state identificate necessità relative ai POI")
-    categories: List[str] = Field(default_factory=list, description="Categorie ordinate per importanza")
-    punteggi_minimi: Dict[str, float] = Field(default_factory=dict, description="Punteggio minimo (1-5) per ogni categoria")
+    found: bool = Field(default=False, description="True se sono state identificate necessità relative ai POI nella query dell'utente")
+    categories: List[str] = Field(default_factory=list, description="Lista delle categorie selezionate e ordinate per importanza. Includi SOLO le categorie strettamente pertinenti alla query.")
+    percentili_minimi: Dict[str, int] = Field(description="Mappatura categoria -> percentile minimo richiesto (scegli tra 25, 50, 75). Deve contenere una chiave per ogni categoria presente in 'categories'.")
 
 
 class PoiAgent(BaseAgent):
@@ -43,7 +43,8 @@ class PoiAgent(BaseAgent):
                 ("user", self.user_template),
             ]
         )
-        self.structured_llm = self.llm.with_structured_output(PoiAgentOutput, method="function_calling")
+        # Usiamo json_mode per garantire che il modello restituisca correttamente i nuovi campi (percentili_minimi)
+        self.structured_llm = self.llm.with_structured_output(PoiAgentOutput, method="json_mode")
         self.chain = self.prompt_template | self.structured_llm
 
     @log_llm_usage
@@ -80,12 +81,11 @@ class PoiAgent(BaseAgent):
         stats_str = json.dumps(statistics, indent=2, ensure_ascii=False) if statistics else "N/D"
         
         system_content = self.render_template(
-            self.system_prompt,
-            statistics=stats_str
+            self.system_prompt
         )
 
-        prompt_inputs = {"system_content": system_content, "query": query}
-        user_text = self.render_template(self.user_template, query=query).strip()
+        prompt_inputs = {"system_content": system_content, "query": query, "statistics": stats_str}
+        user_text = self.render_template(self.user_template, query=query, statistics=stats_str).strip()
         full_text = f"[SYSTEM]\n{system_content}\n\n[USER]\n{user_text}"
 
         try:
@@ -95,6 +95,8 @@ class PoiAgent(BaseAgent):
             return PoiAgentResult(
                 raw_text=json.dumps(structured_response.model_dump(), ensure_ascii=False),
                 has_pois=has_pois,
+                categories=structured_response.categories,
+                percentili_minimi=structured_response.percentili_minimi,
                 prompt=PromptRecord(
                     system=system_content,
                     user=user_text,
@@ -103,7 +105,7 @@ class PoiAgent(BaseAgent):
             )
         except Exception as e:
             return PoiAgentResult(
-                raw_text=json.dumps({"error": str(e), "found": False, "categories": [], "punteggi_minimi": {}}),
+                raw_text=json.dumps({"error": str(e), "found": False, "categories": [], "percentili_minimi": {}}),
                 prompt=None,
             )
 
@@ -152,4 +154,8 @@ class PoiAgent(BaseAgent):
         df_ranked["poi_score"] = df_ranked.apply(calculate_row_score, axis=1)
         df_ranked["poi_score"] = df_ranked["poi_score"].round(1)
         
-        return df_ranked
+        # Include source columns (categories) used for calculation
+        base_cols = ["id", "poi_score"]
+        used_cats = [cat for cat in ranked_categories if cat in df_ranked.columns]
+        
+        return df_ranked[base_cols + used_cats]
