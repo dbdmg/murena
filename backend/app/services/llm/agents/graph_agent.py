@@ -389,11 +389,16 @@ class GraphOrchestratorAgent(BaseAgent):
         elif agent_name.lower() == "ape-agent" and hasattr(result, 'suggested_filters'):
             output_data = result.suggested_filters
         elif agent_name == "ranking-agent":
-            # For ranking agent, prefer the ordered ranking if present, otherwise weights
+            # For ranking agent, report both ranking and weights
+            output_data = {}
             if hasattr(result, 'ranking') and result.ranking:
-                output_data = {"ranking": result.ranking.ranking}
-            elif hasattr(result, 'weights'):
-                output_data = result.weights.model_dump()
+                output_data["ordered_ranking"] = result.ranking.ranking
+            if hasattr(result, 'weights'):
+                output_data["weights"] = result.weights.model_dump()
+            
+            if not output_data:
+                output_data = str(result)
+
         elif agent_name == "poi-agent":
             # For POI agent (filtering), show categories and minimum scores
             if hasattr(result, 'categories') and hasattr(result, 'punteggi_minimi'):
@@ -1416,9 +1421,21 @@ class GraphOrchestratorAgent(BaseAgent):
 
         # Sort by total score
         df = df.sort_values(by="final_ranking_score", ascending=False)
+        # Add relative rank
+        df["rank"] = range(1, len(df) + 1)
+        
+        # Add weights as reporting columns
+        weights_dict = weights.model_dump()
+        for pillar, weight in weights_dict.items():
+            df[f"w_{pillar}"] = weight
+            
         state["selected_data"] = df
         
+        # Log final ranking execution for trace
+        self._log_execution(state, "final-ranking", df.head(20), 0, mode="ranking")
+        
         return state
+
 
     def _evaluate_results(self, state: GraphState) -> GraphState:
         enriched_data = state["selected_data"]
@@ -1533,6 +1550,10 @@ class GraphOrchestratorAgent(BaseAgent):
             "final_ranking_score"
         ]
 
+        # Get weights once for use in JSON
+        ranking_res = state.get("ranking_result")
+        weights_dict = ranking_res.weights.model_dump() if ranking_res else {}
+
         def prepare_estates_json(batch_df: pd.DataFrame) -> str:
             """Convert DataFrame to JSON with only relevant columns for LLM evaluation."""
             # Select only columns that exist in the dataframe
@@ -1561,24 +1582,21 @@ class GraphOrchestratorAgent(BaseAgent):
 
             # Round to nearest integer and cast to int
             for col in score_cols_to_round:
-                # fillna(0) for safety on scores, though some might naturally be NaN. 
-                # For presentation to LLM as "rounded score", 0 is reasonable default for missing.
                 subset[col] = pd.to_numeric(subset[col], errors='coerce').fillna(0).round().astype(int)
 
-            # We DO NOT rename final_ranking_score to score anymore, as per user request.
-            # LLM prompt now expects 'final_ranking_score'.
-            
             # Convert to list of dicts
             records = subset.to_dict(orient="records")
 
-            # Clean up NaN/None values to "N/D" for readability
+            # Clean up NaN/None values and inject weights context
             for record in records:
                 for key, val in list(record.items()):
-                    # Check for None, NaN (float), or pandas NA
                     if val is None or (isinstance(val, float) and np.isnan(val)):
                         record[key] = "N/D"
+                # Add weights context to each record for LLM awareness
+                record["applied_weights"] = weights_dict
 
             return json.dumps(records, indent=2, ensure_ascii=False)
+
 
         def process_batch(batch_df):
             if batch_df.empty:
@@ -1597,7 +1615,37 @@ class GraphOrchestratorAgent(BaseAgent):
                 original_query=state["query"],  # NEW: pass original query for context
                 score_legend=SCORE_LEGEND,
             )
+            
+            # Pre-enrich results in the payload if possible
+            try:
+                eval_data = safe_extract_json(eval_payload.raw_text, schema=EvaluationList)
+                if eval_data and eval_data.evaluations:
+                    ranking_res = state.get("ranking_result")
+                    weights = ranking_res.weights.model_dump() if ranking_res else {}
+                    
+                    for res in eval_data.evaluations:
+                        # Find the estate in enriched_data to get pillar scores and rank
+                        # Use head(20) or similar if enriched_data is too large, but here we only have 10 items
+                        estate_row = enriched_data[enriched_data["id"] == res.id]
+                        if not estate_row.empty:
+                            row_dict = estate_row.iloc[0].to_dict()
+                            res.rank = row_dict.get("rank")
+                            res.scores = {
+                                "location": row_dict.get("location_score", 0.0),
+                                "normative": row_dict.get("normative_score", 0.0),
+                                "ape": row_dict.get("ape_score", 0.0),
+                                "typology": row_dict.get("typology_score", 0.0),
+                                "poi": row_dict.get("poi_score", 0.0)
+                            }
+                            res.weights = weights
+                    
+                    # Update raw_text with enriched data
+                    eval_payload.raw_text = json.dumps(eval_data.model_dump(), indent=2, ensure_ascii=False)
+            except Exception as e:
+                logger.error(f"Error enriching evaluation batch: {e}")
+                
             return eval_payload
+
 
         with ThreadPoolExecutor(max_workers=4) as executor:
             futures = {
@@ -1646,12 +1694,37 @@ class GraphOrchestratorAgent(BaseAgent):
                     logger.error(f"Error parsing evaluation batch: {e}")
                     pass
 
+        # Enrich results with original ranking data for reporting
+        ranking_res = state.get("ranking_result")
+        weights = ranking_res.weights.model_dump() if ranking_res else {}
+        
+        for res in all_results:
+            # Find the estate in enriched_data to get pillar scores and rank
+            estate_row = enriched_data[enriched_data["id"] == res.id]
+            if not estate_row.empty:
+                row_dict = estate_row.iloc[0].to_dict()
+                res.rank = row_dict.get("rank")
+                res.scores = {
+                    "location": row_dict.get("location_score", 0.0),
+                    "normative": row_dict.get("normative_score", 0.0),
+                    "ape": row_dict.get("ape_score", 0.0),
+                    "typology": row_dict.get("typology_score", 0.0),
+                    "poi": row_dict.get("poi_score", 0.0)
+                }
+                res.weights = weights
+
         state["context"].evaluation_results = all_results
+
         # Update full results list in log
         if "evaluation" in state["gemini_responses"]:
-            state["gemini_responses"]["evaluation"]["results"] = [
-                res.model_dump() if hasattr(res, "model_dump") else res for res in all_results
-            ]
+            results_list = []
+            for res in all_results:
+                item = res.model_dump() if hasattr(res, "model_dump") else res
+                # Frontend expects 'score'
+                if isinstance(item, dict) and "final_ranking_score" in item:
+                    item["score"] = item["final_ranking_score"]
+                results_list.append(item)
+            state["gemini_responses"]["evaluation"]["results"] = results_list
 
         self._update_progress(
             state, 6, f"Valutazione completata: {len(all_results)} risultati generati."
@@ -1905,6 +1978,8 @@ class GraphOrchestratorAgent(BaseAgent):
         state["status_msg"] = msg
         logger.info(msg)
 
+        if "final_ranking_score" in map_df.columns:
+            map_df["score"] = map_df["final_ranking_score"]
         state["selected_data"] = map_df  # Risultato finale per la mappa
         state["gemini_responses"]["agent_context"] = state["context"].model_dump()
         self._update_progress(state, 9, "Completato.")

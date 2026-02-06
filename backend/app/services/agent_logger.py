@@ -61,12 +61,25 @@ class AgentLogger:
         if agent_name.lower() == "ape-agent" and hasattr(output_data, 'suggested_filters'):
             output_extracted = output_data.suggested_filters
         elif agent_name == "ranking-agent":
-            # Per il ranking agent, preferiamo il ranking ordinato se presente, altrimenti i pesi
+            # Per il ranking agent, riportiamo sia il ranking che i pesi
+            output_extracted = {}
             if hasattr(output_data, 'ranking') and output_data.ranking:
-                output_extracted = {"ranking": output_data.ranking.ranking}
-            elif hasattr(output_data, 'weights'):
-                output_extracted = output_data.weights.model_dump()
+                output_extracted["ordered_ranking"] = output_data.ranking.ranking
+            if hasattr(output_data, 'weights'):
+                output_extracted["weights"] = output_data.weights.model_dump()
+            
+            if not output_extracted:
+                output_extracted = self._serialize_data(output_data)
+
+        elif agent_name == "evaluation-agent":
+            # Per l'evaluation agent, cerchiamo di estrarre la lista di valutazioni arricchite
+            if hasattr(output_data, 'raw_text'):
+                output_extracted = self._serialize_data(output_data.raw_text)
+            else:
+                output_extracted = self._serialize_data(output_data)
+        
         elif agent_name == "poi-agent":
+
             # Per il POI agent (filtering), mostriamo categorie e punteggi minimi
             if hasattr(output_data, 'categories') and hasattr(output_data, 'punteggi_minimi'):
                 output_extracted = {
@@ -79,7 +92,30 @@ class AgentLogger:
             output_extracted = output_data['raw_text']
         elif isinstance(output_data, pd.DataFrame):
             # Safe conversion to list of dicts to handle NaNs for JSON serialization
-            output_extracted = json.loads(output_data.to_json(orient="records"))
+            records = json.loads(output_data.to_json(orient="records"))
+            output_extracted = records
+        
+        # Se l'output è una lista di dizionari (es. da DataFrame), controlliamo se ci sono colonne extra rilevanti
+        # come score, rank, w_... che potrebbero essere state perse se output_extracted è stato sovrascritto
+        # o se vogliamo assicurarci che siano visibili.
+        if isinstance(output_extracted, list) and output_extracted and isinstance(output_extracted[0], dict):
+            # Se siamo in fase di ranking, ci aspettiamo certe colonne
+            if "ranking" in agent_mode or "ranking" in agent_name:
+                for idx, record in enumerate(output_extracted):
+                    original_record = records[idx] if 'records' in locals() and idx < len(records) else record
+                    ranking_details = {}
+                    
+                    # Estrai score, rank e colonne dei pesi (w_*)
+                    for key, val in original_record.items():
+                        if key in ["score", "rank", "final_ranking_score"] or key.startswith("w_"):
+                            ranking_details[key] = val
+                    
+                    if ranking_details:
+                        # Aggiungi i dettagli di ranking all'output estratto
+                        # Usiamo una chiave speciale per raggrupparli visivamente
+                        record["_ranking_details"] = ranking_details
+
+
         
         log_entry = {
             "agent_name": agent_name,
@@ -205,16 +241,22 @@ class AgentLogger:
                         items_to_log = [serialized_output]
 
                     # Crea esecuzioni separate per ogni item nel batch
-                    for item in items_to_log:
+                    for i, item in enumerate(items_to_log):
+                        # Filter out ranking-specific fields that are not fully defined in evaluation phase
+                        if isinstance(item, dict):
+                            item_filtered = {k: v for k, v in item.items() if k not in ["scores", "weights", "rank", "final_ranking_score"]}
+                        else:
+                            item_filtered = item
+
                         agent_entry = {
                             **run_props,
-                            "agent_name": "evaluation-agent",
+                            "agent_name": f"evaluation-agent (imm. {batch_counter})", # Rename for UI tabs
                             "agent_mode": entry.get("agent_mode", "evaluation"),
                             "batch_id": batch_counter,
                             "timestamp": entry.get("timestamp"),
                             "execution_time_ms": entry.get("execution_time_ms"),
-                            "input": serialized_input,
-                            "output": item,
+                            "input": serialized_input, # Showing full batch input for each item is redundant but keeps context
+                            "output": item_filtered,
                             "notes": ""
                         }
                         agent_executions.append(agent_entry)
@@ -924,21 +966,38 @@ class AgentLogger:
         html = '<details open><summary style="font-size:10px;">Dict ({})</summary>'.format(len(data))
         html += '<table class="subtable" style="font-size: 11px;">'
         
-        sorted_keys = sorted(data.keys(), key=lambda k: (0 if k.lower() == 'id' else 1 if 'score' in k.lower() else 2, k))
+        # Sort logic: id -> scores -> normal -> _underscore
+        def sort_key(k):
+             k_lower = k.lower()
+             if k_lower == 'id': return 0
+             if 'score' in k_lower: return 1
+             if k.startswith('_'): return 100 # Put internal keys at the end
+             return 2
+             
+        sorted_keys = sorted(data.keys(), key=lambda k: (sort_key(k), k))
         
         for key in sorted_keys:
             value = data[key]
-            if isinstance(value, dict):
-                display_value = self._dict_to_html_table(value)
-            elif isinstance(value, list):
-                if value and isinstance(value[0], dict):
-                    display_value = self._list_of_dicts_to_html_table(value)
-                else:
-                    display_value = '<br>'.join(str(item) for item in value)
-            else:
-                display_value = str(value).replace('\\n', '<br>')
             
-            html += f'<tr><td style="background-color: #f9f9f9; font-weight: bold;">{key}</td>'
+            # Formattazione speciale per ranking details
+            if key == "_ranking_details" and isinstance(value, dict):
+                 display_value = self._dict_to_html_table(value)
+                 row_style = 'style="background-color: #f0fdf4"'
+                 label_style = 'style="font-weight:700; color:#166534"'
+            else:
+                 row_style = ''
+                 label_style = 'style="background-color: #f9f9f9; font-weight: bold;"'
+                 if isinstance(value, dict):
+                     display_value = self._dict_to_html_table(value)
+                 elif isinstance(value, list):
+                     if value and isinstance(value[0], dict):
+                         display_value = self._list_of_dicts_to_html_table(value)
+                     else:
+                         display_value = '<br>'.join(str(item) for item in value)
+                 else:
+                     display_value = str(value).replace('\\n', '<br>')
+            
+            html += f'<tr {row_style}><td {label_style}>{key}</td>'
             html += f'<td>{display_value}</td></tr>'
         
         html += '</table></details>'

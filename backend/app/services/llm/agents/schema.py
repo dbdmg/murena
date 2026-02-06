@@ -74,6 +74,11 @@ class EvaluationResult(BaseModel):
     final_ranking_score: int = Field(..., description="Punteggio di rilevanza (0-100) basato sul ranking")
     pros: List[str] = Field(default_factory=list, description="Punti di forza")
     cons: List[str] = Field(default_factory=list, description="Punti di debolezza")
+    # Reporting fields (filled by orchestrator, not necessarily by LLM)
+    rank: Optional[int] = Field(None, description="Posizione relativa nel ranking")
+    scores: Optional[Dict[str, float]] = Field(None, description="Punteggi dei singoli componenti")
+    weights: Optional[Dict[str, float]] = Field(None, description="Pesi applicati")
+
 
 
 class EvaluationList(BaseModel):
