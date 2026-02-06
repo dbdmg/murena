@@ -768,4 +768,4 @@ AGENT_MODELS = {
 
 ---
 
-> **Nota Finale:** L'architettura attuale rappresenta un ottimo equilibrio tra modularità, performance e manutenibilità. Gli agenti sono stati razionalizzati da 11 a 8, eliminando ridondanze e migliorando la chiarezza delle responsabilità. Il sistema è production-ready e le ottimizzazioni rimanenti sono evolutive per supportare scale superiori.
+> **Nota Finale:** L'architettura attuale rappresenta un ottimo equilibrio tra modularità, performance e manutenibilità. Gli agenti sono stati razionalizzati da 11 a 8, eliminando ridondanze e migliorando la chiarezza delle responsabilità. Il sistema è production-ready e le ottimizzazioni rimanenti sono di natura evolutiva per supportare scale superiori.
