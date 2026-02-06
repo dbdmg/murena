@@ -37,7 +37,8 @@ class RankingAgent(BaseAgent):
             ]
         )
         # Use structured output for deterministic weights
-        self.structured_llm = self.llm.with_structured_output(RankingWeights, method="function_calling")
+        from app.services.llm.agents.schema import RankingRanking
+        self.structured_llm = self.llm.with_structured_output(RankingRanking, method="function_calling")
         self.chain = self.prompt_template | self.structured_llm
 
     @log_llm_usage
@@ -63,20 +64,49 @@ class RankingAgent(BaseAgent):
         full_text = f"[SYSTEM]\n{system_content}\n\n[USER]\n{user_text}"
 
         try:
-            weights: RankingWeights = invoke_with_langfuse(self.chain, prompt_inputs)
+            ranking_data: RankingRanking = invoke_with_langfuse(self.chain, prompt_inputs)
             
-            # Normalizzare se necessario (anche se l'LLM dovrebbe farlo bene)
-            total = weights.location + weights.normative + weights.ape + weights.typology + weights.poi
-            if total > 0:
-                weights.location /= total
-                weights.normative /= total
-                weights.ape /= total
-                weights.typology /= total
-                weights.poi /= total
+            # Calculate weights based on ranking: 1, 1/2, 1/3, 1/4, 1/5
+            # Similar to PoiAgent logic requested by user
+            ordered_agents = ranking_data.ranking
+            
+            # Ensure all agents are present (fallback to defaults if LLM missed some)
+            all_agents = ["location", "normative", "ape", "typology", "poi"]
+            for agent in all_agents:
+                if agent not in ordered_agents:
+                    ordered_agents.append(agent)
+            
+            # Keep only first 5
+            ordered_agents = ordered_agents[:5]
+            
+            raw_weights = {}
+            for i, agent in enumerate(ordered_agents):
+                raw_weights[agent] = 1.0 / (i + 1)
+            
+            # Normalize to sum = 1.0
+            total_sum = sum(raw_weights.values())
+            normalized_weights = {k: round(v / total_sum, 1) for k, v in raw_weights.items()}
+            
+            # Ensure sum is exactly 1.0 (rounding adjustments)
+            current_sum = sum(normalized_weights.values())
+            diff = round(1.0 - current_sum, 1)
+            if diff != 0:
+                # Adjust the top agent
+                top_agent = ordered_agents[0]
+                normalized_weights[top_agent] = round(normalized_weights[top_agent] + diff, 1)
+            
+            weights = RankingWeights(
+                location=normalized_weights.get("location", 0.2),
+                normative=normalized_weights.get("normative", 0.2),
+                ape=normalized_weights.get("ape", 0.2),
+                typology=normalized_weights.get("typology", 0.2),
+                poi=normalized_weights.get("poi", 0.2)
+            )
 
             return RankingAgentResult(
-                raw_text=json.dumps(weights.model_dump(), ensure_ascii=False),
+                raw_text=json.dumps({"ranking": ordered_agents, "weights": weights.model_dump()}, ensure_ascii=False),
                 weights=weights,
+                ranking=ranking_data,
                 prompt=PromptRecord(
                     system=system_content,
                     user=user_text,

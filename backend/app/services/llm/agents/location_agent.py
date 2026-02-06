@@ -152,25 +152,46 @@ class LocationAgent(BaseAgent):
         # Creiamo un mapping raggio per ogni POI
         radius_map = {p.name: p.radius_km for p in places}
 
-        def calculate_score(row):
+        def calculate_score_details(row):
             poi = row.get("poi_riferimento")
             dist = row.get("distanza_km")
             
             if pd.isna(dist) or poi not in radius_map:
-                return 0
+                return 0.0, 0.0
             
-            radius = radius_map[poi]
-            if radius <= 0:
-                return 100 if dist == 0 else 0
+            # Use fixed R parameter for decay as per requirements, 
+            # ignoring user radius for score shape but respecting cutoff if needed
+            R = 2.5
+            x = dist
             
-            # Score lineare: 100 a distanza 0, 0 a distanza >= radius
-            score = 100 * (1 - (dist / radius))
-            return max(0, min(100, score))
+            # Requirement: 0 score if distance >= 3 km
+            if x >= 3.0:
+                return 0.0, 0.0
+            
+            # Exponential decay formula: e^(-(x/R)^3)
+            # This produces a value between 0 and 1
+            raw_score = np.exp(-((x / R) ** 3))
+            
+            # Normalize to 0-100
+            # Ideally the raw_score is already 1.0 at x=0
+            # We just scale it to 100
+            final_score = raw_score * 100.0
+            
+            return final_score, raw_score
 
-        df_ranked["location_score"] = df_ranked.apply(calculate_score, axis=1)
+        # Apply calculation returning tuple
+        score_details = df_ranked.apply(calculate_score_details, axis=1)
         
-        # Arrotondiamo per pulizia
-        df_ranked["location_score"] = df_ranked["location_score"].round(1)
+        # Unpack into columns
+        df_ranked["location_score"] = score_details.apply(lambda x: x[0]).round(1)
+        df_ranked["location_raw_score"] = score_details.apply(lambda x: x[1]).round(4)
         
-        return df_ranked[["id", "location_score", "distanza_km", "poi_riferimento", "tempo_minuti"]]
+        # Add transparency: radius used per row
+        def get_radius(row):
+            poi = row.get("poi_riferimento")
+            return radius_map.get(poi, 0.0) if poi else 0.0
+
+        df_ranked["location_radius_used_km"] = df_ranked.apply(get_radius, axis=1)
+
+        return df_ranked[["id", "location_score", "distanza_km", "poi_riferimento", "location_raw_score", "location_radius_used_km"]]
 

@@ -10,6 +10,8 @@ import pandas as pd
 import sqlparse
 import sqlparse.tokens
 import tabulate
+import sqlglot
+from sqlglot import exp, parse_one
 
 from app.services.analysis.ranking import calculate_ranking_score
 from app.core.config import settings
@@ -88,6 +90,7 @@ class GraphState(TypedDict):
     context: AgentContext
     where_clause: str
     broker_summary: str  # Executive summary from Senior Broker
+    sql_history: List[str]  # History of all SQL queries tried (initial + relaxations)
 
     # Config
     llm_limit: Optional[int]
@@ -708,7 +711,7 @@ class GraphOrchestratorAgent(BaseAgent):
                 "prompt": poi_result.prompt.model_dump() if poi_result.prompt else None,
                 "response": poi_result.raw_text,
                 "categories": poi_data.get('categories', []),
-                "percentili_minimi": poi_data.get('percentili_minimi', {}),
+                "punteggi_minimi": poi_data.get('punteggi_minimi', {}),
                 "found": poi_data.get('found', False)
             }
         else:
@@ -717,7 +720,7 @@ class GraphOrchestratorAgent(BaseAgent):
                 "prompt": None,
                 "response": "",
                 "categories": [],
-                "percentili_minimi": {},
+                "punteggi_minimi": {},
                 "found": False
             }
 
@@ -743,11 +746,11 @@ class GraphOrchestratorAgent(BaseAgent):
         # Process POI Text for Context
         poi_text = ""
         if poi_data:
-            poi_percentiles = poi_data.get('percentili_minimi', {})
-            # Consider high priority if percentile >= 50
-            high_priority = [k for k, v in poi_percentiles.items() if v >= 50]
+            poi_scores = poi_data.get('punteggi_minimi', {})
+            # Consider high priority if score is relatively high (e.g. > 3.0)
+            high_priority = [k for k, v in poi_scores.items() if v >= 3.0]
             if high_priority:
-                poi_text = f"\n\nAnalisi POI: L'utente ha espresso preferenza per: {', '.join(high_priority)} con soglie di qualità (percentili)."
+                poi_text = f"\n\nAnalisi POI: L'utente ha espresso preferenza per: {', '.join(high_priority)} con soglie di qualità (punteggi 1-5)."
             elif poi_data.get("categories"):
                 poi_text = f"\n\nAnalisi POI: Categorie rilevanti: {', '.join(poi_data.get('categories'))}."
 
@@ -777,7 +780,7 @@ class GraphOrchestratorAgent(BaseAgent):
     def _deterministic_relaxation(self, sql_query: str) -> str:
         """
         Relaxes the SQL query by removing the last condition from the WHERE clause.
-        Does not use an LLM. Handles BETWEEN and ensures proper spacing.
+        Uses sqlglot for robust AST manipulation (DuckDB dialect).
         """
         if not sql_query:
             return sql_query
@@ -790,90 +793,80 @@ class GraphOrchestratorAgent(BaseAgent):
             elif sql_query.startswith("```"):
                 sql_query = sql_query.split("```")[1].split("```")[0].strip()
 
-            parsed_list = sqlparse.parse(sql_query)
-            if not parsed_list:
+            # Parse the SQL query using DuckDB dialect
+            # We use sqlglot because it builds a real AST, unlike sqlparse which is just a lexer.
+            expression = parse_one(sql_query, read="duckdb")
+            
+            # Find the WHERE clause
+            where = expression.find(exp.Where)
+            if not where:
+                logger.warning("No WHERE clause found to relax.")
                 return sql_query
-            parsed = parsed_list[0]
-        except Exception as e:
-            logger.error(f"Failed to parse SQL for relaxation: {e}")
-            return sql_query
 
-        # Find WHERE clause
-        where_token = None
-        where_index = -1
-        for i, token in enumerate(parsed.tokens):
-            if isinstance(token, sqlparse.sql.Where):
-                where_token = token
-                where_index = i
-                break
-        
-        if not where_token:
-            logger.warning("No WHERE clause found to relax.")
-            return sql_query
-
-        # tokens in Where contain [WHERE, space, cond1, space, AND, space, cond2...]
-        tokens = list(where_token.tokens)
-        
-        # Identify top-level separators (AND/OR) and potential terminators (LIMIT, etc.)
-        separators = []
-        terminator_index = -1
-        between_stack = 0
-        
-        for i, t in enumerate(tokens):
-            if t.is_whitespace:
-                continue
+            # The logic is to remove the last top-level condition.
+            # In SQL AST for AND/OR chains, this is usually the 'right' child of the top-level binary expression.
+            predicate = where.this
             
-            val = t.value.upper() if t.value else ""
-            if val == "BETWEEN":
-                between_stack += 1
-            elif val in ("AND", "OR"):
-                if between_stack > 0:
-                    between_stack -= 1 # This AND belongs to a BETWEEN
-                else:
-                    separators.append(i) # Top-level logical separator
-            elif val in ("LIMIT", "ORDER", "GROUP", "HAVING"):
-                if between_stack == 0:
-                    terminator_index = i
-                    break # Stop at first terminator
-        
-        if separators:
-            # Remove from last separator to terminator or end
-            last_sep_index = separators[-1]
-            end_index = terminator_index if terminator_index != -1 else len(tokens)
-            
-            head = tokens[:last_sep_index]
-            tail = tokens[end_index:]
-            
-            where_head_str = "".join(str(t) for t in head).strip()
-            where_tail_str = "".join(str(t) for t in tail).strip()
-            
-            new_where_str = where_head_str
-            if where_tail_str:
-                new_where_str += " " + where_tail_str
-            
-            statement_tokens = [str(t) for t in parsed.tokens]
-            statement_tokens[where_index] = new_where_str
-            
-            result = "".join(statement_tokens).strip()
-            logger.info(f"DETERMINISTIC RELAXATION: Removed last condition. Query: {result}")
-            return result
-        else:
-            # No separators: remove whole condition but keep terminator
-            statement_tokens = [str(t) for t in parsed.tokens]
-            if terminator_index != -1:
-                # Keep only the part from terminator onwards (with a space)
-                trailing = "".join(str(t) for t in tokens[terminator_index:]).strip()
-                statement_tokens[where_index] = " " + trailing
+            if isinstance(predicate, (exp.And, exp.Or)):
+                # We replace the tree with its left child, effectively removing the rightmost branch.
+                # Since LLMs tend to append more specific/less important conditions at the end, 
+                # this correctly targets the "last" condition.
+                where.set("this", predicate.left)
             else:
-                # Remove entire WHERE clause
-                statement_tokens.pop(where_index)
+                # Only one condition remains in the WHERE clause, so we remove the whole clause.
+                where.pop()
+                
+            # Generate the SQL back. Dialect="duckdb" ensures compatibility.
+            # sqlglot handles spacing and quoting correctly.
+            result = expression.sql(dialect="duckdb", pretty=True)
             
-            result = "".join(statement_tokens).strip()
-            logger.info(f"DETERMINISTIC RELAXATION: Removed only condition. Query: {result}")
+            logger.info(f"DETERMINISTIC RELAXATION (AST): Removed last condition. Result: {result}")
             return result
+        except Exception as e:
+            logger.error(f"Failed to parse or relax SQL via AST: {e}. Falling back to original query.")
+            return sql_query
+
+    def _format_agent_requirements(self, agent_result: Any) -> str:
+        """Formatta i requisiti di un agente (APE o Normative) in formato compatto [col] [op] [val]."""
+        if not agent_result or not agent_result.raw_text or agent_result.raw_text == "N/D":
+            return "N/D"
+        
+        try:
+            # Estrarre JSON in modo sicuro (gestisce blocchi markdown e testo extra)
+            data = safe_extract_json(agent_result.raw_text)
+            
+            if not data or not isinstance(data, dict):
+                # Se non è un dict valido, restituiamo il testo originale ma limitato
+                return str(agent_result.raw_text)[:500]
+                
+            requisiti = data.get("requisiti", [])
+            if not requisiti:
+                return "Nessun requisito specifico identificato."
+            
+            formatted = []
+            for req in requisiti:
+                col = req.get("colonna_target")
+                op = req.get("operatore")
+                val = req.get("valore")
+                if col and op and val is not None:
+                    # Se valore è una lista, formattala come (val1, val2)
+                    if isinstance(val, list):
+                        val_str = "(" + ", ".join(f"'{v}'" if isinstance(v, str) else str(v) for v in val) + ")"
+                        formatted.append(f"{col} {op} {val_str}")
+                    else:
+                        val_str = f"'{val}'" if isinstance(val, str) else str(val)
+                        formatted.append(f"{col} {op} {val_str}")
+            
+            return "; ".join(formatted) if formatted else "Nessun requisito specifico identificato."
+        except Exception as e:
+            logger.error(f"Error formatting agent requirements: {e}")
+            # Fallback in caso di errore
+            return str(agent_result.raw_text)[:500]
 
     def _generate_sql(self, state: GraphState) -> GraphState:
         retry_count = state["retry_count"]
+        if "sql_history" not in state or retry_count == 0:
+            state["sql_history"] = []
         self._update_progress(
             state, 2, f"Generazione SQL (tentativo {retry_count + 1})..."
         )
@@ -896,14 +889,31 @@ class GraphOrchestratorAgent(BaseAgent):
         normative_result = state.get("normative_result")
         
         typologies_raw = typology_result.raw_text if typology_result else "N/D"
-        poi_raw = poi_result.raw_text if poi_result else "N/D"
-        ape_raw = ape_result.raw_text if ape_result else "N/D"
-        normative_raw = normative_result.raw_text if normative_result else "N/D"
+        # Formattazione compatta per POI: solo punteggi_minimi
+        poi_raw = "N/D"
+        if poi_result:
+            try:
+                poi_data = safe_extract_json(poi_result.raw_text)
+                if poi_data and isinstance(poi_data, dict):
+                    poi_raw = json.dumps(poi_data.get("punteggi_minimi", {}), ensure_ascii=False)
+            except:
+                poi_raw = str(poi_result.raw_text)[:500]
+        
+        # Formattazione compatta per APE e Normativa per risparmiare token e migliorare precisione
+        ape_raw = self._format_agent_requirements(ape_result)
+        normative_raw = self._format_agent_requirements(normative_result)
         
 
-        # Format locations as JSON string for clarity
+        # Format locations as JSON string for clarity: only lat, lon, radius_km
         locations_list = state["gemini_responses"].get("location_extraction", {}).get("places", [])
-        locations_raw = json.dumps(locations_list, ensure_ascii=False)
+        filtered_locations = []
+        for loc in locations_list:
+            filtered_locations.append({
+                "lat": loc.get("lat"),
+                "lon": loc.get("lon"),
+                "radius_km": loc.get("radius_km")
+            })
+        locations_raw = json.dumps(filtered_locations, ensure_ascii=False)
 
         if USE_MOCK_RESPONSES:
             logger.info("MOCK MODE: Simulating SQL generation...")
@@ -922,50 +932,33 @@ class GraphOrchestratorAgent(BaseAgent):
         effective_failed_query = failed_query
         effective_error_msg = error_msg
 
-        # DETERMINISTIC RELAXATION: If we are retrying because of few results (not a SQL error),
-        # we relax the query by removing the last condition without using the LLM.
+        # DETERMINISTIC RELAXATION: If we are retrying because of few results (not a SQL error)
+        # we prepare the relaxed query to be passed to the agent run for logging.
+        relaxed_sql = None
         if state.get("relax_constraints") and not is_sql_error and failed_query:
             logger.info(f"Applying DETERMINISTIC RELAXATION (Attempt {retry_count + 1})")
             relaxed_sql = self._deterministic_relaxation(failed_query)
-            state["sql_query"] = relaxed_sql
-            
-            key = f"sql_generation_retry_{retry_count}"
-            state["gemini_responses"][key] = {
-                "prompt": None,
-                "response": f"-- RELAXATION DETERMINISTICA (Rimozione ultimo vincolo)\n{relaxed_sql}",
-                "sql_query": relaxed_sql,
-                "is_deterministic": True
-            }
-            return state
 
         if state.get("relax_constraints") and not is_sql_error:
             logger.info(f"Applying RELAXATION to SQL prompt (Attempt {retry_count + 1})")
 
-        # Get statistics for filterable columns to help SQL Agent with ranges
-        filterable_cols = state.get("db_metadata", {}).get("sql_filtering_rules", {}).get("filterable_columns", [])
-        stats = {}
-        if filterable_cols:
-            stats = self._get_column_statistics(
-                columns=filterable_cols,
-                dataset_path=state.get("dataset_path"),
-                dataset_df=state.get("base_dataset")
-            )
-        stats_raw = json.dumps(stats, indent=2, ensure_ascii=False)
-
         sql_result = self.sql_agent.run(
             query=query, # use original query
-            scheme=str(db_schema),
+            scheme=json.dumps(db_schema.get("types", {}), ensure_ascii=False),
             typologies=typologies_raw,
             locations=locations_raw,
             ape_requirements=ape_raw,
             poi_requirements=poi_raw,
             normative_requirements=normative_raw,
-            statistics=stats_raw,
             location=loc_obj,
             failed_query=effective_failed_query,
             error_msg=effective_error_msg,
-            db_metadata=json.dumps(state["db_metadata"], ensure_ascii=False),
+            db_metadata="",
+            raw_response=relaxed_sql
         )
+
+        # Append to history
+        state["sql_history"].append(sql_result.raw_text)
 
         # sql_result.raw_text now contains the cleaned SQL
         state["sql_query"] = sql_result.raw_text
@@ -978,6 +971,7 @@ class GraphOrchestratorAgent(BaseAgent):
             "prompt": sql_result.prompt.model_dump() if sql_result.prompt else None,
             "response": sql_result.raw_text,
             "sql_query": sql_result.raw_text,
+            "sql_history": state["sql_history"]
         }
         return state
 
@@ -1438,7 +1432,6 @@ class GraphOrchestratorAgent(BaseAgent):
             "commerciale",
             "educazione",
             # Travel times (if enriched)
-            "tempo_minuti",
             "distanza_km",
             # Agent scores
             "ape_score",
@@ -1446,6 +1439,8 @@ class GraphOrchestratorAgent(BaseAgent):
             "normative_score",
             "typology_score",
             "poi_score",
+            # Calculated Score
+            "final_ranking_score"
         ]
 
         def prepare_estates_json(batch_df: pd.DataFrame) -> str:
@@ -1454,6 +1449,35 @@ class GraphOrchestratorAgent(BaseAgent):
             available_cols = [c for c in EVAL_COLUMNS if c in batch_df.columns]
             subset = batch_df[available_cols].copy()
 
+            # Identify columns that are numeric scores to be rounded to nearest int
+            # Includes explicit scores (ending in _score or score_*) and POI pillars (1-5 range)
+            poi_pillars = ["sanita", "mobilita", "verde", "sport", "commerciale", "educazione"]
+            score_cols_to_round = []
+            
+            for col in subset.columns:
+                if not pd.api.types.is_numeric_dtype(subset[col]):
+                    continue
+                    
+                is_score = (
+                    col.endswith("score") or 
+                    "_score_" in col or 
+                    col == "final_ranking_score" or 
+                    col == "score" or
+                    col in poi_pillars
+                )
+                
+                if is_score:
+                    score_cols_to_round.append(col)
+
+            # Round to nearest integer and cast to int
+            for col in score_cols_to_round:
+                # fillna(0) for safety on scores, though some might naturally be NaN. 
+                # For presentation to LLM as "rounded score", 0 is reasonable default for missing.
+                subset[col] = pd.to_numeric(subset[col], errors='coerce').fillna(0).round().astype(int)
+
+            # We DO NOT rename final_ranking_score to score anymore, as per user request.
+            # LLM prompt now expects 'final_ranking_score'.
+            
             # Convert to list of dicts
             records = subset.to_dict(orient="records")
 

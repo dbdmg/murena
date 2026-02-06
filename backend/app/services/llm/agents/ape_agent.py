@@ -121,10 +121,12 @@ class ApeAgent(BaseAgent):
         df_ranked = df.copy()
         
         # 1. Se abbiamo requisiti dinamici dall'LLM (filtering), usiamoli per calcolare lo score
+        # 1. Se abbiamo requisiti dinamici dall'LLM (filtering), usiamoli per calcolare lo score
         if requirements:
             total_scores = pd.Series(0.0, index=df_ranked.index)
             valid_req_count = 0
             used_columns = set()
+            transparency_cols = []
 
             for req in requirements:
                 col = req.get("colonna_target")
@@ -139,9 +141,36 @@ class ApeAgent(BaseAgent):
                 
                 # Special handling for energy class (categorical)
                 if col == "classe_energetica_ape":
-                    mapping = {"A4": 100, "A3": 95, "A2": 90, "A1": 85, "B": 75, "C": 65, "D": 50, "E": 35, "F": 20, "G": 5}
+                    # Definitive ranking map: Class -> (Score, Rank)
+                    # A4 is best (Rank 1)
+                    ranking_map = {
+                        "A4": (100, 1), "A3": (95, 2), "A2": (90, 3), "A1": (85, 4),
+                        "B": (75, 5), "C": (65, 6), "D": (50, 7), "E": (35, 8),
+                        "F": (20, 9), "G": (5, 10)
+                    }
+                    
                     vals = df_ranked[col].astype(str).str.upper().str.strip()
-                    req_score = vals.map(mapping).fillna(0)
+                    
+                    # Helper to extract score and rank safe
+                    def get_class_details(c_val):
+                        if c_val in ranking_map:
+                            return ranking_map[c_val]
+                        return (0.0, "N/A") # fallback
+
+                    details = vals.apply(get_class_details)
+                    
+                    req_score = details.apply(lambda x: x[0])
+                    rank_pos = details.apply(lambda x: x[1])
+                    
+                    # Save transparency metadata
+                    pos_col = f"ape_rank_position_{col}"
+                    mult_col = f"ape_multiplier_{col}"
+                    
+                    df_ranked[pos_col] = rank_pos
+                    df_ranked[mult_col] = (req_score / 100.0).round(2)
+                    
+                    transparency_cols.extend([pos_col, mult_col])
+                    
                 else:
                     # Generic numeric handling
                     vals = pd.to_numeric(df_ranked[col], errors="coerce").fillna(0)
@@ -158,26 +187,40 @@ class ApeAgent(BaseAgent):
 
             if valid_req_count > 0:
                 df_ranked["ape_score"] = (total_scores / valid_req_count).round(1)
+                
+                # Add transparency: weight per column
+                weight = round(1.0 / valid_req_count, 3)
+                for col in used_columns:
+                    df_ranked[f"ape_weight_{col}"] = weight
             else:
                 df_ranked["ape_score"] = 0.0
                 
-            return df_ranked[["id", "ape_score"] + list(used_columns)]
+            cols_to_return = ["id", "ape_score"] + list(used_columns)
+            weight_cols = [f"ape_weight_{c}" for c in used_columns]
+            
+            # Combine: Base + Weights + Categorical Transparency
+            return df_ranked[cols_to_return + weight_cols + transparency_cols]
 
         # 2. Logica Fallback (Deterministica standard)
+        # Here weight is 1.0 for the single source column used
+        used_col = None
         if "ape_total_points" in df_ranked.columns:
             points = pd.to_numeric(df_ranked["ape_total_points"], errors="coerce").fillna(6)
             df_ranked["ape_score"] = (100 * (points - 6) / (20 - 6)).clip(0, 100)
+            used_col = "ape_total_points"
         elif "ape_score_total" in df_ranked.columns:
             score = pd.to_numeric(df_ranked["ape_score_total"], errors="coerce").fillna(1)
             df_ranked["ape_score"] = ((score - 1) * 25).clip(0, 100)
+            used_col = "ape_score_total"
         else:
             df_ranked["ape_score"] = 0
             
         df_ranked["ape_score"] = df_ranked["ape_score"].round(1)
         
         cols_to_return = ["id", "ape_score"]
-        for col in ["classe_energetica_ape", "ape_total_points", "ape_score_total"]:
-            if col in df_ranked.columns:
-                cols_to_return.append(col)
+        if used_col:
+            cols_to_return.append(used_col)
+            df_ranked[f"ape_weight_{used_col}"] = 1.0
+            cols_to_return.append(f"ape_weight_{used_col}")
                 
         return df_ranked[cols_to_return]

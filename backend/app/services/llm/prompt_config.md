@@ -21,15 +21,14 @@ Protocollo di Valutazione:
    - Sostenibilità Energetica (classe_energetica_ape, ape_score_*)
    - Accessibilità (tempo_minuti, distanza_km se disponibili)
 
-3. Scoring (0-100):
-   - 90-100 (Top Prospect): Immobile ideale, nessun ostacolo significativo.
-   - 75-89 (High Potential): Ottimo candidato con piccole criticità.
-   - 60-74 (Medium Potential): Adatto ma con sfide da gestire.
-   - <60 (Low Potential): Scarsa vocazione per l'uso richiesto.
+3. Scoring: L'input JSON contiene già un campo `final_ranking_score` pre-calcolato (0-100) che rappresenta una sintesi quantitativa basata sul ranking.
+   - **NON modificare questo score**. Restituiscilo esattamente come lo ricevi.
+   - Usa lo score come riferimento per capire quanto l'immobile soddisfa i criteri tecnici.
+   - Il tuo compito è fornire le MOTIVAZIONI qualitative (Pro e Contro) che giustificano l'interesse per questo immobile, coerentemente con lo score assegnato.
 
 {score_legend}
 
-I dati degli immobili sono forniti in formato JSON. Ogni oggetto rappresenta un immobile con i suoi attributi.
+I dati degli immobili sono forniti in formato JSON. Ogni oggetto rappresenta un immobile con i suoi attributi, incluso il `final_ranking_score`.
 
 {format_instructions}
 ```
@@ -221,10 +220,8 @@ RISULTATI FILTRAGGIO AGENTI:
 - Requisiti POI (punteggi minimi): {poi_requirements}
 - Requisiti Normativi: {normative_requirements}
 
-LOCALITÀ RIFERIMENTO: {location_str}
 SCHEMA DATABASE: {scheme}
 METADATI (valori ammessi): {db_metadata}
-DISTRIBUZIONE DATI (RANGI E VALORI): {statistics}
 ```
 
 
@@ -252,8 +249,6 @@ Errore Riscontrato:
 
 Parametri di Filtro Originali: "{query}"
 Query Fallita: "{failed_query}"
-Località (opzionale): {location_str}
-
 Schema Database:
 {scheme}
 ```
@@ -294,7 +289,7 @@ Lista delle tipologie disponibili:
 
 Richiesta utente: "{query}"
 
-DISTRIBUZIONE DATI (RANGI E VALORI):
+DISTRIBUZIONE DATI (RANGE E VALORI):
 {statistics}
 ```
 
@@ -312,7 +307,7 @@ Il tuo compito è identificare se l'utente ha esigenze legate al risparmio energ
 3. DEVI identificare le colonne tecniche APE più pertinenti (es. `classe_energetica_ape`, `ape_total_points`, `ape_score_total`).
 4. Consulta i dati della DISTRIBUZIONE DATI inclusi nel messaggio utente per suggerire filtri e criteri realistici.
 5. Se non ci sono richieste energetiche rilevanti, restituisci `"found": false` e liste vuote.
-6. **REGOLA CRITICA**: Nella lista `suggested_filters`, **DEVE esserci al massimo un filtro per ogni colonna**. Se sono necessari più valori per la stessa colonna, usa clausole come `IN`, `OR` o `BETWEEN` (es. `classe_energetica_ape IN ('A1', 'A2')`).
+6. Nella lista `suggested_filters`, **DEVE esserci al massimo un filtro per ogni colonna**. Se sono necessari più valori per la stessa colonna, usa clausole come `IN`, `OR` o `BETWEEN` (es. `classe_energetica_ape IN ('A1', 'A2')`).
 7. Restituisci sia i `suggested_filters` (per SQL) sia i `requisiti` (per il calcolo dello score di ranking).
 8. I `requisiti` devono indicare `colonna_target`, `operatore` (>=, <=, ==) e `valore`.
 
@@ -407,15 +402,14 @@ Il tuo compito è analizzare la documentazione normativa fornita ed estrarre req
 3. Per ogni requisito, individua la colonna più adatta tra quelle disponibili nel database.
    COLONNE DISPONIBILI: {available_columns}
 4. Consulta i dati della DISTRIBUZIONE DATI inclusi nel messaggio utente per verificare quali nomi di colonna sono validi e quali valori sono presenti.
-5. **REGOLA CRITICA**: Usa SOLO i nomi delle colonne presenti in {available_columns}.
-   - NON inventare mai nomi di colonna (es. NON usare `superficie_totale` se non è in lista).
-   - Per le metrature/superfici, usa SEMPRE `superficie_di_riferimento_mq` se disponibile.
+5. Usa SOLO i nomi delle colonne presenti in {available_columns}. NON inventare mai nomi di colonna (es. NON usare `superficie_totale` se non è in lista).
 6. È FONDAMENTALE che ogni requisito abbia una `colonna_target` che esista effettivamente tra quelle passate nella DISTRIBUZIONE DATI.
 7. Assegna un `operatore` appropriato:
    - Per valori numerici (superfici): `>=` (minimo), `<=` (massimo), `==` (esatto).
    - Per valori testuali (destinazione d'uso): `==` (corrispondenza), `LIKE` (contenimento), `IN` (lista).
 8. Se non trovi requisiti pertinenti, restituisci `"found": false` e una lista `"requisiti"` vuota.
 9. NON inventare normativa. Se non è nei documenti, non esiste per te.
+10. **UNIVOCITÀ COLONNE**: Ogni colonna presente in {available_columns} può essere utilizzata come `colonna_target` al massimo una volta. Se più requisiti normativi estratti dai documenti insistono sulla stessa colonna, unificali in un unico requisito più restrittivo o scegli il più pertinente rispetto alla query.
 
 # OUTPUT
 Restituisci ESCLUSIVAMENTE un JSON valido:
@@ -457,7 +451,7 @@ Documentazione Normativa:
 
 Query dell'utente: {query}
 
-DISTRIBUZIONE DATI (RANGI E VALORI):
+DISTRIBUZIONE DATI (RANGE E VALORI):
 {statistics}
 ```
 
@@ -474,13 +468,13 @@ Sei un esperto analista urbano. Il tuo compito è identificare quali categorie d
 3. ORDINA le categorie per RILEVANZA decrescente.
 
 # DEFINIZIONE REQUISITI (MANDATORY)
-Per OGNI categoria selezionata in `categories`, DEVI scegliere un percentile in `percentili_minimi` tra quelli disponibili (25, 50, 75):
-- 25: Presenza minima (accessibile, ma non necessariamente d'eccellenza).
-- 50: Presenza standard/buona (servizio presente e di qualità media).
-- 75: Massima eccellenza/vicinanza (VINCOLO CRITICO: l'edificio deve trovarsi in una zona con altissima densità di questo servizio).
+Per OGNI categoria selezionata in `categories`, DEVI definire un valore numerico in `punteggi_minimi` (scala 1-5) che rappresenti la soglia minima di qualità/vicinanza desiderata.
 
-# CALIBRAZIONE SOGLIE
-Usa i percentili forniti nella DISTRIBUZIONE DATI inclusa nel messaggio utente per calibrare la tua scelta in modo realistico.
+# CALIBRAZIONE SOGLIE (DATA-DRIVEN)
+Non inventare numeri a caso. Consulta la DISTRIBUZIONE DATI inclusa nel messaggio utente per ogni categoria per capire la distribuzione reale (1-5) nel dataset.
+- Scegli liberamente il punteggio minimo (1.0 - 5.0, massimo una cifra decimale) che ritieni più appropriato per soddisfare il bisogno dell'utente.
+- La distribuzione dati ti serve come riferimento per capire cosa sia "raro" o "eccellente" in questo specifico territorio, ma la scelta finale della soglia è tua.
+- Esempio: se l'utente chiede "ottimi servizi", potresti scegliere 4.2 anche se la mediana è 3.0, se ritieni che 4.2 sia una soglia corretta per definire l'eccellenza.
 
 # CATEGORIE DISPONIBILI
 - sanita: Ospedali, farmacie, ambulatori
@@ -495,9 +489,9 @@ Se trovi necessità:
 {
   "found": true,
   "categories": ["educazione", "mobilita"],
-  "percentili_minimi": {
-    "educazione": 75,
-    "mobilita": 50
+  "punteggi_minimi": {
+    "educazione": 3.8,
+    "mobilita": 2.5
   }
 }
 
@@ -505,7 +499,7 @@ Se NON trovi necessità specifiche:
 {
   "found": false,
   "categories": [],
-  "percentili_minimi": {}
+  "punteggi_minimi": {}
 }
 ```
 
@@ -568,26 +562,34 @@ DOMANDA UTENTE:
 
 ## ranking_agent.system
 ```prompt
-Sei un esperto analista immobiliare. Il tuo compito è definire l'importanza relativa (coefficienti) di 5 criteri di ranking basandoti sulle necessità espresse dall'utente nella query.
+Sei un esperto analista immobiliare. Il tuo compito è stabilire l'ORDINE DI IMPORTANZA (ranking) di 5 criteri di valutazione basandoti sulle necessità espresse dall'utente nella query.
 
 I CRITERI SONO:
-1. **location**: Peso per la vicinanza geografica o la posizione specifica richiesta.
-2. **normative**: Importanza della conformità normativa o requisiti legali (es. zona ZTL, vincoli storico-artistici).
-3. **ape**: Priorità data all'efficienza energetica e ai costi di gestione futuri.
-4. **typology**: Coerenza con la destinazione d'uso e la struttura edilizia richiesta (es. uffici, abitazioni di lusso).
-5. **poi**: Importanza della prossimità a servizi (scuole, ospedali, trasporti).
+1. **location**: Vicinanza geografica o posizione specifica richiesta.
+2. **normative**: Conformità normativa, vincoli legali, destinazioni d'uso ammesse.
+3. **ape**: Efficienza energetica e sostenibilità.
+4. **typology**: Coerenza con la tipologia edilizia richiesta (uffici, scuole, ecc.).
+5. **poi**: Prossimità a servizi (sanità, trasporti, verde, sport, ecc.).
 
 REGOLE:
-- Restituisci 5 pesi decimali.
-- La somma totale dei pesi DEVE essere 1.0.
-- Se l'utente non esprime una preferenza specifica per un criterio, assegna un peso di default (es. 0.2 ciascuno).
-- Se un utente dice "Vicino metro e negozi", il peso `poi` deve essere molto alto (es. 0.6).
-- Se un utente dice "Edificio storico vincolato", il peso `normative` deve essere alto.
+- Restituisci una lista ordinata chiamata `ranking` contenente i 5 nomi dei criteri.
+- Il primo elemento della lista deve essere il criterio più importante.
+- L'ultimo elemento della lista deve essere il criterio meno importante.
+- Tutti i 5 criteri devono essere presenti nella lista.
+- Se l'utente non esprime preferenze chiare, usa un ordine bilanciato.
+
+Esempio:
+Se l'utente chiede "Cerco uffici in centro vicino alla metro", l'ordine potrebbe essere:
+["location", "poi", "typology", "ape", "normative"]
+
+OUTPUT:
+Restituisci ESCLUSIVAMENTE un JSON valido:
+{
+  "ranking": ["criterio1", "criterio2", "criterio3", "criterio4", "criterio5"]
+}
 ```
 
 ## ranking_agent.user
 ```prompt
 QUERY UTENTE: "{query}"
-
-RESTITUISCI IL JSON CON I COEFFICIENTI.
 ```

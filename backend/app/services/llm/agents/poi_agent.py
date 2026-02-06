@@ -22,7 +22,7 @@ class PoiAgentOutput(BaseModel):
     """Schema di output strutturato per il Poi Agent."""
     found: bool = Field(default=False, description="True se sono state identificate necessità relative ai POI nella query dell'utente")
     categories: List[str] = Field(default_factory=list, description="Lista delle categorie selezionate e ordinate per importanza. Includi SOLO le categorie strettamente pertinenti alla query.")
-    percentili_minimi: Dict[str, int] = Field(description="Mappatura categoria -> percentile minimo richiesto (scegli tra 25, 50, 75). Deve contenere una chiave per ogni categoria presente in 'categories'.")
+    punteggi_minimi: Dict[str, float] = Field(description="Mappatura categoria -> punteggio minimo richiesto (scala 1-5). Deve contenere una chiave per ogni categoria presente in 'categories'.")
 
 
 class PoiAgent(BaseAgent):
@@ -96,7 +96,7 @@ class PoiAgent(BaseAgent):
                 raw_text=json.dumps(structured_response.model_dump(), ensure_ascii=False),
                 has_pois=has_pois,
                 categories=structured_response.categories,
-                percentili_minimi=structured_response.percentili_minimi,
+                punteggi_minimi=structured_response.punteggi_minimi,
                 prompt=PromptRecord(
                     system=system_content,
                     user=user_text,
@@ -105,7 +105,7 @@ class PoiAgent(BaseAgent):
             )
         except Exception as e:
             return PoiAgentResult(
-                raw_text=json.dumps({"error": str(e), "found": False, "categories": [], "percentili_minimi": {}}),
+                raw_text=json.dumps({"error": str(e), "found": False, "categories": [], "punteggi_minimi": {}}),
                 prompt=None,
             )
 
@@ -153,9 +153,17 @@ class PoiAgent(BaseAgent):
 
         df_ranked["poi_score"] = df_ranked.apply(calculate_row_score, axis=1)
         df_ranked["poi_score"] = df_ranked["poi_score"].round(1)
-        
-        # Include source columns (categories) used for calculation
-        base_cols = ["id", "poi_score"]
+
+        # Add transparency columns: weight per category
+        cols_to_return = ["id", "poi_score"]
         used_cats = [cat for cat in ranked_categories if cat in df_ranked.columns]
+        weight_cols = []
         
-        return df_ranked[base_cols + used_cats]
+        for cat in used_cats:
+            # Weight used for this category
+            weight = weights.get(cat, 0.0)
+            col_name = f"poi_weight_{cat}"
+            df_ranked[col_name] = round(weight, 3)
+            weight_cols.append(col_name)
+        
+        return df_ranked[cols_to_return + list(used_cats) + weight_cols]

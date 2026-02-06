@@ -12,6 +12,7 @@ from app.services.llm.prompt_loader import get_system_prompt, get_user_template
 from app.utils.decorators import log_llm_usage
 
 import re
+import sqlglot
 
 def _clean_sql(text: str) -> str:
     """
@@ -33,7 +34,14 @@ def _clean_sql(text: str) -> str:
         # Se c'è un punto e virgola, prendiamo solo fino a lì (evita comandi multipli)
         if ';' in sql:
             sql = sql.split(';')[0].strip()
-        return sql
+        
+        # Formattazione tramite sqlglot per leggibilità e correttezza sintattica
+        try:
+            formatted = sqlglot.transpile(sql, read="duckdb", pretty=True)[0]
+            return formatted
+        except Exception:
+            # Fallback alla stringa pulita ma non formattata in caso di errore di parsing
+            return sql
     
     return text.strip()
 
@@ -115,11 +123,11 @@ class SQLAgent(BaseAgent):
         ape_requirements: str = "N/D",
         poi_requirements: str = "N/D",
         normative_requirements: str = "N/D",
-        statistics: str = "N/D",
         location: Optional[Any] = None,
         failed_query: Optional[str] = None,
         error_msg: Optional[str] = None,
         db_metadata: str = "",
+        raw_response: Optional[str] = None,  # If provided, bypass LLM and use this
     ) -> SQLAgentResult:
         location_str = ""
         lat = 0.0
@@ -154,7 +162,6 @@ class SQLAgent(BaseAgent):
             "ape_requirements": ape_requirements,
             "poi_requirements": poi_requirements,
             "normative_requirements": normative_requirements,
-            "statistics": statistics,
             "failed_query": failed_query or "",
             "location_str": location_str,
             "lat": lat,
@@ -162,6 +169,18 @@ class SQLAgent(BaseAgent):
             "error_msg": error_msg or "Nessun risultato trovato (query vuota).",
             "db_metadata": db_metadata,
         }
+
+        if raw_response:
+            # If we already have the SQL (deterministic relaxation), bypass LLM but return same structure
+            # to trigger logging hooks in tests.
+            return SQLAgentResult(
+                raw_text=_clean_sql(raw_response),
+                prompt=PromptRecord(
+                    system="DETERMINISTIC RELAXATION (Bypass LLM)",
+                    user=f"Relaxing query: {failed_query}",
+                    full_text=f"Bypassing LLM for deterministic relaxation.\nResult: {raw_response}"
+                )
+            )
 
         raw_text, prompt_record = self._invoke(
             system, user_template, variables, is_retry

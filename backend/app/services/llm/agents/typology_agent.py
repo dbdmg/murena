@@ -120,18 +120,31 @@ class TypologyAgent(BaseAgent):
         # Mappa delle tipologie al loro punteggio
         # Es: 3 tipologie -> [100, 75, 50]
         n = len(ranked_typologies)
-        if n == 1:
-            scores = {ranked_typologies[0]: 100.0}
-        else:
-            # Distribuzione lineare tra 100 e 50
-            scores = {
-                typ: round(100 - (i * (50 / (n - 1))), 1) 
-                for i, typ in enumerate(ranked_typologies)
-            }
-
-        def get_score(val):
-            return scores.get(val, 0.0)
-
-        df_ranked["typology_score"] = df_ranked["tipologia_bene_immobile"].apply(get_score)
+        typology_map = {} # map typology -> (score, rank_position)
         
-        return df_ranked[["id", "tipologia_bene_immobile", "typology_score"]]
+        if n == 1:
+             typology_map[ranked_typologies[0]] = (100.0, 1)
+        else:
+            # Distribuzione armonica: 100, 50, 33, 25...
+            for i, typ in enumerate(ranked_typologies):
+                # Score calculation: 100 / (position)
+                score = round(100.0 / (i + 1), 1)
+                typology_map[typ] = (score, i + 1)
+
+        def get_details(val):
+            # Returns tuple (score, rank, multiplier)
+            if val in typology_map:
+                score, rank = typology_map[val]
+                return score, rank, round(score / 100.0, 2)
+            return 0.0, "N/A", 0.0
+
+        # Apply to create temporary series
+        details = df_ranked["tipologia_bene_immobile"].apply(get_details)
+        
+        # Expand into columns
+        df_ranked["typology_score"] = details.apply(lambda x: x[0])
+        df_ranked["typology_rank_position"] = details.apply(lambda x: x[1])
+        df_ranked["typology_multiplier"] = details.apply(lambda x: x[2])
+        
+        # Columns Order: ID, Score, Data, Metadata(Weights/Analysis)
+        return df_ranked[["id", "typology_score", "tipologia_bene_immobile", "typology_rank_position", "typology_multiplier"]]

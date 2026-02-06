@@ -308,8 +308,19 @@ class AgentLogger:
         output_extracted = None
         if agent_name.lower() == "ape-agent" and hasattr(output_data, 'suggested_filters'):
             output_extracted = output_data.suggested_filters
-        elif agent_name == "ranking-agent" and hasattr(output_data, 'weights'):
-            output_extracted = output_data.weights.model_dump()
+        elif agent_name == "ranking-agent":
+            # Per il ranking agent, preferiamo il ranking ordinato se presente, altrimenti i pesi
+            if hasattr(output_data, 'ranking') and output_data.ranking:
+                output_extracted = {"ranking": output_data.ranking.ranking}
+            elif hasattr(output_data, 'weights'):
+                output_extracted = output_data.weights.model_dump()
+        elif agent_name == "poi-agent":
+            # Per il POI agent (filtering), mostriamo categorie e punteggi minimi
+            if hasattr(output_data, 'categories') and hasattr(output_data, 'punteggi_minimi'):
+                output_extracted = {
+                    "ordered_categories": output_data.categories,
+                    "min_scores": output_data.punteggi_minimi
+                }
         elif hasattr(output_data, 'raw_text'):
             output_extracted = output_data.raw_text
         elif isinstance(output_data, dict) and 'raw_text' in output_data:
@@ -532,9 +543,15 @@ class AgentLogger:
         if not data:
             return ""
         
-        html = '<table class="subtable" style="border-collapse: collapse; font-size: 11px; margin: 2px 0;">'
+        # Aggiungi wrapper details per rendere la tabella comprimibile
+        html = '<details><summary style="cursor:pointer; color:#4CAF50; font-weight:bold; font-size:10px;">Dict ({})</summary>'.format(len(data))
+        html += '<table class="subtable" style="border-collapse: collapse; font-size: 11px; margin: 2px 0;">'
         
-        for key, value in data.items():
+        # Ordinamento personalizzato: id, score, poi altri
+        sorted_keys = sorted(data.keys(), key=lambda k: (0 if k.lower() == 'id' else 1 if 'score' in k.lower() else 2, k))
+        
+        for key in sorted_keys:
+            value = data[key]
             # Gestisci valori complessi ricorsivamente
             if isinstance(value, dict):
                 display_value = self._dict_to_html_table(value)
@@ -550,6 +567,7 @@ class AgentLogger:
             html += f'<td style="border: 1px solid #ccc; padding: 2px 4px;">{display_value}</td></tr>'
         
         html += '</table>'
+        html += '</details>'
         return html
     
     def _list_of_dicts_to_html_table(self, data: list) -> str:
@@ -568,11 +586,15 @@ class AgentLogger:
             if not all_keys:
                 return str(data)
             
-            html = '<table class="subtable" style="border-collapse: collapse; font-size: 11px; margin: 2px 0;">'
+            # Aggiungi wrapper details per rendere la tabella comprimibile
+            html = '<details><summary style="cursor:pointer; color:#4CAF50; font-weight:bold; font-size:10px;">List [{} items]</summary>'.format(len(data))
+            html += '<table class="subtable" style="border-collapse: collapse; font-size: 11px; margin: 2px 0;">'
             
-            # Header
+            # Header - Ordinamento personalizzato: id, score, poi altri
+            sorted_keys = sorted(all_keys, key=lambda k: (0 if k.lower() == 'id' else 1 if 'score' in k.lower() else 2, k))
+            
             html += '<tr>'
-            for key in sorted(all_keys):
+            for key in sorted_keys:
                 html += f'<th style="border: 1px solid #ccc; padding: 2px 4px; background-color: #e8f5e8; font-weight: bold;">{key}</th>'
             html += '</tr>'
             
@@ -580,7 +602,7 @@ class AgentLogger:
             for item in data:
                 if isinstance(item, dict):
                     html += '<tr>'
-                    for key in sorted(all_keys):
+                    for key in sorted_keys:
                         value = item.get(key, '')
                         if isinstance(value, dict):
                             display_value = self._dict_to_html_table(value)
@@ -595,6 +617,7 @@ class AgentLogger:
                     html += '</tr>'
             
             html += '</table>'
+            html += '</details>'
             return html
         else:
             # Lista semplice: ogni elemento su una riga
@@ -819,6 +842,24 @@ class AgentLogger:
             font-size: 12px;
             display: none;
         }}
+        /* Details and Summary styling */
+        details {{
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            padding: 4px;
+            background-color: #fcfcfc;
+            margin: 2px 0;
+        }}
+        details[open] {{
+            background-color: #fff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }}
+        summary:hover {{
+            color: #1976D2 !important;
+        }}
+        .cell-details {{
+            max-width: 100%;
+        }}
     </style>
 </head>
 <body>
@@ -833,11 +874,15 @@ class AgentLogger:
             wide_columns = ['input', 'output', 'output_structure']  # Colonne che dovrebbero essere wide
             for col in df.columns:
                 # Per default, nascondi colonne tecniche, mostra colonne dati
-                default_hidden = col in ['run_timestamp', 'timestamp', 'execution_time_ms', 'batch_id'] and col != 'batch_id'
+                default_hidden = col in ['run_timestamp', 'timestamp', 'execution_time_ms', 'batch_id', 'input', 'output_structure']
                 checked = "" if default_hidden else "checked"
                 html_content += f'<label><input type="checkbox" {checked} data-column="{col}" onchange="toggleColumn(\'{col}\')"> {col}</label>'
 
             html_content += """
+        </div>
+        <div style="margin-top: 15px; border-top: 1px solid #eee; padding-top: 10px;">
+            <button onclick="toggleAllDetails(true)" style="padding: 5px 10px; background: #4CAF50; color: white; border: none; border-radius: 3px; cursor: pointer;">Espandi Tutti i Dettagli</button>
+            <button onclick="toggleAllDetails(false)" style="padding: 5px 10px; background: #666; color: white; border: none; border-radius: 3px; cursor: pointer; margin-left: 10px;">Comprimi Tutti i Dettagli</button>
         </div>
     </div>
     
@@ -896,6 +941,14 @@ class AgentLogger:
                         else:
                             display_value = str(value).replace('\n', '<br>').replace('\t', '&nbsp;&nbsp;&nbsp;&nbsp;')
                     
+                    # Rendi le colonne larghe comprimibili
+                    if col in wide_columns and display_value:
+                        summary_text = f"Dettaglio {col}"
+                        if col == 'output' and 'agent_name' in row:
+                            summary_text = f"Output {row['agent_name']}"
+                        
+                        display_value = f'<details class="cell-details"><summary style="cursor:pointer; color:#2196F3; font-weight:bold;">{summary_text}</summary><div style="margin-top:5px; border-top:1px solid #eee; padding-top:5px;">{display_value}</div></details>'
+
                     col_class = "wide-column" if col in wide_columns else "narrow-column"
                     if pd.api.types.is_numeric_dtype(df[col]):
                         col_class = "numeric-column"
@@ -914,6 +967,12 @@ class AgentLogger:
     </div>
 
     <script>
+        // Toggle globale per tutti i tag details
+        function toggleAllDetails(open) {
+            const allDetails = document.querySelectorAll('details');
+            allDetails.forEach(d => d.open = open);
+        }
+
         // Toggle colonne visibili/nascoste
         // NOTA: nasconde solo le celle della tabella (th/td), i checkbox rimangono sempre visibili
         function toggleColumn(columnName) {

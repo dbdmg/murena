@@ -199,16 +199,24 @@ class NormativeAgent(BaseAgent):
 
         df_ranked = df.copy()
         
+        # Identifica tutte le colonne per cui è stato espresso un requisito (che esistono nel DF)
+        all_req_columns = set()
+        for req in requirements:
+            col = req.get("colonna_target")
+            if col and col in df_ranked.columns:
+                all_req_columns.add(col)
+
         total_scores = pd.Series(0.0, index=df_ranked.index)
         valid_req_count = 0
-        used_columns = set()
+        used_columns = set() # we still track used_columns for debug if needed, but we'll return all_req_columns
+        transparency_cols = []
 
         for req in requirements:
             col = req.get("colonna_target")
             target_val = req.get("valore")
             op = str(req.get("operatore", ">=")).upper()
 
-            # Filtro rigoroso sulle colonne ammesse
+            # Filtro rigoroso sulle colonne ammesse per il CALCOLO dello score
             if not col or col not in df_ranked.columns or target_val is None:
                 continue
             
@@ -252,28 +260,58 @@ class NormativeAgent(BaseAgent):
                 vals = df_ranked[col].astype(str).str.lower().str.strip()
                 target_str = str(target_val).lower().strip()
                 
+                # Determine match (boolean series)
                 if op == "==":
-                    req_score = (vals == target_str).astype(float) * 100
+                    is_match = (vals == target_str)
                 elif op == "LIKE":
-                    req_score = vals.str.contains(target_str, na=False).astype(float) * 100
+                    is_match = vals.str.contains(target_str, na=False)
                 elif op == "IN":
-                    # Se target_val è una lista o stringa separata da virgole
                     if isinstance(target_val, str):
                         target_list = [v.lower().strip() for v in target_val.split(",")]
                     elif isinstance(target_val, list):
                         target_list = [str(v).lower().strip() for v in target_val]
                     else:
                         target_list = [target_str]
-                    req_score = vals.isin(target_list).astype(float) * 100
+                    is_match = vals.isin(target_list)
                 else:
-                    # Fallback per operatori non supportati su stringhe
-                    req_score = (vals == target_str).astype(float) * 100
+                    is_match = (vals == target_str)
+                
+                # Calculate Score
+                req_score = is_match.astype(float) * 100
+                
+                # Transparency Metadata for Categorical
+                # For basic matching, we can simulate a ranking:
+                # Match = Rank 1, Multiplier 1.0
+                # No Match = Rank N/A, Multiplier 0.0
+                rank_pos = np.where(is_match, 1, "N/A")
+                multiplier = np.where(is_match, 1.0, 0.0)
+                
+                df_ranked[f"normative_rank_position_{col}"] = rank_pos
+                df_ranked[f"normative_multiplier_{col}"] = multiplier
+                
+                transparency_cols.append(f"normative_rank_position_{col}")
+                transparency_cols.append(f"normative_multiplier_{col}")
                 
             total_scores += req_score
 
         if valid_req_count > 0:
             df_ranked["normative_score"] = (total_scores / valid_req_count).round(1)
+            
+            # Add transparency: weight per column
+            # Since we average, the weight is simply 1 / valid_req_count for all used columns
+            weight = round(1.0 / valid_req_count, 3)
+            for col in used_columns:
+                df_ranked[f"normative_weight_{col}"] = weight
         else:
             df_ranked["normative_score"] = 0.0
 
-        return df_ranked[["id", "normative_score"] + list(used_columns)]
+        # Return score + used columns + weight columns
+        cols_to_return = ["id", "normative_score"] + list(all_req_columns)
+        weight_cols = [f"normative_weight_{c}" for c in used_columns]
+        
+        # Ensure weight columns exist (might be empty if valid_req_count is 0)
+        for wc in weight_cols:
+            if wc not in df_ranked.columns:
+                df_ranked[wc] = 0.0
+                
+        return df_ranked[["id", "normative_score"] + list(all_req_columns) + weight_cols + transparency_cols]

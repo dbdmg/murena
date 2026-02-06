@@ -35,7 +35,7 @@ class Place(BaseModel):
 
 class CategoryResponse(BaseModel):
     categories: List[str] = Field(default_factory=list, description="Lista delle categorie selezionate")
-    percentili_minimi: Dict[str, int] = Field(default_factory=dict, description="Percentile minimo (25, 50, 75) richiesto per ciascuna categoria")
+    punteggi_minimi: Dict[str, float] = Field(default_factory=dict, description="Punteggio minimo (scala 1-5) richiesto per ciascuna categoria")
 
 
 class AmenityResponse(BaseModel):
@@ -71,7 +71,8 @@ class ConsistencyResponse(BaseModel):
 class EvaluationResult(BaseModel):
     id: int = Field(..., description="ID dell'immobile")
     evaluation_text: str = Field(..., description="Testo della valutazione")
-    score: int = Field(..., description="Punteggio di rilevanza (0-100)")
+    score: int = Field(default=0, description="Deprecated: Punteggio di rilevanza (0-100)")
+    final_ranking_score: int = Field(..., description="Punteggio di rilevanza (0-100) basato sul ranking")
     pros: List[str] = Field(default_factory=list, description="Punti di forza")
     cons: List[str] = Field(default_factory=list, description="Punti di debolezza")
 
@@ -131,8 +132,15 @@ class RankingWeights(BaseModel):
     typology: float = Field(default=0.2)
     poi: float = Field(default=0.2)
 
+class RankingRanking(BaseModel):
+    ranking: List[str] = Field(
+        default_factory=lambda: ["location", "typology", "poi", "ape", "normative"],
+        description="Lista ordinata degli agenti per importanza"
+    )
+
 class RankingAgentResult(AgentResult): 
     weights: RankingWeights = Field(default_factory=RankingWeights)
+    ranking: Optional[RankingRanking] = Field(None)
 
 class ApeAgentResult(AgentResult): 
     has_filters: bool = False
@@ -143,7 +151,7 @@ class NormativeAgentResult(AgentResult):
 class PoiAgentResult(AgentResult): 
     has_pois: bool = False
     categories: List[str] = Field(default_factory=list)
-    percentili_minimi: Dict[str, int] = Field(default_factory=dict)
+    punteggi_minimi: Dict[str, float] = Field(default_factory=dict)
 
 # Classi legacy per retrocompatibilità
 class PoiCategoryAgentResult(PoiAgentResult): pass

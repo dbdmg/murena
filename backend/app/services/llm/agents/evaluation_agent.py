@@ -1,5 +1,6 @@
 import json
 from typing import List
+from app.utils.logger import logger
 
 from langchain_core.output_parsers import PydanticOutputParser
 from langchain_core.prompts import ChatPromptTemplate
@@ -107,30 +108,51 @@ Assicurati che la tua valutazione sia allineata con i requisiti specifici sopra 
         ).strip()
         full_text = f"[SYSTEM]\n{self._system_with_format}\n\n[USER]\n{user_text}"
 
+        # Conteggio immobili in input per verifica output (retry logic)
         try:
-            result = invoke_with_langfuse(
-                self.chain,
-                {
-                    "system_content": self._system_with_format,
-                    "query": query,
-                    "use_case": use_case,
-                    "estates_data": estates_data,
-                },
-            )
+            input_estates = json.loads(estates_data)
+            expected_count = len(input_estates) if isinstance(input_estates, list) else 0
+        except Exception:
+            expected_count = 0
 
-            # Gestione differenziata in base al tipo di output (oggetto Pydantic o altro)
-            if isinstance(result, EvaluationList):
-                results = result.evaluations
-                # Return the whole object as JSON to match EvaluationList schema
-                raw_text = json.dumps(result.model_dump(), indent=2, ensure_ascii=False)
-            else:
-                # Fallback se la catena restituisce qualcos'altro
-                results = []
-                raw_text = str(result)
+        max_retries = 3
+        result = None
+        raw_text = ""
+        
+        for attempt in range(max_retries):
+            try:
+                result = invoke_with_langfuse(
+                    self.chain,
+                    {
+                        "system_content": self._system_with_format,
+                        "query": query,
+                        "use_case": use_case,
+                        "estates_data": estates_data,
+                    },
+                )
 
-        except Exception as e:
-            print(f"Errore nel parsing della valutazione: {e}")
-            raw_text = json.dumps({"error": str(e), "evaluations": []})
+                # Gestione differenziata in base al tipo di output (oggetto Pydantic o altro)
+                if isinstance(result, EvaluationList):
+                    results = result.evaluations
+                    raw_text = json.dumps(result.model_dump(), indent=2, ensure_ascii=False)
+                    
+                    # Se abbiamo ricevuto almeno tanti record quanti ne abbiamo inviati, usciamo dal loop
+                    if len(results) >= expected_count:
+                        break
+                    else:
+                        logger.warning(f"L'EvaluationAgent ha restituito {len(results)} record su {expected_count} attesi (tentativo {attempt + 1}/{max_retries}). Rieseguo...")
+                else:
+                    # Fallback se la catena restituisce qualcos'altro
+                    raw_text = str(result)
+                    if expected_count > 0:
+                         logger.warning(f"L'EvaluationAgent non ha restituito una EvaluationList (tentativo {attempt + 1}/{max_retries}). Rieseguo...")
+                    else:
+                        break
+
+            except Exception as e:
+                logger.error(f"Errore nel parsing della valutazione (tentativo {attempt + 1}/{max_retries}): {e}")
+                raw_text = json.dumps({"error": str(e), "evaluations": []})
+                # Continua il loop per il retry
 
         prompt_record = PromptRecord(
             system=self._system_with_format.strip(),
