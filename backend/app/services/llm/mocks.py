@@ -57,14 +57,14 @@ MOCK_EVALUATION = EvaluationAgentResponse(
         {
             "id": 12345,
             "evaluation_text": "Ottimo immobile simulato per test.",
-            "score": 95,
+            "final_ranking_score": 95,
             "pros": ["Economico", "Centrale", "Ristrutturato"],
             "cons": ["Piano alto senza ascensore"],
         },
         {
             "id": 67890,
             "evaluation_text": "Buona alternativa simulata.",
-            "score": 88,
+            "final_ranking_score": 88,
             "pros": ["Ampio", "Luminoso"],
             "cons": ["Da ristrutturare"],
         },

@@ -98,6 +98,7 @@ class Settings(BaseSettings):
     APE_DIR: str = "data/FOLDER_APE"
     META_DIR: str = "data/FOLDER_META"
     RUNS_DIR: str = "data/runs"
+    AGENT_LOGS_DIR: str = "data/agent_logs"
 
     # APE specific paths
     APE_MATCH_DIR: str = "data/FOLDER_APE/MATCH"

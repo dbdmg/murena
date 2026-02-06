@@ -1677,18 +1677,19 @@ class GraphOrchestratorAgent(BaseAgent):
         # Create structured text for the broker
         candidates = []
         for i, res in enumerate(eval_results[:5]):  # Analyze top 5 max
-            if hasattr(res, "id") and hasattr(res, "score"):
+            if hasattr(res, "id") and hasattr(res, "final_ranking_score"):
                 # Handle as Pydantic model
                 candidates.append(
-                    f"Candidato #{i+1} (ID: {res.id}, Score: {res.score}):\n"
+                    f"Candidato #{i+1} (ID: {res.id}, Score: {res.final_ranking_score}):\n"
                     f"Motivazione: {res.evaluation_text}\n"
                     f"Pro: {', '.join(res.pros)}\n"
                     f"Contro: {', '.join(res.cons)}\n"
                 )
             elif isinstance(res, dict):
                 # Handle as dictionary
+                score_val = res.get("final_ranking_score") or res.get("score")
                 candidates.append(
-                    f"Candidato #{i+1} (ID: {res.get('id')}, Score: {res.get('score')}):\n"
+                    f"Candidato #{i+1} (ID: {res.get('id')}, Score: {score_val}):\n"
                     f"Motivazione: {res.get('evaluation_text')}\n"
                     f"Pro: {', '.join(res.get('pros', []))}\n"
                     f"Contro: {', '.join(res.get('cons', []))}\n"
@@ -1776,7 +1777,7 @@ class GraphOrchestratorAgent(BaseAgent):
         # Sovrascrivi/aggiungi colonne di matching e ranking solo dove l'agente ha lavorato
         overlay_cols = [
             col
-            for col in ["id", "is_match", "ranking_score", "distanza_km"]
+            for col in ["id", "is_match", "final_ranking_score", "distanza_km"]
             if col in enriched_data.columns
         ]
         if overlay_cols:
@@ -1790,9 +1791,9 @@ class GraphOrchestratorAgent(BaseAgent):
             map_df["is_match"] = False
         map_df["is_match"] = map_df["is_match"].fillna(False).astype(bool)
 
-        if "ranking_score" in map_df.columns:
-            map_df["ranking_score"] = pd.to_numeric(
-                map_df["ranking_score"], errors="coerce"
+        if "final_ranking_score" in map_df.columns:
+            map_df["final_ranking_score"] = pd.to_numeric(
+                map_df["final_ranking_score"], errors="coerce"
             ).fillna(0)
 
         eval_results = state["context"].evaluation_results
@@ -1808,7 +1809,7 @@ class GraphOrchestratorAgent(BaseAgent):
                 val_data.append(
                     {
                         "id": res.id,
-                        "score": res.score,
+                        "final_ranking_score": res.final_ranking_score,
                         "motivazione": res.evaluation_text,
                         "pro": pro_text,
                         "contro": contro_text,
@@ -1824,19 +1825,19 @@ class GraphOrchestratorAgent(BaseAgent):
                 map_df = pd.merge(
                     map_df,
                     valutazioni_df[
-                        ["id", "score", "motivazione", "pro", "contro"]
+                        ["id", "motivazione", "pro", "contro"]
                     ].drop_duplicates("id"),
                     on="id",
                     how="left",
                 )
 
-                map_df["score"] = pd.to_numeric(
-                    map_df["score"], errors="coerce"
+                map_df["final_ranking_score"] = pd.to_numeric(
+                    map_df.get("final_ranking_score"), errors="coerce"
                 ).fillna(0)
                 map_df["is_evaluated"] = map_df["id"].isin(valutazioni_df["id"])
-                map_df["is_selected_by_llm"] = map_df["score"] >= 60
+                map_df["is_selected_by_llm"] = map_df["final_ranking_score"] >= 60
             else:
-                map_df["score"] = 0
+                map_df["final_ranking_score"] = 0
                 map_df["is_evaluated"] = False
                 map_df["is_selected_by_llm"] = False
         else:
@@ -1849,7 +1850,7 @@ class GraphOrchestratorAgent(BaseAgent):
                 map_df["is_evaluated"] = map_df["id"].isin(eval_ids)
             else:
                 map_df["is_evaluated"] = False
-            map_df["score"] = 0
+            map_df["final_ranking_score"] = 0
             map_df["is_selected_by_llm"] = False
 
         # Normalizza flag booleani
@@ -1863,8 +1864,8 @@ class GraphOrchestratorAgent(BaseAgent):
         if "is_match" in map_df.columns:
             sort_cols.append("is_match")
             ascending.append(False)
-        if "ranking_score" in map_df.columns:
-            sort_cols.append("ranking_score")
+        if "final_ranking_score" in map_df.columns:
+            sort_cols.append("final_ranking_score")
             ascending.append(False)
         if "distanza_km" in map_df.columns:
             sort_cols.append("distanza_km")

@@ -163,13 +163,13 @@ def calculate_ranking_score(
         (typology_score_norm * w_typology)
     )
 
-    df["ranking_score"] = final_score
+    df["final_ranking_score"] = final_score
 
     # Ordina decrescente per score, poi crescente per distanza (se disponibile)
     if "distanza_km" in df.columns:
-        return df.sort_values(["ranking_score", "distanza_km"], ascending=[False, True])
+        return df.sort_values(["final_ranking_score", "distanza_km"], ascending=[False, True])
     else:
-        return df.sort_values("ranking_score", ascending=False)
+        return df.sort_values("final_ranking_score", ascending=False)
 
 
 def _calculate_poi_score_granular(

@@ -71,7 +71,6 @@ class ConsistencyResponse(BaseModel):
 class EvaluationResult(BaseModel):
     id: int = Field(..., description="ID dell'immobile")
     evaluation_text: str = Field(..., description="Testo della valutazione")
-    score: int = Field(default=0, description="Deprecated: Punteggio di rilevanza (0-100)")
     final_ranking_score: int = Field(..., description="Punteggio di rilevanza (0-100) basato sul ranking")
     pros: List[str] = Field(default_factory=list, description="Punti di forza")
     cons: List[str] = Field(default_factory=list, description="Punti di debolezza")

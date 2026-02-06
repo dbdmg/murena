@@ -84,16 +84,14 @@ class RankingEvaluator:
             buildings = result.get("buildings", [])
             if buildings:
                 map_df = pd.DataFrame([b.model_dump() for b in buildings])
-                if 'score' in map_df.columns:
-                    map_df = map_df.rename(columns={'score': 'evaluation_score'})
+                if 'final_ranking_score' in map_df.columns:
+                    map_df = map_df.rename(columns={'final_ranking_score': 'evaluation_score'})
             else:
                 map_df = None
             
             if map_df is not None and len(map_df) > 0:
                 if "evaluation_score" in map_df.columns:
                     sorted_df = map_df.sort_values("evaluation_score", ascending=False)
-                elif "ranking_score" in map_df.columns:
-                    sorted_df = map_df.sort_values("ranking_score", ascending=False)
                 else:
                     sorted_df = map_df
                 

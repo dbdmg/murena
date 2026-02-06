@@ -142,7 +142,12 @@ class AgentLogger:
             
             # === SALVATAGGIO HTML ===
             # Usa il metodo generate_html_view per ottenere la stringa HTML
-            html_content = self.generate_html_view(agent_executions, f"Agent Executions (Run {run_props.get('run_number')})")
+            # Passiamo il nome del file JSON per permettere all'HTML di caricarlo
+            html_content = self.generate_html_view(
+                agent_executions, 
+                f"Agent Executions (Run {run_props.get('run_number')})",
+                json_filename=json_file.name
+            )
             
             html_dir = self.log_dir
             agent_html = html_dir / f"agent_executions_{run_props.get('use_case')}_{run_props.get('prompt_id')}_run{run_props.get('run_number')}.html"
@@ -151,14 +156,8 @@ class AgentLogger:
                 f.write(html_content)
                 
             print(f"💾 HTML salvato: {agent_html.name}")
+            print(f"💾 JSON mantenuto per modifiche: {json_file.name}")
             
-            # Elimina il file JSON dopo aver creato l'HTML
-            if json_file.exists():
-                try:
-                    json_file.unlink()
-                except Exception as e:
-                    print(f"⚠️ Errore nell'eliminare JSON {json_file.name}: {e}")
-                    
         except Exception as e:
             print(f"⚠️ Errore nel finalizzare log: {e}")
             import traceback
@@ -215,7 +214,8 @@ class AgentLogger:
                             "timestamp": entry.get("timestamp"),
                             "execution_time_ms": entry.get("execution_time_ms"),
                             "input": serialized_input,
-                            "output": item
+                            "output": item,
+                            "notes": ""
                         }
                         agent_executions.append(agent_entry)
                         batch_counter += 1
@@ -225,7 +225,8 @@ class AgentLogger:
                         **entry, 
                         "input": serialized_input,
                         "output": serialized_output,
-                        "batch_id": None
+                        "batch_id": None,
+                        "notes": ""
                     }
                     agent_executions.append(agent_entry)
         except Exception as global_ex:
@@ -235,8 +236,8 @@ class AgentLogger:
         
         return agent_executions
 
-    def generate_html_view(self, agent_executions: List[Dict], title: str) -> str:
-        """Genera la stringa HTML completa per la visualizzazione tabellare."""
+    def generate_html_view(self, agent_executions: List[Dict], title: str, json_filename: Optional[str] = None, view_mode: str = "table") -> str:
+        """Genera la stringa HTML completa per la visualizzazione tabellare o a tab."""
         
         # DataFrame per TUTTE le agent executions
         agent_rows = []
@@ -278,7 +279,8 @@ class AgentLogger:
                 "execution_time_ms": execution.get("execution_time_ms"),
                 "input": to_display_value(execution.get("input"), "input"),
                 "output_structure": to_display_value(execution.get("output_structure"), "output_structure"),
-                "output": to_display_value(execution.get("output"), "output")
+                "output": to_display_value(execution.get("output"), "output"),
+                "notes": execution.get("notes", "")
             })
         
         df = pd.DataFrame(agent_rows)
@@ -290,12 +292,14 @@ class AgentLogger:
         df['retry_id'] = df.groupby(['agent_name', 'run_number', 'batch_id', 'agent_mode'], dropna=False).cumcount() + 1
         
         desired_order = [
+            'agent_name', 'agent_mode', 'output', 'notes', 'input', 
             'use_case', 'prompt_id', 'run_number', 'run_timestamp', 
-            'agent_name', 'agent_mode', 'batch_id', 'retry_id', 'timestamp',
-            'execution_time_ms', 'input', 'output_structure', 'output'
+            'batch_id', 'retry_id', 'timestamp', 'execution_time_ms', 'output_structure'
         ]
         existing_columns = [col for col in desired_order if col in df.columns]
-        df = df[existing_columns]
+        # Add any other columns at the end
+        other_cols = [col for col in df.columns if col not in desired_order]
+        df = df[existing_columns + other_cols]
         
         # Format timestamps
         if "run_timestamp" in df.columns:
@@ -303,217 +307,608 @@ class AgentLogger:
         if "timestamp" in df.columns:
             df["timestamp"] = pd.to_datetime(df["timestamp"], errors='coerce')
 
-        return self._render_html_template(df, title)
+        return self._render_html_template(df, title, json_filename, view_mode=view_mode)
 
-    def _render_html_template(self, df: pd.DataFrame, title: str) -> str:
-        """Renderizza il template HTML con i dati del DataFrame."""
+    def _render_html_template(self, df: pd.DataFrame, title: str, json_filename: Optional[str] = None, view_mode: str = "table") -> str:
+        """Renderizza il template HTML con i dati del DataFrame usando il layout specificato."""
         
+        wide_columns = ['input', 'output', 'output_structure']
         html_content = f"""
 <!DOCTYPE html>
-<html>
+<html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>{title}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>__TITLE__</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
     <style>
+        :root {{
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --success: #10b981;
+            --warning: #f59e0b;
+        }}
+
         body {{
-            font-family: 'Courier New', monospace;
-            font-size: 12px;
-            margin: 20px;
-            background-color: #f5f5f5;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            font-size: 13px;
+            line-height: 1.5;
+            margin: 0;
+            padding: 24px;
+            background-color: var(--bg);
+            color: var(--text-main);
         }}
+
+        .header {{
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }}
+
         h1 {{
-            color: #333;
-            text-align: center;
-            margin-bottom: 30px;
+            font-size: 24px;
+            font-weight: 700;
+            margin: 0;
+            color: #0f172a;
         }}
-        .column-controls {{
-            background-color: white;
-            padding: 15px;
-            margin-bottom: 20px;
-            border-radius: 5px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+
+        .controls-card {{
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
         }}
-        .column-controls h3 {{
-            margin-top: 0;
-            color: #333;
+
+        .section-title {{
+            font-size: 14px;
+            font-weight: 600;
+            margin: 0 0 12px 0;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
         }}
+
         .column-checkboxes {{
             display: flex;
             flex-wrap: wrap;
-            gap: 15px;
+            gap: 12px;
         }}
-        .column-checkboxes label {{
+
+        .checkbox-container {{
             display: flex;
             align-items: center;
-            gap: 5px;
-            font-size: 11px;
+            gap: 8px;
+            cursor: pointer;
+            padding: 6px 12px;
+            background: #f1f5f9;
+            border-radius: 6px;
+            transition: all 0.2s;
         }}
+
+        .checkbox-container:hover {{
+            background: #e2e8f0;
+        }}
+
+        .checkbox-container input {{
+            accent-color: var(--primary);
+        }}
+
+        .btn-group {{
+            display: flex;
+            gap: 8px;
+            margin-top: 16px;
+        }}
+
+        button {{
+            padding: 8px 16px;
+            font-size: 13px;
+            font-weight: 500;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid var(--border);
+            background: white;
+            color: var(--text-main);
+        }}
+
+        button:hover {{
+            background: #f8fafc;
+        }}
+
+        button.btn-primary {{
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }}
+
+        button.btn-primary:hover {{
+            background: var(--primary-hover);
+        }}
+
+        .table-container {{
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow-x: auto;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+        }}
+
         table {{
             width: 100%;
             border-collapse: collapse;
-            background-color: white;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
-            table-layout: fixed;
         }}
-        #dataTable {{
-            width: 100%;
-            border-collapse: collapse;
-            background-color: white;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
-            table-layout: fixed;
-        }}
-        #dataTable th {{
-            background-color: #4CAF50;
-            color: white;
-            padding: 12px 8px;
+
+        th {{
+            background: #f1f5f9;
+            padding: 12px 16px;
             text-align: left;
-            font-weight: bold;
+            font-weight: 600;
+            color: #475569;
+            font-size: 12px;
+            border-bottom: 2px solid var(--border);
             position: sticky;
             top: 0;
             z-index: 10;
         }}
-        table.subtable {{
-            width: auto;
-            min-width: 200px;
-            margin: 2px 0;
-            box-shadow: none;
-            border: 1px solid #ccc;
-        }}
-        table.subtable th {{
-            background-color: #f0f0f0 !important;
-            color: black !important;
-            padding: 4px 6px;
-        }}
-        table.subtable td {{
-            padding: 2px 4px;
-            border-bottom: 1px solid #eee;
-        }}
+
         td {{
-            padding: 8px;
-            border-bottom: 1px solid #ddd;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
             vertical-align: top;
-            overflow: hidden;
+            font-family: 'Inter', sans-serif;
         }}
-        .wide-column {{
-             width: 400px;
-             min-width: 300px;
-             word-wrap: break-word;
-             white-space: pre-wrap;
-             word-break: break-word;
-             overflow-wrap: break-word;
+
+        tr:last-child td {{
+            border-bottom: none;
         }}
-        .narrow-column {{ width: 75px; word-wrap: break-word; }}
-        .numeric-column {{ text-align: right; width: 50px; }}
-        .timestamp-column {{ width: 90px; }}
+
+        tr:hover td {{
+            background-color: #f8fafc;
+        }}
+
+        .wide-column {{ min-width: 450px; }}
+        .narrow-column {{ min-width: 100px; }}
+        .numeric-column {{ min-width: 80px; text-align: right; }}
+        .timestamp-column {{ min-width: 150px; color: var(--text-muted); font-size: 11px; }}
+        .notes-column {{ min-width: 300px; }}
+
         .hidden-column {{ display: none !important; }}
+
         details {{
-            border: 1px solid #e0e0e0;
-            border-radius: 4px;
-            padding: 4px;
-            background-color: #fcfcfc;
-            margin: 2px 0;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            margin-top: 4px;
         }}
-        summary {{ cursor: pointer; font-weight: bold; color: #2196F3; }}
+
+        summary {{
+            padding: 8px 12px;
+            cursor: pointer;
+            font-weight: 500;
+            color: var(--primary);
+            user-select: none;
+        }}
+
+        summary:hover {{
+            color: var(--primary-hover);
+        }}
+
+        .detail-content {{
+            padding: 12px;
+            border-top: 1px solid #e2e8f0;
+            font-family: 'Fira Code', monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            overflow-x: auto;
+        }}
+
+        .notes-input {{
+            width: 100%;
+            min-height: 60px;
+            padding: 8px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-family: inherit;
+            font-size: 12px;
+            resize: vertical;
+            transition: border-color 0.2s;
+        }}
+
+        .notes-input:focus {{
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }}
+
+        .status-badge {{
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+        }}
+
+        .status-filtering {{ background: #dcfce7; color: #166534; }}
+        .status-ranking {{ background: #ede9fe; color: #5b21b6; }}
+        .status-evaluation {{ background: #fee2e2; color: #991b1b; }}
+
+        #saveStatus {{
+            margin-left: 12px;
+            font-weight: 500;
+            display: none;
+        }}
+
+        /* Nuovi stili per visualizzazione a Tab */
+        .tabs-header {{
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding: 12px 4px;
+            margin-bottom: 24px;
+            border-bottom: 2px solid var(--border);
+            scrollbar-width: thin;
+        }}
+
+        .tab-btn {{
+            padding: 10px 20px;
+            background: #e2e8f0;
+            border: 1px solid var(--border);
+            border-radius: 12px 12px 0 0;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s;
+            color: var(--text-muted);
+            font-size: 13px;
+        }}
+
+        .tab-btn:hover {{
+            background: #cbd5e1;
+        }}
+
+        .tab-btn.active {{
+            background: var(--card);
+            color: var(--primary);
+            border-bottom-color: var(--card);
+            margin-bottom: -2px;
+            box-shadow: 0 -4px 6px -1px rgba(0,0,0,0.05);
+        }}
+
+        .tab-pane {{
+            display: none;
+            flex-direction: column;
+            gap: 16px;
+            animation: fadeIn 0.3s ease;
+        }}
+
+        .tab-pane.active {{
+            display: flex;
+        }}
+
+        .record-card {{
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 0;
+            overflow: hidden;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+        }}
+
+        .record-property {{
+            display: grid;
+            grid-template-columns: 200px 1fr;
+            border-bottom: 1px solid var(--border);
+        }}
+
+        .record-property:last-child {{
+            border-bottom: none;
+        }}
+
+        .property-label {{
+            padding: 16px 20px;
+            background: #f8fafc;
+            font-weight: 700;
+            color: #475569;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border-right: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+        }}
+
+        .property-value {{
+            padding: 16px 20px;
+            font-size: 13px;
+            line-height: 1.6;
+            word-break: break-word;
+        }}
+
+        @keyframes fadeIn {{
+            from {{ opacity: 0; transform: translateY(5px); }}
+            to {{ opacity: 1; transform: translateY(0); }}
+        }}
+
+        @media (max-width: 768px) {{
+            .record-property {{
+                grid-template-columns: 1fr;
+            }}
+            .property-label {{
+                border-right: none;
+                border-bottom: 1px solid var(--border);
+            }}
+        }}
     </style>
 </head>
 <body>
-    <h1>{title}</h1>
+    <div class="header">
+        <h1>__TITLE__</h1>
+        <div>
+            <span id="saveStatus"></span>
+            <button id="saveBtn" class="btn-primary" onclick="saveAllNotes()">Salva Note nel JSON</button>
+        </div>
+    </div>
     
-    <div class="column-controls">
-        <h3>Mostra/Nascondi Colonne</h3>
-        <div class="column-checkboxes" id="columnCheckboxes">
+    <div class="controls-card">
+        <div class="btn-group" style="margin-top: 0;">
+            <button onclick="toggleAllDetails(true)">Espandi Tutto</button>
+            <button onclick="toggleAllDetails(false)">Comprimi Tutto</button>
+        </div>
+    </div>
 """
-        wide_columns = ['input', 'output', 'output_structure']
-        for col in df.columns:
-            # Per default, nascondi colonne tecniche, mostra colonne dati
-            default_hidden = col in ['use_case', 'prompt_id', 'run_number', 'batch_id', 'run_timestamp', 'timestamp', 'execution_time_ms', 'output_structure']
-            checked = "" if default_hidden else "checked"
-            # Single braces for variables in f-string
-            html_content += f'<label><input type="checkbox" {checked} data-column="{col}" onchange="toggleColumn(\'{col}\')"> {col}</label>'
+
+        # Render table or tabs based on view_mode
+        if view_mode == "tabs":
+            # Tabbed interface
+            html_content += """
+    <div class="tabs-header" id="tabsHeader">
+"""
+            for i, row in df.iterrows():
+                agent_name = row.get('agent_name', f'Record {i+1}')
+                agent_mode = row.get('agent_mode', '')
+                
+                # Calcola il nome della tab in base al tipo di agente
+                if agent_name.lower() == "sql-agent":
+                    retry_label = f"relaxation iter. {int(row['retry_id'])}"
+                    display_name = f"{agent_name} ({retry_label})"
+                else:
+                    display_name = f"{agent_name} ({agent_mode})"
+                
+                # Aggiungi batch_id se presente come intero
+                batch_info = f" (Batch {int(row['batch_id'])})" if pd.notna(row.get('batch_id')) else ""
+                html_content += f'        <button class="tab-btn {"active" if i == 0 else ""}" onclick="showTab({i})">{display_name}{batch_info}</button>\n'
+            
+            html_content += """
+    </div>
+    
+    <div id="tabPanes">
+"""
+            for i, row in df.iterrows():
+                html_content += f'        <div class="tab-pane {"active" if i == 0 else ""}" id="tab-{i}">\n'
+                html_content += '            <div class="record-card">\n'
+                
+                for col in df.columns:
+                    value = row[col]
+                    display_value = ""
+                    
+                    if col == "notes":
+                        display_value = f'<textarea class="notes-input" oninput="updateNote({i}, this.value)" placeholder="Aggiungi una nota...">{value}</textarea>'
+                    elif pd.isna(value):
+                        display_value = '<span style="color: #94a3b8; font-style: italic;">vuoto</span>'
+                    else:
+                        if 'timestamp' in col.lower() and isinstance(value, pd.Timestamp):
+                            display_value = value.strftime('%Y-%m-%d %H:%M:%S')
+                        elif 'execution_time' in col.lower() and isinstance(value, (int, float)):
+                            display_value = f"{int(value)}ms"
+                        elif col == 'agent_mode':
+                            display_value = f'<span class="status-badge status-{value}">{value}</span>'
+                        else:
+                            display_value = str(value).replace('\\n', '<br>').replace('\\t', '&nbsp;&nbsp;&nbsp;&nbsp;')
+                    
+                    # Rendi le colonne larghe comprimibili
+                    if col in wide_columns and display_value and not display_value.startswith('<span'):
+                        summary_text = f"Dettaglio {col}"
+                        if col == 'output' and 'agent_name' in row:
+                            summary_text = f"Output {row['agent_name']}"
+                        
+                        display_value = f'<details class="cell-details" open><summary>{summary_text}</summary><div class="detail-content">{display_value}</div></details>'
+
+                    html_content += f'                <div class="record-property">\n'
+                    html_content += f'                    <div class="property-label">{col}</div>\n'
+                    html_content += f'                    <div class="property-value">{display_value}</div>\n'
+                    html_content += f'                </div>\n'
+                
+                html_content += '            </div>\n'
+                html_content += '        </div>\n'
+            
+            html_content += '    </div>\n'
+        else:
+            # Traditional table view
+            html_content += """
+    <div class="table-container">
+        <table id="dataTable">
+            <thead>
+                <tr>
+"""
+            for col in df.columns:
+                col_class = "narrow-column"
+                if col in wide_columns: col_class = "wide-column"
+                elif col == "notes": col_class = "notes-column"
+                elif pd.api.types.is_numeric_dtype(df[col]): col_class = "numeric-column"
+                elif 'timestamp' in col.lower(): col_class = "timestamp-column"
+                
+                html_content += f'<th class="{col_class}" data-column="{col}">{col}</th>'
+            
+            html_content += """
+                </tr>
+            </thead>
+            <tbody>
+"""
+            for i, row in df.iterrows():
+                html_content += f'        <tr data-index="{i}">'
+                for col in df.columns:
+                    value = row[col]
+                    display_value = ""
+                    
+                    if col == "notes":
+                        # Special handling for notes: a textarea
+                        display_value = f'<textarea class="notes-input" oninput="updateNote({i}, this.value)" placeholder="Aggiungi una nota...">{value}</textarea>'
+                    elif pd.isna(value):
+                        display_value = ""
+                    else:
+                        if 'timestamp' in col.lower() and isinstance(value, pd.Timestamp):
+                            display_value = value.strftime('%Y-%m-%d %H:%M:%S')
+                        elif 'execution_time' in col.lower() and isinstance(value, (int, float)):
+                            display_value = f"{int(value)}ms"
+                        elif col == 'agent_mode':
+                            display_value = f'<span class="status-badge status-{value}">{value}</span>'
+                        else:
+                            display_value = str(value).replace('\\n', '<br>').replace('\\t', '&nbsp;&nbsp;&nbsp;&nbsp;')
+                    
+                    # Rendi le colonne larghe comprimibili
+                    if col in wide_columns and display_value:
+                        summary_text = f"Dettaglio {col}"
+                        if col == 'output' and 'agent_name' in row:
+                            summary_text = f"Output {row['agent_name']}"
+                        
+                        display_value = f'<details class="cell-details" open><summary>{summary_text}</summary><div class="detail-content">{display_value}</div></details>'
+
+                    col_class = "narrow-column"
+                    if col in wide_columns: col_class = "wide-column"
+                    elif col == "notes": col_class = "notes-column"
+                    elif pd.api.types.is_numeric_dtype(df[col]): col_class = "numeric-column"
+                    elif 'timestamp' in col.lower(): col_class = "timestamp-column"
+                    
+                    html_content += f'<td class="{col_class}" data-column="{col}">{display_value}</td>'
+                html_content += "</tr>\n"
+            
+            html_content += """
+            </tbody>
+        </table>
+    </div>
+"""
+
+        html_content += f"""
+    <script>
+        // Stato locale dei dati
+        let localData = {{
+            json_file: '{json_filename or ""}',
+            executions: [] 
+        }};
+
+        // Inizializza le note se possibile
+        const executions = [];
+"""
+        # Inserisci le note iniziali nel JS per permettere il salvataggio
+        for i, row in df.iterrows():
+            html_content += f"        executions.push({{ index: {i}, notes: `{row['notes']}` }});\n"
 
         html_content += """
-        </div>
-        <div style="margin-top: 15px; border-top: 1px solid #eee; padding-top: 10px;">
-            <button onclick="toggleAllDetails(true)">Espandi Tutti i Dettagli</button>
-            <button onclick="toggleAllDetails(false)">Comprimi Tutti i Dettagli</button>
-        </div>
-    </div>
-    
-    <div style="overflow-x: auto;">
-        <table id="dataTable">
-"""
-        # Header
-        html_content += "        <thead><tr>"
-        for col in df.columns:
-            col_class = "wide-column" if col in wide_columns else "narrow-column"
-            if pd.api.types.is_numeric_dtype(df[col]):
-                col_class = "numeric-column"
-            elif 'timestamp' in col.lower():
-                col_class = "timestamp-column"
-            
-            html_content += f'<th class="{col_class}" data-column="{col}">{col}</th>'
-        html_content += "</tr></thead>\\n"
-        
-        # Body
-        html_content += "        <tbody>\\n"
-        for _, row in df.iterrows():
-            html_content += "        <tr>"
-            for col in df.columns:
-                value = row[col]
-                if pd.isna(value):
-                    display_value = ""
-                else:
-                    if 'timestamp' in col.lower() and isinstance(value, pd.Timestamp):
-                        display_value = value.strftime('%Y-%m-%d %H:%M:%S')
-                    elif 'execution_time' in col.lower() and isinstance(value, (int, float)):
-                        display_value = f"{int(value)}"
-                    elif col == 'batch_id' and isinstance(value, (int, float)):
-                        display_value = f"{int(value)}"
-                    else:
-                        display_value = str(value).replace('\\n', '<br>').replace('\\t', '&nbsp;&nbsp;&nbsp;&nbsp;')
-                
-                # Rendi le colonne larghe comprimibili
-                if col in wide_columns and display_value:
-                    summary_text = f"Dettaglio {col}"
-                    if col == 'output' and 'agent_name' in row:
-                        summary_text = f"Output {row['agent_name']}"
-                    
-                    display_value = f'<details class="cell-details"><summary>{summary_text}</summary><div style="margin-top:5px;">{display_value}</div></details>'
+        localData.executions = executions;
 
-                col_class = "wide-column" if col in wide_columns else "narrow-column"
-                if pd.api.types.is_numeric_dtype(df[col]):
-                    col_class = "numeric-column"
-                elif 'timestamp' in col.lower():
-                    col_class = "timestamp-column"
-                
-                html_content += f'<td class="{col_class}" data-column="{col}">{display_value}</td>'
-            html_content += "</tr>\\n"
-        
-        html_content += """        </tbody>
-    </table>
-    </div>
+        function showTab(index) {
+            // Update buttons
+            document.querySelectorAll('.tab-btn').forEach((btn, i) => {
+                btn.classList.toggle('active', i === index);
+            });
+            // Update panes
+            document.querySelectorAll('.tab-pane').forEach((pane, i) => {
+                pane.classList.toggle('active', i === index);
+            });
+        }
 
-    <script>
         function toggleAllDetails(open) {
             document.querySelectorAll('details').forEach(d => d.open = open);
         }
+
         function toggleColumn(columnName) {
-            const isChecked = document.querySelector(`input[data-column="${columnName}"]`).checked;
+            const isChecked = document.querySelector(`input[data-column="${columnName}"]`)?.checked;
+            if (isChecked === undefined) return;
+            
             document.querySelectorAll(`th[data-column="${columnName}"], td[data-column="${columnName}"]`).forEach(element => {
                 element.classList.toggle('hidden-column', !isChecked);
             });
-        }
-        document.addEventListener('DOMContentLoaded', function() {
-            document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
-                toggleColumn(checkbox.dataset.column);
+            
+            // Per la vista a TAB, nascondiamo i record-property
+            document.querySelectorAll('.record-property').forEach(prop => {
+                if (prop.querySelector('.property-label').innerText === columnName) {
+                    prop.style.display = isChecked ? 'grid' : 'none';
+                }
             });
+        }
+
+        function updateNote(index, value) {
+            const exe = localData.executions.find(e => e.index === index);
+            if (exe) exe.notes = value;
+            document.getElementById('saveBtn').style.opacity = '1';
+        }
+
+        async function saveAllNotes() {
+            const btn = document.getElementById('saveBtn');
+            const status = document.getElementById('saveStatus');
+            
+            btn.disabled = true;
+            status.style.display = 'inline';
+            status.style.color = 'var(--text-muted)';
+            status.innerText = 'Salvataggio...';
+
+            try {
+                const response = await fetch('/api/v1/logs/update-notes', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        filename: localData.json_file,
+                        notes: localData.executions.map(e => ({ index: e.index, notes: e.notes }))
+                    })
+                });
+
+                if (response.ok) {
+                    status.innerText = '✅ Salvato!';
+                    status.style.color = 'var(--success)';
+                } else {
+                    status.innerText = '⚠️ API non disponibile, scaricamento file...';
+                    status.style.color = 'var(--warning)';
+                    downloadJson();
+                }
+            } catch (err) {
+                console.error('Errore durante il salvataggio:', err);
+                status.innerText = '⚠️ Errore backend, scaricamento file...';
+                status.style.color = 'var(--warning)';
+                downloadJson();
+            } finally {
+                btn.disabled = false;
+                setTimeout(() => {
+                    if (!status.innerText.includes('Errore')) {
+                        status.style.display = 'none';
+                    }
+                }, 3000);
+            }
+        }
+
+        function downloadJson() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(localData.executions));
+            const downloadAnchorNode = document.createElement('a');
+            downloadAnchorNode.setAttribute("href", dataStr);
+            downloadAnchorNode.setAttribute("download", localData.json_file || "agent_traces_updated.json");
+            document.body.appendChild(downloadAnchorNode);
+            downloadAnchorNode.click();
+            downloadAnchorNode.remove();
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Inizializza eventuali stati necessari
         });
     </script>
 </body>
 </html>"""
-        return html_content
+        return html_content.replace("__TITLE__", title)
 
     def _write_log_entry(self, entry: Dict):
         """Scrive una singola entry nel file JSONL."""
@@ -526,7 +921,7 @@ class AgentLogger:
         if not data:
             return ""
         
-        html = '<details><summary style="font-size:10px;">Dict ({})</summary>'.format(len(data))
+        html = '<details open><summary style="font-size:10px;">Dict ({})</summary>'.format(len(data))
         html += '<table class="subtable" style="font-size: 11px;">'
         
         sorted_keys = sorted(data.keys(), key=lambda k: (0 if k.lower() == 'id' else 1 if 'score' in k.lower() else 2, k))
@@ -563,7 +958,7 @@ class AgentLogger:
             if not all_keys:
                 return str(data)
             
-            html = '<details><summary style="font-size:10px;">List [{} items]</summary>'.format(len(data))
+            html = '<details open><summary style="font-size:10px;">List [{} items]</summary>'.format(len(data))
             html += '<table class="subtable" style="font-size: 11px;">'
             
             sorted_keys = sorted(all_keys, key=lambda k: (0 if k.lower() == 'id' else 1 if 'score' in k.lower() else 2, k))
@@ -750,4 +1145,3 @@ class AgentLogger:
         except Exception as e:
             # Fallback estremo per non crashare mai
             return f"[Serialization Error: {str(e)}]"
-
