@@ -22,3 +22,4 @@ class OrchestratorResult:
     where_clause: str
     context: AgentContext
     broker_summary: Optional[str] = None
+    agent_trace: Optional[List[Dict[str, Any]]] = None

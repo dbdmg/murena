@@ -2,6 +2,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import json
 import os
 import time
+from datetime import datetime
 from typing import Any, Callable, Dict, List, Optional, TypedDict, Union
 
 from langgraph.graph import END, StateGraph
@@ -92,6 +93,8 @@ class GraphState(TypedDict):
     broker_summary: str  # Executive summary from Senior Broker
     sql_history: List[str]  # History of all SQL queries tried (initial + relaxations)
 
+    agent_trace: List[Dict[str, Any]]
+    
     # Config
     llm_limit: Optional[int]
     map_limit: Optional[int]
@@ -103,7 +106,6 @@ class GraphState(TypedDict):
     step_definitions: List[Dict[str, str]]
     relax_constraints: bool  # Flag for smart relaxation
     last_retry_reason: Optional[str]  # Why we are retrying (error or few_results)
-
 
 class GraphOrchestratorAgent(BaseAgent):
     """
@@ -254,7 +256,10 @@ class GraphOrchestratorAgent(BaseAgent):
                 if pd.notna(x)
             ]
 
+
+            
         initial_state: GraphState = {
+            "agent_trace": [],
             "query": query,
             "dataset_key": dataset_key,
             "base_dataset": base_dataset,  # ADDED: Keep reference to dataset for APE stats
@@ -347,7 +352,76 @@ class GraphOrchestratorAgent(BaseAgent):
             where_clause=final_state["where_clause"],
             context=final_state["context"],
             broker_summary=final_state.get("broker_summary", ""),
+            agent_trace=final_state.get("agent_trace", []),
         )
+
+    def _log_execution(self, state: GraphState, agent_name: str, result: Any, duration_ms: float, mode: str = "filtering"):
+        """Logs agent execution to the trace with structured input/output extraction."""
+        if "agent_trace" not in state:
+            state["agent_trace"] = []
+            
+        # Extract input from prompt record
+        input_data = None
+        if hasattr(result, 'prompt') and result.prompt:
+            prompt = result.prompt
+            if hasattr(prompt, 'model_dump'):
+                prompt_dict = prompt.model_dump()
+                # Prefer full_text if available, otherwise system/user
+                if prompt_dict.get('full_text'):
+                    input_data = prompt_dict['full_text']
+                elif prompt_dict.get('system') or prompt_dict.get('user'):
+                    input_data = prompt_dict
+                else:
+                    input_data = prompt_dict
+            else:
+                input_data = str(prompt)
+        
+        # Extract output based on agent type and mode
+        output_data = None
+        
+        # Handle DataFrame results from ranking mode
+        if isinstance(result, pd.DataFrame):
+            # For ranking mode DataFrames, convert to list of records for table display
+            # Limit to first 20 rows for readability
+            df_preview = result.head(20)
+            output_data = json.loads(df_preview.to_json(orient="records"))
+            input_data = f"Ranking mode: {len(result)} records scored"
+        elif agent_name.lower() == "ape-agent" and hasattr(result, 'suggested_filters'):
+            output_data = result.suggested_filters
+        elif agent_name == "ranking-agent":
+            # For ranking agent, prefer the ordered ranking if present, otherwise weights
+            if hasattr(result, 'ranking') and result.ranking:
+                output_data = {"ranking": result.ranking.ranking}
+            elif hasattr(result, 'weights'):
+                output_data = result.weights.model_dump()
+        elif agent_name == "poi-agent":
+            # For POI agent (filtering), show categories and minimum scores
+            if hasattr(result, 'categories') and hasattr(result, 'punteggi_minimi'):
+                output_data = {
+                    "ordered_categories": result.categories,
+                    "min_scores": result.punteggi_minimi
+                }
+            elif hasattr(result, 'raw_text'):
+                output_data = result.raw_text
+        elif hasattr(result, 'raw_text'):
+            output_data = result.raw_text
+        elif isinstance(result, dict) and 'raw_text' in result:
+            output_data = result['raw_text']
+        elif hasattr(result, 'model_dump'):
+            output_data = result.model_dump()
+        else:
+            output_data = str(result)
+            
+        entry = {
+            "agent_name": agent_name,
+            "agent_mode": mode,
+            "timestamp": datetime.now().isoformat(),
+            "execution_time_ms": duration_ms,
+            "input": input_data,
+            "output": output_data,
+            "output_structure": None
+        }
+        state["agent_trace"].append(entry)
 
     # ------------------------------------------------------------------
     # Nodes
@@ -668,6 +742,14 @@ class GraphOrchestratorAgent(BaseAgent):
             state["poi_result"] = poi_result
             state["ape_result"] = ape_result
             state["normative_result"] = normative_result
+            
+            # Log Executions (Sequentially to avoid thread safety issues with list)
+            # Note: Durations here are not precise per-agent execution time but acceptable for trace
+            if typology_result: self._log_execution(state, "typology-agent", typology_result, 0)
+            if loc_result: self._log_execution(state, "location-agent", loc_result, 0)
+            if ape_result: self._log_execution(state, "ape-agent", ape_result, 0)
+            if poi_result: self._log_execution(state, "poi-agent", poi_result, 0)
+            if normative_result: self._log_execution(state, "normative-agent", normative_result, 0)
 
         # Process Typology
         typ_data = safe_extract_json(typology_result.raw_text, schema=TypologyResponse)
@@ -973,6 +1055,8 @@ class GraphOrchestratorAgent(BaseAgent):
             "sql_query": sql_result.raw_text,
             "sql_history": state["sql_history"]
         }
+        
+        self._log_execution(state, "sql-agent", sql_result, 0)
         return state
 
     def _execute_sql(self, state: GraphState) -> GraphState:
@@ -1218,6 +1302,8 @@ class GraphOrchestratorAgent(BaseAgent):
                 "weights": ranking_result.weights.model_dump()
             }
         
+            self._log_execution(state, "ranking-agent", ranking_result, 0, mode="ranking")
+        
         return state
 
 
@@ -1283,6 +1369,7 @@ class GraphOrchestratorAgent(BaseAgent):
             tmp["poi_score"] = 0.0
             return tmp[["id", "poi_score"]]
 
+
         # Execute parallel ranking tasks
         with ThreadPoolExecutor(max_workers=5) as executor:
             task_map = {
@@ -1306,6 +1393,9 @@ class GraphOrchestratorAgent(BaseAgent):
                         state["gemini_responses"][f"{name}_ranking"] = {
                             "response": json.loads(clean_json)
                         }
+                        
+                        # Log this ranking agent execution to the trace
+                        self._log_execution(state, f"{name}-agent", res_df, 0, mode="ranking")
 
                     # Aggiungiamo solo le colonne di score evitando duplicazioni (usiamo 'id' come chiave)
                     df = df.merge(res_df, on="id", how="left")
@@ -1539,6 +1629,8 @@ class GraphOrchestratorAgent(BaseAgent):
                         6,
                         f"Analizzando batch {finished_batches}/{total_batches} con {len(batch_results)} valutazioni...",
                     )
+                    
+                    self._log_execution(state, "evaluation-agent", payload, 0, mode="evaluation")
 
                     if batch_results:
                         all_results.extend(batch_results)
@@ -1613,6 +1705,8 @@ class GraphOrchestratorAgent(BaseAgent):
         return state
 
     def _finalize_results(self, state: GraphState) -> GraphState:
+        trace_len = len(state.get("agent_trace", []))
+        logger.info(f"Finalizing results. Agent trace size: {trace_len}")
         self._update_progress(state, 8, "Finalizzazione...")
 
         if state["selected_data"].empty:

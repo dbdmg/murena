@@ -271,6 +271,7 @@ export interface AnalysisResults {
     };
     gemini_responses?: GeminiResponses;
     broker_summary?: string;
+    html_log?: string;
 }
 
 /**

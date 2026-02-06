@@ -126,7 +126,7 @@ export const QueryTooltip: React.FC<QueryTooltipProps> = ({
 
                             {/* Footer info/decoration */}
                             <div className="px-4 py-2 bg-white/[0.02] border-t border-white/5 flex justify-between items-center text-[10px] text-gray-500">
-                                <span>ID: {Math.random().toString(36).substring(7).toUpperCase()}</span>
+                                <span>ID: SYSTEM</span>
                                 <span className="flex items-center gap-1.5">
                                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500/50 animate-pulse" />
                                     Active Context

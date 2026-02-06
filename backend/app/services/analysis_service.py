@@ -276,6 +276,27 @@ class AnalysisService:
         else:
             logger.info("Orchestrator returned no map_df or empty")
 
+        # Generate Agent HTML Log
+        html_log = None
+        agent_trace = getattr(orchestrator_result, "agent_trace", None)
+        if agent_trace is not None:
+            try:
+                from app.services.agent_logger import AgentLogger
+                agent_logger = AgentLogger()
+                run_props = {
+                    "use_case": "Live Analysis",
+                    "prompt_id": run_id,
+                    "run_number": 1,
+                    "run_timestamp": datetime.utcnow().isoformat()
+                }
+                # Process trace data
+                agent_executions = agent_logger._process_log_data_for_export(agent_trace, run_props)
+                # Generate HTML
+                html_log = agent_logger.generate_html_view(agent_executions, f"Analysis Trace: {query}")
+                logger.info(f"Generated agent HTML log ({len(html_log)} chars)")
+            except Exception as e:
+                logger.error(f"Failed to generate agent HTML log: {e}")
+
         return {
             "run_id": run_id,
             "query": query,
@@ -292,6 +313,7 @@ class AnalysisService:
                 if orchestrator_result.context
                 else None
             ),
+            "html_log": html_log,
             "created_at": datetime.utcnow(),
             "completed_at": datetime.utcnow(),
         }
