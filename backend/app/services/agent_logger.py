@@ -303,7 +303,15 @@ class AgentLogger:
                     return self._dict_to_html_table(value)
                 elif isinstance(value, list):
                     if value and isinstance(value[0], dict):
-                        return self._list_of_dicts_to_html_table(value)
+                        # Filter for 'final-ranking' output to show only scores and weights
+                        columns_filter = None
+                        if execution.get("agent_name") == "final-ranking" and field_name == "output":
+                             columns_filter = lambda k: (
+                                 k in ['id', 'rank', 'final_ranking_score'] 
+                                 or k.endswith('_score') 
+                                 or k.startswith('w_')
+                             )
+                        return self._list_of_dicts_to_html_table(value, columns_filter=columns_filter)
                     else:
                         return "<br>".join(str(item) for item in value)
                 else:
@@ -732,7 +740,14 @@ class AgentLogger:
                     display_name = f"{agent_name} ({agent_mode})"
                 
                 # Aggiungi batch_id se presente come intero
-                batch_info = f" (Batch {int(row['batch_id'])})" if pd.notna(row.get('batch_id')) else ""
+                # Per evaluation-agent, il numero è già nel nome (imm. X), quindi evitiamo la ridondanza "Batch X"
+                is_eval_agent = "evaluation-agent" in agent_name.lower()
+                has_batch = pd.notna(row.get('batch_id'))
+                
+                batch_info = ""
+                if has_batch and not is_eval_agent:
+                    batch_info = f" (Batch {int(row['batch_id'])})"
+                
                 html_content += f'        <button class="tab-btn {"active" if i == 0 else ""}" onclick="showTab({i})">{display_name}{batch_info}</button>\n'
             
             html_content += """
@@ -1011,7 +1026,7 @@ class AgentLogger:
         html += '</table></details>'
         return html
     
-    def _list_of_dicts_to_html_table(self, data: list) -> str:
+    def _list_of_dicts_to_html_table(self, data: list, columns_filter=None) -> str:
         """Converte una lista di dizionari in una tabella HTML inline."""
         if not data:
             return ""
@@ -1021,6 +1036,12 @@ class AgentLogger:
             for item in data:
                 if isinstance(item, dict):
                     all_keys.update(item.keys())
+            
+            if columns_filter:
+                all_keys = {k for k in all_keys if columns_filter(k)}
+            
+            if not all_keys:
+                return "<span style='color:#94a3b8; font-style:italic;'>Filtered view (no matching columns)</span>"
             
             if not all_keys:
                 return str(data)

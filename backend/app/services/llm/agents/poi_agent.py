@@ -146,14 +146,19 @@ class PoiAgent(BaseAgent):
         used_cats = [cat for cat in ranked_categories if cat in df_ranked.columns]
 
         for cat in used_cats:
-            # A. Normalizzazione Valori (Input 1-5 -> Output 0-100)
+            # A. Normalizzazione Valori
             # Gestione errori colonna e NaN
-            raw_vals = pd.to_numeric(df_ranked[cat], errors="coerce")
+            raw_vals = pd.to_numeric(df_ranked[cat], errors="coerce").fillna(0.0)
             
-            # (val - 1) / 4 * 100. 
-            # Se val=1 -> 0. Se val=5 -> 100.
-            # Se NaN -> fillna(0) produce score 0 per quella categoria.
-            norm_vals = ((raw_vals - 1) / 4.0 * 100.0).fillna(0.0).clip(0, 100)
+            # Heuristic detection of scale:
+            # Se i valori eccedono 5, assumiamo siano già in scala 0-100 (o simile).
+            # Altrimenti assumiamo scala 1-5 e normalizziamo.
+            if raw_vals.max() > 5:
+                norm_vals = raw_vals.clip(0, 100)
+            else:
+                # Input 1-5 -> Output 0-100
+                # Se val=1 -> 0. Se val=5 -> 100.
+                norm_vals = ((raw_vals - 1) / 4.0 * 100.0).clip(0, 100)
             
             # Salva colonna dettaglio score (0-100)
             detail_col = f"poi_score_val_{cat}"

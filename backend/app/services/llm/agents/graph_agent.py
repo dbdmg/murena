@@ -1096,12 +1096,43 @@ class GraphOrchestratorAgent(BaseAgent):
             logger.error("Max retries reached with error. Activating fallback.")
             return "fallback"
 
-        if len(state["selected_data"]) >= 10:
+        df = state["selected_data"]
+        distinct_locs = 0
+        has_diversity = True
+
+        # Identify lat/lon columns (support both standard and potential alias)
+        lat_col = next((c for c in ["latitudine", "lat"] if c in df.columns), None)
+        lon_col = next((c for c in ["longitudine", "lon"] if c in df.columns), None)
+        
+        if lat_col and lon_col and not df.empty:
+            # Check distinct pairs
+            distinct_locs = df[[lat_col, lon_col]].drop_duplicates().shape[0]
+            # Must have at least 5 distinct locations to be considered a valid set
+            if distinct_locs < 5:
+                has_diversity = False
+                logger.warning(
+                    f"Found {len(df)} rows but only {distinct_locs} distinct location(s). "
+                    "Requesting relaxation to ensure spatial diversity (min 5 needed)."
+                )
+
+        # Success condition: enough rows AND enough spatial diversity
+        # STRICT Requirement: Both conditions must be met
+        if len(df) >= 10 and distinct_locs >= 5:
+            logger.info(f"Accepted results: {len(df)} rows and good diversity ({distinct_locs} locs).")
+            return "continue"
+        
+        # Fallback success: enough rows and we assume diversity (if columns missing)
+        # But if columns exist (distinct_locs calculated), strictly enforce >= 2
+        if len(df) >= 10 and has_diversity:
             return "continue"
 
         if state["retry_count"] < 5:
+            reason = "few_results" if len(df) < 10 else "low_diversity"
+            count_info = f"{distinct_locs} distinct locs" if lat_col and lon_col else "unknown locs"
+            
             logger.warning(
-                f"Retrying due to few results ({len(state['selected_data'])}). Attempt {state['retry_count'] + 1}"
+                f"Retrying due to {reason} ({len(df)} rows, {count_info}). "
+                f"Attempt {state['retry_count'] + 1}"
             )
             return "retry_relax"
 
@@ -1111,14 +1142,38 @@ class GraphOrchestratorAgent(BaseAgent):
     def _handle_retry(self, state: GraphState) -> GraphState:
         # Determine if it's an error retry or a relaxation retry
         error = state.get("execution_error")
-        few_results = not error and len(state.get("selected_data", [])) < 10
-        
-        relax = state.get("relax_constraints", False)
-        reason = "error" if error else "few_results" if few_results else None
+        df = state.get("selected_data")
+        if df is None:
+             df = pd.DataFrame()
 
-        if few_results:
+        # Check quantity
+        few_results = not error and len(df) < 10
+        
+        # Check diversity (NEW)
+        low_diversity = False
+        if not error and not df.empty:
+            lat_col = next((c for c in ["latitudine", "lat"] if c in df.columns), None)
+            lon_col = next((c for c in ["longitudine", "lon"] if c in df.columns), None)
+            if lat_col and lon_col:
+                distinct_locs = df[[lat_col, lon_col]].drop_duplicates().shape[0]
+                if distinct_locs < 5:
+                    low_diversity = True
+
+        relax = state.get("relax_constraints", False)
+        
+        # Reason logic
+        if error:
+            reason = "error" 
+        elif few_results:
+             reason = "few_results"
+        elif low_diversity:
+             reason = "low_diversity"
+        else:
+             reason = None
+
+        if few_results or low_diversity:
             relax = True
-            logger.info("Relaxing constraints due to zero/few results")
+            logger.info(f"Relaxing constraints: reason={reason}")
         
         return {
             "retry_count": state["retry_count"] + 1, 
@@ -1222,35 +1277,70 @@ class GraphOrchestratorAgent(BaseAgent):
         # SQL might only select specific columns, but we need everything
         # for the UI (surface_area, meta_immobile, ape_scores, etc.)
         # ============================================================
-        if dataset_path and not selected_data.empty and "id" in selected_data.columns:
+        base_dataset = state.get("base_dataset")
+        
+        if (base_dataset is not None or dataset_path) and not selected_data.empty and "id" in selected_data.columns:
             try:
-                full_df = pd.read_parquet(dataset_path)
-                logger.info(
-                    f"Enrichment: merging {len(selected_data)} SQL results with "
-                    f"{len(full_df)} full dataset rows"
-                )
+                full_df = None
+                
+                # Priority 1: Use in-memory base_dataset (fastest, reliable)
+                if base_dataset is not None and not base_dataset.empty:
+                    full_df = base_dataset
+                    logger.info("Enrichment: using in-memory base_dataset")
+                
+                # Priority 2: Load from disk if base_dataset missing
+                elif dataset_path and os.path.exists(dataset_path):
+                    if dataset_path.endswith('.parquet'):
+                        full_df = pd.read_parquet(dataset_path)
+                    elif dataset_path.endswith('.csv'):
+                        full_df = pd.read_csv(dataset_path)
+                    else:
+                        # Try parquet then csv
+                        try:
+                            full_df = pd.read_parquet(dataset_path)
+                        except:
+                            full_df = pd.read_csv(dataset_path)
+                    
+                    logger.info(f"Enrichment: loaded full dataset from {dataset_path}")
 
-                # Ensure ID is string for matching
-                selected_data["id"] = selected_data["id"].astype(str)
-                full_df["id"] = full_df["id"].astype(str)
-
-                # Get columns only in full_df (not in selected_data)
-                sql_columns = set(selected_data.columns)
-                full_columns = set(full_df.columns)
-                missing_columns = full_columns - sql_columns
-
-                if missing_columns:
-                    # Only merge the missing columns (more efficient)
-                    merge_columns = ["id"] + list(missing_columns)
-                    full_subset = full_df[merge_columns].drop_duplicates(subset=["id"])
-
-                    # LEFT JOIN: preserve all SQL rows, add missing columns
-                    selected_data = selected_data.merge(
-                        full_subset, on="id", how="left"
-                    )
+                if full_df is not None and not full_df.empty:
                     logger.info(
-                        f"Enrichment: added {len(missing_columns)} missing columns"
+                        f"Enrichment: merging {len(selected_data)} SQL results with "
+                        f"{len(full_df)} full dataset rows"
                     )
+
+                    # Ensure ID is string for matching
+                    selected_data = selected_data.copy()
+                    selected_data["id"] = selected_data["id"].astype(str)
+                    
+                    # Create a copy of full_df to avoid modifying the original in state/cache
+                    try:
+                         # Check if ID exists in full_df
+                        if "id" in full_df.columns:
+                            full_df = full_df.copy()
+                            full_df["id"] = full_df["id"].astype(str)
+
+                            # Get columns only in full_df (not in selected_data)
+                            sql_columns = set(selected_data.columns)
+                            full_columns = set(full_df.columns)
+                            missing_columns = full_columns - sql_columns
+
+                            if missing_columns:
+                                # Only merge the missing columns (more efficient)
+                                merge_columns = ["id"] + list(missing_columns)
+                                full_subset = full_df[merge_columns].drop_duplicates(subset=["id"])
+
+                                # LEFT JOIN: preserve all SQL rows, add missing columns
+                                selected_data = selected_data.merge(
+                                    full_subset, on="id", how="left"
+                                )
+                                logger.info(
+                                    f"Enrichment: added {len(missing_columns)} missing columns"
+                                )
+                        else:
+                            logger.warning("Enrichment: 'id' column missing in full_dataset")
+                    except Exception as e:
+                         logger.error(f"Enrichment merge failed: {e}")
 
             except Exception as e:
                 logger.warning(f"Failed to enrich with full dataset: {e}")
@@ -1395,8 +1485,12 @@ class GraphOrchestratorAgent(BaseAgent):
                 try:
                     res_df = future.result()
                     
+                    
                     # Log ranking results as JSON for UI visualization
                     if not res_df.empty:
+                        # DEDUPLICATE COLUMNS to prevent JSON error
+                        res_df = res_df.loc[:, ~res_df.columns.duplicated()]
+
                         # Transform to clean JSON (handles NaNs by converting to null)
                         # and put it at the top level for the UI to show an accordion
                         clean_json = res_df.to_json(orient="records")
@@ -1407,10 +1501,14 @@ class GraphOrchestratorAgent(BaseAgent):
                         # Log this ranking agent execution to the trace
                         self._log_execution(state, f"{name}-agent", res_df, 0, mode="ranking")
 
-                    # Aggiungiamo solo le colonne nuove evitando duplicazioni
-                    # Identifichiamo le colonne da mergiuare: quelle che non sono già in df (eccetto 'id')
-                    cols_to_merge = [c for c in res_df.columns if c == "id" or c not in df.columns]
-                    df = df.merge(res_df[cols_to_merge], on="id", how="left")
+                    # Aggiungiamo le colonne nuove o aggiorniamo quelle esistenti
+                    # Se una colonna esiste già in df (es. ape_score da un'esecuzione precedente o dataset),
+                    # la rimuoviamo per usare quella appena calcolata dall'agente.
+                    cols_to_update = [c for c in res_df.columns if c != "id" and c in df.columns]
+                    if cols_to_update:
+                        df = df.drop(columns=cols_to_update)
+
+                    df = df.merge(res_df, on="id", how="left")
                 except Exception as e:
                     logger.error(f"Error in parallel ranking part {name}: {e}")
                     col = "ape_score" if name == "ape" else f"{name}_score"
@@ -1855,16 +1953,53 @@ class GraphOrchestratorAgent(BaseAgent):
             enriched_data["id"] = enriched_data["id"].astype(str)
 
         # Sovrascrivi/aggiungi colonne di matching e ranking solo dove l'agente ha lavorato
-        overlay_cols = [
-            col
-            for col in ["id", "is_match", "final_ranking_score", "distanza_km"]
-            if col in enriched_data.columns
-        ]
+        # Identify columns to keep from enriched_data that should override or augment base_df
+        cols_to_keep = {"id", "is_match", "final_ranking_score", "distanza_km"}
+        
+        # Add all score-related columns
+        cols_to_keep.update(c for c in enriched_data.columns if "score" in c)
+        
+        # Add all weight/metadata columns
+        cols_to_keep.update(c for c in enriched_data.columns if c.startswith("w_") or "weight" in c)
+        
+        # Add ranking transparency columns
+        cols_to_keep.update(c for c in enriched_data.columns if "rank" in c or "multiplier" in c)
+
+        # Add all APE Agent columns (critical for normalized data like classe_energetica_ape)
+        cols_to_keep.update(c for c in APE_AGENT_COLUMNS if c in enriched_data.columns)
+        
+        # Add agent-specific columns that might be missing in base_df (e.g. calculated APE)
+        if base_df is not None:
+             new_cols = set(enriched_data.columns) - set(base_df.columns)
+             cols_to_keep.update(new_cols)
+
+        overlay_cols = list(cols_to_keep.intersection(enriched_data.columns))
+
         if overlay_cols:
             overlay_df = enriched_data[overlay_cols].drop_duplicates("id")
+            
+            # Merge with suffix to handle collisions
             map_df = pd.merge(
-                map_df, overlay_df, on="id", how="left", suffixes=("", "_ann")
+                map_df, overlay_df, on="id", how="left", suffixes=("", "_new")
             )
+            
+            # For intersecting columns, overwrite base value with enriched value
+            for col in overlay_cols:
+                if col == "id": continue
+                new_col = f"{col}_new"
+                if new_col in map_df.columns:
+                    # If enriched value exists (was matched), use it. otherwise keep base.
+                    # This relies on the fact that non-matched rows got NaNs in new_col from the left join.
+                    if col in map_df.columns:
+                         map_df[col] = map_df[new_col].fillna(map_df[col])
+                    else:
+                         # Use rename for new columns 
+                         # (Wait, if it's new, merge wouldn't add suffix... unless conflict? 
+                         # No, if not in map_df, merge adds as 'col', not 'col_new')
+                         # But let's be safe.
+                         pass 
+                    
+                    map_df.drop(columns=[new_col], inplace=True)
 
         # Default robusti per flag e score
         if "is_match" not in map_df.columns:
