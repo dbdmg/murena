@@ -53,7 +53,7 @@ const itemPrettify = (content: string) => {
                 </div>
                 <div className="flex flex-wrap gap-1.5 pl-1">
                     {values.map((v, i) => (
-                        <span key={i} className="px-2.5 py-1 bg-white/[0.03] rounded-lg text-[11px] border border-white/5 text-gray-400 font-mono italic">
+                        <span key={i} className="px-2.5 py-1 bg-white/3 rounded-lg text-[11px] border border-white/5 text-gray-400 font-mono italic">
                             "{v}"
                         </span>
                     ))}
@@ -77,14 +77,14 @@ const itemPrettify = (content: string) => {
 
                 <div className="flex items-center gap-2">
                     <span className="text-gray-500 text-[10px] font-bold uppercase shrink-0 opacity-70">between</span>
-                    <span className="text-gray-200 font-mono text-sm bg-white/[0.02] px-2 py-0.5 rounded border border-white/5">
+                    <span className="text-gray-200 font-mono text-sm bg-white/2 px-2 py-0.5 rounded border border-white/5">
                         {val1}
                     </span>
                 </div>
 
                 <div className="flex items-center gap-2">
                     <span className="text-gray-500 text-[10px] font-bold uppercase shrink-0 opacity-70">and</span>
-                    <span className="text-gray-200 font-mono text-sm bg-white/[0.02] px-2 py-0.5 rounded border border-white/5">
+                    <span className="text-gray-200 font-mono text-sm bg-white/2 px-2 py-0.5 rounded border border-white/5">
                         {val2}
                     </span>
                 </div>
@@ -111,7 +111,7 @@ const itemPrettify = (content: string) => {
                     {op.toLowerCase()}
                 </span>
                 {value && (
-                    <span className="text-gray-200 font-mono text-sm truncate max-w-[500px] bg-white/[0.02] px-2 py-0.5 rounded border border-white/5">
+                    <span className="text-gray-200 font-mono text-sm truncate max-w-[500px] bg-white/2 px-2 py-0.5 rounded border border-white/5">
                         {value}
                     </span>
                 )}
@@ -156,7 +156,7 @@ const ConditionItem: React.FC<ConditionItemProps> = ({ condition, depth = 0 }) =
                     {isGroup ? (
                         <div className="space-y-5 pt-3 pb-3 relative">
                             {/* Visual background for group */}
-                            <div className="absolute inset-0 -left-3 -right-2 bg-white/[0.015] rounded-2xl border border-white/5 pointer-events-none shadow-inner" />
+                            <div className="absolute inset-0 -left-3 -right-2 bg-white/1.5 rounded-2xl border border-white/5 pointer-events-none shadow-inner" />
 
                             <div className="pl-2">
                                 {condition.children?.map((child, idx) => (
@@ -349,13 +349,14 @@ export const SQLFiltersHUD: React.FC<SQLFiltersHUDProps> = ({
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.95, y: 20 }}
                             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-                            className="relative w-full max-w-4xl h-[75vh] bg-[#0f1218] rounded-3xl border border-white/10 shadow-2xl shadow-black/50 flex flex-col overflow-hidden"
+                            className={`relative w-full transition-all duration-500 bg-[#0f1218] rounded-3xl border border-white/10 shadow-2xl shadow-black/50 flex flex-col overflow-hidden ${viewMode === 'trace' ? 'max-w-5/6 h-[90vh]' : 'max-w-5xl h-[85vh]'
+                                }`}
                         >
                             {/* Ambient Glow */}
                             <div className="absolute -top-40 -left-40 w-80 h-80 bg-amber-500/10 rounded-full blur-[100px] pointer-events-none" />
 
                             {/* Header */}
-                            <div className="relative flex items-center justify-between px-8 py-6 border-b border-white/10 bg-white/[0.02]">
+                            <div className="relative flex items-center justify-between px-8 py-6 border-b border-white/10 bg-white/2">
                                 <div className="flex items-center gap-4">
                                     <div className="w-12 h-12 rounded-2xl bg-linear-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-lg shadow-amber-500/30">
                                         <SearchCode className="w-6 h-6 text-white" />

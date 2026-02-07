@@ -305,18 +305,22 @@ export const MapPage: React.FC = () => {
                         onLayersChange={setLayers}
                     />
                     <MapLegend hasSearchLocation={!!searchLocation} />
-                    <AgentRefinementHUD
-                        activeRunId={activeRunId}
-                        currentQuery={currentQuery || ''}
-                        onRunSwitch={handleSelectRun}
-                        isOpen={isAgentHUDOpen}
-                        onToggle={() => setIsAgentHUDOpen(!isAgentHUDOpen)}
-                    />
-                    <SQLFiltersHUD
-                        activeRunId={activeRunId}
-                        isOpen={isSQLHUDOpen}
-                        onToggle={() => setIsSQLHUDOpen(!isSQLHUDOpen)}
-                    />
+                    {activeRunId && (
+                        <>
+                            <AgentRefinementHUD
+                                activeRunId={activeRunId}
+                                currentQuery={currentQuery || ''}
+                                onRunSwitch={handleSelectRun}
+                                isOpen={isAgentHUDOpen}
+                                onToggle={() => setIsAgentHUDOpen(!isAgentHUDOpen)}
+                            />
+                            <SQLFiltersHUD
+                                activeRunId={activeRunId}
+                                isOpen={isSQLHUDOpen}
+                                onToggle={() => setIsSQLHUDOpen(!isSQLHUDOpen)}
+                            />
+                        </>
+                    )}
                 </div>
 
                 {/* Row 2: Run Selector & Stats */}
