@@ -29,6 +29,8 @@ from app.services.llm.agents.base import BaseAgent
 from app.services.llm.agents.evaluation_agent import EvaluationAgent
 from app.services.llm.agents.location_agent import LocationAgent
 from app.services.llm.agents.normative_agent import NormativeAgent
+from app.services.llm.agents.poi_agent import PoiAgent
+from app.services.llm.agents.schema import (
     AgentContext,
     EvaluationAgentResponse,
     NormativeAgentResult,
@@ -44,6 +46,7 @@ from app.services.llm.agents.normative_agent import NormativeAgent
 )
 from app.services.llm.agents.sql_agent import SQLAgent
 from app.services.llm.agents.typology_agent import TypologyAgent
+from app.services.llm.agents.ranking_agent import RankingAgent
 from app.utils.logger import logger
 from app.utils.json_parser import safe_extract_json
 from app.services.llm.mocks import (
@@ -1427,7 +1430,7 @@ class GraphOrchestratorAgent(BaseAgent):
     def _evaluate_results(self, state: GraphState) -> GraphState:
         enriched_data = state["selected_data"]
 
-        llm_cap = state["llm_limit"]
+        llm_cap = self._resolve_llm_cap(state.get("llm_limit"))
 
         if USE_MOCK_RESPONSES:
             logger.info("MOCK MODE: Simulating Evaluation...")
@@ -1478,8 +1481,8 @@ class GraphOrchestratorAgent(BaseAgent):
             )
             return state
 
-        # Limit evaluation to top 10 as per user request
-        eval_input_df = enriched_data.head(10).copy()
+        # Limit evaluation to top results defined by llm_cap
+        eval_input_df = enriched_data.head(llm_cap).copy()
         eval_input_df["is_evaluated"] = True
 
         total_items = len(eval_input_df)
@@ -1745,9 +1748,8 @@ class GraphOrchestratorAgent(BaseAgent):
 
         # Dati arricchiti dal percorso agente (solo subset selezionato dalla query)
         enriched_data = state["selected_data"]
-        map_cap = self._resolve_map_cap(state["map_limit"])
-
-
+        map_cap = self._resolve_map_cap(state.get("map_limit"))
+        llm_cap = self._resolve_llm_cap(state.get("llm_limit"))
         # Carica SEMPRE il dataset completo da DuckDB/IMMOBILI per la mappa,
         # così l'esperto può vedere tutti gli edifici (fino al limite mappa),
         # indipendentemente da come l'agente ha filtrato i candidati.
@@ -1915,15 +1917,14 @@ class GraphOrchestratorAgent(BaseAgent):
         return state
 
     # ------------------------------------------------------------------
-    # Helpers (Copied from OrchestratorAgent)
+    # Helpers
     # ------------------------------------------------------------------
-    def _resolve_llm_cap(
-        self, llm_limit: Optional[int], plan: Optional[NeedsMetricPlan]
-    ) -> int:
-        base_cap = min(int(llm_limit) if llm_limit else MAX_ITEMS_FOR_LLM, MAX_LLM_CAP)
-        if self.is_agent_mode and plan and plan.dataset_strategy.top_k:
-            return min(base_cap, plan.dataset_strategy.top_k)
-        return base_cap
+    def _resolve_llm_cap(self, llm_limit: Optional[int]) -> int:
+        try:
+            val = int(llm_limit) if llm_limit else MAX_ITEMS_FOR_LLM
+            return min(max(1, val), MAX_LLM_CAP)
+        except (TypeError, ValueError):
+            return MAX_ITEMS_FOR_LLM
 
     def _resolve_map_cap(self, map_limit: Optional[int]) -> int:
         try:
@@ -1931,89 +1932,3 @@ class GraphOrchestratorAgent(BaseAgent):
             return max(1, m_val)
         except (TypeError, ValueError):
             return MAX_ITEMS_FOR_MAP
-
-    def _augment_query_with_plan(
-        self,
-        query: str,
-        plan: Optional[NeedsMetricPlan],
-        typology_result: Optional[TypologyAgentResult] = None,
-        normative_result: Optional[NormativeAgentResult] = None
-    ) -> str:
-        plan_text = ""
-        if self.is_agent_mode and plan:
-            filter_list = plan.dataset_strategy.filters or []
-            filters = "\n".join(filter_list) if filter_list else ""
-            metrics = "\n".join(
-                f"- {metric.name}: {metric.goal or ''} (peso {metric.weight})"
-                for metric in plan.metrics
-            )
-            notes = plan.dataset_strategy.notes or "Nessuna"
-            ape_note = plan.ape_strategy.strategy or ""
-            ape_status = (
-                "usa dati APE" if plan.ape_strategy.use_ape else "APE opzionale"
-            )
-            filter_summary = ", ".join(filter_list) or "Nessuno"
-            plan_text = (
-                f"OBIETTIVO: {plan.summary}\n"
-                f"METRICHE:\n{metrics or '- non specificate'}\n"
-                f"FILTRI:\n{filters or '- nessuno suggerito'}\n"
-                f"ORDINAMENTO: {plan.dataset_strategy.sort_by or 'non specificato'}\n"
-                f"NOTE: {notes}\n"
-                f"APE: {ape_status} - {ape_note}\n"
-                f"FILTRI SUGGERITI: {filter_summary}\n"
-                f"TOP_K: {plan.dataset_strategy.top_k or 'default'}\n"
-            )
-
-        typology_text = ""
-        if typology_result and typology_result.raw_text:
-            typ_data = safe_extract_json(typology_result.raw_text, schema=TypologyResponse)
-            typologies = typ_data.typologies if typ_data else []
-            if typologies:
-                joined_typologies = ", ".join(typologies)
-                typology_text = (
-                    "\n\nTIPOLOGIE SUGGERITE (Filtra SOLO se coerente con la richiesta):\n"
-                    f"{joined_typologies}"
-                )
-
-        normative_text = ""
-        if normative_result and normative_result.raw_text:
-            normative_text = (
-                "\n\nREQUISITI NORMATIVI ESTRATTI (Usa per filtri oggettivi se applicabili, es. superficie minima):\n"
-                f"{normative_result.raw_text}"
-            )
-
-        # SQL generation instructions - respect NeedsMetric filters
-        sql_instructions = (
-            "\n\nISTRUZIONI PER GENERAZIONE SQL:\n"
-            "1. APPLICA i filtri suggeriti nel piano metriche (vedi FILTRI SUGGERITI sopra).\n"
-            "2. NON filtrare su campi soft/descrittivi: 'utilizzo_del_bene', 'finalita', 'stato_manutentivo'.\n"
-            "3. Se la query implica un cambio d'uso, ignora l'uso attuale nei filtri.\n"
-            "4. Il ranking successivo farà la selezione fine, ma applica vincoli hard essenziali."
-        )
-
-        return (
-            f"{query} \n\nPiano di metriche e strategia:\n"
-            f"{plan_text}{typology_text}{normative_text}{sql_instructions}"
-        )
-
-    def _format_plan_for_evaluation(self, plan: NeedsMetricPlan) -> str:
-        metrics_text = (
-            "\n".join(
-                f"- {metric.name}: {metric.goal or 'Obiettivo non specificato'}"
-                for metric in plan.metrics
-            )
-            or "- Metriche non definite"
-        )
-        filters_text = (
-            ", ".join(plan.dataset_strategy.filters) or "nessun filtro specifico"
-        )
-        ape_text = plan.ape_strategy.strategy or (
-            "Utilizzo APE" if plan.ape_strategy.use_ape else "APE non prioritario"
-        )
-        return (
-            f"Obiettivo: {plan.summary}\n"
-            f"Metriche:\n{metrics_text}\n"
-            f"Strategia Dataset: ordina per {plan.dataset_strategy.sort_by or 'rilevanza'}, "
-            f"applica {filters_text}, top_k={plan.dataset_strategy.top_k or 'default'}\n"
-            f"Indicazioni APE: {ape_text}"
-        )

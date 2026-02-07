@@ -8,10 +8,6 @@ from app.services.llm.agents.schema import (
     TypologyAgentResult,
     Place,
     LocationAgentResult,
-    NeedsMetricPlan,
-    DatasetStrategy,
-    ApeUsagePlan,
-    MetricDefinition,
     EvaluationAgentResponse,
     EvaluationResult,
     PromptRecord,
@@ -29,23 +25,6 @@ MOCK_TYPOLOGY = TypologyAgentResult(
 MOCK_LOCATION = LocationAgentResult(
     raw_text=json.dumps({"places": [{"name": "Roma Centro", "city": "Roma", "lat": 41.9028, "lon": 12.4964}]}, ensure_ascii=False),
     prompt=PromptRecord(system="Mock", user="Mock"),
-)
-
-# Mock Strategy
-MOCK_STRATEGY = NeedsMetricPlan(
-    summary="Strategia simulata per test UI/UX.",
-    metrics=[
-        {"name": "Prezzo", "goal": "Basso", "weight": 0.8},
-        {"name": "Stato", "goal": "Ottimo", "weight": 0.6},
-    ],
-    dataset_strategy={
-        "filters": ["stato_conservazione = 'OTT'", "prezzo < 500000"],
-        "sort_by": "prezzo ASC",
-        "top_k": 50,
-    },
-    ape_strategy={"use_ape": True, "strategy": "Preferire classe A o B"},
-    prompt=PromptRecord(system="Mock", user="Mock"),
-    raw_text="Mock strategy raw text",
 )
 
 # Mock SQL Query

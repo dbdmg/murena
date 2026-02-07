@@ -63,9 +63,7 @@ class LocationResponse(BaseModel):
     found: bool = Field(default=False, description="True se sono stati trovati riferimenti geografici")
 
 
-class ConsistencyResponse(BaseModel):
 
-    requirements: List[str] = Field(default_factory=list, description="Requisiti consolidati")
 
 
 class EvaluationResult(BaseModel):
@@ -80,25 +78,6 @@ class EvaluationList(BaseModel):
     evaluations: List[EvaluationResult] = Field(default_factory=list)
 
 
-class MetricDefinition(BaseModel):
-    name: str
-    goal: str = ""
-    weight: float = 0.5
-    data_points: List[str] = Field(default_factory=list)
-
-
-class DatasetStrategy(BaseModel):
-    filters: List[str] = Field(default_factory=list)
-    sort_by: Optional[str] = None
-    notes: Optional[str] = None
-    top_k: Optional[int] = None
-
-
-class ApeUsagePlan(BaseModel):
-    use_ape: bool = False
-    strategy: str = ""
-
-
 class AgentResult(BaseModel):
     """Risultato standard di un agente.
     
@@ -111,11 +90,7 @@ class AgentResult(BaseModel):
     sources: Optional[List[str]] = Field(default_factory=list, description="Fonti o riferimenti")
 
 
-class NeedsMetricPlan(AgentResult):
-    summary: str = ""
-    metrics: List[MetricDefinition] = Field(default_factory=list)
-    dataset_strategy: DatasetStrategy = Field(default_factory=DatasetStrategy)
-    ape_strategy: ApeUsagePlan = Field(default_factory=ApeUsagePlan)
+
 
 # Alias o classi specifiche che ora seguono lo stesso schema per retrocompatibilità di tipo
 class LocationAgentResult(AgentResult): 
@@ -152,11 +127,7 @@ class PoiAgentResult(AgentResult):
     categories: List[str] = Field(default_factory=list)
     punteggi_minimi: Dict[str, float] = Field(default_factory=dict)
 
-# Classi legacy per retrocompatibilità
-class PoiCategoryAgentResult(PoiAgentResult): pass
-class PoiAmenityAgentResult(PoiAgentResult): pass
-class ConsistencyAgentResult(AgentResult): 
-    requirements: List[str] = Field(default_factory=list)
+
 
 
 
@@ -168,9 +139,7 @@ class AgentContext(BaseModel):
     typology_result: Optional[TypologyAgentResult] = Field(
         None, description="Risultato del TypologyAgent"
     )
-    metrics_plan: Optional[Any] = Field(
-        None, description="Piano generato dal NeedsMetricAgent (deprecato/legacy)"
-    )
+    # metrics_plan removed
     normative_result: Optional[NormativeAgentResult] = Field(
         None, description="Risultato del NormativeAgent per requisiti normativi"
     )

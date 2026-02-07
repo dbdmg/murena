@@ -23,7 +23,7 @@ import {
     Bot,
     MessageSquare,
     Sparkles,
-    FileCode,
+
     Database,
     MapPin,
     Target,
@@ -54,7 +54,7 @@ const AGENT_STEP_CONFIG: Record<string, { icon: React.ElementType; label: string
     intent_analysis: { icon: Target, label: 'Analisi Intent', color: 'text-purple-400', bgColor: 'bg-purple-500/10' },
     location_extraction: { icon: MapPin, label: 'Estrazione Location', color: 'text-blue-400', bgColor: 'bg-blue-500/10' },
     typology_extraction: { icon: Building2, label: 'Estrazione Tipologia', color: 'text-cyan-400', bgColor: 'bg-cyan-500/10' },
-    needs_metric_plan: { icon: FileCode, label: 'Piano Metriche', color: 'text-amber-400', bgColor: 'bg-amber-500/10' },
+
     sql_generation: { icon: Database, label: 'Generazione SQL', color: 'text-emerald-400', bgColor: 'bg-emerald-500/10' },
     evaluation: { icon: Sparkles, label: 'Valutazione AI', color: 'text-yellow-400', bgColor: 'bg-yellow-500/10' },
     broker_review: { icon: MessageSquare, label: 'Recensione Broker', color: 'text-pink-400', bgColor: 'bg-pink-500/10' },

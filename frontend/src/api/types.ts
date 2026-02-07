@@ -237,10 +237,7 @@ export interface GeminiResponses {
         typologies: string[];
         response: string;
     };
-    needs_metric_plan?: {
-        plan: Record<string, unknown>;
-        response: string;
-    };
+
     sql_generation?: {
         sql_query: string;
         response: string;

@@ -47,7 +47,7 @@ const STEP_TO_AGENT_MAP: Record<string, string> = {
     'evaluation': 'evaluation_agent',
     'location_extraction': 'location_agent',
     'typology_extraction': 'typology_agent',
-    'needs_metric_plan': 'needs_metric_agent',
+
     'use_case_generation': 'use_case_agent',
     'sql_generation': 'sql_agent',
     'ape_analysis': 'ape_agent',
@@ -203,7 +203,7 @@ const PromptEditor: React.FC<PromptEditorProps> = ({
                             placeholder:text-gray-700
                             focus:outline-none
                             resize-none
-                            whitespace-pre-wrap break-words [overflow-wrap:anywhere]
+                            whitespace-pre-wrap wrap-break-word
                             overflow-y-auto overflow-x-hidden
                             scrollbar-thin scrollbar-track-transparent scrollbar-thumb-white/10
                             ${readOnly ? 'opacity-60 cursor-not-allowed' : ''}
