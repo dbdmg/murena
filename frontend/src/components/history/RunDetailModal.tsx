@@ -39,6 +39,7 @@ import {
 import { analysisApi } from '../../api/endpoints/analysis';
 import type { AnalysisResults, AgentStep } from '../../api/types';
 import { QueryTooltip } from '../common/QueryTooltip';
+import { formatFullDate } from '../../utils/dateUtils';
 
 interface RunDetailModalProps {
     runId: string | null;
@@ -217,16 +218,6 @@ export const RunDetailModal: React.FC<RunDetailModalProps> = ({
         }
     }, []);
 
-    // Format date
-    const formatDate = (dateStr: string) => {
-        return new Date(dateStr).toLocaleString('it-IT', {
-            day: '2-digit',
-            month: 'short',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-        });
-    };
 
     // Format JSON for clipboard
     const formatJson = (obj: unknown): string => {
@@ -351,7 +342,7 @@ export const RunDetailModal: React.FC<RunDetailModalProps> = ({
                                                 <Calendar className="w-3.5 h-3.5" />
                                                 Creato
                                             </div>
-                                            <span className="text-sm text-white">{formatDate(results.created_at)}</span>
+                                            <span className="text-sm text-white">{formatFullDate(results.created_at)}</span>
                                         </div>
                                         <div className="bg-white/5 rounded-xl p-4 border border-white/5">
                                             <div className="flex items-center gap-2 text-gray-500 text-xs mb-1.5">

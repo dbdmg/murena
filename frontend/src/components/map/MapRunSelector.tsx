@@ -3,6 +3,7 @@ import { ChevronDown, History, Loader2, X, Search } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { AnalysisHistoryItem } from '../../api/types';
 import { QueryTooltip } from '../common/QueryTooltip';
+import { formatRunDate } from '../../utils/dateUtils';
 
 interface MapRunSelectorProps {
     history: AnalysisHistoryItem[];
@@ -26,15 +27,6 @@ export const MapRunSelector: React.FC<MapRunSelectorProps> = ({
 
     const activeRun = history.find(h => h.run_id === activeRunId);
 
-    const formatDate = (dateStr: string) => {
-        const date = new Date(dateStr);
-        return date.toLocaleDateString('it-IT', {
-            day: '2-digit',
-            month: 'short',
-            hour: '2-digit',
-            minute: '2-digit',
-        });
-    };
 
     const truncateQuery = (query: string, maxLen = 40) => {
         if (query.length <= maxLen) return query;
@@ -221,7 +213,7 @@ export const MapRunSelector: React.FC<MapRunSelectorProps> = ({
                                                             </QueryTooltip>
                                                             <div className="flex items-center gap-2 mt-1">
                                                                 <span className="text-[10px] text-gray-500">
-                                                                    {formatDate(item.created_at)}
+                                                                    {formatRunDate(item.created_at)}
                                                                 </span>
                                                                 {item.buildings_count && (
                                                                     <span className="text-[10px] bg-white/5 text-gray-400 px-1.5 py-0.5 rounded">

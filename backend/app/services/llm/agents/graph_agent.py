@@ -26,6 +26,7 @@ from app.data.loaders import get_coordinates
 from app.data.processors import calculate_travel_times_df
 from app.services.llm.agents.ape_agent import ApeAgent
 from app.services.llm.agents.base import BaseAgent
+from app.services.llm.agents.broker_agent import BrokerAgent
 from app.services.llm.agents.evaluation_agent import EvaluationAgent
 from app.services.llm.agents.location_agent import LocationAgent
 from app.services.llm.agents.normative_agent import NormativeAgent
@@ -150,6 +151,7 @@ class GraphOrchestratorAgent(BaseAgent):
         self.location_agent = location_agent or LocationAgent()
         self.sql_agent = sql_agent or SQLAgent()
         self.evaluation_agent = evaluation_agent or EvaluationAgent()
+        self.broker_agent = BrokerAgent()
         self.typology_agent = typology_agent or TypologyAgent()
         self.ape_agent = ape_agent or ApeAgent()
         self.poi_agent = poi_agent or PoiAgent()
@@ -1711,7 +1713,7 @@ class GraphOrchestratorAgent(BaseAgent):
 
         candidates_text = "\n---\n".join(candidates)
 
-        summary = self.evaluation_agent.run_synthesis(
+        summary = self.broker_agent.run(
             query=state["query"], candidates_data=candidates_text
         )
 

@@ -36,6 +36,7 @@ import {
 import { analysisApi } from '../api/endpoints/analysis';
 import type { AnalysisHistoryItem } from '../api/types';
 import { RunDetailModal } from '../components/history';
+import { formatRunDate } from '../utils/dateUtils';
 
 // Date filter options
 type DateFilter = 'all' | '7days' | '30days' | '90days';
@@ -248,26 +249,6 @@ export const HistoryPage: React.FC = () => {
         navigate(`/map?run_id=${runId}`);
     }, [navigate]);
 
-    // Format date
-    const formatDate = (dateStr: string) => {
-        const date = new Date(dateStr);
-        const now = new Date();
-        const diffMs = now.getTime() - date.getTime();
-        const diffMins = Math.floor(diffMs / 60000);
-        const diffHours = Math.floor(diffMins / 60);
-        const diffDays = Math.floor(diffHours / 24);
-
-        if (diffMins < 1) return 'Adesso';
-        if (diffMins < 60) return `${diffMins}m fa`;
-        if (diffHours < 24) return `${diffHours}h fa`;
-        if (diffDays < 7) return `${diffDays}g fa`;
-
-        return date.toLocaleDateString('it-IT', {
-            day: '2-digit',
-            month: 'short',
-            year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined,
-        });
-    };
 
     // Get status display
     const getStatusDisplay = (status: string) => {
@@ -551,7 +532,7 @@ export const HistoryPage: React.FC = () => {
                                         <div className="space-y-2">
                                             <div className="flex items-center gap-2 text-sm text-gray-500">
                                                 <Calendar className="w-4 h-4" />
-                                                <span>{formatDate(run.created_at)}</span>
+                                                <span>{formatRunDate(run.created_at)}</span>
                                             </div>
                                             {run.buildings_count !== undefined && run.buildings_count > 0 && (
                                                 <div className="flex items-center gap-2 text-sm text-gray-500">

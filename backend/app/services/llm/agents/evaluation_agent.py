@@ -51,20 +51,9 @@ class EvaluationAgent(BaseAgent):
             ]
         )
 
-        # Broker prompt (system/user separated)
-        broker_system = get_system_prompt("broker_agent")
-        broker_user = get_user_template("broker_agent")
-        self.broker_prompt = ChatPromptTemplate.from_messages(
-            [
-                ("system", "{system_content}"),
-                ("user", "{user_content}"),
-            ]
-        )
 
         # Store templates for PromptRecord
         self._system_with_format = system_with_format
-        self._broker_system = broker_system
-        self._broker_user = broker_user
 
         # Se il modello supporta structured output nativo (es. Gemini/OpenAI), usiamolo
         if hasattr(self.llm, "with_structured_output"):
@@ -72,8 +61,6 @@ class EvaluationAgent(BaseAgent):
         else:
             self.chain = self.prompt | self.llm | self.parser
 
-        # Broker chain (pure text)
-        self.broker_chain = self.broker_prompt | self.llm
 
     @log_llm_usage
     def run(
@@ -164,22 +151,3 @@ Assicurati che la tua valutazione sia allineata con i requisiti specifici sopra 
             prompt=prompt_record, raw_text=raw_text
         )
 
-    @log_llm_usage
-    def run_synthesis(self, *, query: str, candidates_data: str) -> str:
-        """Genera una sintesi comparativa (Broker Review)."""
-        try:
-            res = invoke_with_langfuse(
-                self.broker_chain,
-                {
-                    "system_content": self._broker_system,
-                    "user_content": self.render_template(
-                        self._broker_user,
-                        query=query,
-                        candidates_data=candidates_data,
-                    ),
-                },
-            )
-            # Handle standard langchain response objects (content vs str)
-            return res.content if hasattr(res, "content") else str(res)
-        except Exception as e:
-            return f"Impossibile generare sintesi: {e}"

@@ -3,7 +3,7 @@ Run repository for analysis run operations.
 """
 
 from typing import Optional, List, Dict, Any
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
 
@@ -107,7 +107,7 @@ class RunRepository(BaseRepository[Run]):
             if status_message is not None:
                 run.status_message = status_message
             if status in ["completed", "failed"]:
-                run.completed_at = datetime.utcnow()
+                run.completed_at = datetime.now(timezone.utc)
             self.db.commit()
             self.db.refresh(run)
         return run

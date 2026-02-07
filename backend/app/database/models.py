@@ -7,7 +7,7 @@ Models:
 - Feedback: User feedback on buildings
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 from sqlalchemy import Column, Integer, String, DateTime, JSON, ForeignKey, Text
@@ -25,7 +25,7 @@ class User(Base):
     username = Column(String(100), unique=True, nullable=False, index=True)
     password_hash = Column(String(255), nullable=False)
     email = Column(String(255), unique=True, nullable=True, index=True)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
 
     # Relationships
     runs = relationship("Run", back_populates="user", cascade="all, delete-orphan")
@@ -59,7 +59,7 @@ class Run(Base):
     results_count = Column(Integer, default=0)
 
     # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     completed_at = Column(DateTime, nullable=True)
 
     # Relationships
@@ -97,7 +97,7 @@ class Feedback(Base):
     feedback_e5 = Column(Text, nullable=True)
 
     # Timestamp
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
 
     # Relationships
     run = relationship("Run", back_populates="feedback")
