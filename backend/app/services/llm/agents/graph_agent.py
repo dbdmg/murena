@@ -1031,6 +1031,12 @@ class GraphOrchestratorAgent(BaseAgent):
         if state.get("relax_constraints") and not is_sql_error:
             logger.info(f"Applying RELAXATION to SQL prompt (Attempt {retry_count + 1})")
 
+        # Extract ranking list
+        ranking_agent_result = state.get("ranking_result")
+        ranking_list = []
+        if ranking_agent_result and hasattr(ranking_agent_result, "ranking") and ranking_agent_result.ranking:
+            ranking_list = ranking_agent_result.ranking.ranking
+
         sql_result = self.sql_agent.run(
             query=query, # use original query
             scheme=json.dumps(db_schema.get("types", {}), ensure_ascii=False),
@@ -1043,6 +1049,7 @@ class GraphOrchestratorAgent(BaseAgent):
             failed_query=effective_failed_query,
             error_msg=effective_error_msg,
             db_metadata="",
+            ranking_list=ranking_list,
             raw_response=relaxed_sql
         )
 

@@ -1,9 +1,11 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { MapContainer, TileLayer, Marker, useMap, GeoJSON, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import useSupercluster from 'use-supercluster';
 import type { MapMarker, LatLng, POI, MarkerTier } from '../../api/types';
 import 'leaflet/dist/leaflet.css';
+
+// ... (icons remain unchanged)
 
 // Fix Leaflet Default Icon Issue
 import icon from 'leaflet/dist/images/marker-icon.png';
@@ -38,38 +40,40 @@ const clusterIcon = (count: number) => {
     });
 };
 
-// Selected cluster icon (elegant emerald with soft pulse)
+// Selected cluster icon (Vibrant Green with enhanced pulse)
 const selectedClusterIcon = (count: number) => {
     return L.divIcon({
         html: `
-            <div class="relative" style="width: 44px; height: 44px;">
-                <div class="absolute inset-[-6px] bg-emerald-400/40 rounded-full animate-pulse"></div>
-                <div class="absolute inset-0 bg-linear-to-br from-slate-700/80 to-slate-900/80 rounded-full backdrop-blur-sm"></div>
-                <div class="absolute inset-[2px] bg-linear-to-br from-emerald-400 to-teal-500 rounded-full"></div>
-                <div class="absolute inset-0 flex items-center justify-center text-white font-semibold text-sm drop-shadow-md">${count}</div>
-                <div class="absolute inset-0 rounded-full border border-white/40 shadow-lg shadow-emerald-500/40"></div>
+            <div class="relative" style="width: 52px; height: 52px;">
+                <div class="absolute inset-[-10px] bg-emerald-400/30 rounded-full animate-ping"></div>
+                <div class="absolute inset-[-5px] bg-emerald-400/40 rounded-full animate-pulse"></div>
+                <div class="absolute inset-0 bg-linear-to-br from-slate-900 to-black rounded-full backdrop-blur-md"></div>
+                <div class="absolute inset-[2px] bg-linear-to-br from-emerald-400 via-green-500 to-teal-600 rounded-full"></div>
+                <div class="absolute inset-0 flex items-center justify-center text-white font-bold text-sm drop-shadow-[0_2px_2px_rgba(0,0,0,0.5)]">${count}</div>
+                <div class="absolute inset-0 rounded-full border-2 border-white/80 shadow-[0_0_20px_rgba(52,211,153,0.5)]"></div>
             </div>
         `,
         className: 'selected-cluster-icon',
-        iconSize: [44, 44],
-        iconAnchor: [22, 22],
+        iconSize: [52, 52],
+        iconAnchor: [26, 26],
     });
 };
 
 
-// Tier 1 Icon - Slate with better visibility (Background markers)
+// Tier 1 Icon - Indigo (Background markers) - Bigger & more visible
 const tier1Icon = () => {
     return L.divIcon({
         html: `
-            <div class="relative w-4 h-4 group transition-all duration-200 hover:scale-125">
-                <div class="absolute inset-[-2px] bg-slate-400/30 rounded-full blur-xs"></div>
-                <div class="absolute inset-0 bg-slate-600/80 rounded-full"></div>
-                <div class="relative w-4 h-4 rounded-full bg-linear-to-br from-slate-400 to-slate-600 border border-white/40 shadow-md shadow-slate-500/30"></div>
+            <div class="relative w-5 h-5 group transition-all duration-200 hover:scale-125">
+                <div class="absolute inset-[-4px] bg-indigo-500/30 rounded-full blur-xs group-hover:opacity-100 transition-opacity"></div>
+                <div class="absolute -inset-px bg-indigo-400/40 rounded-full"></div>
+                <div class="relative w-5 h-5 rounded-full bg-linear-to-br from-indigo-500 to-indigo-800 border-2 border-white/60 shadow-lg transition-colors"></div>
+                <div class="absolute inset-[6px] bg-white/30 rounded-full"></div>
             </div>
         `,
         className: 'tier1-point-icon',
-        iconSize: [18, 18],
-        iconAnchor: [9, 9],
+        iconSize: [22, 22],
+        iconAnchor: [11, 11],
     });
 };
 
@@ -150,21 +154,32 @@ const getTierIcon = (tier?: MarkerTier, isHovered: boolean = false) => {
 };
 
 
-// Selected marker icon (elegant emerald with soft glow)
+// Selected marker icon (Vibrant Green/Emerald with enhanced pulse & ping)
 const selectedIcon = () => {
     return L.divIcon({
         html: `
-            <div class="relative" style="width: 28px; height: 28px;">
-                <div class="absolute inset-[-6px] bg-emerald-400/50 rounded-full animate-pulse"></div>
-                <div class="absolute inset-[-3px] bg-linear-to-br from-emerald-300 to-teal-500 rounded-full blur-xs opacity-70"></div>
-                <div class="absolute inset-0 bg-linear-to-br from-slate-800/90 to-slate-900/90 rounded-full backdrop-blur-sm"></div>
-                <div class="absolute inset-[2px] bg-linear-to-br from-emerald-400 via-teal-400 to-emerald-500 rounded-full"></div>
-                <div class="absolute inset-0 rounded-full border border-white/50 shadow-lg shadow-emerald-500/50"></div>
+            <div class="relative" style="width: 36px; height: 36px;">
+                <!-- Animated Rings -->
+                <div class="absolute inset-[-14px] bg-emerald-400/20 rounded-full animate-ping"></div>
+                <div class="absolute inset-[-7px] bg-emerald-400/40 rounded-full animate-pulse"></div>
+                
+                <!-- Glow & Base -->
+                <div class="absolute inset-[-4px] bg-linear-to-br from-emerald-300 to-teal-500 rounded-full blur-sm"></div>
+                <div class="absolute inset-0 bg-[#0a0d12] rounded-full"></div>
+                
+                <!-- Main Core -->
+                <div class="absolute inset-[2px] bg-linear-to-br from-emerald-400 via-green-400 to-emerald-600 rounded-full"></div>
+                
+                <!-- Inner Reflection -->
+                <div class="absolute top-[5px] left-[7px] w-2 h-1 bg-white/50 rounded-full blur-[1px] rotate-[-25deg]"></div>
+                
+                <!-- Border & Shadow -->
+                <div class="absolute inset-0 rounded-full border-2 border-white shadow-[0_0_20px_rgba(52,211,153,0.7)]"></div>
             </div>
         `,
         className: 'selected-point-icon',
-        iconSize: [28, 28],
-        iconAnchor: [14, 14],
+        iconSize: [36, 36],
+        iconAnchor: [18, 18],
     });
 };
 
@@ -302,18 +317,18 @@ export const Map: React.FC<MapProps> = ({
     }, [focusMarkerId, markers, currentZoom]);
 
     // Separate Tier 3 markers from clustering (always visible individually)
-    const tier3Markers = markers.filter(m => m.tier === 3);
-    const clusterableMarkers = markers.filter(m => m.tier !== 3);
+    const tier3Markers = useMemo(() => markers.filter(m => m.tier === 3), [markers]);
+    const clusterableMarkers = useMemo(() => markers.filter(m => m.tier !== 3), [markers]);
 
     // Convert clusterable markers to GeoJSON points for Supercluster
-    const points = clusterableMarkers.map((marker) => ({
+    const points = useMemo(() => clusterableMarkers.map((marker) => ({
         type: 'Feature' as const,
         properties: { cluster: false, markerId: marker.id, category: 'real_estate', ...marker },
         geometry: {
             type: 'Point' as const,
             coordinates: [marker.lng, marker.lat],
         },
-    }));
+    })), [clusterableMarkers]);
 
     // Get clusters via hook
     const { clusters, supercluster } = useSupercluster({
@@ -324,14 +339,14 @@ export const Map: React.FC<MapProps> = ({
     });
 
     // --- POI Clusters ---
-    const poiPoints = pois.map(poi => ({
+    const poiPoints = useMemo(() => pois.map(poi => ({
         type: 'Feature' as const,
         properties: { ...poi, cluster: false, poiId: poi.id, category: 'poi' },
         geometry: {
             type: 'Point' as const,
             coordinates: [poi.lon, poi.lat]
         }
-    }));
+    })), [pois]);
 
     const { clusters: poiClusters, supercluster: poiSupercluster } = useSupercluster({
         points: poiPoints,
@@ -339,6 +354,174 @@ export const Map: React.FC<MapProps> = ({
         zoom: currentZoom,
         options: { radius: 60, maxZoom: 16 } // Create clusters earlier, break them apart sooner than real estate
     });
+
+    // Memoize markers to avoid re-rendering all on every map move unless clusters change
+    const renderedClusters = useMemo(() => clusters.map((cluster) => {
+        const [longitude, latitude] = cluster.geometry.coordinates;
+        const { cluster: isCluster, point_count: pointCount } = cluster.properties;
+
+        if (isCluster) {
+            // Check if this cluster contains any selected markers
+            const leaves = supercluster.getLeaves(cluster.id, Infinity);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const clusterMarkerIds = leaves.map((leaf: any) => leaf.properties.markerId);
+            const hasSelectedMarker = clusterMarkerIds.some((id: string) => selectedBuildingIds.includes(id));
+
+            return (
+                <Marker
+                    key={`cluster-${cluster.id}`}
+                    position={[latitude, longitude]}
+                    icon={hasSelectedMarker ? selectedClusterIcon(pointCount) : clusterIcon(pointCount)}
+                    zIndexOffset={hasSelectedMarker ? 1000 : 0}
+                    eventHandlers={{
+                        click: () => {
+                            // Get the expansion zoom (could be >20 for coincident points)
+                            const rawExpansionZoom = supercluster.getClusterExpansionZoom(cluster.id);
+
+                            // If expansion zoom is >= 20, points are coincident/very close
+                            // OR if we're already at high zoom and clicking again
+                            if (rawExpansionZoom >= 20 || currentZoom >= 18) {
+                                // Get all buildings in this cluster and open sidebar
+                                if (onClusterClick) {
+                                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                    const clusterMarkers = leaves.map((leaf: any) => leaf.properties as MapMarker);
+                                    onClusterClick(clusterMarkers);
+                                }
+                                // Also zoom to max for visual context
+                                mapRef.current?.setView([latitude, longitude], 20, { animate: true });
+                            } else {
+                                // Normal zoom expansion
+                                mapRef.current?.setView([latitude, longitude], rawExpansionZoom, {
+                                    animate: true,
+                                });
+                            }
+                        },
+                    }}
+                />
+            );
+        }
+
+
+        const markerId = cluster.properties.markerId;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const markerData = cluster.properties as any as MapMarker;
+        const isSelected = selectedBuildingIds.includes(markerId);
+
+        // Use tier-based icon for non-clustered markers
+        const markerIcon = isSelected
+            ? selectedIcon()
+            : getTierIcon(markerData.tier);
+
+        return (
+            <Marker
+                key={`marker-${markerId}`}
+                position={[latitude, longitude]}
+                icon={markerIcon}
+                zIndexOffset={isSelected ? 1000 : (markerData.tier === 2 ? 100 : 0)}
+                eventHandlers={{
+                    click: () => {
+                        if (onMarkerClick) {
+                            onMarkerClick(markerData);
+                        }
+                    }
+                }}
+            />
+        );
+
+    }), [clusters, supercluster, selectedBuildingIds, onClusterClick, onMarkerClick, currentZoom]);
+
+    // Memoize Tier 3 markers
+    const renderedTier3Markers = useMemo(() => tier3Markers.map((marker) => {
+        const isSelected = selectedBuildingIds.includes(marker.id);
+        const isHovered = hoveredMarkerId === marker.id;
+
+        return (
+            <Marker
+                key={`tier3-${marker.id}`}
+                position={[marker.lat, marker.lng]}
+                icon={isSelected ? selectedIcon() : tier3Icon(isHovered)}
+                zIndexOffset={isSelected ? 2000 : 1500} // Always on top
+                eventHandlers={{
+                    click: () => {
+                        if (onMarkerClick) {
+                            onMarkerClick(marker);
+                        }
+                    }
+                }}
+            />
+        );
+    }), [tier3Markers, selectedBuildingIds, hoveredMarkerId, onMarkerClick]);
+
+    // Memoize POI Clusters
+    const renderedPoiClusters = useMemo(() => poiClusters.map(cluster => {
+        const [longitude, latitude] = cluster.geometry.coordinates;
+        const { cluster: isCluster, point_count: pointCount } = cluster.properties;
+
+        if (isCluster) {
+            return (
+                <Marker
+                    key={`poi-cluster-${cluster.id}`}
+                    position={[latitude, longitude]}
+                    icon={getPoiClusterIcon(pointCount)}
+                    zIndexOffset={400} // Lower than Real Estate clusters
+                    eventHandlers={{
+                        click: () => {
+                            const expansionZoom = Math.min(
+                                poiSupercluster.getClusterExpansionZoom(cluster.id as number),
+                                20
+                            );
+                            mapRef.current?.setView([latitude, longitude], expansionZoom, {
+                                animate: true,
+                            });
+                        }
+                    }}
+                />
+            );
+        }
+
+        // POI Leaf (Single POI)
+        const poi = cluster.properties as POI;
+
+        return (
+            <Marker
+                key={`poi-${poi.id}`}
+                position={[latitude, longitude]}
+                icon={getPoiIcon(poi.icon, poi.color, currentZoom)}
+                zIndexOffset={500}
+            >
+                <Popup className="custom-popup" closeButton={false} offset={[0, -10]}>
+                    <div className="p-1 min-w-[220px]">
+                        <div className="flex items-start gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-linear-to-br from-gray-800 to-black border border-white/10 flex items-center justify-center shrink-0 shadow-lg" style={{ borderTopColor: poi.color }}>
+                                <span className="text-xl filter drop-shadow-md">{poi.icon}</span>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-1.5 mb-0.5">
+                                    <span className="text-[10px] uppercase font-bold text-indigo-400 tracking-wider bg-indigo-500/10 px-1.5 rounded-sm">{poi.category}</span>
+                                </div>
+                                <h3 className="font-bold text-sm text-white leading-tight mb-1">{poi.name || 'Punto di Interesse'}</h3>
+
+                                {(poi.details?.address || poi.details?.city) && (
+                                    <p className="text-[11px] text-gray-400 leading-snug truncate">
+                                        {poi.details.address}
+                                        {poi.details.address && poi.details.city && ', '}
+                                        {poi.details.city}
+                                    </p>
+                                )}
+
+                                {poi.details?.opening_hours && (
+                                    <div className="mt-2 text-[10px] text-gray-500 flex items-center gap-1">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-green-500/50"></div>
+                                        <span className="truncate max-w-[150px]">{poi.details.opening_hours}</span>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </Popup>
+            </Marker>
+        );
+    }), [poiClusters, poiSupercluster, currentZoom]);
 
     return (
         <div className="h-full w-full relative isolate z-0 rounded-3xl overflow-hidden border border-white/5 shadow-2xl ring-1 ring-white/10">
@@ -397,173 +580,13 @@ export const Map: React.FC<MapProps> = ({
                 )}
 
                 {/* POI Markers */}
-                {/* POI Clusters & Markers */}
-                {poiClusters.map(cluster => {
-                    const [longitude, latitude] = cluster.geometry.coordinates;
-                    const { cluster: isCluster, point_count: pointCount } = cluster.properties;
-
-                    if (isCluster) {
-                        return (
-                            <Marker
-                                key={`poi-cluster-${cluster.id}`}
-                                position={[latitude, longitude]}
-                                icon={getPoiClusterIcon(pointCount)}
-                                zIndexOffset={400} // Lower than Real Estate clusters
-                                eventHandlers={{
-                                    click: () => {
-                                        const expansionZoom = Math.min(
-                                            poiSupercluster.getClusterExpansionZoom(cluster.id as number),
-                                            20
-                                        );
-                                        mapRef.current?.setView([latitude, longitude], expansionZoom, {
-                                            animate: true,
-                                        });
-                                    }
-                                }}
-                            />
-                        );
-                    }
-
-                    // POI Leaf (Single POI)
-                    const poi = cluster.properties as POI;
-
-                    return (
-                        <Marker
-                            key={`poi-${poi.id}`}
-                            position={[latitude, longitude]}
-                            icon={getPoiIcon(poi.icon, poi.color, currentZoom)}
-                            zIndexOffset={500}
-                        >
-                            <Popup className="custom-popup" closeButton={false} offset={[0, -10]}>
-                                <div className="p-1 min-w-[220px]">
-                                    <div className="flex items-start gap-3">
-                                        <div className="w-10 h-10 rounded-xl bg-linear-to-br from-gray-800 to-black border border-white/10 flex items-center justify-center shrink-0 shadow-lg" style={{ borderTopColor: poi.color }}>
-                                            <span className="text-xl filter drop-shadow-md">{poi.icon}</span>
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                            <div className="flex items-center gap-1.5 mb-0.5">
-                                                <span className="text-[10px] uppercase font-bold text-indigo-400 tracking-wider bg-indigo-500/10 px-1.5 rounded-sm">{poi.category}</span>
-                                            </div>
-                                            <h3 className="font-bold text-sm text-white leading-tight mb-1">{poi.name || 'Punto di Interesse'}</h3>
-
-                                            {(poi.details?.address || poi.details?.city) && (
-                                                <p className="text-[11px] text-gray-400 leading-snug truncate">
-                                                    {poi.details.address}
-                                                    {poi.details.address && poi.details.city && ', '}
-                                                    {poi.details.city}
-                                                </p>
-                                            )}
-
-                                            {poi.details?.opening_hours && (
-                                                <div className="mt-2 text-[10px] text-gray-500 flex items-center gap-1">
-                                                    <div className="w-1.5 h-1.5 rounded-full bg-green-500/50"></div>
-                                                    <span className="truncate max-w-[150px]">{poi.details.opening_hours}</span>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-                            </Popup>
-                        </Marker>
-                    );
-                })}
+                {renderedPoiClusters}
 
                 {/* Clusters & Markers */}
-                {clusters.map((cluster) => {
-                    const [longitude, latitude] = cluster.geometry.coordinates;
-                    const { cluster: isCluster, point_count: pointCount } = cluster.properties;
-
-                    if (isCluster) {
-                        // Check if this cluster contains any selected markers
-                        const leaves = supercluster.getLeaves(cluster.id, Infinity);
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        const clusterMarkerIds = leaves.map((leaf: any) => leaf.properties.markerId);
-                        const hasSelectedMarker = clusterMarkerIds.some((id: string) => selectedBuildingIds.includes(id));
-
-                        return (
-                            <Marker
-                                key={`cluster-${cluster.id}`}
-                                position={[latitude, longitude]}
-                                icon={hasSelectedMarker ? selectedClusterIcon(pointCount) : clusterIcon(pointCount)}
-                                zIndexOffset={hasSelectedMarker ? 1000 : 0}
-                                eventHandlers={{
-                                    click: () => {
-                                        // Get the expansion zoom (could be >20 for coincident points)
-                                        const rawExpansionZoom = supercluster.getClusterExpansionZoom(cluster.id);
-
-                                        // If expansion zoom is >= 20, points are coincident/very close
-                                        // OR if we're already at high zoom and clicking again
-                                        if (rawExpansionZoom >= 20 || currentZoom >= 18) {
-                                            // Get all buildings in this cluster and open sidebar
-                                            if (onClusterClick) {
-                                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                                const clusterMarkers = leaves.map((leaf: any) => leaf.properties as MapMarker);
-                                                onClusterClick(clusterMarkers);
-                                            }
-                                            // Also zoom to max for visual context
-                                            mapRef.current?.setView([latitude, longitude], 20, { animate: true });
-                                        } else {
-                                            // Normal zoom expansion
-                                            mapRef.current?.setView([latitude, longitude], rawExpansionZoom, {
-                                                animate: true,
-                                            });
-                                        }
-                                    },
-                                }}
-                            />
-                        );
-                    }
-
-
-                    const markerId = cluster.properties.markerId;
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    const markerData = cluster.properties as any as MapMarker;
-                    const isSelected = selectedBuildingIds.includes(markerId);
-
-                    // Use tier-based icon for non-clustered markers
-                    const markerIcon = isSelected
-                        ? selectedIcon()
-                        : getTierIcon(markerData.tier);
-
-                    return (
-                        <Marker
-                            key={`marker-${markerId}`}
-                            position={[latitude, longitude]}
-                            icon={markerIcon}
-                            zIndexOffset={isSelected ? 1000 : (markerData.tier === 2 ? 100 : 0)}
-                            eventHandlers={{
-                                click: () => {
-                                    if (onMarkerClick) {
-                                        onMarkerClick(markerData);
-                                    }
-                                }
-                            }}
-                        />
-                    );
-
-                })}
+                {renderedClusters}
 
                 {/* Tier 3 Markers - Top Picks (never clustered, always visible) */}
-                {tier3Markers.map((marker) => {
-                    const isSelected = selectedBuildingIds.includes(marker.id);
-                    const isHovered = hoveredMarkerId === marker.id;
-
-                    return (
-                        <Marker
-                            key={`tier3-${marker.id}`}
-                            position={[marker.lat, marker.lng]}
-                            icon={isSelected ? selectedIcon() : tier3Icon(isHovered)}
-                            zIndexOffset={isSelected ? 2000 : 1500} // Always on top
-                            eventHandlers={{
-                                click: () => {
-                                    if (onMarkerClick) {
-                                        onMarkerClick(marker);
-                                    }
-                                }
-                            }}
-                        />
-                    );
-                })}
+                {renderedTier3Markers}
 
                 {/* Location Marker - Red (Search Location Point) */}
                 {searchLocation && (

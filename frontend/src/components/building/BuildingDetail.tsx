@@ -106,32 +106,49 @@ const ApeFilesList: React.FC<{ files: string[]; onFileClick: (file: string) => v
         return parts[parts.length - 1] || path;
     };
 
-    // Load APE details for each file
+    // Track fetched files to avoid dependency loop and re-renders
+    const fetchedFilesRef = React.useRef<Set<string>>(new Set());
+
     useEffect(() => {
+        let isMounted = true;
+
         files.forEach(file => {
             const fileName = getFileName(file);
-            if (!fileInfos[fileName]) {
+
+            // Only fetch if not already fetched/fetching in this component instance
+            if (!fetchedFilesRef.current.has(fileName)) {
+                fetchedFilesRef.current.add(fileName);
+
                 setFileInfos(prev => ({ ...prev, [fileName]: { loading: true } }));
-                client.get<APEDetail>(`/ ape / ${fileName} `)
+
+                client.get<APEDetail>(`/ape/${fileName}`)
                     .then(res => {
-                        setFileInfos(prev => ({
-                            ...prev,
-                            [fileName]: {
-                                classe: res.data.classe,
-                                costo_annuo_euro: res.data.costo_annuo_euro,
-                                loading: false
-                            }
-                        }));
+                        if (isMounted) {
+                            setFileInfos(prev => ({
+                                ...prev,
+                                [fileName]: {
+                                    classe: res.data.classe,
+                                    costo_annuo_euro: res.data.costo_annuo_euro,
+                                    loading: false
+                                }
+                            }));
+                        }
                     })
                     .catch(() => {
-                        setFileInfos(prev => ({
-                            ...prev,
-                            [fileName]: { loading: false }
-                        }));
+                        if (isMounted) {
+                            setFileInfos(prev => ({
+                                ...prev,
+                                [fileName]: { loading: false }
+                            }));
+                        }
                     });
             }
         });
-    }, [files, fileInfos]);
+
+        return () => {
+            isMounted = false;
+        };
+    }, [files]);
 
     return (
         <div className="mt-3 pt-3 border-t border-white/10">
