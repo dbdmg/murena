@@ -25,7 +25,7 @@ from app.services.real_estate_service import RealEstateService
 from app.utils.json_sanitizer import make_json_safe
 
 if TYPE_CHECKING:
-    from app.services.llm.agents.graph_agent import GraphOrchestratorAgent
+    from app.services.llm.agents.graph_agent import GraphOrchestratorAgent, OrchestratorResult
 
 logger = logging.getLogger(__name__)
 

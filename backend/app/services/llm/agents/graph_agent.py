@@ -29,13 +29,8 @@ from app.services.llm.agents.base import BaseAgent
 from app.services.llm.agents.evaluation_agent import EvaluationAgent
 from app.services.llm.agents.location_agent import LocationAgent
 from app.services.llm.agents.normative_agent import NormativeAgent
-from app.services.llm.agents.orchestrator import OrchestratorResult
-from app.services.llm.agents.poi_agent import PoiAgent
-from app.services.llm.agents.ranking_agent import RankingAgent
-from app.services.llm.agents.schema import (
     AgentContext,
     EvaluationAgentResponse,
-    NeedsMetricPlan,
     NormativeAgentResult,
     TypologyAgentResult,
     RankingAgentResult,
@@ -54,12 +49,24 @@ from app.utils.json_parser import safe_extract_json
 from app.services.llm.mocks import (
     MOCK_TYPOLOGY,
     MOCK_LOCATION,
-    MOCK_STRATEGY,
     MOCK_SQL_QUERY,
     MOCK_EVALUATION,
     MOCK_BROKER_SUMMARY,
 )
 from app.utils.run_json_logger import get_run_logger
+from dataclasses import dataclass
+
+
+@dataclass
+class OrchestratorResult:
+    map_df: pd.DataFrame
+    location: List[List[Union[str, float]]]
+    status_msg: str
+    gemini_responses: Dict[str, Any]
+    where_clause: str
+    context: AgentContext
+    broker_summary: Optional[str] = None
+    agent_trace: Optional[List[Dict[str, Any]]] = None
 
 
 class GraphState(TypedDict):
@@ -76,7 +83,8 @@ class GraphState(TypedDict):
     # Intermediate
     location_payload: List[List[Union[str, float]]]
     use_case_str: str
-    metrics_plan: Optional[NeedsMetricPlan]
+    use_case_str: str
+    # metrics_plan has been removed as part of clean architecture refactor
     typology_result: Optional[TypologyAgentResult]
     poi_result: Optional[Any]
     ape_result: Optional[Any]
@@ -269,7 +277,8 @@ class GraphOrchestratorAgent(BaseAgent):
             "dataset_metadata": dataset_metadata,
             "location_payload": [],
             "use_case_str": "",
-            "metrics_plan": None,
+            "use_case_str": "",
+            # metrics_plan removed
             "typology_result": None,
             "poi_result": None,
             "ape_result": None,
@@ -587,9 +596,7 @@ class GraphOrchestratorAgent(BaseAgent):
             # Mock Location
             state["context"].locations = MOCK_LOCATION.places
 
-            # Mock Strategy
-            state["metrics_plan"] = MOCK_STRATEGY
-            state["context"].metrics_plan = MOCK_STRATEGY
+            # Mock Strategy - REMOVED legacy metrics_plan
             state["use_case_str"] = "Mock Use Case Strategy"
 
             # Populate Gemini responses needed for UI
@@ -601,10 +608,7 @@ class GraphOrchestratorAgent(BaseAgent):
                 "response": MOCK_LOCATION.raw_text,
                 "places": [p.model_dump() for p in MOCK_LOCATION.places],
             }
-            state["gemini_responses"]["needs_metric_plan"] = {
-                "response": MOCK_STRATEGY.raw_text,
-                "plan": MOCK_STRATEGY.model_dump(),
-            }
+            # needs_metric_plan removed
 
             # Fake payload for location
             state["location_payload"] = [
@@ -1423,7 +1427,7 @@ class GraphOrchestratorAgent(BaseAgent):
     def _evaluate_results(self, state: GraphState) -> GraphState:
         enriched_data = state["selected_data"]
 
-        llm_cap = self._resolve_llm_cap(state["llm_limit"], state["metrics_plan"])
+        llm_cap = state["llm_limit"]
 
         if USE_MOCK_RESPONSES:
             logger.info("MOCK MODE: Simulating Evaluation...")
@@ -1742,7 +1746,7 @@ class GraphOrchestratorAgent(BaseAgent):
         # Dati arricchiti dal percorso agente (solo subset selezionato dalla query)
         enriched_data = state["selected_data"]
         map_cap = self._resolve_map_cap(state["map_limit"])
-        llm_cap = self._resolve_llm_cap(state["llm_limit"], state["metrics_plan"])
+
 
         # Carica SEMPRE il dataset completo da DuckDB/IMMOBILI per la mappa,
         # così l'esperto può vedere tutti gli edifici (fino al limite mappa),
