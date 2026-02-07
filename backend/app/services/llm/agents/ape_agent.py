@@ -133,7 +133,17 @@ class ApeAgent(BaseAgent):
                 target_val = req.get("valore")
                 op = str(req.get("operatore", "==")).upper()
 
-                if not col or col not in df_ranked.columns or target_val is None:
+                if not col:
+                    continue
+
+                # If column is missing from DF (e.g. not selected in SQL), we can't score it.
+                # However, we should track that we tried.
+                if col not in df_ranked.columns:
+                    # Optional: Add a placeholder column with None/NaN so it appears in output?
+                    # valid_req_count does NOT increment
+                    continue
+
+                if target_val is None:
                     continue
 
                 valid_req_count += 1
@@ -185,6 +195,7 @@ class ApeAgent(BaseAgent):
                 
                 total_scores += req_score
 
+            # If we found at least one valid column to score against
             if valid_req_count > 0:
                 df_ranked["ape_score"] = (total_scores / valid_req_count).round(1)
                 
@@ -192,35 +203,90 @@ class ApeAgent(BaseAgent):
                 weight = round(1.0 / valid_req_count, 3)
                 for col in used_columns:
                     df_ranked[f"ape_weight_{col}"] = weight
-            else:
-                df_ranked["ape_score"] = 0.0
+
+                cols_to_return = ["id", "ape_score"] + list(used_columns)
+                weight_cols = [f"ape_weight_{c}" for c in used_columns]
                 
-            cols_to_return = ["id", "ape_score"] + list(used_columns)
-            weight_cols = [f"ape_weight_{c}" for c in used_columns]
+                # Combine: Base + Weights + Categorical Transparency
+                return df_ranked[cols_to_return + weight_cols + transparency_cols]
             
-            # Combine: Base + Weights + Categorical Transparency
-            return df_ranked[cols_to_return + weight_cols + transparency_cols]
+            # If valid_req_count is 0 (e.g. columns missing from SQL projection), fall through to Fallback Logic
+
 
         # 2. Logica Fallback (Deterministica standard)
-        # Here weight is 1.0 for the single source column used
-        used_col = None
-        if "ape_total_points" in df_ranked.columns:
-            points = pd.to_numeric(df_ranked["ape_total_points"], errors="coerce").fillna(6)
-            df_ranked["ape_score"] = (100 * (points - 6) / (20 - 6)).clip(0, 100)
-            used_col = "ape_total_points"
-        elif "ape_score_total" in df_ranked.columns:
-            score = pd.to_numeric(df_ranked["ape_score_total"], errors="coerce").fillna(1)
-            df_ranked["ape_score"] = ((score - 1) * 25).clip(0, 100)
-            used_col = "ape_score_total"
-        else:
-            df_ranked["ape_score"] = 0
+        # Se non ci sono requisiti specifici, usiamo un mix pesato delle colonne chiave disponibili.
+        fallback_cols_config = [
+            {"col": "classe_energetica_ape", "weight": 0.5, "type": "categorical"},
+            {"col": "ape_total_points", "weight": 0.3, "type": "numeric", "min": 6, "max": 20},
+            {"col": "ape_score_total", "weight": 0.2, "type": "numeric", "min": 1, "max": 5}
+        ]
+
+        total_score = pd.Series(0.0, index=df_ranked.index)
+        total_weight_used = pd.Series(0.0, index=df_ranked.index)
+        used_columns_fallback = []
+        transparency_cols_fallback = []
+
+        # Ranking map for energy class fallback
+        class_map_fallback = {
+            "A4": 100, "A3": 95, "A2": 90, "A1": 85,
+            "B": 75, "C": 65, "D": 50, "E": 35,
+            "F": 20, "G": 5
+        }
+
+        for config in fallback_cols_config:
+            col = config["col"]
+            if col not in df_ranked.columns:
+                continue
+
+            used_columns_fallback.append(col)
+            base_weight = config["weight"]
             
-        df_ranked["ape_score"] = df_ranked["ape_score"].round(1)
-        
-        cols_to_return = ["id", "ape_score"]
-        if used_col:
-            cols_to_return.append(used_col)
-            df_ranked[f"ape_weight_{used_col}"] = 1.0
-            cols_to_return.append(f"ape_weight_{used_col}")
-                
+            # Temporary series for this column's score
+            col_score = pd.Series(0.0, index=df_ranked.index)
+            is_valid = pd.Series(False, index=df_ranked.index) # Tracks rows where val is not NaN
+            
+            if config["type"] == "categorical":
+                vals = df_ranked[col].astype(str).str.upper().str.strip()
+                def get_score(v):
+                    return class_map_fallback.get(v, None) # Return None if not found/NaN
+
+                valid_scores = vals.apply(get_score)
+                # Fill NaN with 0 but mark as invalid for weight sum if needed? 
+                # Strategy: If value is missing, we don't add weight.
+                col_score = valid_scores.fillna(0.0)
+                is_valid = valid_scores.notna()
+
+            elif config["type"] == "numeric":
+                vals = pd.to_numeric(df_ranked[col], errors="coerce")
+                min_v, max_v = config["min"], config["max"]
+                # Normalize (val - min) / (max - min) * 100
+                col_score = ((vals - min_v) / (max_v - min_v) * 100).clip(0, 100).fillna(0.0)
+                is_valid = vals.notna()
+
+            # Add weighted score only where valid
+            # total_score += col_score (unweighted yet? No, weights are relative significance)
+            # Actually, standard weighted average: sum(score * weight) / sum(weight)
+            
+            # Apply weight
+            weighted_contrib = col_score * base_weight
+            
+            # Update totals (for rows where this col is valid)
+            # If col is missing for a row, it contributes 0 to score and 0 to total_weight
+            total_score = total_score.add(weighted_contrib * is_valid.astype(int), fill_value=0)
+            total_weight_used = total_weight_used.add(pd.Series(base_weight, index=df_ranked.index) * is_valid.astype(int), fill_value=0)
+
+            # Store transparency info (weight assigned conceptually if present)
+            # Note: The effective weight depends on which other columns are present for that row. 
+            # For simplicity in logs, we show the 'nominal' base weight if column exists.
+            df_ranked[f"ape_weight_{col}"] = base_weight
+
+        # Finalize score: total_weighted_score / total_weight_used
+        # Handle division by zero
+        df_ranked["ape_score"] = np.where(
+            total_weight_used > 0,
+            (total_score / total_weight_used), # This re-normalizes to 0-100 scale
+            0.0
+        ).round(1)
+
+        cols_to_return = ["id", "ape_score"] + used_columns_fallback + [f"ape_weight_{c}" for c in used_columns_fallback]
         return df_ranked[cols_to_return]

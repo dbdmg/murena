@@ -349,7 +349,7 @@ export const SQLFiltersHUD: React.FC<SQLFiltersHUDProps> = ({
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.95, y: 20 }}
                             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-                            className="relative w-full max-w-4xl h-[75vh] bg-[#0f1218] rounded-3xl border border-white/10 shadow-2xl shadow-black/50 flex flex-col overflow-hidden"
+                            className="relative w-full max-w-[95vw] h-[90vh] bg-[#0f1218] rounded-3xl border border-white/10 shadow-2xl shadow-black/50 flex flex-col overflow-hidden"
                         >
                             {/* Ambient Glow */}
                             <div className="absolute -top-40 -left-40 w-80 h-80 bg-amber-500/10 rounded-full blur-[100px] pointer-events-none" />

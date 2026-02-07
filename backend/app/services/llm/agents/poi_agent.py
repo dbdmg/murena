@@ -115,55 +115,62 @@ class PoiAgent(BaseAgent):
         """
         if df is None or df.empty:
             if df is not None:
-                df["poi_score"] = 0
+                df["poi_score"] = 0.0
             return df
 
         if not ranked_categories:
-            df["poi_score"] = 0
+            df["poi_score"] = 0.0
             return df
 
         df_ranked = df.copy()
         
-        # 1. Calcola i pesi posizionali: 1/1, 1/2, 1/3...
-        weights = {}
+        # 1. Calcola i pesi posizionali (su TUTTE le categorie richieste): 1/1, 1/2, 1/3...
+        raw_weights = {}
         for i, cat in enumerate(ranked_categories):
-            weights[cat] = 1.0 / (i + 1)
+            raw_weights[cat] = 1.0 / (i + 1)
             
         # 2. Normalizza i pesi
-        total_weight = sum(weights.values())
-        if total_weight > 0:
-            weights = {cat: w / total_weight for cat, w in weights.items()}
+        total_weight = sum(raw_weights.values())
+        if total_weight == 0:
+            df_ranked["poi_score"] = 0.0
+            return df_ranked
+
+        normalized_weights = {cat: w / total_weight for cat, w in raw_weights.items()}
             
-        # 3. Calcola lo score pesato per ogni riga
-        # Poiché le colonne originali (sanita, mobilita, ecc.) sono in scala 1-5,
-        # normalizziamo a 0-100: (val - 1) / 4 * 100
+        # 3. Calcolo Vettorizzato dello Score
+        # Inizializza score a 0
+        df_ranked["poi_score"] = 0.0
         
-        def calculate_row_score(row):
-            score = 0
-            for cat, weight in weights.items():
-                if cat in row:
-                    val = pd.to_numeric(row[cat], errors="coerce")
-                    if not pd.isna(val):
-                        # (val - 1) / 4 -> scala 0-1
-                        # * weight -> pesato
-                        # * 100 -> scala 0-100
-                        norm_val = max(0, min(1, (val - 1) / 4))
-                        score += norm_val * weight * 100
-            return score
-
-        df_ranked["poi_score"] = df_ranked.apply(calculate_row_score, axis=1)
-        df_ranked["poi_score"] = df_ranked["poi_score"].round(1)
-
-        # Add transparency columns: weight per category
-        cols_to_return = ["id", "poi_score"]
-        used_cats = [cat for cat in ranked_categories if cat in df_ranked.columns]
+        score_details_cols = []
         weight_cols = []
-        
+        used_cats = [cat for cat in ranked_categories if cat in df_ranked.columns]
+
         for cat in used_cats:
-            # Weight used for this category
-            weight = weights.get(cat, 0.0)
-            col_name = f"poi_weight_{cat}"
-            df_ranked[col_name] = round(weight, 3)
-            weight_cols.append(col_name)
+            # A. Normalizzazione Valori (Input 1-5 -> Output 0-100)
+            # Gestione errori colonna e NaN
+            raw_vals = pd.to_numeric(df_ranked[cat], errors="coerce")
+            
+            # (val - 1) / 4 * 100. 
+            # Se val=1 -> 0. Se val=5 -> 100.
+            # Se NaN -> fillna(0) produce score 0 per quella categoria.
+            norm_vals = ((raw_vals - 1) / 4.0 * 100.0).fillna(0.0).clip(0, 100)
+            
+            # Salva colonna dettaglio score (0-100)
+            detail_col = f"poi_score_val_{cat}"
+            df_ranked[detail_col] = norm_vals.round(1)
+            score_details_cols.append(detail_col)
+            
+            # B. Applicazione Peso
+            w = normalized_weights.get(cat, 0.0)
+            df_ranked["poi_score"] += norm_vals * w
+            
+            # C. Salva Peso usato per trasparenza
+            weight_col = f"poi_weight_{cat}"
+            df_ranked[weight_col] = round(w, 3)
+            weight_cols.append(weight_col)
+
+        df_ranked["poi_score"] = df_ranked["poi_score"].round(1)
         
-        return df_ranked[cols_to_return + list(used_cats) + weight_cols]
+        # Return ID, Final Score, Raw Category Values (1-5), Normalized Scores (0-100), Weights
+        cols_to_return = ["id", "poi_score"]
+        return df_ranked[cols_to_return + list(used_cats) + score_details_cols + weight_cols]

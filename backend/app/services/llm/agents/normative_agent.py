@@ -292,6 +292,11 @@ class NormativeAgent(BaseAgent):
                 transparency_cols.append(f"normative_rank_position_{col}")
                 transparency_cols.append(f"normative_multiplier_{col}")
                 
+                # Save raw score for transparency
+                raw_score_col = f"normative_score_val_{col}"
+                df_ranked[raw_score_col] = req_score.round(1)
+                transparency_cols.append(raw_score_col)
+                
             total_scores += req_score
 
         if valid_req_count > 0:
@@ -305,7 +310,7 @@ class NormativeAgent(BaseAgent):
         else:
             df_ranked["normative_score"] = 0.0
 
-        # Return score + used columns + weight columns
+        # Return score + used columns + weight columns + transparency detail columns
         cols_to_return = ["id", "normative_score"] + list(all_req_columns)
         weight_cols = [f"normative_weight_{c}" for c in used_columns]
         
@@ -314,4 +319,5 @@ class NormativeAgent(BaseAgent):
             if wc not in df_ranked.columns:
                 df_ranked[wc] = 0.0
                 
+        # Return all columns for full transparency in logs
         return df_ranked[["id", "normative_score"] + list(all_req_columns) + weight_cols + transparency_cols]

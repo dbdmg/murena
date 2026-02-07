@@ -1328,15 +1328,18 @@ class GraphOrchestratorAgent(BaseAgent):
                 data = safe_extract_json(res.raw_text, schema=TypologyResponse)
                 if data and data.typologies:
                     tmp = self.typology_agent.run(mode="ranking", df=df.copy(), ranked_typologies=data.typologies)
-                    return tmp[["id", "typology_score"]]
+                    # Include metadata columns for the log
+                    return tmp[["id", "typology_score", "tipologia_bene_immobile", "typology_rank_position"]]
             tmp = df.copy()
             tmp["typology_score"] = 0.0
-            return tmp[["id", "typology_score"]]
+            # Return empty metadata if no ranking applied
+            tmp["typology_rank_position"] = None
+            return tmp[["id", "typology_score", "tipologia_bene_immobile", "typology_rank_position"]]
 
         def rank_location():
             if state["context"].locations:
                  tmp = self.location_agent.run(mode="ranking", df=df.copy(), places=state["context"].locations)
-                 return tmp[["id", "location_score"]]
+                 return tmp
             tmp = df.copy()
             tmp["location_score"] = 0.0
             return tmp[["id", "location_score"]]
@@ -1350,7 +1353,8 @@ class GraphOrchestratorAgent(BaseAgent):
                     requirements = data.requisiti
             
             tmp = self.ape_agent.run(mode="ranking", df=df.copy(), requirements=requirements)
-            return tmp[["id", "ape_score"]]
+            # Return all columns returned by the agent (score + metadata like weights and ranks)
+            return tmp
 
         def rank_normative():
             res = state.get("normative_result")
@@ -1358,7 +1362,7 @@ class GraphOrchestratorAgent(BaseAgent):
                 data = safe_extract_json(res.raw_text, schema=NormativeResponse)
                 if data and data.found:
                     tmp = self.normative_agent.run(mode="ranking", df=df.copy(), requirements=data.requisiti, available_columns=NORMATIVE_AGENT_COLUMNS)
-                    return tmp[["id", "normative_score"]]
+                    return tmp
             tmp = df.copy()
             tmp["normative_score"] = 0.0
             return tmp[["id", "normative_score"]]
@@ -1368,8 +1372,9 @@ class GraphOrchestratorAgent(BaseAgent):
             if res:
                 data = safe_extract_json(res.raw_text)
                 if data and data.get("categories"):
+                    # Passiamo la lista di categorie attese per calcolare lo score
                     tmp = self.poi_agent.run(mode="ranking", df=df.copy(), ranked_categories=data.get("categories"))
-                    return tmp[["id", "poi_score"]]
+                    return tmp
             tmp = df.copy()
             tmp["poi_score"] = 0.0
             return tmp[["id", "poi_score"]]
@@ -1402,8 +1407,10 @@ class GraphOrchestratorAgent(BaseAgent):
                         # Log this ranking agent execution to the trace
                         self._log_execution(state, f"{name}-agent", res_df, 0, mode="ranking")
 
-                    # Aggiungiamo solo le colonne di score evitando duplicazioni (usiamo 'id' come chiave)
-                    df = df.merge(res_df, on="id", how="left")
+                    # Aggiungiamo solo le colonne nuove evitando duplicazioni
+                    # Identifichiamo le colonne da mergiuare: quelle che non sono già in df (eccetto 'id')
+                    cols_to_merge = [c for c in res_df.columns if c == "id" or c not in df.columns]
+                    df = df.merge(res_df[cols_to_merge], on="id", how="left")
                 except Exception as e:
                     logger.error(f"Error in parallel ranking part {name}: {e}")
                     col = "ape_score" if name == "ape" else f"{name}_score"

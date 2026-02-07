@@ -105,9 +105,17 @@ class AgentLogger:
                     original_record = records[idx] if 'records' in locals() and idx < len(records) else record
                     ranking_details = {}
                     
-                    # Estrai score, rank e colonne dei pesi (w_*)
+                        # Estrai score, rank e colonne dei pesi (w_*) e altri dettagli di calcolo
                     for key, val in original_record.items():
-                        if key in ["score", "rank", "final_ranking_score"] or key.startswith("w_"):
+                        is_ranking_col = (
+                            key in ["score", "rank", "final_ranking_score"] 
+                            or key.endswith("_score")
+                            or "_rank_position" in key
+                            or "_multiplier" in key
+                            or "_weight_" in key
+                            or key.startswith("w_")
+                        )
+                        if is_ranking_col:
                             ranking_details[key] = val
                     
                     if ranking_details:
