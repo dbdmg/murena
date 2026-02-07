@@ -154,7 +154,8 @@ export function useIntelligenceMap(
                 .filter(b => (b?.coordinates?.lat != null && b?.coordinates?.lng != null) || ((b?.coordinates as any)?.lon != null))
                 .map(b => {
                     const evalData = evaluationMap.get(String(b.id));
-                    const isEvaluated = !!evalData;
+                    // Fix: Respect backend is_evaluated flag if evalData is missing
+                    const isEvaluated = !!evalData || b.is_evaluated;
 
                     return {
                         id: String(b.id),
@@ -195,7 +196,7 @@ export function useIntelligenceMap(
                         evaluation_text: evalData?.evaluation_text,
                         pros: evalData?.pros,
                         cons: evalData?.cons,
-                        ranking_score: evalData?.score,
+                        ranking_score: Math.round(evalData?.score ?? b.score ?? 0),
                     } as MapMarker;
                 });
 

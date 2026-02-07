@@ -76,7 +76,7 @@ export const QueryTooltip: React.FC<QueryTooltipProps> = ({
                             animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
                             exit={{ opacity: 0, scale: 0.9, filter: "blur(10px)" }}
                             transition={{ type: "spring", stiffness: 400, damping: 25 }}
-                            className="fixed z-[9999] w-[400px] max-w-[90vw] flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#0a0f16]/90 shadow-2xl backdrop-blur-3xl ring-1 ring-white/5"
+                            className="fixed z-9999 w-[400px] max-w-[90vw] flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#0a0f16]/90 shadow-2xl backdrop-blur-3xl ring-1 ring-white/5"
                             style={{
                                 top: coords.placement === 'bottom' ? coords.top : undefined,
                                 bottom: coords.placement === 'top' ? coords.bottom : undefined,
@@ -85,7 +85,7 @@ export const QueryTooltip: React.FC<QueryTooltipProps> = ({
                             onClick={(e) => e.stopPropagation()}
                         >
                             {/* Header Gradient Line */}
-                            <div className="h-1 w-full bg-gradient-to-r from-blue-500/50 via-purple-500/50 to-pink-500/50" />
+                            <div className="h-1 w-full bg-linear-to-r from-blue-500/50 via-purple-500/50 to-pink-500/50" />
 
                             <div className="p-4">
                                 <div className="flex items-center justify-between mb-3">
@@ -125,7 +125,7 @@ export const QueryTooltip: React.FC<QueryTooltipProps> = ({
                             </div>
 
                             {/* Footer info/decoration */}
-                            <div className="px-4 py-2 bg-white/[0.02] border-t border-white/5 flex justify-between items-center text-[10px] text-gray-500">
+                            <div className="px-4 py-2 bg-white/2 border-t border-white/5 flex justify-between items-center text-[10px] text-gray-500">
                                 <span>ID: SYSTEM</span>
                                 <span className="flex items-center gap-1.5">
                                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500/50 animate-pulse" />
