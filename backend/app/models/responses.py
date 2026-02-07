@@ -2,7 +2,7 @@
 Pydantic models for API responses.
 """
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 
@@ -15,8 +15,8 @@ class AnalysisResponse(BaseModel):
     message: str
     created_at: datetime
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "run_id": "abc123def456",
                 "status": "processing",
@@ -24,6 +24,7 @@ class AnalysisResponse(BaseModel):
                 "created_at": "2026-01-15T22:00:00Z",
             }
         }
+    )
 
 
 class Coordinates(BaseModel):
@@ -104,8 +105,7 @@ class BuildingResponse(BaseModel):
     distance_km: Optional[float] = None
     poi_reference: Optional[str] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class BuildingsListResponse(BaseModel):

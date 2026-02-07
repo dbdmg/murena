@@ -2,7 +2,7 @@
 Pydantic models for API requests.
 """
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional, List
 
 
@@ -29,8 +29,8 @@ class AnalysisRequest(BaseModel):
         default="agent", description="Analysis mode: 'classic' or 'agent'"
     )
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "query": "Appartamenti a Torino vicino al Politecnico con classe energetica A",
                 "dataset_key": "full",
@@ -39,6 +39,7 @@ class AnalysisRequest(BaseModel):
                 "analysis_mode": "agent",
             }
         }
+    )
 
 
 class LoginRequest(BaseModel):
@@ -127,8 +128,8 @@ class BuildingFilters(BaseModel):
         None, description="Filter by asset nature (FABBRICATO or TERRENO)"
     )
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "city": "Roma",
                 "min_surface": 50,
@@ -138,3 +139,4 @@ class BuildingFilters(BaseModel):
                 "epoche_costruzione": ["Dal 1991 al 2000", "Dopo il 2010"],
             }
         }
+    )

@@ -61,3 +61,6 @@ def pytest_configure(config):
     config.addinivalue_line(
         "markers", "real_llm: test che usano LLM reali (richiede RUN_REAL_LLM_TESTS=1)"
     )
+    config.addinivalue_line(
+        "markers", "timeout: marker per gestire timeout dei test"
+    )
