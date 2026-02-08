@@ -1363,6 +1363,10 @@ class GraphOrchestratorAgent(BaseAgent):
         if df is None or df.empty:
             return state
 
+        # Fix: Ensure ID is string for matching with agent results (which use string IDs from JSON)
+        if "id" in df.columns:
+            df["id"] = df["id"].astype(str)
+
         ranking_res = state.get("ranking_result")
         weights = ranking_res.weights if ranking_res else RankingWeights()
 
