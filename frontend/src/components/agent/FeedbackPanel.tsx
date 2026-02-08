@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Star, Check, MessageSquare, X, Loader2 } from 'lucide-react';
 import { feedbackApi } from '../../api/endpoints/feedback';
@@ -28,6 +28,15 @@ export const FeedbackPanel: React.FC<FeedbackPanelProps> = ({
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isSubmitted, setIsSubmitted] = useState(!!existingFeedback);
     const [error, setError] = useState<string | null>(null);
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+    // Auto-expand textarea
+    useEffect(() => {
+        if (textareaRef.current) {
+            textareaRef.current.style.height = 'auto';
+            textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+        }
+    }, [comment, isExpanded]);
 
     // Sync state when existingFeedback changes (e.g. after fetch in parent)
     useEffect(() => {
@@ -161,12 +170,13 @@ export const FeedbackPanel: React.FC<FeedbackPanelProps> = ({
                                     Commento (Opzionale)
                                 </label>
                                 <textarea
+                                    ref={textareaRef}
                                     value={comment}
                                     onChange={(e) => setComment(e.target.value)}
                                     disabled={isSubmitted || isSubmitting}
                                     placeholder="Condividi i tuoi pensieri..."
-                                    className="w-full px-3 py-2 bg-black/40 border border-white/10 rounded-lg text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/50 transition-colors resize-none disabled:opacity-50 disabled:cursor-not-allowed"
-                                    rows={3}
+                                    className="w-full px-3 py-2 bg-black/40 border border-white/10 rounded-lg text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/50 transition-colors resize-none disabled:opacity-50 disabled:cursor-not-allowed overflow-y-auto min-h-[80px] max-h-[240px]"
+                                    rows={1}
                                 />
                             </div>
 

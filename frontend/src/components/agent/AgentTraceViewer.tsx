@@ -497,7 +497,7 @@ export const AgentTraceViewer: React.FC<AgentTraceViewerProps> = ({ trace, runId
                             icon={group.icon}
                             items={group.items}
                             runId={runId}
-                            existingFeedback={feedbacks.find(f => f.agent_name === group.title)}
+                            feedbacks={feedbacks}
                         />
                     ))}
                 </div>
@@ -511,7 +511,7 @@ export const AgentTraceViewer: React.FC<AgentTraceViewerProps> = ({ trace, runId
     );
 };
 
-const TraceGroup = ({ title, icon, items, runId, existingFeedback }: { title: string; icon: React.ReactNode; items: AgentTraceItem[]; runId?: string; existingFeedback?: AgentFeedbackResponse }) => {
+const TraceGroup = ({ title, icon, items, runId, feedbacks }: { title: string; icon: React.ReactNode; items: AgentTraceItem[]; runId?: string; feedbacks: AgentFeedbackResponse[] }) => {
     const [isExpanded, setIsExpanded] = useState(true);
 
     return (
@@ -538,17 +538,6 @@ const TraceGroup = ({ title, icon, items, runId, existingFeedback }: { title: st
                         {items.length}
                     </span>
                 </div>
-                {/* Per-Agent Feedback */}
-                {runId && (
-                    <div onClick={(e) => e.stopPropagation()}>
-                        <FeedbackPanel
-                            runId={runId}
-                            agentName={title}
-                            variant="compact"
-                            existingFeedback={existingFeedback}
-                        />
-                    </div>
-                )}
             </div>
 
             <AnimatePresence>
@@ -563,6 +552,8 @@ const TraceGroup = ({ title, icon, items, runId, existingFeedback }: { title: st
                             <TraceItemCard
                                 key={`${item.agent_name}-${item.timestamp}-${idx}`}
                                 item={item}
+                                runId={runId}
+                                existingFeedback={feedbacks.find(f => f.agent_name === item.agent_name)}
                             />
                         ))}
                     </motion.div>
@@ -572,7 +563,7 @@ const TraceGroup = ({ title, icon, items, runId, existingFeedback }: { title: st
     );
 };
 
-const TraceItemCard = ({ item }: { item: AgentTraceItem }) => {
+const TraceItemCard = ({ item, runId, existingFeedback }: { item: AgentTraceItem; runId?: string; existingFeedback?: AgentFeedbackResponse }) => {
     const [isExpanded, setIsExpanded] = useState(false);
 
     const duration = item.execution_time_ms < 1
@@ -656,6 +647,18 @@ const TraceItemCard = ({ item }: { item: AgentTraceItem }) => {
                             </div>
                             <span className="text-[10px] text-slate-600 font-mono uppercase tracking-tighter opacity-50">{time}</span>
                         </div>
+
+                        {/* Per-Agent Feedback */}
+                        {runId && (
+                            <div onClick={(e) => e.stopPropagation()} className="ml-2">
+                                <FeedbackPanel
+                                    runId={runId}
+                                    agentName={item.agent_name}
+                                    variant="compact"
+                                    existingFeedback={existingFeedback}
+                                />
+                            </div>
+                        )}
 
                         {!isExpanded && (
                             <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-white/10 transition-colors">
