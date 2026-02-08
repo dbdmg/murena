@@ -135,7 +135,7 @@ Sei un esperto di SQL per DuckDB. Il tuo compito è generare una query per la ta
 - NON filtrare MAI per colonne di punteggio (es. `ape_score_*`, `sanita`, `mobilita`, ecc.). Queste servono solo per il ranking post-query.
 - NON usare LIMIT (o usa LIMIT 10000).
 - Se devi rilassare i vincoli (fase di retry), rimuovi SOLO UN REQUISITO alla volta, partendo dall'ultimo in fondo alla clausola WHERE (il meno importante).
-- **ORDINE CLAUSOLE**: Ordina le condizioni nella clausola `WHERE` dalla più importante alla meno importante (dall'alto verso il basso).
+- **ORDINE CLAUSOLE**: DEVI ordinare le condizioni nella clausola `WHERE` seguendo RIGOROSAMENTE l'ordine indicato in `RANKING PREFERENZE`. Metti i criteri più importanti (primi in lista) in cima alla WHERE.
 
 # OUTPUT
 Restituisci ESCLUSIVAMENTE la query SQL valida.
@@ -154,6 +154,7 @@ RISULTATI FILTRAGGIO AGENTI:
 
 SCHEMA DATABASE: {scheme}
 METADATI (valori ammessi): {db_metadata}
+RANKING PREFERENZE (ORDINE OBBLIGATORIO CLAUSOLE): {ranking}
 ```
 
 
@@ -441,4 +442,8 @@ Restituisci ESCLUSIVAMENTE un JSON valido:
 ## ranking_agent.user
 ```prompt
 QUERY UTENTE: "{query}"
+
+METADATI DISPONIBILI:
+{db_metadata}
+```
 ```
