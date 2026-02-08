@@ -347,3 +347,21 @@ export interface ProgressComplete {
 }
 
 export type WebSocketMessage = ProgressUpdate | ProgressComplete;
+
+// Agent Feedback Types
+export interface AgentFeedbackSubmit {
+    run_id: string;
+    agent_name?: string;  // null/undefined for global feedback
+    rating: 1 | 2 | 3 | 4 | 5;
+    comment?: string;
+}
+
+export interface AgentFeedbackResponse {
+    id: number;
+    run_id: string;
+    agent_name?: string;
+    rating: number;
+    comment?: string;
+    created_at: string;
+    user_id?: number;
+}

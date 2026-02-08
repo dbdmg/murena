@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 from typing import Optional, Any
+from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -20,7 +21,9 @@ from app.database.connection import get_db
 from app.database.models import User, Feedback
 from app.models.requests import AppFeedbackRequest
 from app.models.responses import AppFeedbackResponse
+from app.models.feedback import FeedbackCreate, FeedbackResponse
 from app.repositories import FeedbackRepository, RunRepository
+from app.services.feedback_service import feedback_service
 
 router = APIRouter()
 
@@ -139,3 +142,108 @@ async def list_app_feedback(
         )
 
     return out
+
+
+@router.post("/agent", response_model=FeedbackResponse, status_code=status.HTTP_201_CREATED)
+async def create_agent_feedback(
+    request: FeedbackCreate,
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user_optional),
+) -> Any:
+    """Create feedback for a specific agent or global analysis feedback."""
+
+    # Verify run exists
+    run = RunRepository(db).get_by_run_id(request.run_id)
+    if not run:
+        raise HTTPException(status_code=404, detail="Analysis not found")
+
+    # Check permissions if user-specific
+    if current_user and run.user_id is not None and run.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    # Check if feedback already exists for this agent/run combination
+    repo = FeedbackRepository(db)
+    existing = repo.get_feedback_by_agent(request.run_id, request.agent_name)
+    if existing:
+        # Update existing feedback instead of creating duplicate
+        existing.rating = request.rating
+        existing.comment = request.comment
+        db.commit()
+        db.refresh(existing)
+        return FeedbackResponse.model_validate(existing)
+
+    # Create new feedback
+    feedback = repo.create_agent_feedback(
+        run_id=request.run_id,
+        agent_name=request.agent_name,
+        rating=request.rating,
+        comment=request.comment,
+        user_id=current_user.id if current_user else None,
+    )
+
+    # Perform JSON backup
+    all_feedback = repo.get_agent_feedback_by_run(request.run_id)
+    feedback_service.backup_to_json(
+        run_id=request.run_id,
+        feedbacks=[FeedbackResponse.model_validate(fb) for fb in all_feedback],
+        query=run.query
+    )
+
+    return FeedbackResponse.model_validate(feedback)
+
+
+@router.get("/agent", response_model=list[FeedbackResponse])
+async def get_agent_feedback(
+    run_id: str,
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user_optional),
+) -> Any:
+    """Get all agent feedback for a specific analysis run."""
+
+    # Verify run exists
+    run = RunRepository(db).get_by_run_id(run_id)
+    if not run:
+        raise HTTPException(status_code=404, detail="Analysis not found")
+
+    # Check permissions if user-specific
+    if current_user and run.user_id is not None and run.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    # Get all agent feedback
+    repo = FeedbackRepository(db)
+    feedbacks = repo.get_agent_feedback_by_run(run_id)
+
+    return [FeedbackResponse.model_validate(fb) for fb in feedbacks]
+
+
+@router.get("/export", status_code=status.HTTP_200_OK)
+async def export_feedback(
+    format: str = "csv",
+    db: Session = Depends(get_db),
+    # Only authenticated users can export
+    # In a real app, this should be admin-only
+    _: User = Depends(get_current_user_optional),
+) -> Any:
+    """Export all agent feedback in CSV format."""
+    
+    # Get all feedback entries that are not tied to buildings (agent/global feedback)
+    feedbacks = (
+        db.query(Feedback)
+        .filter(Feedback.building_id.is_(None))
+        .all()
+    )
+    
+    feedback_objs = [FeedbackResponse.model_validate(fb) for fb in feedbacks]
+    
+    if format == "csv":
+        from fastapi.responses import Response
+        csv_data = feedback_service.export_all_to_csv(feedback_objs)
+        return Response(
+            content=csv_data,
+            media_type="text/csv",
+            headers={
+                "Content-Disposition": f"attachment; filename=agent_feedback_{datetime.now().strftime('%Y%m%d')}.csv"
+            }
+        )
+    
+    return feedback_objs

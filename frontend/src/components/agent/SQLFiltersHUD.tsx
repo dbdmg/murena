@@ -399,14 +399,14 @@ export const SQLFiltersHUD: React.FC<SQLFiltersHUDProps> = ({
 
                             {/* Content */}
                             {viewMode === 'trace' ? (
-                                <div className="flex-1 w-full relative bg-[#0f1218] overflow-y-auto custom-scrollbar p-8">
+                                <div className="flex-1 w-full relative bg-[#0f1218] overflow-auto custom-scrollbar p-8">
                                     {isLoadingTrace ? (
                                         <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-500">
                                             <Loader2 className="w-10 h-10 animate-spin mb-4 text-amber-500" />
                                             <span>Caricamento trace...</span>
                                         </div>
                                     ) : agentTrace ? (
-                                        <AgentTraceViewer trace={agentTrace} initialQuery={initialQuery} />
+                                        <AgentTraceViewer trace={agentTrace} runId={activeRunId || undefined} initialQuery={initialQuery} />
                                     ) : (
                                         <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-500">
                                             <AlertCircle className="w-10 h-10 mb-4 text-red-400" />

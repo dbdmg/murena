@@ -22,9 +22,14 @@ import {
 } from 'lucide-react';
 import type { AgentTraceItem } from '../../api/types';
 import { QueryTooltip } from '../common/QueryTooltip';
+import { FeedbackPanel } from './FeedbackPanel';
+import { feedbackApi } from '../../api/endpoints/feedback';
+import type { AgentFeedbackResponse } from '../../api/types';
+import { useEffect } from 'react';
 
 interface AgentTraceViewerProps {
     trace: AgentTraceItem[];
+    runId?: string;
     initialQuery?: string;
     className?: string;
 }
@@ -349,7 +354,24 @@ const JSONViewer = ({ data, label, defaultExpanded = false }: { data: unknown; l
 // Main Components
 // ----------------------------------------------------------------------------
 
-export const AgentTraceViewer: React.FC<AgentTraceViewerProps> = ({ trace, initialQuery, className = '' }) => {
+export const AgentTraceViewer: React.FC<AgentTraceViewerProps> = ({ trace, runId, initialQuery, className = '' }) => {
+    const [feedbacks, setFeedbacks] = useState<AgentFeedbackResponse[]>([]);
+
+    useEffect(() => {
+        if (!runId) return;
+
+        const loadFeedback = async () => {
+            try {
+                const data = await feedbackApi.getAgentFeedback(runId);
+                setFeedbacks(data);
+            } catch (err) {
+                console.error("Failed to load feedback:", err);
+            }
+        };
+
+        loadFeedback();
+    }, [runId]);
+
     if (!trace || trace.length === 0) {
         return (
             <div className={`flex flex-col items-center justify-center p-20 text-slate-600 ${className}`}>
@@ -421,7 +443,7 @@ export const AgentTraceViewer: React.FC<AgentTraceViewerProps> = ({ trace, initi
                         <div className="text-[10px] font-black text-amber-500/40 uppercase tracking-widest mb-0.5">Contesto Ricerca</div>
                         <QueryTooltip text={initialQuery}>
                             <div className="text-white/80 text-[14px] font-medium truncate italic group-hover/sticky-header:text-white transition-colors cursor-help">
-                                "{initialQuery}"
+                                "{initialQuery.length > 200 ? initialQuery.substring(0, 200) + '...' : initialQuery}"
                             </div>
                         </QueryTooltip>
                     </div>
@@ -429,6 +451,14 @@ export const AgentTraceViewer: React.FC<AgentTraceViewerProps> = ({ trace, initi
                         <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                         <span className="text-[10px] font-mono text-slate-500 uppercase tracking-widest">Active Context</span>
                     </div>
+                    {/* Global Feedback */}
+                    {runId && (
+                        <FeedbackPanel
+                            runId={runId}
+                            variant="compact"
+                            existingFeedback={feedbacks.find(f => !f.agent_name)}
+                        />
+                    )}
                 </div>
             )}
 
@@ -466,6 +496,8 @@ export const AgentTraceViewer: React.FC<AgentTraceViewerProps> = ({ trace, initi
                             title={group.title}
                             icon={group.icon}
                             items={group.items}
+                            runId={runId}
+                            existingFeedback={feedbacks.find(f => f.agent_name === group.title)}
                         />
                     ))}
                 </div>
@@ -479,7 +511,7 @@ export const AgentTraceViewer: React.FC<AgentTraceViewerProps> = ({ trace, initi
     );
 };
 
-const TraceGroup = ({ title, icon, items }: { title: string; icon: React.ReactNode; items: AgentTraceItem[] }) => {
+const TraceGroup = ({ title, icon, items, runId, existingFeedback }: { title: string; icon: React.ReactNode; items: AgentTraceItem[]; runId?: string; existingFeedback?: AgentFeedbackResponse }) => {
     const [isExpanded, setIsExpanded] = useState(true);
 
     return (
@@ -497,7 +529,7 @@ const TraceGroup = ({ title, icon, items }: { title: string; icon: React.ReactNo
                     </div>
                 </div>
 
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/5 group-hover/group-header:border-white/10 transition-colors">
+                <div className="flex-1 flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/5 group-hover/group-header:border-white/10 transition-colors">
                     <span className="text-amber-500 opacity-70">{icon}</span>
                     <span className="text-[14px] font-bold uppercase tracking-widest text-slate-400 group-hover/group-header:text-slate-200">
                         {title}
@@ -506,6 +538,17 @@ const TraceGroup = ({ title, icon, items }: { title: string; icon: React.ReactNo
                         {items.length}
                     </span>
                 </div>
+                {/* Per-Agent Feedback */}
+                {runId && (
+                    <div onClick={(e) => e.stopPropagation()}>
+                        <FeedbackPanel
+                            runId={runId}
+                            agentName={title}
+                            variant="compact"
+                            existingFeedback={existingFeedback}
+                        />
+                    </div>
+                )}
             </div>
 
             <AnimatePresence>
