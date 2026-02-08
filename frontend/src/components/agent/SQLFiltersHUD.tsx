@@ -3,7 +3,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, SearchCode, Terminal, AlertCircle, Loader2, FileText, Code2 } from 'lucide-react';
 import { analysisApi } from '../../api/endpoints/analysis';
 import { parseSqlWhereConditions } from '../../utils/sqlUtils';
+import { AgentTraceViewer } from './AgentTraceViewer';
 import type { SqlCondition } from '../../utils/sqlUtils';
+import type { AgentTraceItem } from '../../api/types';
 
 // ============================================================================
 // Types
@@ -226,7 +228,8 @@ export const SQLFiltersHUD: React.FC<SQLFiltersHUDProps> = ({
     const [activeTab, setActiveTab] = useState<number>(0);
     const [error, setError] = useState<string | null>(null);
     const [viewMode, setViewMode] = useState<'sql' | 'trace'>('sql');
-    const [htmlLog, setHtmlLog] = useState<string | null>(null);
+    const [agentTrace, setAgentTrace] = useState<AgentTraceItem[] | null>(null);
+    const [initialQuery, setInitialQuery] = useState<string>('');
     const [isLoadingTrace, setIsLoadingTrace] = useState(false);
 
     // Load SQL steps
@@ -294,7 +297,7 @@ export const SQLFiltersHUD: React.FC<SQLFiltersHUDProps> = ({
         // Reset state on open
         if (isOpen) {
             setViewMode('sql');
-            setHtmlLog(null);
+            setAgentTrace(null);
         }
     }, [activeRunId, isOpen]);
 
@@ -302,19 +305,19 @@ export const SQLFiltersHUD: React.FC<SQLFiltersHUDProps> = ({
         if (!activeRunId) return;
         setViewMode('trace');
 
-        if (htmlLog) return; // Already loaded
+        if (agentTrace) return; // Already loaded
 
         setIsLoadingTrace(true);
         try {
             const results = await analysisApi.getResults(activeRunId);
-            if (results.html_log) {
-                setHtmlLog(results.html_log);
-            } else {
-                setHtmlLog("<html><body><h3 style='color: #333; font-family: sans-serif; text-align: center; margin-top: 50px;'>Trace non ancora disponibile per questa analisi.</h3></body></html>");
+            if (results.agent_trace) {
+                setAgentTrace(results.agent_trace);
+            }
+            if (results.query) {
+                setInitialQuery(results.query);
             }
         } catch (err) {
             console.error("Failed to load trace:", err);
-            setHtmlLog("<html><body><h3 style='color: #d32f2f; font-family: sans-serif; text-align: center; margin-top: 50px;'>Errore durante il caricamento del trace.</h3></body></html>");
         } finally {
             setIsLoadingTrace(false);
         }
@@ -396,19 +399,14 @@ export const SQLFiltersHUD: React.FC<SQLFiltersHUDProps> = ({
 
                             {/* Content */}
                             {viewMode === 'trace' ? (
-                                <div className="flex-1 w-full relative bg-[#1e1e1e] overflow-hidden">
+                                <div className="flex-1 w-full relative bg-[#0f1218] overflow-auto custom-scrollbar p-8">
                                     {isLoadingTrace ? (
                                         <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-500">
                                             <Loader2 className="w-10 h-10 animate-spin mb-4 text-amber-500" />
                                             <span>Caricamento trace...</span>
                                         </div>
-                                    ) : htmlLog ? (
-                                        <iframe
-                                            srcDoc={htmlLog}
-                                            className="w-full h-full border-none"
-                                            title="Agent Trace"
-                                            style={{ backgroundColor: 'white' }}
-                                        />
+                                    ) : agentTrace ? (
+                                        <AgentTraceViewer trace={agentTrace} runId={activeRunId || undefined} initialQuery={initialQuery} />
                                     ) : (
                                         <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-500">
                                             <AlertCircle className="w-10 h-10 mb-4 text-red-400" />

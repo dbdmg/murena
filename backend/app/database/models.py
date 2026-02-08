@@ -81,6 +81,9 @@ class Feedback(Base):
     run_id = Column(String(100), ForeignKey("runs.run_id"), nullable=False, index=True)
     # building_id is optional to support app-level feedback (not tied to a single building)
     building_id = Column(String(100), nullable=True, index=True)
+    # agent_name is optional to support agent-level feedback (null = global feedback)
+    agent_name = Column(String(255), nullable=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
 
     # Feedback content
     rating = Column(
@@ -101,6 +104,7 @@ class Feedback(Base):
 
     # Relationships
     run = relationship("Run", back_populates="feedback")
+    user = relationship("User")
 
     def __repr__(self):
         return f"<Feedback(id={self.id}, building_id='{self.building_id}', rating={self.rating})>"

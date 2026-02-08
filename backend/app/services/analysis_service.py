@@ -281,6 +281,7 @@ class AnalysisService:
 
         # Generate Agent HTML Log
         html_log = None
+        agent_executions = None
         agent_trace = getattr(orchestrator_result, "agent_trace", None)
         if agent_trace is not None:
             try:
@@ -331,6 +332,7 @@ class AnalysisService:
             },
             "gemini_responses": make_json_safe(orchestrator_result.gemini_responses),
             "broker_summary": make_json_safe(orchestrator_result.broker_summary),
+            "agent_trace": agent_executions,
             "context": (
                 orchestrator_result.context.model_dump()
                 if orchestrator_result.context

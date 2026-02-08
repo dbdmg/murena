@@ -128,3 +128,70 @@ class FeedbackRepository(BaseRepository[Feedback]):
         )
 
         return float(result) if result is not None else None
+
+    def create_agent_feedback(
+        self,
+        run_id: str,
+        agent_name: Optional[str],
+        rating: int,
+        comment: Optional[str] = None,
+        user_id: Optional[int] = None,
+    ) -> Feedback:
+        """
+        Create new feedback for an agent or global feedback.
+
+        Args:
+            run_id: Run ID
+            agent_name: Agent name (None for global feedback)
+            rating: Rating (1-5)
+            comment: Optional text comment
+            user_id: Optional user ID
+
+        Returns:
+            Created Feedback instance
+        """
+        feedback = Feedback(
+            run_id=run_id,
+            agent_name=agent_name,
+            rating=rating,
+            comment=comment,
+            user_id=user_id,
+        )
+        return self.create(feedback)
+
+    def get_agent_feedback_by_run(self, run_id: str) -> List[Feedback]:
+        """
+        Get all agent feedback for a specific run.
+
+        Args:
+            run_id: Run ID to search for
+
+        Returns:
+            List of Feedback instances for agents
+        """
+        return (
+            self.db.query(Feedback)
+            .filter(Feedback.run_id == run_id)
+            .filter(Feedback.agent_name.isnot(None) | (Feedback.agent_name.is_(None) & Feedback.building_id.is_(None)))
+            .all()
+        )
+
+    def get_feedback_by_agent(
+        self, run_id: str, agent_name: Optional[str]
+    ) -> Optional[Feedback]:
+        """
+        Get feedback for a specific agent or global feedback.
+
+        Args:
+            run_id: Run ID
+            agent_name: Agent name (None for global feedback)
+
+        Returns:
+            Feedback instance or None
+        """
+        query = self.db.query(Feedback).filter(Feedback.run_id == run_id)
+        if agent_name is None:
+            query = query.filter(Feedback.agent_name.is_(None), Feedback.building_id.is_(None))
+        else:
+            query = query.filter(Feedback.agent_name == agent_name)
+        return query.first()

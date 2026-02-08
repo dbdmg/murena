@@ -268,7 +268,25 @@ export interface AnalysisResults {
     };
     gemini_responses?: GeminiResponses;
     broker_summary?: string;
+    agent_trace?: AgentTraceItem[];
     html_log?: string;
+}
+
+export interface AgentTraceItem {
+    agent_name: string;
+    agent_mode: string;
+    timestamp: string; // ISO
+    execution_time_ms: number;
+    input: unknown;
+    output: unknown;
+    output_structure?: unknown;
+    notes?: string;
+    batch_id?: number | null;
+    retry_id?: number;
+    use_case?: string;
+    prompt_id?: string;
+    run_number?: number;
+    run_timestamp?: string;
 }
 
 /**
@@ -329,3 +347,21 @@ export interface ProgressComplete {
 }
 
 export type WebSocketMessage = ProgressUpdate | ProgressComplete;
+
+// Agent Feedback Types
+export interface AgentFeedbackSubmit {
+    run_id: string;
+    agent_name?: string;  // null/undefined for global feedback
+    rating: 1 | 2 | 3 | 4 | 5;
+    comment?: string;
+}
+
+export interface AgentFeedbackResponse {
+    id: number;
+    run_id: string;
+    agent_name?: string;
+    rating: number;
+    comment?: string;
+    created_at: string;
+    user_id?: number;
+}

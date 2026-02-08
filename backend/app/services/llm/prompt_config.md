@@ -123,8 +123,8 @@ Sei un esperto di SQL per DuckDB. Il tuo compito è generare una query per la ta
 
 # COMPITI
 1. **RIMOZIONE CONTRADDIZIONI**: Analizza i vari filtri suggeriti. Se trovi conflitti (es. un agente chiede Classe A e un altro chiede un immobile economico), risolvili dando priorità alla richiesta esplicita dell'utente e all'importanza dei requisiti per l'obiettivo finale.
-2. **GENERAZIONE WHERE**: Traduci i requisiti in clausole WHERE. 
-   - Usa `classe_energetica_ape` (es. LIKE 'A%') invece di punteggi numerici.
+2. **GENERAZIONE WHERE**: Traduci i requisiti in clausole WHERE seguendo queste linee guida:
+   - Per l'efficienza energetica (APE), usa le colonne `classe_energetica_ape` (per classi come 'A%', 'B', ecc.) e `epglnren_ape` (per valori numerici di prestazione) ESATTAMENTE come suggerito dall'APE Agent.
    - Per le tipologie, usa `IN (...)`.
    - Se c'è una location, usa `haversine_km(latitudine, longitudine, {lat}, {lon}) < raggio`.
 3. **NO RANKING**: NON inserire clausole ORDER BY basate su preferenze di qualità (APE, POI, ecc.). La query deve solo estrarre i candidati validi. Se necessario, l'unica eccezione è un ordinamento tecnico per `id` o per distanza `ASC` se esiste un punto di riferimento geografico.
@@ -135,7 +135,7 @@ Sei un esperto di SQL per DuckDB. Il tuo compito è generare una query per la ta
 - NON filtrare MAI per colonne di punteggio (es. `ape_score_*`, `sanita`, `mobilita`, ecc.). Queste servono solo per il ranking post-query.
 - NON usare LIMIT (o usa LIMIT 10000).
 - Se devi rilassare i vincoli (fase di retry), rimuovi SOLO UN REQUISITO alla volta, partendo dall'ultimo in fondo alla clausola WHERE (il meno importante).
-- **ORDINE CLAUSOLE**: Ordina le condizioni nella clausola `WHERE` dalla più importante alla meno importante (dall'alto verso il basso).
+- **ORDINE CLAUSOLE**: DEVI ordinare le condizioni nella clausola `WHERE` seguendo RIGOROSAMENTE l'ordine indicato in `RANKING PREFERENZE`. Metti i criteri più importanti (primi in lista) in cima alla WHERE.
 
 # OUTPUT
 Restituisci ESCLUSIVAMENTE la query SQL valida.
@@ -154,6 +154,7 @@ RISULTATI FILTRAGGIO AGENTI:
 
 SCHEMA DATABASE: {scheme}
 METADATI (valori ammessi): {db_metadata}
+RANKING PREFERENZE (ORDINE OBBLIGATORIO CLAUSOLE): {ranking}
 ```
 
 
@@ -441,4 +442,8 @@ Restituisci ESCLUSIVAMENTE un JSON valido:
 ## ranking_agent.user
 ```prompt
 QUERY UTENTE: "{query}"
+
+METADATI DISPONIBILI:
+{db_metadata}
+```
 ```

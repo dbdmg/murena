@@ -733,32 +733,48 @@ class GraphOrchestratorAgent(BaseAgent):
             logger.info("✅ NormativeAgent completed")
             return result
 
+        def run_ranking():
+             self._update_progress(state, 1, "Analisi priorità in corso...")
+             logger.info("⚖️ Executing RankingAgent")
+             # Ranking agent needs query AND metadata
+             result = self.ranking_agent.run(
+                 query=query, 
+                 mode="ranking",
+                 db_metadata=state.get("db_metadata")
+             )
+             logger.info("✅ RankingAgent completed")
+             return result
+
         # Execute in parallel
-        with ThreadPoolExecutor(max_workers=5) as executor:
+        # Increased workers to 6 to handle ranking
+        with ThreadPoolExecutor(max_workers=6) as executor:
             future_typology = executor.submit(run_typology)
             future_location = executor.submit(run_location)
             future_ape = executor.submit(run_ape)
             future_poi = executor.submit(run_poi)
             future_normative = executor.submit(run_normative)
+            future_ranking = executor.submit(run_ranking)
 
             typology_result = future_typology.result()
             loc_result = future_location.result()
             ape_result = future_ape.result()
             poi_result = future_poi.result()
             normative_result = future_normative.result()
+            ranking_result = future_ranking.result()
 
             state["typology_result"] = typology_result
             state["poi_result"] = poi_result
             state["ape_result"] = ape_result
             state["normative_result"] = normative_result
+            state["ranking_result"] = ranking_result
             
-            # Log Executions (Sequentially to avoid thread safety issues with list)
-            # Note: Durations here are not precise per-agent execution time but acceptable for trace
+            # Log Executions
             if typology_result: self._log_execution(state, "typology-agent", typology_result, 0)
             if loc_result: self._log_execution(state, "location-agent", loc_result, 0)
             if ape_result: self._log_execution(state, "ape-agent", ape_result, 0)
             if poi_result: self._log_execution(state, "poi-agent", poi_result, 0)
             if normative_result: self._log_execution(state, "normative-agent", normative_result, 0)
+            if ranking_result: self._log_execution(state, "ranking-agent", ranking_result, 0)
 
         # Process Typology
         typ_data = safe_extract_json(typology_result.raw_text, schema=TypologyResponse)
@@ -991,7 +1007,13 @@ class GraphOrchestratorAgent(BaseAgent):
                 poi_raw = str(poi_result.raw_text)[:500]
         
         # Formattazione compatta per APE e Normativa per risparmiare token e migliorare precisione
-        ape_raw = self._format_agent_requirements(ape_result)
+        # Per APE, diamo priorità ai suggested_filters che sono già clausole SQL valide (es. IN, LIKE)
+        ape_data = safe_extract_json(ape_result.raw_text) if ape_result else {}
+        if ape_data and ape_data.get("suggested_filters"):
+            ape_raw = "; ".join(ape_data["suggested_filters"])
+        else:
+            ape_raw = self._format_agent_requirements(ape_result)
+            
         normative_raw = self._format_agent_requirements(normative_result)
         
 
@@ -1050,7 +1072,7 @@ class GraphOrchestratorAgent(BaseAgent):
             location=loc_obj,
             failed_query=effective_failed_query,
             error_msg=effective_error_msg,
-            db_metadata="",
+            db_metadata=json.dumps(state.get("db_metadata", {}), ensure_ascii=False),
             ranking_list=ranking_list,
             raw_response=relaxed_sql
         )
@@ -1308,8 +1330,18 @@ class GraphOrchestratorAgent(BaseAgent):
             weights = RankingWeights(location=0.3, normative=0.1, ape=0.2, typology=0.2, poi=0.2)
             state["ranking_result"] = RankingAgentResult(raw_text="{}", weights=weights)
         else:
-            ranking_result = self.ranking_agent.run(query=query, mode="ranking")
-            state["ranking_result"] = ranking_result
+            # Check if ranking was already computed in parallel phase
+            ranking_result = state.get("ranking_result")
+            already_ran = ranking_result is not None
+
+            if not ranking_result:
+                ranking_result = self.ranking_agent.run(
+                    query=query, 
+                    mode="ranking", 
+                    db_metadata=state.get("db_metadata")
+                )
+                state["ranking_result"] = ranking_result
+
             state["context"].ranking_result = ranking_result
             
             state["gemini_responses"]["ranking_weights"] = {
@@ -1318,7 +1350,9 @@ class GraphOrchestratorAgent(BaseAgent):
                 "weights": ranking_result.weights.model_dump()
             }
         
-            self._log_execution(state, "ranking-agent", ranking_result, 0, mode="ranking")
+            # Only log trace if it wasn't already logged in parallel phase
+            if not already_ran:
+                self._log_execution(state, "ranking-agent", ranking_result, 0, mode="ranking")
         
         return state
 
@@ -1328,6 +1362,10 @@ class GraphOrchestratorAgent(BaseAgent):
         df = state["selected_data"]
         if df is None or df.empty:
             return state
+
+        # Fix: Ensure ID is string for matching with agent results (which use string IDs from JSON)
+        if "id" in df.columns:
+            df["id"] = df["id"].astype(str)
 
         ranking_res = state.get("ranking_result")
         weights = ranking_res.weights if ranking_res else RankingWeights()

@@ -47,7 +47,7 @@ class RankingAgent(BaseAgent):
             raw_text="{}", weights=RankingWeights(), prompt=None
         )
     )
-    def run(self, *, query: str = None, mode: str = "ranking") -> RankingAgentResult:
+    def run(self, *, query: str = None, mode: str = "ranking", db_metadata: dict = None) -> RankingAgentResult:
         """
         Esegue l'agente per definire i pesi.
         Il RankingAgent opera esclusivamente in modalità 'ranking'.
@@ -59,8 +59,14 @@ class RankingAgent(BaseAgent):
             return RankingAgentResult(raw_text="{}", weights=RankingWeights(), prompt=None)
 
         system_content = self.system_prompt
-        prompt_inputs = {"system_content": system_content, "query": query}
-        user_text = self.render_template(self.user_template, query=query).strip()
+        
+        # Prepare metadata string if available
+        metadata_str = ""
+        if db_metadata:
+             metadata_str = json.dumps(db_metadata, ensure_ascii=False)
+
+        prompt_inputs = {"system_content": system_content, "query": query, "db_metadata": metadata_str}
+        user_text = self.render_template(self.user_template, query=query, db_metadata=metadata_str).strip()
         full_text = f"[SYSTEM]\n{system_content}\n\n[USER]\n{user_text}"
 
         try:
