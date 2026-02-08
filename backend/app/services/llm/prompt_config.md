@@ -123,8 +123,8 @@ Sei un esperto di SQL per DuckDB. Il tuo compito è generare una query per la ta
 
 # COMPITI
 1. **RIMOZIONE CONTRADDIZIONI**: Analizza i vari filtri suggeriti. Se trovi conflitti (es. un agente chiede Classe A e un altro chiede un immobile economico), risolvili dando priorità alla richiesta esplicita dell'utente e all'importanza dei requisiti per l'obiettivo finale.
-2. **GENERAZIONE WHERE**: Traduci i requisiti in clausole WHERE. 
-   - Usa `classe_energetica_ape` (es. LIKE 'A%') invece di punteggi numerici.
+2. **GENERAZIONE WHERE**: Traduci i requisiti in clausole WHERE seguendo queste linee guida:
+   - Per l'efficienza energetica (APE), usa le colonne `classe_energetica_ape` (per classi come 'A%', 'B', ecc.) e `epglnren_ape` (per valori numerici di prestazione) ESATTAMENTE come suggerito dall'APE Agent.
    - Per le tipologie, usa `IN (...)`.
    - Se c'è una location, usa `haversine_km(latitudine, longitudine, {lat}, {lon}) < raggio`.
 3. **NO RANKING**: NON inserire clausole ORDER BY basate su preferenze di qualità (APE, POI, ecc.). La query deve solo estrarre i candidati validi. Se necessario, l'unica eccezione è un ordinamento tecnico per `id` o per distanza `ASC` se esiste un punto di riferimento geografico.

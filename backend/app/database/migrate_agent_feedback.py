@@ -6,12 +6,24 @@ Run this with: python -m app.database.migrate_agent_feedback
 
 import sqlite3
 import sys
+import os
 from pathlib import Path
+from app.core.config import settings
 
-
-def run_migration(db_path: str = "app_data/real_estate.db"):
+def run_migration(db_path: str = None):
     """Add agent_name and user_id columns to feedback table."""
-    
+    if db_path is None:
+        # Extract path from DATABASE_URL (sqlite:///./test.db -> ./test.db)
+        if settings.DATABASE_URL.startswith("sqlite:///"):
+            db_path = settings.DATABASE_URL.replace("sqlite:///", "")
+            # Handle absolute paths vs relative
+            if db_path.startswith("./"):
+                # Path relative to backend root
+                db_path = os.path.join(os.getcwd(), db_path[2:])
+        else:
+            print("Auto-migration only supported for SQLite.")
+            return True
+
     print(f"Running migration on database: {db_path}")
     
     conn = sqlite3.connect(db_path)
@@ -68,6 +80,11 @@ def run_migration(db_path: str = "app_data/real_estate.db"):
 
 
 if __name__ == "__main__":
-    db_path = sys.argv[1] if len(sys.argv) > 1 else "app_data/real_estate.db"
-    success = run_migration(db_path)
+    # If a path is provided as argument, use it. Otherwise, autodetect from settings.
+    custom_path = sys.argv[1] if len(sys.argv) > 1 else None
+    
+    # Ensure we can import app if running as script
+    sys.path.append(os.getcwd())
+    
+    success = run_migration(custom_path)
     sys.exit(0 if success else 1)

@@ -46,15 +46,23 @@ def get_db() -> Session:
 
 def init_db():
     """
-    Initialize database - create all tables.
+    Initialize database - create all tables and run migrations.
 
     Should be called once at application startup.
     """
     from app.database.models import Base
+    from app.database.migrate_agent_feedback import run_migration
 
     logger.info("Initializing database...")
     Base.metadata.create_all(bind=engine)
-    logger.info("Database initialized successfully")
+    
+    # Run manual migrations for existing tables
+    try:
+        run_migration()
+    except Exception as e:
+        logger.error(f"Post-initialization migration failed: {e}")
+        
+    logger.info("Database initialized and migrated successfully")
 
 
 def drop_db():

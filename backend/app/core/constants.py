@@ -41,6 +41,7 @@ SQL_FILTERABLE_COLUMNS: List[str] = [
     "finalita",
     "zona_omi",
     "classe_energetica_ape",  # Added to allow filtering by energy class
+    "epglnren_ape",           # Added to allow filtering by energy performance value
     "latitudine",
     "longitudine",
     "comune",  # Aggiunto se presente, o codice_comune
