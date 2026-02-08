@@ -173,36 +173,52 @@ class AgentLogger:
                 if not isinstance(e, dict) or "agent_name" not in e:
                     continue
                     
-                # Copia entry e serializza input/output per uniformità (importante per il live)
+                # Copia entry
                 entry = e.copy()
                 
-                # Applichiamo la stessa serializzazione usata in testing per uniformare la visualizzazione
+                # Retrieve already serialized input/output
+                # In log_agent_execution, we already apply _serialize_data. 
+                # However, for the context of JSON export, we want to ensure they are 
+                # fully recursive-friendly for json.dump.
+                # If they are already dicts/lists, _serialize_data handles them fine (recursive).
+                # If they are strings that look like JSON, _serialize_data will parse them.
+                
                 input_val = entry.get("input")
                 output_val = entry.get("output")
+                output_struct = entry.get("output_structure")
+                
+                # Re-run serialize to catch any nested JSON strings or non-serializable objects
+                # that might have been passed directly. 
+                # NOTE: careful about double serialization if they are already strings.
                 
                 try:
-                    serialized_input = self._serialize_data(input_val) if input_val is not None else None
-                    serialized_output = self._serialize_data(output_val) if output_val is not None else None
+                    serialized_input = self._serialize_data(input_val)
+                    serialized_output = self._serialize_data(output_val)
+                    serialized_struct = self._serialize_data(output_struct)
                 except Exception as ex:
                     print(f"⚠️ Errore durante la serializzazione dell'entry {entry.get('agent_name')}: {ex}")
                     serialized_input = str(input_val)
                     serialized_output = str(output_val)
+                    serialized_struct = str(output_struct)
                 
                 if entry["agent_name"] == "evaluation-agent":
                     # Estrai la lista di valutazioni se presente in un dizionario
                     items_to_log = []
-                    if isinstance(serialized_output, list):
-                        items_to_log = serialized_output
-                    elif isinstance(serialized_output, dict):
+                    
+                    # Logica per gestire batch di valutazioni
+                    val_data = serialized_output
+                    if isinstance(val_data, list):
+                        items_to_log = val_data
+                    elif isinstance(val_data, dict):
                         # Cerca chiavi comuni che contengono liste di risultati
                         for k in ["evaluations", "results", "valutazioni"]:
-                            if k in serialized_output and isinstance(serialized_output[k], list):
-                                items_to_log = serialized_output[k]
+                            if k in val_data and isinstance(val_data[k], list):
+                                items_to_log = val_data[k]
                                 break
                         if not items_to_log:
-                            items_to_log = [serialized_output]
+                            items_to_log = [val_data]
                     else:
-                        items_to_log = [serialized_output]
+                        items_to_log = [val_data]
 
                     # Crea esecuzioni separate per ogni item nel batch
                     for item in items_to_log:
@@ -215,6 +231,7 @@ class AgentLogger:
                             "execution_time_ms": entry.get("execution_time_ms"),
                             "input": serialized_input,
                             "output": item,
+                            "output_structure": serialized_struct,
                             "notes": ""
                         }
                         agent_executions.append(agent_entry)
@@ -225,6 +242,7 @@ class AgentLogger:
                         **entry, 
                         "input": serialized_input,
                         "output": serialized_output,
+                        "output_structure": serialized_struct,
                         "batch_id": None,
                         "notes": ""
                     }

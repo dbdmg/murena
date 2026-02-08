@@ -268,7 +268,25 @@ export interface AnalysisResults {
     };
     gemini_responses?: GeminiResponses;
     broker_summary?: string;
+    agent_trace?: AgentTraceItem[];
     html_log?: string;
+}
+
+export interface AgentTraceItem {
+    agent_name: string;
+    agent_mode: string;
+    timestamp: string; // ISO
+    execution_time_ms: number;
+    input: unknown;
+    output: unknown;
+    output_structure?: unknown;
+    notes?: string;
+    batch_id?: number | null;
+    retry_id?: number;
+    use_case?: string;
+    prompt_id?: string;
+    run_number?: number;
+    run_timestamp?: string;
 }
 
 /**
