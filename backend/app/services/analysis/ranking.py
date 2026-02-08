@@ -63,6 +63,8 @@ def calculate_ranking_score(
     ape_weight: float = 0.2,
     poi_weight_factor: float = 0.5,
     distance_weight: float = 0.3,
+    normative_weight: float = 0.0,
+    typology_weight: float = 0.0,
 ) -> pd.DataFrame:
     """
     Calcola uno score di ranking per ogni immobile basato su POI, APE e Distanza.
@@ -89,79 +91,85 @@ def calculate_ranking_score(
     # Copia per non modificare l'originale in place se non voluto
     df = df.copy()
 
-    # 1. Calcolo Score POI con amenity granulari
-    poi_score_norm = _calculate_poi_score_granular(df, amenity_weights, poi_weights)
+    # 1. Calcolo Score POI
+    if "poi_score" in df.columns:
+        poi_score_norm = pd.to_numeric(df["poi_score"], errors="coerce").fillna(0) / 100
+    else:
+        # Fallback legacy
+        poi_score_norm = _calculate_poi_score_granular(df, amenity_weights, poi_weights)
 
     # 2. Calcolo Score APE
-    if "ape_score_total" in df.columns:
+    if "ape_score" in df.columns:
+        ape_score_norm = pd.to_numeric(df["ape_score"], errors="coerce").fillna(0) / 100
+    elif "ape_score_total" in df.columns:
         ape_values = pd.to_numeric(df["ape_score_total"], errors="coerce").fillna(1)
         ape_score_norm = (ape_values - 1) / 4
         ape_score_norm = ape_score_norm.clip(0, 1)
     else:
         ape_score_norm = 0.0
 
-    # 3. Calcolo Score Distanza (se user_location c'è)
+    # 3. Calcolo Score Distanza (se user_location o location_score c'è)
     dist_score_norm = 0.0
     w_dist = 0.0
 
-    if user_location:
+    if "location_score" in df.columns:
+        dist_score_norm = pd.to_numeric(df["location_score"], errors="coerce").fillna(0) / 100
+        w_dist = distance_weight
+    elif user_location:
         user_lat, user_lon = user_location
-
         # Assicuriamoci che le colonne lat/lon esistano
         if "latitudine" in df.columns and "longitudine" in df.columns:
             lats = pd.to_numeric(df["latitudine"], errors="coerce")
             lons = pd.to_numeric(df["longitudine"], errors="coerce")
-
-            # Calcola distanze
             dists = haversine_vectorized(lats, lons, user_lat, user_lon)
-
-            # Salva la distanza nel DF per debug/visualizzazione
             df["distanza_km"] = dists
-
-            # Normalizzazione Distanza:
-            # Adaptive max_dist based on search radius:
-            # - Small search (3km) → strict scoring (max_dist = 3km)
-            # - Large search (15km) → lenient scoring (max_dist = 9km)
             max_dist = min(search_radius_km * 0.6, 10.0)
             dist_score_norm = (1 - (dists / max_dist)).clip(0, 1)
+            w_dist = distance_weight
+    
+    # 4. Score Normativo (se presente)
+    normative_score_norm = 0.0
+    if "normative_score" in df.columns:
+        normative_score_norm = pd.to_numeric(df["normative_score"], errors="coerce").fillna(0) / 100
+    
+    # 5. Score Tipologia (se presente)
+    typology_score_norm = 0.0
+    if "typology_score" in df.columns:
+        typology_score_norm = pd.to_numeric(df["typology_score"], errors="coerce").fillna(0) / 100
 
-            # Pesi con distanza
-            tot_w = ape_weight + poi_weight_factor + distance_weight
-            if tot_w > 0:
-                w_ape = ape_weight / tot_w
-                w_poi = poi_weight_factor / tot_w
-                w_dist = distance_weight / tot_w
-            else:
-                w_ape, w_poi, w_dist = 0.33, 0.33, 0.33
-        else:
-            # Fallback se mancano coordinate nel DF
-            tot_w = ape_weight + poi_weight_factor
-            if tot_w > 0:
-                w_ape = ape_weight / tot_w
-                w_poi = poi_weight_factor / tot_w
-            else:
-                w_ape, w_poi = 0.5, 0.5
+    # 6. Normalizzazione pesi
+    # Sommiamo i pesi solo se le relative colonne di score sono state popolate
+    active_normative_weight = normative_weight if "normative_score" in df.columns else 0
+    active_typology_weight = typology_weight if "typology_score" in df.columns else 0
+    active_ape_weight = ape_weight if "ape_score" in df.columns else (ape_weight if "ape_score_total" in df.columns else 0)
+    
+    tot_w = active_ape_weight + poi_weight_factor + w_dist + active_normative_weight + active_typology_weight
+    
+    if tot_w > 0:
+        w_ape = active_ape_weight / tot_w
+        w_poi = poi_weight_factor / tot_w
+        w_dist_final = w_dist / tot_w
+        w_normative = active_normative_weight / tot_w
+        w_typology = active_typology_weight / tot_w
     else:
-        # Senza distanza
-        tot_w = ape_weight + poi_weight_factor
-        if tot_w > 0:
-            w_ape = ape_weight / tot_w
-            w_poi = poi_weight_factor / tot_w
-        else:
-            w_ape, w_poi = 0.5, 0.5
+        w_ape, w_poi, w_dist_final, w_normative, w_typology = 0.2, 0.2, 0.2, 0.2, 0.2
 
-    # 4. Score Totale
+    # 7. Score Totale
     final_score = (
-        (poi_score_norm * w_poi) + (ape_score_norm * w_ape) + (dist_score_norm * w_dist)
+        (poi_score_norm * w_poi) + 
+        (ape_score_norm * w_ape) + 
+        (dist_score_norm * w_dist_final) +
+        (normative_score_norm * w_normative) +
+        (typology_score_norm * w_typology)
     )
 
-    df["ranking_score"] = final_score
+    df["final_ranking_score"] = final_score
 
     # Ordina decrescente per score, poi crescente per distanza (se disponibile)
     if "distanza_km" in df.columns:
-        return df.sort_values(["ranking_score", "distanza_km"], ascending=[False, True])
+        return df.sort_values(["final_ranking_score", "distanza_km"], ascending=[False, True])
     else:
-        return df.sort_values("ranking_score", ascending=False)
+        return df.sort_values("final_ranking_score", ascending=False)
 
 
 def _calculate_poi_score_granular(

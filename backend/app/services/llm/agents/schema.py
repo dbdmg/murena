@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
@@ -29,26 +29,17 @@ class Place(BaseModel):
     city: Optional[str] = Field(None, description="Città se disponibile")
     lat: Optional[float] = Field(None, description="Latitudine")
     lon: Optional[float] = Field(None, description="Longitudine")
+    radius_km: float = Field(default=3.0, description="Distanza soglia in km per il filtraggio")
 
 
-class LocationAgentResult(BaseModel):
-    raw_text: str = Field(..., description="Risposta grezza del modello (stringa)")
-    places: List[Place] = Field(default_factory=list, description="Luoghi estratti")
-    prompt: Optional[PromptRecord] = Field(
-        None, description="Metadati sul prompt inviato al modello"
-    )
+
+class CategoryResponse(BaseModel):
+    categories: List[str] = Field(default_factory=list, description="Lista delle categorie selezionate")
+    punteggi_minimi: Dict[str, float] = Field(default_factory=dict, description="Punteggio minimo (scala 1-5) richiesto per ciascuna categoria")
 
 
-class UseCaseResult(BaseModel):
-    raw_text: str = Field(..., description="Risposta grezza del modello")
-    description: str = Field(..., description="Descrizione dettagliata dello use case")
-    target_audience: str = Field(..., description="Target audience identificata")
-    key_metrics: List[str] = Field(
-        default_factory=list, description="Metriche chiave da analizzare"
-    )
-    prompt: Optional[PromptRecord] = Field(
-        None, description="Prompt utilizzato per la generazione"
-    )
+class AmenityResponse(BaseModel):
+    amenities: Dict[str, List[str]] = Field(default_factory=dict, description="Amenity selezionate per categoria")
 
 
 class NormativeResponse(BaseModel):
@@ -78,19 +69,13 @@ class LocationResponse(BaseModel):
 class EvaluationResult(BaseModel):
     id: int = Field(..., description="ID dell'immobile")
     evaluation_text: str = Field(..., description="Testo della valutazione")
-    score: int = Field(..., description="Punteggio di rilevanza (0-100)")
+    final_ranking_score: int = Field(..., description="Punteggio di rilevanza (0-100) basato sul ranking")
     pros: List[str] = Field(default_factory=list, description="Punti di forza")
     cons: List[str] = Field(default_factory=list, description="Punti di debolezza")
 
 
-class EvaluationAgentResponse(BaseModel):
-    prompt: Optional[PromptRecord] = Field(
-        None, description="Prompt utilizzato per la valutazione"
-    )
-    raw_text: str = Field(..., description="Risposta grezza del modello")
-    results: List[EvaluationResult] = Field(
-        default_factory=list, description="Valutazioni strutturate"
-    )
+class EvaluationList(BaseModel):
+    evaluations: List[EvaluationResult] = Field(default_factory=list)
 
 
 class AgentResult(BaseModel):
@@ -126,19 +111,13 @@ class RankingRanking(BaseModel):
         default_factory=lambda: ["location", "typology", "poi", "ape", "normative"],
         description="Lista ordinata degli agenti per importanza"
     )
-    prompt: Optional[PromptRecord] = Field(None, description="Prompt utilizzato")
 
+class RankingAgentResult(AgentResult): 
+    weights: RankingWeights = Field(default_factory=RankingWeights)
+    ranking: Optional[RankingRanking] = Field(None)
 
-class ApeAgentResult(BaseModel):
-    raw_text: str = Field(..., description="Risposta grezza del modello")
-    answer: str = Field(..., description="Risposta elaborata basata sui dati APE")
-    relevant_ape_ids: List[str] = Field(
-        default_factory=list, description="ID degli APE rilevanti identificati"
-    )
-    suggested_filters: List[str] = Field(
-        default_factory=list, description="Filtri suggeriti basati sui dati APE"
-    )
-    prompt: Optional[PromptRecord] = Field(None, description="Prompt utilizzato")
+class ApeAgentResult(AgentResult): 
+    has_filters: bool = False
 
 class NormativeAgentResult(AgentResult): 
     has_requirements: bool = False
@@ -150,24 +129,6 @@ class PoiAgentResult(AgentResult):
 
 
 
-class NeedsMetricPlan(BaseModel):
-    summary: str = Field(default="", description="Sintesi del bisogno dell'utente")
-    raw_text: Optional[str] = Field(
-        None, description="Risposta grezza generata dal modello"
-    )
-    prompt: Optional[PromptRecord] = Field(
-        None, description="Prompt utilizzato per la generazione del piano"
-    )
-    metrics: List[MetricDefinition] = Field(
-        default_factory=list, description="Metriche/criteri da applicare"
-    )
-    dataset_strategy: DatasetStrategy = Field(
-        default_factory=DatasetStrategy,
-        description="Strategia di filtraggio/ordinamento",
-    )
-    ape_strategy: ApeUsagePlan = Field(
-        default_factory=ApeUsagePlan, description="Piano di utilizzo dei dati APE"
-    )
 
 
 class AgentContext(BaseModel):
@@ -182,10 +143,19 @@ class AgentContext(BaseModel):
     normative_result: Optional[NormativeAgentResult] = Field(
         None, description="Risultato del NormativeAgent per requisiti normativi"
     )
+    poi_result: Optional[PoiAgentResult] = Field(
+        None, description="Risultato del PoiAgent per analisi POI"
+    )
+    ape_result: Optional[ApeAgentResult] = Field(
+        None, description="Risultato dell'ApeAgent per analisi energetica"
+    )
+    ranking_result: Optional[RankingAgentResult] = Field(
+        None, description="Risultato del RankingAgent per definire i pesi del ranking"
+    )
     filtered_dataset_preview: List[dict] = Field(
         default_factory=list, description="Anteprima del dataset filtrato"
     )
-    evaluation_results: List[EvaluationResult] = Field(
+    evaluation_results: List[Any] = Field(
         default_factory=list, description="Valutazioni prodotte dall'LLM"
     )
 
@@ -205,30 +175,8 @@ class ChatAction(BaseModel):
     )
 
 
-class MapAssistantResponse(BaseModel):
-    response_text: str = Field(
-        ..., description="Risposta testuale da mostrare all'utente"
-    )
+class MapAssistantResponse(AgentResult):
     action: Optional[ChatAction] = Field(
         None, description="Azione da eseguire sulla UI"
     )
-    prompt: Optional[PromptRecord] = Field(None, description="Prompt utilizzato")
 
-class PoiCategoryAgentResult(BaseModel):
-    raw_text: str = Field(..., description="Risposta grezza del modello")
-    category_weights: Dict[str, float] = Field(default_factory=dict, description="Pesi delle categorie POI")
-    prompt: Optional[PromptRecord] = Field(None, description="Prompt utilizzato")
-
-class PoiAmenityAgentResult(BaseModel):
-    raw_text: str = Field(..., description="Risposta grezza del modello")
-    selected_categories: List[str] = Field(default_factory=list, description="Categorie selezionate come rilevanti")
-    selected_amenities: Dict[str, List[str]] = Field(default_factory=dict, description="Amenity selezionate per categoria")
-    category_weights: Dict[str, float] = Field(default_factory=dict, description="Pesi delle categorie")
-    amenity_weights: Dict[str, Dict[str, float]] = Field(default_factory=dict, description="Pesi delle amenity per categoria basati sull'ordine")
-    prompt: Optional[PromptRecord] = Field(None, description="Prompt utilizzato")
-
-class NormativeAgentResult(BaseModel):
-    raw_text: str = Field(..., description="Risposta grezza del modello")
-    normative_info: str = Field(..., description="Informazioni normative estratte sui requisiti strutturali ed energetici")
-    sources: List[str] = Field(default_factory=list, description="URL o fonti consultate")
-    prompt: Optional[PromptRecord] = Field(None, description="Prompt utilizzato")

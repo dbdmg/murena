@@ -10,6 +10,9 @@ NOTE: Heavy LLM/agent dependencies are imported lazily to keep import-time fast
 and to make mocked tests run without pulling large optional stacks.
 """
 
+import json
+from app.services.agent_logger import AgentLogger
+from pathlib import Path
 from typing import Optional, Callable, Dict, Any, List, TYPE_CHECKING
 import asyncio
 import pandas as pd
@@ -276,6 +279,47 @@ class AnalysisService:
         else:
             logger.info("Orchestrator returned no map_df or empty")
 
+        # Generate Agent HTML Log
+        html_log = None
+        agent_trace = getattr(orchestrator_result, "agent_trace", None)
+        if agent_trace is not None:
+            try:
+                # Use settings for log directory
+                log_dir = Path(settings.AGENT_LOGS_DIR)
+                log_dir.mkdir(parents=True, exist_ok=True)
+                
+                agent_logger = AgentLogger(log_dir=log_dir)
+                # Use a timestamp in the filename to maintain chronological history
+                timestamp_str = datetime.now().strftime("%Y%m%d_%H%M%S")
+                json_filename = f"trace_{timestamp_str}_{run_id}.json"
+                
+                run_props = {
+                    "use_case": "Live Analysis",
+                    "prompt_id": run_id,
+                    "run_number": 1,
+                    "run_timestamp": datetime.utcnow().isoformat()
+                }
+                # Process trace data
+                agent_executions = agent_logger._process_log_data_for_export(agent_trace, run_props)
+                
+                # Save JSON trace to disk
+                json_path = log_dir / json_filename
+                log_data_final = {"agent_executions": agent_executions}
+                
+                with open(json_path, 'w', encoding='utf-8') as f:
+                    json.dump(log_data_final, f, indent=2, ensure_ascii=False)
+                
+                # Generate HTML
+                html_log = agent_logger.generate_html_view(
+                    agent_executions, 
+                    query, 
+                    json_filename=json_filename, 
+                    view_mode="tabs"
+                )
+                logger.info(f"Saved trace to history: {json_filename}")
+            except Exception as e:
+                logger.error(f"Failed to generate agent HTML log: {e}")
+
         return {
             "run_id": run_id,
             "query": query,
@@ -292,6 +336,7 @@ class AnalysisService:
                 if orchestrator_result.context
                 else None
             ),
+            "html_log": html_log,
             "created_at": datetime.utcnow(),
             "completed_at": datetime.utcnow(),
         }

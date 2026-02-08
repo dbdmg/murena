@@ -1,5 +1,7 @@
 import json
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Union
+import pandas as pd
+import numpy as np
 
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
@@ -9,47 +11,12 @@ from app.core.config import settings
 
 AGENT_MODELS = settings.agent_models
 from app.services.llm.agents.base import BaseAgent
-from app.services.llm.agents.schema import LocationAgentResult, Place, PromptRecord
+from app.services.llm.agents.schema import LocationAgentResult, Place, PromptRecord, LocationResponse
 from app.services.llm.langchain_client import get_llm, invoke_with_langfuse
 from app.services.llm.prompt_loader import get_system_prompt, get_user_template
 from app.utils.decorators import handle_agent_error, log_llm_usage
 from app.utils.json_parser import safe_extract_json
-
-
-# Modello per la risposta strutturata
-class LocationResponse(BaseModel):
-    places: List[Place] = Field(
-        default_factory=list, description="Lista dei luoghi estratti"
-    )
-
-
-DEFAULT_SYSTEM = """# RUOLO
-Sei il Location Agent per l'applicazione Real Estate AI.
-Il tuo compito è estrarre dalla query dell'utente TUTTI i riferimenti geografici (città, zone, POI, indirizzi).
-
-# REGOLE
-1. Identifica OGNI luogo menzionato esplicitamente o implicitamente.
-2. Per ogni luogo, estrai: nome, città (se presente), e coordinate geografiche approssimate.
-3. Se non ci sono luoghi specifici, restituisci una lista vuota.
-4. NON inventare luoghi se non sono nel testo.
-
-# OUTPUT
-Restituisci ESCLUSIVAMENTE un JSON valido:
-{
-  "places": [
-    {"name": "Nome Luogo", "city": "Città", "lat": 45.07, "lon": 7.68}
-  ]
-}
-
-# ESEMPI
-Query: "Trilocale vicino al Politecnico di Torino"
-Output: {{"places": [{{"name": "Politecnico di Torino", "city": "Torino", "lat": 45.0628, "lon": 7.6621}}]}}
-
-Query: "Appartamento economico"
-Output: {{"places": []}}
-"""
-
-DEFAULT_USER = """Frase: "{query}" """
+from app.data.processors import calculate_travel_times_df
 
 
 class LocationAgent(BaseAgent):
@@ -64,50 +31,167 @@ class LocationAgent(BaseAgent):
         self.llm = get_llm(model_name=resolved_model)
 
         # Load system and user prompts separately
-        self.system_prompt = get_system_prompt("location_agent", DEFAULT_SYSTEM)
-        self.user_template = get_user_template("location_agent", DEFAULT_USER)
+        self.system_prompt = get_system_prompt("location_agent")
+        self.user_template = get_user_template("location_agent")
 
         # Create ChatPromptTemplate with system/user separation
         self.prompt = ChatPromptTemplate.from_messages(
             [
-                ("system", self.system_prompt),
-                ("user", self.user_template),
+                ("system", "{system_content}"),
+                ("user", "{user_content}"),
             ]
         )
         self.parser = StrOutputParser()
-        self.chain = self.prompt | self.llm | self.parser
+        self.structured_llm = self.llm.with_structured_output(LocationResponse, method="function_calling")
+        self.chain = self.prompt | self.structured_llm
 
     @log_llm_usage
     @handle_agent_error(
-        fallback_value=LocationAgentResult(raw_text="Error", places=[], prompt=None)
+        fallback_value=LocationAgentResult(raw_text="Error", prompt=None)
     )
-    def run(self, *, query: str) -> LocationAgentResult:
-        prompt_inputs = {"query": query}
-
-        # Format user prompt with variables
-        user_text = self.user_template.format(**prompt_inputs).strip()
-        full_text = f"[SYSTEM]\n{self.system_prompt}\n\n[USER]\n{user_text}"
-
-        raw = invoke_with_langfuse(self.chain, prompt_inputs)
-
-        # Parse with safe_extract_json using Pydantic model
-        parsed_data = safe_extract_json(raw, schema=LocationResponse)
-
-        places = []
-        if parsed_data and isinstance(parsed_data, LocationResponse):
-            places = parsed_data.places
+    def run(self, *, query: str = None, mode: str = "filtering", **kwargs) -> Union[LocationAgentResult, pd.DataFrame]:
+        """
+        Esegue l'agente in due modalità:
+        - filtering: Estrae i luoghi e la distanza raggio dall'LLM.
+        - ranking: Calcola uno score deterministico (0-100) per gli immobili in base alla distanza.
+        """
+        if mode == "filtering":
+            return self._run_filtering(query=query)
+        elif mode == "ranking":
+            return self._run_ranking(**kwargs)
         else:
-            # Fallback for manual or partial creation if strict validation failed but we got dict
-            # (safe_extract_json returns None if schema validation fails, maybe check raw dict?)
-            # Actually safe_extract_json returns schema instance if schema provided.
-            # If validation failed, it returns None.
-            # We might want to try parsing without schema if with schema fails, but let's trust strict first.
-            pass
+            raise ValueError(f"Modalità '{mode}' non supportata dal LocationAgent.")
+
+    def _run_filtering(self, query: str) -> LocationAgentResult:
+        """Modalità originale: estrazione entità geografiche tramite LLM + Geocoding."""
+        from app.data.loaders import get_coordinates
+        from concurrent.futures import ThreadPoolExecutor
+
+        prompt_inputs = {
+            "system_content": self.system_prompt,
+            "user_content": self.user_template.format(query=query).strip()
+        }
+
+        # Invocation with structured output
+        loc_data: LocationResponse = invoke_with_langfuse(
+            self.chain,
+            prompt_inputs,
+        )
+        
+        places = loc_data.places if loc_data else []
+
+        # Geocoding logic
+        valid_places = []
+        if places:
+            def geocode_place(place):
+                search_query = (
+                    f"{place.name}, {place.city}" if place.city else place.name
+                )
+                try:
+                    lat, lon = get_coordinates(search_query)
+                except Exception:
+                    lat, lon = None, None
+                
+                # Update place object
+                place.lat = lat
+                place.lon = lon
+                return place
+
+            with ThreadPoolExecutor(max_workers=5) as executor:
+                futures = [executor.submit(geocode_place, p) for p in places]
+                for future in futures:
+                    p = future.result()
+                    if p.lat is not None and p.lon is not None:
+                        valid_places.append(p)
+
+        # Update found flag based on SUCCESSFUL GEOCODING
+        has_locations = len(valid_places) > 0
+        
+        # Update raw_text with enriched data
+        raw = "{}"
+        if loc_data:
+            loc_data.places = valid_places
+            loc_data.found = has_locations
+            raw = loc_data.model_dump_json()
 
         prompt_record = PromptRecord(
             system=self.system_prompt.strip(),
-            user=user_text,
-            full_text=full_text,
+            user=prompt_inputs["user_content"],
+            full_text=f"[SYSTEM]\n{self.system_prompt}\n\n[USER]\n{prompt_inputs['user_content']}",
         )
 
-        return LocationAgentResult(raw_text=raw, places=places, prompt=prompt_record)
+        return LocationAgentResult(
+            raw_text=raw, 
+            prompt=prompt_record, 
+            has_locations=has_locations
+        )
+
+
+    def _run_ranking(self, *, df: pd.DataFrame, places: List[Place]) -> pd.DataFrame:
+        """Modalità ranking: calcolo score deterministico 0-100 basato sulla distanza."""
+        if df is None or df.empty or not places:
+            if df is not None:
+                df["location_score"] = 0
+            return df
+
+        # Prepariamo il payload per calculate_travel_times_df
+        # Formato atteso: [[name, lat, lon], ...]
+        locations_payload = []
+        for p in places:
+            if p.lat is not None and p.lon is not None:
+                locations_payload.append([p.name, p.lat, p.lon])
+        
+        if not locations_payload:
+            df["location_score"] = 0
+            return df
+
+        # Calcoliamo le distanze (se non sono già presenti nel DF o se vogliamo ricalcolarle per questi POI)
+        # La funzione calculate_travel_times_df aggiunge 'distanza_km' e 'poi_riferimento'
+        df_ranked = calculate_travel_times_df(df, locations_payload)
+
+        # Creiamo un mapping raggio per ogni POI
+        radius_map = {p.name: p.radius_km for p in places}
+
+        def calculate_score_details(row):
+            poi = row.get("poi_riferimento")
+            dist = row.get("distanza_km")
+            
+            if pd.isna(dist) or poi not in radius_map:
+                return 0.0, 0.0
+            
+            # Use fixed R parameter for decay as per requirements, 
+            # ignoring user radius for score shape but respecting cutoff if needed
+            R = 2.5
+            x = dist
+            
+            # Requirement: 0 score if distance >= 3 km
+            if x >= 3.0:
+                return 0.0, 0.0
+            
+            # Exponential decay formula: e^(-(x/R)^3)
+            # This produces a value between 0 and 1
+            raw_score = np.exp(-((x / R) ** 3))
+            
+            # Normalize to 0-100
+            # Ideally the raw_score is already 1.0 at x=0
+            # We just scale it to 100
+            final_score = raw_score * 100.0
+            
+            return final_score, raw_score
+
+        # Apply calculation returning tuple
+        score_details = df_ranked.apply(calculate_score_details, axis=1)
+        
+        # Unpack into columns
+        df_ranked["location_score"] = score_details.apply(lambda x: x[0]).round(1)
+        df_ranked["location_raw_score"] = score_details.apply(lambda x: x[1]).round(4)
+        
+        # Add transparency: radius used per row
+        def get_radius(row):
+            poi = row.get("poi_riferimento")
+            return radius_map.get(poi, 0.0) if poi else 0.0
+
+        df_ranked["location_radius_used_km"] = df_ranked.apply(get_radius, axis=1)
+
+        return df_ranked[["id", "location_score", "distanza_km", "poi_riferimento", "location_raw_score", "location_radius_used_km"]]
+

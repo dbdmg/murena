@@ -1,58 +1,21 @@
-from typing import List
+import json
+from typing import List, Union, Optional
 
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from pydantic import BaseModel, Field
+import pandas as pd
+import numpy as np
 
 from app.core.config import settings
 
 AGENT_MODELS = settings.agent_models
 from app.services.llm.agents.base import BaseAgent
-from app.services.llm.agents.schema import PromptRecord, TypologyAgentResult
+from app.services.llm.agents.schema import PromptRecord, TypologyAgentResult, TypologyResponse
 from app.services.llm.langchain_client import get_llm, invoke_with_langfuse
 from app.services.llm.prompt_loader import get_system_prompt, get_user_template
 from app.utils.decorators import handle_agent_error, log_llm_usage
 from app.utils.json_parser import safe_extract_json
-
-
-# Modello per la risposta strutturata
-class TypologyResponse(BaseModel):
-    typologies: List[str] = Field(
-        default_factory=list, description="Lista delle tipologie selezionate"
-    )
-
-
-DEFAULT_SYSTEM = """# RUOLO
-Sei il Typology Agent per l'applicazione Real Estate AI.
-Il tuo compito è identificare quali tipologie di immobili sono pertinenti alla richiesta dell'utente.
-
-# REGOLE
-1. Analizza la richiesta e seleziona le tipologie rilevanti dalla lista fornita.
-2. Se la richiesta è generica, lascia la lista vuota (nessun filtro).
-3. Sii inclusivo: "uffici" include "Ufficio pubblico", "Ufficio privato", ecc.
-4. Se non trovi corrispondenze esatte, usa tipologie semanticamente simili.
-
-# OUTPUT
-Restituisci ESCLUSIVAMENTE un JSON valido:
-{
-  "typologies": ["<tipologia 1>", "<tipologia 2>"]
-}
-
-# ESEMPI
-Query: "Cerco una scuola"
-Tipologie: ["SCUOLA", "ISTITUTO SCOLASTICO", "ASILO"]
-Output: {{"typologies": ["SCUOLA", "ISTITUTO SCOLASTICO"]}}
-
-Query: "Immobili in centro"
-Output: {{"typologies": []}}
-"""
-
-DEFAULT_USER = """Lista delle tipologie disponibili:
-{available_typologies}
-
-Richiesta utente: "{query}"
-
-Risposta JSON:"""
 
 
 class TypologyAgent(BaseAgent):
@@ -67,14 +30,14 @@ class TypologyAgent(BaseAgent):
         self.llm = get_llm(model_name=resolved_model)
 
         # Load system and user prompts separately
-        self.system_prompt = get_system_prompt("typology_agent", DEFAULT_SYSTEM)
-        self.user_template = get_user_template("typology_agent", DEFAULT_USER)
+        self.system_prompt = get_system_prompt("typology_agent")
+        self.user_template = get_user_template("typology_agent")
 
         # Create ChatPromptTemplate with system/user separation
         self.prompt = ChatPromptTemplate.from_messages(
             [
-                ("system", self.system_prompt),
-                ("user", self.user_template),
+                ("system", "{system_content}"),
+                ("user", "{user_content}"),
             ]
         )
         self.parser = StrOutputParser()
@@ -82,38 +45,106 @@ class TypologyAgent(BaseAgent):
 
     @log_llm_usage
     @handle_agent_error(
-        fallback_value=TypologyAgentResult(raw_text="Error", typologies=[], prompt=None)
+        fallback_value=TypologyAgentResult(raw_text="Error", prompt=None)
     )
-    def run(self, query: str, available_typologies: str) -> TypologyAgentResult:
-        # If available_typologies is a list, join it. If it's already a string (from graph_agent), use it.
+    def run(self, *, query: str = None, mode: str = "filtering", **kwargs) -> Union[TypologyAgentResult, pd.DataFrame]:
+        """
+        Esegue l'agente in due modalità:
+        - filtering: Identifica le tipologie pertinenti ordinate per ranking (LLM).
+        - ranking: Calcola uno score 0-100 basato sulla posizione della tipologia nel ranking.
+        """
+        if mode == "filtering":
+            return self._run_filtering(
+                query=query, 
+                available_typologies=kwargs.get("available_typologies"),
+                statistics=kwargs.get("statistics")
+            )
+        elif mode == "ranking":
+            return self._run_ranking(**kwargs)
+        else:
+            raise ValueError(f"Modalità '{mode}' non supportata dal TypologyAgent.")
+
+    def _run_filtering(self, query: str, available_typologies: Union[str, List[str]], statistics: dict = None) -> TypologyAgentResult:
+        # If available_typologies is a list, join it.
         if isinstance(available_typologies, list):
             typologies_str = ", ".join([f'"{t}"' for t in available_typologies])
         else:
-            typologies_str = available_typologies
+            typologies_str = available_typologies or "N/D"
+            
+        stats_str = json.dumps(statistics, indent=2, ensure_ascii=False) if statistics else "N/D"
 
-        prompt_inputs = {"query": query, "available_typologies": typologies_str}
+        prompt_inputs = {
+            "query": query, 
+            "available_typologies": typologies_str,
+            "statistics": stats_str
+        }
 
         # Format user prompt with variables
-        user_text = self.user_template.format(**prompt_inputs).strip()
+        user_text = self.render_template(self.user_template, **prompt_inputs).strip()
         full_text = f"[SYSTEM]\n{self.system_prompt}\n\n[USER]\n{user_text}"
 
-        response_text = invoke_with_langfuse(self.chain, prompt_inputs)
-
-        parsed_data = safe_extract_json(response_text, schema=TypologyResponse)
-
-        typologies = []
-        if parsed_data and isinstance(parsed_data, TypologyResponse):
-            typologies = parsed_data.typologies
-        else:
-            # Fallback if validation fail but still parsed as dict
-            pass
+        response_text = invoke_with_langfuse(
+            self.chain,
+            {
+                "system_content": self.system_prompt,
+                "user_content": user_text,
+            },
+        )
 
         return TypologyAgentResult(
             raw_text=response_text,
-            typologies=typologies,
             prompt=PromptRecord(
                 system=self.system_prompt.strip(),
                 user=user_text,
                 full_text=full_text,
             ),
         )
+
+    def _run_ranking(self, *, df: pd.DataFrame, ranked_typologies: List[str]) -> pd.DataFrame:
+        """
+        Modalità ranking: assegna uno score (0-100) in base alla posizione della tipologia nel ranking.
+        La prima tipologia riceve 100, l'ultima tra quelle selezionate riceve uno score base (es. 50), 
+        le altre tipologie non selezionate ricevono 0.
+        """
+        if df is None or df.empty:
+            if df is not None:
+                df["typology_score"] = 0
+            return df
+
+        if not ranked_typologies:
+            df["typology_score"] = 100 # Se non ci sono filtri, tutte sono ugualmente valide
+            return df
+
+        df_ranked = df.copy()
+        
+        # Mappa delle tipologie al loro punteggio
+        # Es: 3 tipologie -> [100, 75, 50]
+        n = len(ranked_typologies)
+        typology_map = {} # map typology -> (score, rank_position)
+        
+        if n == 1:
+             typology_map[ranked_typologies[0]] = (100.0, 1)
+        else:
+            # Distribuzione armonica: 100, 50, 33, 25...
+            for i, typ in enumerate(ranked_typologies):
+                # Score calculation: 100 / (position)
+                score = round(100.0 / (i + 1), 1)
+                typology_map[typ] = (score, i + 1)
+
+        def get_details(val):
+            # Returns tuple (score, rank, multiplier)
+            if val in typology_map:
+                score, rank = typology_map[val]
+                return score, rank, round(score / 100.0, 2)
+            return 0.0, "N/A", 0.0
+
+        # Apply to create temporary series
+        details = df_ranked["tipologia_bene_immobile"].apply(get_details)
+        
+        # Expand into columns
+        df_ranked["typology_score"] = details.apply(lambda x: x[0])
+        df_ranked["typology_rank_position"] = details.apply(lambda x: x[1])
+        df_ranked["typology_multiplier"] = details.apply(lambda x: x[2])
+        
+        # Columns Order: ID, Score, Data, Metadata(Weights/Analysis)
+        return df_ranked[["id", "typology_score", "tipologia_bene_immobile", "typology_rank_position", "typology_multiplier"]]

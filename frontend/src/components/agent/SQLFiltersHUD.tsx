@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, SearchCode, Terminal, AlertCircle, Loader2 } from 'lucide-react';
+import { X, SearchCode, Terminal, AlertCircle, Loader2, FileText, Code2 } from 'lucide-react';
 import { analysisApi } from '../../api/endpoints/analysis';
 import { parseSqlWhereConditions } from '../../utils/sqlUtils';
 import type { SqlCondition } from '../../utils/sqlUtils';
@@ -225,6 +225,9 @@ export const SQLFiltersHUD: React.FC<SQLFiltersHUDProps> = ({
     const [sqlSteps, setSqlSteps] = useState<SQLStepInfo[]>([]);
     const [activeTab, setActiveTab] = useState<number>(0);
     const [error, setError] = useState<string | null>(null);
+    const [viewMode, setViewMode] = useState<'sql' | 'trace'>('sql');
+    const [htmlLog, setHtmlLog] = useState<string | null>(null);
+    const [isLoadingTrace, setIsLoadingTrace] = useState(false);
 
     // Load SQL steps
     useEffect(() => {
@@ -250,7 +253,7 @@ export const SQLFiltersHUD: React.FC<SQLFiltersHUDProps> = ({
                         } else if (s.data && typeof s.data.sql_query === 'string') {
                             sql = s.data.sql_query;
                         } else if (s.response && typeof s.response === 'object') {
-                            // @ts-ignore
+                            // @ts-expect-error: dynamic response type structure logic
                             sql = s.response.sql_query || s.response.response || '';
                         }
 
@@ -286,7 +289,36 @@ export const SQLFiltersHUD: React.FC<SQLFiltersHUDProps> = ({
         };
 
         loadSQL();
+        loadSQL();
+
+        // Reset state on open
+        if (isOpen) {
+            setViewMode('sql');
+            setHtmlLog(null);
+        }
     }, [activeRunId, isOpen]);
+
+    const handleLoadTrace = async () => {
+        if (!activeRunId) return;
+        setViewMode('trace');
+
+        if (htmlLog) return; // Already loaded
+
+        setIsLoadingTrace(true);
+        try {
+            const results = await analysisApi.getResults(activeRunId);
+            if (results.html_log) {
+                setHtmlLog(results.html_log);
+            } else {
+                setHtmlLog("<html><body><h3 style='color: #333; font-family: sans-serif; text-align: center; margin-top: 50px;'>Trace non ancora disponibile per questa analisi.</h3></body></html>");
+            }
+        } catch (err) {
+            console.error("Failed to load trace:", err);
+            setHtmlLog("<html><body><h3 style='color: #d32f2f; font-family: sans-serif; text-align: center; margin-top: 50px;'>Errore durante il caricamento del trace.</h3></body></html>");
+        } finally {
+            setIsLoadingTrace(false);
+        }
+    };
 
     const activeStep = sqlSteps[activeTab];
 
@@ -335,6 +367,26 @@ export const SQLFiltersHUD: React.FC<SQLFiltersHUDProps> = ({
                                     </div>
                                 </div>
                                 <button
+                                    onClick={() => setViewMode(viewMode === 'sql' ? 'trace' : 'sql')}
+                                    className={`mr-2 p-2 rounded-lg transition-colors flex items-center gap-2 text-xs font-medium border ${viewMode === 'trace'
+                                        ? 'bg-amber-500/20 text-amber-400 border-amber-500/50'
+                                        : 'bg-white/5 text-gray-400 border-white/10 hover:bg-white/10'
+                                        }`}
+                                    title={viewMode === 'sql' ? "Visualizza Trace Completo" : "Visualizza SQL"}
+                                >
+                                    {viewMode === 'sql' ? (
+                                        <>
+                                            <FileText className="w-4 h-4" />
+                                            <span className="hidden sm:inline" onClick={(e) => { e.stopPropagation(); handleLoadTrace(); }}>Visualizza Trace</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Code2 className="w-4 h-4" />
+                                            <span className="hidden sm:inline">Torna a SQL</span>
+                                        </>
+                                    )}
+                                </button>
+                                <button
                                     onClick={onToggle}
                                     className="p-3 rounded-xl hover:bg-white/5 text-gray-500 hover:text-white transition-colors"
                                 >
@@ -343,80 +395,103 @@ export const SQLFiltersHUD: React.FC<SQLFiltersHUDProps> = ({
                             </div>
 
                             {/* Content */}
-                            <div className="relative flex-1 flex flex-col min-h-0 p-8 overflow-y-auto custom-scrollbar">
-                                {isLoading ? (
-                                    <div className="flex-1 flex flex-col items-center justify-center text-gray-500">
-                                        <Loader2 className="w-10 h-10 animate-spin mb-4 text-amber-500" />
-                                        <span>Analisi della query...</span>
-                                    </div>
-                                ) : error ? (
-                                    <div className="flex-1 flex flex-col items-center justify-center text-red-400">
-                                        <AlertCircle className="w-12 h-12 mb-4" />
-                                        <span>{error}</span>
-                                    </div>
-                                ) : (
-                                    <div className="space-y-10">
+                            {viewMode === 'trace' ? (
+                                <div className="flex-1 w-full relative bg-[#1e1e1e] overflow-hidden">
+                                    {isLoadingTrace ? (
+                                        <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-500">
+                                            <Loader2 className="w-10 h-10 animate-spin mb-4 text-amber-500" />
+                                            <span>Caricamento trace...</span>
+                                        </div>
+                                    ) : htmlLog ? (
+                                        <iframe
+                                            srcDoc={htmlLog}
+                                            className="w-full h-full border-none"
+                                            title="Agent Trace"
+                                            style={{ backgroundColor: 'white' }}
+                                        />
+                                    ) : (
+                                        <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-500">
+                                            <AlertCircle className="w-10 h-10 mb-4 text-red-400" />
+                                            <span>Trace non disponibile</span>
+                                        </div>
+                                    )}
+                                </div>
+                            ) : (
+                                <div className="relative flex-1 flex flex-col min-h-0 p-8 overflow-y-auto custom-scrollbar">
+                                    {isLoading ? (
+                                        <div className="flex-1 flex flex-col items-center justify-center text-gray-500">
+                                            <Loader2 className="w-10 h-10 animate-spin mb-4 text-amber-500" />
+                                            <span>Analisi della query...</span>
+                                        </div>
+                                    ) : error ? (
+                                        <div className="flex-1 flex flex-col items-center justify-center text-red-400">
+                                            <AlertCircle className="w-12 h-12 mb-4" />
+                                            <span>{error}</span>
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-10">
 
-                                        {/* Multi-Execution Tabs */}
-                                        {sqlSteps.length > 1 && (
-                                            <div className="flex items-center gap-2 overflow-x-auto pb-4 scrollbar-hide border-b border-white/5">
-                                                {sqlSteps.map((step, idx) => (
-                                                    <button
-                                                        key={step.key}
-                                                        onClick={() => setActiveTab(idx)}
-                                                        className={`
-                                                            flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all
-                                                            ${activeTab === idx
-                                                                ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40'
-                                                                : 'bg-white/5 text-gray-400 border border-white/10 hover:border-white/20'
-                                                            }
-                                                        `}
-                                                    >
-                                                        {step.isRelaxed && <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />}
-                                                        {step.label}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        )}
-
-                                        {/* Filters Chips */}
-                                        {activeStep && (
-                                            <div className="space-y-6">
-                                                <div className="flex items-center gap-2 text-[11px] text-gray-400 uppercase tracking-widest font-bold opacity-50">
-                                                    <SearchCode className="w-3.5 h-3.5" />
-                                                    PARAMETRI SEMANTICI E LOGICI
-                                                </div>
-
-                                                <div className="flex flex-col gap-5">
-                                                    {activeStep.conditions.map((item, i) => (
-                                                        <ConditionItem key={i} condition={item} />
+                                            {/* Multi-Execution Tabs */}
+                                            {sqlSteps.length > 1 && (
+                                                <div className="flex items-center gap-2 overflow-x-auto pb-4 scrollbar-hide border-b border-white/5">
+                                                    {sqlSteps.map((step, idx) => (
+                                                        <button
+                                                            key={step.key}
+                                                            onClick={() => setActiveTab(idx)}
+                                                            className={`
+                                                                flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all
+                                                                ${activeTab === idx
+                                                                    ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40'
+                                                                    : 'bg-white/5 text-gray-400 border border-white/10 hover:border-white/20'
+                                                                }
+                                                            `}
+                                                        >
+                                                            {step.isRelaxed && <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />}
+                                                            {step.label}
+                                                        </button>
                                                     ))}
-                                                    {activeStep.conditions.length === 0 && (
-                                                        <span className="text-gray-500 italic ml-16 bg-white/5 px-4 py-2 rounded-lg">
-                                                            Nessun filtro semantico rilevato (Ricerca globale).
-                                                        </span>
-                                                    )}
                                                 </div>
-                                            </div>
-                                        )}
+                                            )}
 
-                                        {/* Raw SQL View */}
-                                        {activeStep && (
-                                            <div className="space-y-4 pt-10 border-t border-white/5">
-                                                <div className="flex items-center gap-2 text-[11px] text-gray-500 uppercase tracking-widest font-bold opacity-50">
-                                                    <Terminal className="w-3.5 h-3.5" />
-                                                    CODICE SQL ORIGINALE
+                                            {/* Filters Chips */}
+                                            {activeStep && (
+                                                <div className="space-y-6">
+                                                    <div className="flex items-center gap-2 text-[11px] text-gray-400 uppercase tracking-widest font-bold opacity-50">
+                                                        <SearchCode className="w-3.5 h-3.5" />
+                                                        PARAMETRI SEMANTICI E LOGICI
+                                                    </div>
+
+                                                    <div className="flex flex-col gap-5">
+                                                        {activeStep.conditions.map((item, i) => (
+                                                            <ConditionItem key={i} condition={item} />
+                                                        ))}
+                                                        {activeStep.conditions.length === 0 && (
+                                                            <span className="text-gray-500 italic ml-16 bg-white/5 px-4 py-2 rounded-lg">
+                                                                Nessun filtro semantico rilevato (Ricerca globale).
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                 </div>
-                                                <div className="relative rounded-2xl overflow-hidden bg-[#080a0e] border border-white/10 group">
-                                                    <pre className="p-6 overflow-x-auto font-mono text-sm text-gray-500 leading-relaxed whitespace-pre-wrap">
-                                                        {activeStep.sql}
-                                                    </pre>
+                                            )}
+
+                                            {/* Raw SQL View */}
+                                            {activeStep && (
+                                                <div className="space-y-4 pt-10 border-t border-white/5">
+                                                    <div className="flex items-center gap-2 text-[11px] text-gray-500 uppercase tracking-widest font-bold opacity-50">
+                                                        <Terminal className="w-3.5 h-3.5" />
+                                                        CODICE SQL ORIGINALE
+                                                    </div>
+                                                    <div className="relative rounded-2xl overflow-hidden bg-[#080a0e] border border-white/10 group">
+                                                        <pre className="p-6 overflow-x-auto font-mono text-sm text-gray-500 leading-relaxed whitespace-pre-wrap">
+                                                            {activeStep.sql}
+                                                        </pre>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
-                            </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </motion.div>
                     </motion.div>
                 )}

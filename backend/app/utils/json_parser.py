@@ -56,18 +56,43 @@ def safe_extract_json(text: str, schema: Optional[Type[T]] = None) -> Any:
             cleaned_text = cleaned_text[start_idx : end_idx + 1]
 
     # 3. Tentativo di parsing
+    # 3. Tentativo di parsing con pulizia progressiva
     try:
         data = json.loads(cleaned_text)
-    except json.JSONDecodeError:
-        # Fallback: prova a fixare errori comuni (es. trailing commas)
-        # Questo è complesso da fare bene con regex, per ora ritorniamo None se fallisce
-        return None
+    except json.JSONDecodeError as e:
+        # Fallback 1: Fix errori comuni degli LLM (es. escaping di virgolette singole o spazi)
+        try:
+            # 1. Rimuoviamo escape non necessari che gli LLM mettono spesso (es. \' o \ )
+            fixed_text = re.sub(r"\\([' ])", r"\1", cleaned_text)
+            
+            # 2. Sostituiamo backslash che non sono seguiti da caratteri validi di escape JSON (n, r, t, b, f, ", \, /, uXXXX)
+            # con un doppio backslash per renderli letterali
+            fixed_text = re.sub(r'\\(?![tnrfbu"/]|u[0-9a-fA-F]{4})', r'\\\\', fixed_text)
+            
+            # 3. Gestione trailing commas - approccio molto semplice
+            fixed_text = re.sub(r',\s*([\]}])', r'\1', fixed_text)
+            
+            data = json.loads(fixed_text)
+        except json.JSONDecodeError:
+            # Fallback 2: Pulizia più aggressiva come ultima spiaggia
+            try:
+                # Caso specifico: l'LLM ha messo caratteri di controllo non voluti
+                fixed_text = cleaned_text.replace('\\n', '\n').replace('\\t', '\t')
+                fixed_text = re.sub(r'[\x00-\x1F\x7F]', '', fixed_text)
+                # Proviamo a usare un parser più permissivo se disponibile? No, restiamo su json standard
+                data = json.loads(fixed_text)
+            except Exception:
+                # Se tutto fallisce, LOG del fallimento per debug (senza print in produzione, ma qui siamo in dev)
+                # print(f"DEBUG: JSON extraction failed even after repairs for: {cleaned_text[:100]}...")
+                return None
+        except Exception:
+            return None
 
     # 4. Validazione Pydantic (se schema fornito)
     if schema:
         try:
             return schema.model_validate(data)
-        except ValidationError:
+        except Exception:
             # Se la validazione fallisce, potremmo ritornare None o i dati raw
             # Per sicurezza ritorniamo None, così il chiamante sa che non è conforme
             return None

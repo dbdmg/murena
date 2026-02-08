@@ -130,7 +130,7 @@ class EnergyScoreCalculator:
             )
 
             # Calculate scores for all rows
-            df["energy_score"] = df.apply(self._compute_score_for_row, axis=1)
+            df["ape_score"] = df.apply(self._compute_score_for_row, axis=1)
 
             # Calculate estimated annual cost (€/year)
             df["estimated_cost_year"] = df["consumo_kwh_tot"] * DEFAULT_KWH_COST
@@ -222,7 +222,7 @@ class EnergyScoreCalculator:
             usage_label = "Media generale"
 
         return {
-            "energy_score": score,
+            "ape_score": score,
             "kwh_per_sqm": round(kwh_per_sqm, 1),
             "consumo_kwh_anno": round(total_kwh, 0),
             "costo_annuo_euro": round(annual_cost, 2),

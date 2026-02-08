@@ -2,64 +2,27 @@ import base64
 import json
 import os
 from pathlib import Path
-from typing import Any, List, Dict
+from typing import Any, List, Dict, Union
+import pandas as pd
+import numpy as np
 
-from langchain_core.output_parsers import JsonOutputParser
-from langchain_core.prompts import PromptTemplate
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.messages import HumanMessage
 
 from app.core.config import AGENT_MODELS, USE_MOCK_NORMATIVE_AGENT
 from app.services.llm.agents.base import BaseAgent
-from app.services.llm.agents.schema import NormativeAgentResult, PromptRecord
-from app.services.llm.langchain_client import get_llm, invoke_with_langfuse, get_langfuse_callback
-from app.services.llm.prompt_loader import get_prompt_template
+from app.services.llm.agents.schema import NormativeAgentResult, PromptRecord, NormativeResponse
+from app.services.llm.langchain_client import get_llm, invoke_with_langfuse
+from app.services.llm.prompt_loader import get_system_prompt, get_user_template
 from app.utils.decorators import handle_agent_error, log_llm_usage
-
-
-DEFAULT_PROMPT = """
-ANALIZZA la documentazione normativa fornita ed ESTRAI SOLO i requisiti relativi a superfici e dimensioni che sono DIRETTAMENTE PERTINENTI alla query dell'utente.
-
-Documentazione Normativa:
-{normative_documents}
-
-Query dell'utente: {query}
-
-IMPORTANTE:
-- Analizza SOLO il testo fornito sopra
-- NON cercare informazioni esterne
-- NON fare supposizioni
-- Usa SOLO valori presenti nella documentazione
-- Restituisci ESCLUSIVAMENTE JSON - niente testo aggiuntivo
-
-JSON richiesto:
-{{
-  "requisiti": [
-    {{
-      "categoria": "superfici_minime_massime|requisiti_a_persona|altezze_dimensioni_verticali|dimensioni_minime_locali|superfici_obbligatorie|altro",
-      "tipo": "descrizione specifica del requisito",
-      "valore": numero,
-      "unita": "unità",
-      "normativa": "riferimento legislativo",
-      "ambito": "contesto di applicazione",
-      "descrizione": "spiegazione breve del requisito"
-    }}
-  ]
-}}
-
-REGOLE:
-- Ogni requisito deve avere una categoria appropriata
-- Valori numerici ESATTI dalla documentazione
-- Includi una descrizione chiara per ogni requisito
-- SOLO JSON - niente altro testo
-"""
-
+from app.utils.json_parser import safe_extract_json
 
 def _load_normative_documents() -> tuple[str, list[str], List[Dict[str, Any]]]:
     """
     Carica tutti i documenti normativi dalla cartella docs/knowledge/normativa/
     Restituisce una tupla: (testo_concatenato, lista_percorsi_file, lista_immagini_base64)
     """
-    # Trova la directory backend (4 livelli sopra questo file: agents -> llm -> services -> app -> backend)
     backend_dir = Path(__file__).parent.parent.parent.parent.parent
     normative_dir = backend_dir / "docs" / "knowledge" / "normativa"
     
@@ -70,21 +33,17 @@ def _load_normative_documents() -> tuple[str, list[str], List[Dict[str, Any]]]:
     sources = []
     images = []
     
-    # Leggi tutti i file nella cartella
     for file_path in normative_dir.rglob("*"):
         if file_path.is_file() and file_path.suffix.lower() in [".txt", ".md", ".pdf", ".doc", ".docx", ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff", ".webp"]:
             try:
-                # Leggiamo file di testo
                 if file_path.suffix.lower() in [".txt", ".md"]:
                     with open(file_path, "r", encoding="utf-8") as f:
                         content = f.read()
                         documents.append(f"--- Documento: {file_path.name} ---\n{content}\n")
                         sources.append(str(file_path.relative_to(normative_dir.parent.parent.parent)))
-                # Per immagini, le convertiamo in base64 per l'LLM
                 elif file_path.suffix.lower() in [".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff", ".webp"]:
                     with open(file_path, "rb") as f:
                         image_data = base64.b64encode(f.read()).decode('utf-8')
-                        # Determina il tipo MIME
                         mime_type = f"image/{file_path.suffix.lower()[1:]}"
                         if file_path.suffix.lower() in [".jpg", ".jpeg"]:
                             mime_type = "image/jpeg"
@@ -95,43 +54,16 @@ def _load_normative_documents() -> tuple[str, list[str], List[Dict[str, Any]]]:
                         })
                         documents.append(f"--- Immagine: {file_path.name} (inclusa per analisi visiva) ---\n")
                         sources.append(str(file_path.relative_to(normative_dir.parent.parent.parent)))
-                # Per PDF e documenti Office, includiamo solo il riferimento
                 elif file_path.suffix.lower() in [".pdf", ".doc", ".docx"]:
-                    documents.append(f"--- Documento: {file_path.name} (file binario - richiede elaborazione separata) ---\n")
+                    documents.append(f"--- Documento: {file_path.name} (file binario) ---\n")
                     sources.append(str(file_path.relative_to(normative_dir.parent.parent.parent)))
-            except Exception as e:
+            except Exception:
                 continue
     
     if not documents:
         return "Nessun documento normativo disponibile.", [], []
     
     return "\n\n".join(documents), sources, images
-
-
-def _extract_json(text: str) -> Any:
-    """Prova ad estrarre un JSON dalla risposta del modello."""
-    text = text.strip()
-    if text.startswith("```json"):
-        text = text[7:]
-    if text.endswith("```"):
-        text = text[:-3]
-    try:
-        return json.loads(text)
-    except Exception:
-        pass
-
-    start_positions = [text.find("{"), text.find("[")]
-    start_positions = [p for p in start_positions if p != -1]
-    if not start_positions:
-        return None
-    start = min(start_positions)
-    for end in range(len(text), start, -1):
-        fragment = text[start:end]
-        try:
-            return json.loads(fragment)
-        except Exception:
-            continue
-    return None
 
 
 class NormativeAgent(BaseAgent):
@@ -142,108 +74,244 @@ class NormativeAgent(BaseAgent):
             model_name or AGENT_MODELS.get("normative_agent") or AGENT_MODELS.get("default")
         )
         self.llm = get_llm(model_name=resolved_model)
+        
+        self.system_prompt = get_system_prompt("normative_agent")
+        self.user_template = get_user_template("normative_agent")
+
+        self.prompt = ChatPromptTemplate.from_messages(
+            [
+                ("system", "{system_content}"),
+                ("user", "{user_content}"),
+            ]
+        )
+        self.parser = StrOutputParser()
+        self.chain = self.prompt | self.llm | self.parser
 
     @log_llm_usage
     @handle_agent_error(
-        fallback_value=NormativeAgentResult(raw_text="Error", normative_info="{}", sources=[], prompt=None)
+        fallback_value=NormativeAgentResult(raw_text="{}", sources=[], prompt=None)
     )
-    def run(self, query: str) -> NormativeAgentResult:
+    def run(self, *, query: str = None, mode: str = "filtering", **kwargs) -> Union[NormativeAgentResult, pd.DataFrame]:
+        """
+        Esegue l'agente in due modalità:
+        - filtering: Estrae i requisiti normativi dai documenti.
+        - ranking: Calcola uno score deterministico (0-100) basato sull'aderenza ai requisiti.
+        """
+        if mode == "filtering":
+            return self._run_filtering(
+                query=query, 
+                available_columns=kwargs.get("available_columns"),
+                statistics=kwargs.get("statistics")
+            )
+        elif mode == "ranking":
+            return self._run_ranking(**kwargs)
+        else:
+            raise ValueError(f"Modalità '{mode}' non supportata dal NormativeAgent.")
+
+    def _run_filtering(self, query: str, available_columns: List[str] = None, statistics: dict = None) -> NormativeAgentResult:
         if USE_MOCK_NORMATIVE_AGENT:
+            # ... (mock stays mostly same but could include stats if needed)
             mock_json = {
+                "found": True,
                 "requisiti": [
                     {
-                        "categoria": "superfici_minime_massime",
-                        "tipo": "locale abitativo",
-                        "valore": 14,
-                        "unita": "mq",
+                        "categoria": "destinazione_uso",
+                        "tipo": "destinazione ammessa",
+                        "valore": "Abitazione",
+                        "unita": "N/A",
+                        "operatore": "LIKE",
+                        "colonna_target": "tipologia_bene_immobile",
                         "normativa": "D.M. 5/7/1975",
                         "ambito": "per alloggi",
-                        "descrizione": "Superficie minima per locali abitativi"
-                    },
-                    {
-                        "categoria": "requisiti_a_persona",
-                        "tipo": "per persona",
-                        "valore": 8,
-                        "unita": "mq/persona",
-                        "normativa": "Regolamento Regionale",
-                        "ambito": "strutture ricettive",
-                        "descrizione": "Spazio minimo per persona in strutture ricettive"
-                    },
-                    {
-                        "categoria": "altezze_dimensioni_verticali",
-                        "tipo": "altezza locale interno",
-                        "valore": 2.7,
-                        "unita": "m",
-                        "normativa": "D.M. 5/7/1975",
-                        "ambito": "locali abitabili",
-                        "descrizione": "Altezza minima interna dei locali abitabili"
+                        "descrizione": "Solo immobili residenziali"
                     }
                 ]
             }
             return NormativeAgentResult(
                 raw_text=json.dumps(mock_json, indent=2, ensure_ascii=False),
-                normative_info=json.dumps(mock_json, ensure_ascii=False),
-                sources=["https://mock-normativa.it", "https://mock-comune.torino.it"],
-                prompt=PromptRecord(
-                    system="N/D",
-                    user=query,
-                ),
+                sources=["https://mock-normativa.it"],
+                has_requirements=True,
+                prompt=PromptRecord(system="N/D", user=query),
             )
         
-        # Carica i documenti normativi
         normative_docs, sources, images = _load_normative_documents()
         
-        # Usa sempre il template caricato dinamicamente
-        template_text = get_prompt_template("normative_agent", "template", DEFAULT_PROMPT)
+        # Inseriamo le colonne disponibili nel prompt
+        columns_str = ", ".join(available_columns) if available_columns else "N/D"
         
-        # Se ci sono immagini, usa il formato multimodale
+        # Gestione statistiche (Data Distribution)
+        stats_str = "Nessuna statistica disponibile."
+        if statistics:
+            stats_str = json.dumps(statistics, indent=2, ensure_ascii=False)
+
+        # Prepare inputs for templates
+        user_inputs = {
+            "query": query, 
+            "normative_documents": normative_docs,
+            "statistics": stats_str
+        }
+        
+        system_inputs = {
+            "available_columns": columns_str
+        }
+        
+        user_text = self.render_template(self.user_template, **user_inputs).strip()
+        system_text = self.render_template(self.system_prompt, **system_inputs).strip()
+        full_text = f"[SYSTEM]\n{system_text}\n\n[USER]\n{user_text}"
+
+        
         if images:
-            # Costruisci il messaggio con testo e immagini
-            content = [
-                {"type": "text", "text": template_text.format(
-                    query=query,
-                    normative_documents=normative_docs
-                )}
-            ]
-            
-            # Aggiungi tutte le immagini
+            content = [{"type": "text", "text": full_text}]
             for img in images:
                 content.append({
                     "type": "image_url",
-                    "image_url": {
-                        "url": f"data:{img['mime_type']};base64,{img['data']}"
-                    }
+                    "image_url": {"url": f"data:{img['mime_type']};base64,{img['data']}"}
                 })
-            
             message = HumanMessage(content=content)
-            
-            # Per il caso multimodale, creiamo una chain senza callbacks per evitare conflitti
-            chain = self.llm | JsonOutputParser()
-            parsed_data = chain.invoke([message])
+            chain = self.llm | StrOutputParser()
+            raw = chain.invoke([message])
         else:
-            # Formato tradizionale solo testo
-            prompt_template = PromptTemplate.from_template(template_text)
-            chain = prompt_template | self.llm | JsonOutputParser()
-            
-            # Prepara gli input per il prompt
-            prompt_inputs = {
-                "query": query,
-                "normative_documents": normative_docs
-            }
-            
-            # Invoca l'LLM
-            parsed_data = invoke_with_langfuse(chain, prompt_inputs)
+            raw = invoke_with_langfuse(
+                self.chain,
+                {"system_content": system_text, "user_content": user_text},
+            )
         
-        # L'output parser restituisce già un dict JSON
-        normative_info = json.dumps(parsed_data, ensure_ascii=False)
-        
+        norm_data = safe_extract_json(raw, schema=NormativeResponse)
+        has_requirements = norm_data.found if norm_data else False
+
         return NormativeAgentResult(
-            raw_text=json.dumps(parsed_data, indent=2, ensure_ascii=False),
-            normative_info=normative_info,
+            raw_text=raw,
             sources=sources,
+            has_requirements=has_requirements,
             prompt=PromptRecord(
-                system=template_text,
-                user=query,
-                full_text=template_text.format(query=query, normative_documents=normative_docs) if images else prompt_template.format(**prompt_inputs),
+                system=system_text,
+                user=user_text,
+                full_text=full_text,
             ),
         )
+
+    def _run_ranking(self, *, df: pd.DataFrame, requirements: List[Dict[str, Any]], available_columns: List[str] = None) -> pd.DataFrame:
+        """Modalità ranking: calcolo score deterministico 0-100 basato sui requisiti normativi."""
+        if df is None or df.empty or not requirements:
+            if df is not None:
+                df["normative_score"] = 0
+            return df
+
+        df_ranked = df.copy()
+        
+        # Identifica tutte le colonne per cui è stato espresso un requisito (che esistono nel DF)
+        all_req_columns = set()
+        for req in requirements:
+            col = req.get("colonna_target")
+            if col and col in df_ranked.columns:
+                all_req_columns.add(col)
+
+        total_scores = pd.Series(0.0, index=df_ranked.index)
+        valid_req_count = 0
+        used_columns = set() # we still track used_columns for debug if needed, but we'll return all_req_columns
+        transparency_cols = []
+
+        for req in requirements:
+            col = req.get("colonna_target")
+            target_val = req.get("valore")
+            op = str(req.get("operatore", ">=")).upper()
+
+            # Filtro rigoroso sulle colonne ammesse per il CALCOLO dello score
+            if not col or col not in df_ranked.columns or target_val is None:
+                continue
+            
+            if available_columns and col not in available_columns:
+                continue
+
+            valid_req_count += 1
+            used_columns.add(col)
+            
+            # Gestione tipi numerici vs categorici
+            if op in [">=", "<=", "=="] and isinstance(target_val, (int, float)):
+                vals = pd.to_numeric(df_ranked[col], errors="coerce").fillna(0)
+                target_num = float(target_val)
+                
+                if op == ">=":
+                    max_val = vals.max()
+                    if max_val <= target_num:
+                        req_score = (vals / (target_num + 1e-6) * 100).clip(0, 100)
+                    else:
+                        req_score = np.where(
+                            vals >= target_num,
+                            50 + 50 * (vals - target_num) / (max_val - target_num + 1e-6),
+                            50 * (vals / (target_num + 1e-6))
+                        )
+                elif op == "<=":
+                    min_val = vals.min()
+                    if min_val >= target_num:
+                        req_score = (target_num / (vals + 1e-6) * 100).clip(0, 100)
+                    else:
+                        req_score = np.where(
+                            vals <= target_num,
+                            50 + 50 * (target_num - vals) / (target_num - min_val + 1e-6),
+                            50 * (target_num / (vals + 1e-6))
+                        )
+                else: # ==
+                    diff = np.abs(vals - target_num)
+                    req_score = (100 - (diff / (target_num + 1e-6) * 100)).clip(0, 100)
+            
+            else:
+                # Gestione categorica / stringhe
+                vals = df_ranked[col].astype(str).str.lower().str.strip()
+                target_str = str(target_val).lower().strip()
+                
+                # Determine match (boolean series)
+                if op == "==":
+                    is_match = (vals == target_str)
+                elif op == "LIKE":
+                    is_match = vals.str.contains(target_str, na=False)
+                elif op == "IN":
+                    if isinstance(target_val, str):
+                        target_list = [v.lower().strip() for v in target_val.split(",")]
+                    elif isinstance(target_val, list):
+                        target_list = [str(v).lower().strip() for v in target_val]
+                    else:
+                        target_list = [target_str]
+                    is_match = vals.isin(target_list)
+                else:
+                    is_match = (vals == target_str)
+                
+                # Calculate Score
+                req_score = is_match.astype(float) * 100
+                
+                # Transparency Metadata for Categorical
+                # For basic matching, we can simulate a ranking:
+                # Match = Rank 1, Multiplier 1.0
+                # No Match = Rank N/A, Multiplier 0.0
+                rank_pos = np.where(is_match, 1, "N/A")
+                multiplier = np.where(is_match, 1.0, 0.0)
+                
+                df_ranked[f"normative_rank_position_{col}"] = rank_pos
+                df_ranked[f"normative_multiplier_{col}"] = multiplier
+                
+                transparency_cols.append(f"normative_rank_position_{col}")
+                transparency_cols.append(f"normative_multiplier_{col}")
+                
+            total_scores += req_score
+
+        if valid_req_count > 0:
+            df_ranked["normative_score"] = (total_scores / valid_req_count).round(1)
+            
+            # Add transparency: weight per column
+            # Since we average, the weight is simply 1 / valid_req_count for all used columns
+            weight = round(1.0 / valid_req_count, 3)
+            for col in used_columns:
+                df_ranked[f"normative_weight_{col}"] = weight
+        else:
+            df_ranked["normative_score"] = 0.0
+
+        # Return score + used columns + weight columns
+        cols_to_return = ["id", "normative_score"] + list(all_req_columns)
+        weight_cols = [f"normative_weight_{c}" for c in used_columns]
+        
+        # Ensure weight columns exist (might be empty if valid_req_count is 0)
+        for wc in weight_cols:
+            if wc not in df_ranked.columns:
+                df_ranked[wc] = 0.0
+                
+        return df_ranked[["id", "normative_score"] + list(all_req_columns) + weight_cols + transparency_cols]
