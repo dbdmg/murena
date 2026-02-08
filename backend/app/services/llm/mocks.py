@@ -13,17 +13,17 @@ from app.services.llm.agents.schema import (
     PromptRecord,
 )
 
-import json
-
 # Mock Typology
 MOCK_TYPOLOGY = TypologyAgentResult(
-    raw_text=json.dumps({"typologies": ["Ufficio", "Caserma"]}, ensure_ascii=False),
+    raw_text="Mock typology result",
+    typologies=["Ufficio", "Caserma"],
     prompt=PromptRecord(system="Mock", user="Mock"),
 )
 
 # Mock Location (Rome center)
 MOCK_LOCATION = LocationAgentResult(
-    raw_text=json.dumps({"places": [{"name": "Roma Centro", "city": "Roma", "lat": 41.9028, "lon": 12.4964}]}, ensure_ascii=False),
+    raw_text="Mock location result",
+    places=[Place(name="Roma Centro", city="Roma", lat=41.9028, lon=12.4964)],
     prompt=PromptRecord(system="Mock", user="Mock"),
 )
 
@@ -32,22 +32,23 @@ MOCK_SQL_QUERY = "SELECT * FROM IMMOBILI LIMIT 10"
 
 # Mock Evaluation Results
 MOCK_EVALUATION = EvaluationAgentResponse(
-    raw_text=json.dumps([
-        {
-            "id": 12345,
-            "evaluation_text": "Ottimo immobile simulato per test.",
-            "final_ranking_score": 95,
-            "pros": ["Economico", "Centrale", "Ristrutturato"],
-            "cons": ["Piano alto senza ascensore"],
-        },
-        {
-            "id": 67890,
-            "evaluation_text": "Buona alternativa simulata.",
-            "final_ranking_score": 88,
-            "pros": ["Ampio", "Luminoso"],
-            "cons": ["Da ristrutturare"],
-        },
-    ], ensure_ascii=False),
+    raw_text="Mock evaluation raw text",
+    results=[
+        EvaluationResult(
+            id=12345,
+            evaluation_text="Ottimo immobile simulato per test.",
+            score=95,
+            pros=["Economico", "Centrale", "Ristrutturato"],
+            cons=["Piano alto senza ascensore"],
+        ),
+        EvaluationResult(
+            id=67890,
+            evaluation_text="Buona alternativa simulata.",
+            score=88,
+            pros=["Ampio", "Luminoso"],
+            cons=["Da ristrutturare"],
+        ),
+    ],
     prompt=PromptRecord(system="Mock", user="Mock"),
 )
 

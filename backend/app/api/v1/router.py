@@ -12,7 +12,6 @@ from app.api.v1.endpoints import (
     layers,
     prompts,
     feedback,
-    logs,
 )
 
 api_router = APIRouter()
@@ -27,7 +26,6 @@ api_router.include_router(ape.router, prefix="/ape", tags=["ape"])
 api_router.include_router(layers.router, tags=["layers"])
 api_router.include_router(prompts.router, prefix="/prompts", tags=["prompts"])
 api_router.include_router(feedback.router, prefix="/feedback", tags=["feedback"])
-api_router.include_router(logs.router, prefix="/logs", tags=["logs"])
 
 
 # Placeholder routers (will be implemented later)

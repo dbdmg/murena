@@ -47,7 +47,7 @@ const parseRecursive = (clause: string, initialOperator: 'AND' | 'OR' | null): S
     let quoteChar = '';
 
     const pushToken = () => {
-        const clean = current.trim();
+        let clean = current.trim();
         if (clean) {
             tokens.push(clean);
         }

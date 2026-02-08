@@ -129,7 +129,6 @@ class AnalysisResults(BaseModel):
     filters_applied: Optional[Dict[str, Any]] = None
     gemini_responses: Optional[Dict[str, Any]] = None
     broker_summary: Optional[str] = None
-    html_log: Optional[str] = None
     created_at: datetime
     completed_at: Optional[datetime] = None
 

@@ -1,8 +1,8 @@
 # 🗺️ Architettura Sistema Multi-Agente
 
-> **Documento Aggiornato**: 6 Febbraio 2026  
+> **Documento Generato**: 28 Gennaio 2026  
 > **Autore**: Senior AI Architect  
-> **Scope**: Architettura attuale del sistema `backend/app/services/llm/agents/`
+> **Scope**: Reverse Engineering del sistema `backend/app/services/llm/agents/`
 
 ---
 
@@ -12,7 +12,7 @@ Il sistema implementa una **pipeline multi-agente orchestrata tramite LangGraph*
 
 **Componenti Principali:**
 - **1 Orchestratore** (GraphOrchestratorAgent) basato su LangGraph
-- **8 Agenti Specializzati** con responsabilità distinte
+- **11 Agenti Specializzati** con responsabilità distinte
 - **Pattern di Retry** con rilassamento automatico dei vincoli
 - **Fallback robusto** per garantire sempre risultati
 
@@ -34,13 +34,19 @@ graph TD
         
         PARALLEL --> TYPOLOGY[🏷️ TypologyAgent]
         PARALLEL --> LOCATION[📍 LocationAgent]
+        PARALLEL --> STRATEGY[📋 NeedsMetricAgent<br/>OR UseCaseAgent]
         PARALLEL --> APE[⚡ ApeAgent]
-        PARALLEL --> POI[🗺️ PoiAgent]
+        PARALLEL --> POI_FLOW[🗺️ POI Pipeline]
         PARALLEL --> NORMATIVE[📜 NormativeAgent]
+        
+        subgraph "POI Pipeline (Sequenziale)"
+            POI_FLOW --> POI_CAT[PoiCategoryAgent]
+            POI_CAT --> POI_AME[PoiAmenityAgent]
+        end
     end
 
     subgraph "🔧 Fase 2: Generazione & Esecuzione SQL"
-        TYPOLOGY & LOCATION & APE & POI & NORMATIVE --> SQL_GEN
+        TYPOLOGY & LOCATION & STRATEGY & APE & POI_AME & NORMATIVE --> SQL_GEN
         SQL_GEN[generate_sql<br/>SQLAgent]
         SQL_GEN --> SQL_EXEC[execute_sql]
     end
@@ -54,11 +60,10 @@ graph TD
         CHECK -->|max retries| FALLBACK[fallback_results]
     end
 
-    subgraph "📈 Fase 3: Post-Processing & Ranking"
+    subgraph "📈 Fase 3: Post-Processing"
         CHECK -->|success| ENRICH[enrich_results]
         FALLBACK --> ENRICH
-        ENRICH --> CALC_WEIGHTS[calculate_ranking_weights<br/>RankingAgent]
-        CALC_WEIGHTS --> RANK[rank_results<br/>Parallel Ranking]
+        ENRICH --> RANK[rank_results]
         RANK --> EVAL[evaluate_results<br/>EvaluationAgent]
         EVAL --> BROKER[broker_review<br/>EvaluationAgent.run_synthesis]
         BROKER --> FINAL[finalize_results]
@@ -70,8 +75,6 @@ graph TD
 
     style ANALYZE fill:#e1f5fe
     style SQL_GEN fill:#fff3e0
-    style CALC_WEIGHTS fill:#e8f5e9
-    style RANK fill:#e8f5e9
     style EVAL fill:#f3e5f5
     style BROKER fill:#fce4ec
     style FALLBACK fill:#ffebee
@@ -85,28 +88,35 @@ sequenceDiagram
     participant TP as ThreadPool(5)
     participant TY as TypologyAgent
     participant LO as LocationAgent
+    participant NM as NeedsMetricAgent
     participant AP as ApeAgent
-    participant PO as PoiAgent
+    participant PC as PoiCategoryAgent
+    participant PA as PoiAmenityAgent
     participant NO as NormativeAgent
 
     O->>TP: submit(run_typology)
     O->>TP: submit(run_location)
+    O->>TP: submit(run_strategy)
     O->>TP: submit(run_ape)
     O->>TP: submit(run_poi)
     O->>TP: submit(run_normative)
 
     par Esecuzione Parallela
-        TP->>TY: run(query, typologies, statistics)
+        TP->>TY: run(query, typologies)
         TP->>LO: run(query)
-        TP->>AP: run(query, statistics, score_legend)
-        TP->>PO: run(query, statistics)
-        TP->>NO: run(query, columns, statistics)
+        TP->>NM: run(query, schema, metadata)
+        TP->>AP: run(query, columns, statistics)
+        TP->>PC: run(query)
+        PC-->>PA: category_weights
+        TP->>PA: run(query, category_weights)
+        TP->>NO: run(query)
     end
 
     TY-->>O: TypologyAgentResult
     LO-->>O: LocationAgentResult
+    NM-->>O: NeedsMetricPlan
     AP-->>O: ApeAgentResult
-    PO-->>O: PoiAgentResult
+    PA-->>O: PoiAmenityAgentResult
     NO-->>O: NormativeAgentResult
 ```
 
@@ -151,12 +161,14 @@ flowchart TB
       A["Analisi Parallela\n(analyze_request)"]
       LA["Location Agent"]
       TA["Typology Agent"]
+      NA["Needs & Metric Agent\n(o Use Case Agent in classic mode)"]
       AA["APE Agent"]
-      PA["POI Agent"]
+      PA["POI Agent\n(PoiCategory → PoiAmenity)"]
       NO["Normative Agent"]
 
       A --> LA
       A --> TA
+      A --> NA
       A --> AA
       A --> PA
       A --> NO
@@ -167,8 +179,7 @@ flowchart TB
     C{"Esito Query?"}
     R["Retry Logic\n(handle_retry)"]
     ENR["Arricchimento Dati\n(enrich_results)\n+ merge full dataset"]
-    CW["Calcolo Pesi\n(calculate_ranking_weights + RankingAgent)"]
-    RK["Ranking & Scoring\n(rank_results)\nParallel: typology, location, ape, normative, poi"]
+    RK["Ranking & Scoring\n(rank_results)"]
     EV["Valutazione Qualitativa\n(evaluate_results + EvaluationAgent)"]
     BR["Broker Review\n(broker_review)"]
     F["Finalizzazione\n(finalize_results)"]
@@ -179,6 +190,7 @@ flowchart TB
     U --> A
     LA --> G
     TA --> G
+    NA --> G
     AA --> G
     PA --> G
     NO --> G
@@ -189,7 +201,7 @@ flowchart TB
     R -->|"rigenera SQL (vincoli relax se empty)"| G
     C -->|"❌ Max retry"| FB
     FB --> ENR
-    ENR --> CW --> RK --> EV --> BR --> F --> OUT
+    ENR --> RK --> EV --> BR --> F --> OUT
 ```
 
 ### 1.5 Albero Decisionale dell’Orchestratore (Tree)
@@ -204,12 +216,14 @@ graph TD
   AR --> P{{Analisi in parallelo}}
   P --> L[LocationAgent]
   P --> T[TypologyAgent]
+  P --> S[NeedsMetricAgent / UseCaseAgent]
   P --> A[ApeAgent]
   P --> N[NormativeAgent]
-  P --> PO[PoiAgent]
+  P --> PC[PoiCategoryAgent]
+  PC --> PA[PoiAmenityAgent]
 
   %% --- Join verso SQL ---
-  L & T & A & N & PO --> GS[generate_sql (SQLAgent)]
+  L & T & S & A & N & PA --> GS[generate_sql (SQLAgent)]
   GS --> ES[execute_sql]
 
   %% --- Decision node ---
@@ -217,8 +231,7 @@ graph TD
 
   %% --- Success path ---
   D -->|continue: risultati > 0| ENR[enrich_results]
-  ENR --> CW[calculate_ranking_weights\n(RankingAgent)]
-  CW --> RK[rank_results\nParallel: typology, location, ape, normative, poi]
+  ENR --> RK[rank_results]
   RK --> EV[evaluate_results]
   EV --> BR[broker_review]
   BR --> FIN[finalize_results]
@@ -240,7 +253,7 @@ graph TD
   classDef decision fill:#111827,stroke:#fbbf24,color:#ffffff;
   classDef warn fill:#111827,stroke:#f87171,color:#ffffff;
 
-  class Q,AR,P,L,T,A,N,PO,GS,ES,ENR,CW,RK,EV,BR,FIN,OUT node;
+  class Q,AR,P,L,T,S,A,N,PC,PA,GS,ES,ENR,RK,EV,BR,FIN,OUT node;
   class D decision;
   class FB warn;
 ```
@@ -356,6 +369,84 @@ graph TD
 
 ---
 
+### 📋 NeedsMetricAgent (Modalità "agent")
+
+**Scopo:** Traduce i bisogni dell'utente in metriche di ranking e strategia dataset.
+
+**Input State:**
+```json
+{
+  "query": "Immobili efficienti energeticamente vicino alle scuole",
+  "db_schema": "{ IMMOBILI: { superficie_di_riferimento_mq: FLOAT, ... } }",
+  "dataset_sample": "id, indirizzo, superficie_di_riferimento_mq, ...",
+  "db_metadata": "{...}",
+  "categorical_values": {
+    "classe_energetica_ape": ["A1", "A2", "B", "C", "D", "E", "F", "G"],
+    "tipologia_bene_immobile": ["Abitazione", "Ufficio", ...]
+  }
+}
+```
+
+**Output Schema (NeedsMetricPlan):**
+```json
+{
+  "summary": "L'utente cerca immobili efficienti vicino a scuole",
+  "raw_text": "{...}",
+  "prompt": {...},
+  "metrics": [
+    {
+      "name": "efficienza_energetica",
+      "goal": "Massimizzare classe APE",
+      "weight": 0.7,
+      "data_points": ["ape_score_total", "classe_energetica_ape"]
+    },
+    {
+      "name": "educazione",
+      "goal": "Prossimità scuole",
+      "weight": 0.8,
+      "data_points": ["educazione"]
+    }
+  ],
+  "dataset_strategy": {
+    "filters": ["superficie_di_riferimento_mq >= 50"],
+    "sort_by": "educazione DESC",
+    "top_k": 500,
+    "notes": "Filtro leggero per massimizzare candidati"
+  },
+  "ape_strategy": {
+    "use_ape": true,
+    "strategy": "Prioritizzare classi A-B"
+  }
+}
+```
+
+---
+
+### 📝 UseCaseAgent (Modalità "classic")
+
+**Scopo:** Genera un use case strutturato per la valutazione (alternativa a NeedsMetricAgent).
+
+**Input State:**
+```json
+{
+  "query": "Cerco spazi per coworking",
+  "db_schema": "{...}"
+}
+```
+
+**Output Schema (UseCaseResult):**
+```json
+{
+  "raw_text": "{\"description\":\"...\",\"target_audience\":\"...\",\"key_metrics\":[...]}",
+  "description": "Spazi per coworking con buona accessibilità e servizi",
+  "target_audience": "Startup e professionisti",
+  "key_metrics": ["superficie_mq", "accessibilità", "servizi_commerciali"],
+  "prompt": {...}
+}
+```
+
+---
+
 ### ⚡ ApeAgent
 
 **Scopo:** Analizza dati APE (Attestato Prestazione Energetica) e suggerisce strategie energetiche.
@@ -392,40 +483,71 @@ graph TD
 
 ---
 
-### 🗺️ PoiAgent
+### 🗺️ PoiCategoryAgent
 
-**Scopo:** Identifica categorie POI (Points of Interest) rilevanti e punteggi minimi richiesti per la query.
+**Scopo:** Identifica le categorie POI (Points of Interest) rilevanti per la richiesta.
 
 **Input State:**
 ```json
 {
-  "query": "Appartamento vicino a metro e università",
-  "mode": "filtering",
-  "statistics": {
-    "sanita": {"mean": 2.3, "max": 5.0},
-    "mobilita": {"mean": 3.1, "max": 5.0},
-    "educazione": {"mean": 2.8, "max": 5.0}
-  }
+  "query": "Appartamento vicino a metro e università"
 }
 ```
 
-**Output Schema (PoiAgentResult):**
+**Output Schema (PoiCategoryAgentResult):**
 ```json
 {
-  "raw_text": "{\"found\":true,\"categories\":[\"mobilita\",\"educazione\"],\"punteggi_minimi\":{\"mobilita\":3.5,\"educazione\":4.0}}",
-  "found": true,
-  "categories": ["mobilita", "educazione"],
-  "punteggi_minimi": {
-    "mobilita": 3.5,
-    "educazione": 4.0
+  "raw_text": "{\"categories\":[\"mobilita\",\"educazione\"]}",
+  "category_weights": {
+    "sanita": 0.0,
+    "mobilita": 0.5,
+    "verde": 0.0,
+    "sport": 0.0,
+    "commerciale": 0.0,
+    "educazione": 1.0
   },
-  "prompt": {...}
+  "prompt": null
 }
 ```
 
 **Categorie Disponibili:** `sanita`, `mobilita`, `verde`, `sport`, `commerciale`, `educazione`
 
-**Note:** L'agente unificato gestisce sia l'identificazione delle categorie che i punteggi minimi richiesti (scala 1-5).
+---
+
+### 🏪 PoiAmenityAgent
+
+**Scopo:** Seleziona le specifiche amenity (servizi) rilevanti all'interno delle categorie.
+
+**Input State:**
+```json
+{
+  "query": "Appartamento vicino a metro e università",
+  "category_weights": {
+    "mobilita": 0.5,
+    "educazione": 1.0
+  }
+}
+```
+
+**Output Schema (PoiAmenityAgentResult):**
+```json
+{
+  "raw_text": "{\"amenities\":{\"mobilita\":[\"subway\",\"bus_stop\"],\"educazione\":[\"university\",\"college\"]}}",
+  "selected_categories": ["mobilita", "educazione"],
+  "selected_amenities": {
+    "mobilita": ["subway", "bus_stop"],
+    "educazione": ["university", "college"]
+  },
+  "category_weights": {"mobilita": 0.5, "educazione": 1.0},
+  "amenity_weights": {
+    "mobilita": {"subway": 0.5, "bus_stop": 0.5, "tram_stop": 0.0},
+    "educazione": {"university": 0.5, "college": 0.5, "school": 0.0}
+  },
+  "prompt": null
+}
+```
+
+**Dipendenza:** Richiede output di `PoiCategoryAgent` come input.
 
 ---
 
@@ -521,42 +643,6 @@ graph TD
 
 ---
 
-### 🎚️ RankingAgent
-
-**Scopo:** Determina i pesi per il sistema di ranking multi-criterio basandosi sull'analisi della query utente.
-
-**Input State:**
-```json
-{
-  "query": "Sto cercando immobili vicino alle scuole con buona classe energetica",
-  "mode": "ranking"
-}
-```
-
-**Output Schema (RankingAgentResult):**
-```json
-{
-  "raw_text": "{\"ranking\":[\"poi\",\"ape\",\"location\",\"typology\",\"normative\"],\"weights\":{...}}",
-  "weights": {
-    "location": 0.3,
-    "normative": 0.1,
-    "ape": 0.3,
-    "typology": 0.1,
-    "poi": 0.4
-  },
-  "ranking": {
-    "ranking": ["poi", "ape", "location", "typology", "normative"]
-  },
-  "prompt": {...}
-}
-```
-
-**Algoritmo di Pesatura:** Utilizza ranking posizionale (1, 1/2, 1/3, 1/4, 1/5) normalizzato per sommare a 1.0.
-
-**Note:** Il RankingAgent viene eseguito dopo `enrich_results` per determinare i pesi che verranno utilizzati nel ranking parallelo degli immobili.
-
----
-
 ### 👔 Broker Review (via EvaluationAgent.run_synthesis)
 
 **Scopo:** Genera executive summary comparativo per il decisore finale.
@@ -618,39 +704,53 @@ graph TD
 | **Tracciabilità** | ⭐⭐⭐⭐⭐ | PromptRecord su ogni agente + gemini_responses completo |
 | **Structured Output** | ⭐⭐⭐⭐ | Pydantic models + `with_structured_output()` dove supportato |
 
-### ⚠️ Miglioramenti Architetturali Implementati
+### ⚠️ Aree di Ridondanza (Da Ottimizzare)
 
-#### 1. **✅ POI Pipeline Unificata** (RISOLTO)
+#### 1. **POI Pipeline Sequenziale Forzata**
 ```
-PoiAgent unificato (no più dipendenza sequenziale)
+PoiCategoryAgent → PoiAmenityAgent (dipendenza seriale)
 ```
-**Soluzione Implementata:** È stato creato un singolo `PoiAgent` che gestisce sia categorie che punteggi minimi in una sola chiamata LLM.  
-**Benefici:** Riduzione di 1 chiamata LLM, latenza ridotta, logica semplificata.
+**Problema:** All'interno del ThreadPool, `run_poi()` esegue sequenzialmente entrambi gli agenti.  
+**Impatto:** +1 chiamata LLM in serie, aumenta latenza complessiva.  
+**Soluzione Proposta:** 
+- Fusione in un singolo `PoiAgent` che restituisce sia categorie che amenity.
+- Oppure: cache delle categorie per evitare ricalcolo.
 
-#### 2. **✅ Eliminazione NeedsMetricAgent/UseCaseAgent** (RISOLTO)
-**Soluzione Implementata:** Rimossi entrambi gli agenti. L'analisi strategica è ora distribuita tra gli agenti specializzati (Ape, Poi, Normative, Typology).  
-**Benefici:** Riduzione complessità, nessuna duplicazione, ogni agente si concentra sul proprio dominio.
+#### 2. **NeedsMetricAgent vs UseCaseAgent (Overlap Concettuale)**
+```python
+if self.is_agent_mode:
+    return self.needs_agent.run(...)  # NeedsMetricPlan
+else:
+    return self.use_case_agent.run(...)  # UseCaseResult
+```
+**Problema:** Due agenti che fanno essenzialmente lo stesso lavoro (analisi bisogni), ma con output diversi.  
+**Impatto:** Duplicazione di logica e prompt simili.  
+**Soluzione Proposta:** Unificare in un unico `StrategyAgent` con output polimorfico.
 
-#### 3. **✅ Separazione Chiara delle Responsabilità**
-**Soluzione Implementata:** 
-- `ApeAgent` gestisce solo analisi energetica e filtri APE
-- `RankingAgent` determina i pesi per il ranking finale
-- Nessuna sovrapposizione nelle responsabilità
+#### 3. **ApeAgent e NeedsMetricAgent: Sovrapposizione su Metriche Energetiche**
+**Problema:** Entrambi analizzano requisiti energetici. `ApeAgent` suggerisce filtri APE, `NeedsMetricAgent` include metriche `efficienza_energetica`.  
+**Impatto:** Possibili conflitti nelle raccomandazioni (es. uno dice "F-G", l'altro "A-B").  
+**Soluzione Proposta:** 
+- `ApeAgent` diventa un **sub-componente** di `NeedsMetricAgent`.
+- Oppure: `ApeAgent` viene chiamato solo se `metrics_plan.ape_strategy.use_ape == true`.
 
-#### 4. **✅ Ranking Agent Dedicato**
-**Soluzione Implementata:** Creato `RankingAgent` dedicato che calcola dinamicamente i pesi in base alla query utente.  
-**Benefici:** Ranking personalizzato per ogni query, separazione tra analisi e pesatura.
+#### 4. **Geocoding Parallelo Separato**
+```python
+with ThreadPoolExecutor(max_workers=5) as executor:
+    futures = [executor.submit(geocode_place, p) for p in loc_result.places]
+```
+**Problema:** Secondo ThreadPoolExecutor nested all'interno del primo (analisi).  
+**Impatto:** Overhead di context switching, potenziale thread starvation.  
+**Soluzione Proposta:** Integrare geocoding nel `LocationAgent` stesso o usare async.
 
-### ⚠️ Aree di Ottimizzazione Rimanenti
-
-#### 1. **🟡 EvaluationAgent Doppio Ruolo (Evaluation + Broker)**
+#### 5. **EvaluationAgent Doppio Ruolo (Evaluation + Broker)**
 ```python
 self.evaluation_agent.run(...)  # Valutazione singoli immobili
 self.evaluation_agent.run_synthesis(...)  # Executive summary
 ```
 **Problema:** Un agente con due metodi semanticamente diversi.  
 **Impatto:** Viola Single Responsibility Principle. Prompt e chain diversi.  
-**Raccomandazione:** Estrarre `BrokerAgent` come classe separata.
+**Soluzione Proposta:** Estrarre `BrokerAgent` come classe separata.
 
 ### ❌ Criticità Identificate
 
@@ -697,14 +797,15 @@ for file_path in normative_dir.rglob("*"):
 
 | Agente | Input Da | Output Verso | Tipo Dipendenza |
 |--------|----------|--------------|-----------------|
-| TypologyAgent | Query, Statistics | SQLAgent, Ranking | Soft (opzionale) |
+| TypologyAgent | Query | SQLAgent | Soft (opzionale) |
 | LocationAgent | Query | SQLAgent, Ranking | Hard (geocoding) |
-| ApeAgent | Query, Statistics | SQLAgent, Ranking | Soft |
-| PoiAgent | Query, Statistics | SQLAgent, Ranking | Soft |
-| NormativeAgent | Query, Statistics | SQLAgent, Ranking | Soft |
+| NeedsMetricAgent | Query, Schema | SQLAgent, Ranking | Hard |
+| ApeAgent | Query, Statistics | NeedsMetricPlan | Soft (merge) |
+| PoiCategoryAgent | Query | PoiAmenityAgent | Hard (blocking) |
+| PoiAmenityAgent | Query, CategoryWeights | Ranking | Hard |
+| NormativeAgent | Query | SQLAgent (augmented) | Soft |
 | SQLAgent | All above | Execute SQL | Hard |
-| RankingAgent | Query | Ranking Weights | Hard |
-| EvaluationAgent | SQL Results, Rankings | Broker, UI | Hard |
+| EvaluationAgent | SQL Results | Broker, UI | Hard |
 
 ---
 
@@ -712,35 +813,30 @@ for file_path in normative_dir.rglob("*"):
 
 ### Giudizio Architetturale
 
-L'architettura attuale è **ottimizzata e ben bilanciata** per il problema specifico (analisi immobiliare multi-criterio):
+L'architettura è **ben progettata** per il problema specifico (analisi immobiliare multi-criterio), ma presenta segni di **over-engineering** in alcune aree:
 
-| Aspetto | Stato | Note |
-|---------|-------|------|
-| Numero Agenti | 8 agenti specializzati | ✅ Ottimale |
+| Aspetto | Stato | Priorità Fix |
+|---------|-------|--------------|
+| Numero Agenti | 11 agenti → potenzialmente riducibili a 7-8 | 🟡 Media |
 | Complessità LangGraph | Giustificata per retry/fallback | ✅ OK |
-| Parallelizzazione | Efficace con 5 workers | ✅ OK |
+| Parallelizzazione | Efficace ma con overhead nested | 🟡 Media |
 | Accoppiamento | Basso grazie a schema Pydantic | ✅ OK |
-| Responsabilità | Chiara separazione | ✅ OK |
 
-### Miglioramenti Architetturali Completati
+### Raccomandazioni Prioritizzate
 
-1. **✅ [COMPLETATO] Fusione PoiCategoryAgent + PoiAmenityAgent** → PoiAgent unificato
-2. **✅ [COMPLETATO] Eliminazione NeedsMetricAgent/UseCaseAgent** → Logica distribuita tra agenti specializzati
-3. **✅ [COMPLETATO] Aggiunta RankingAgent** → Pesatura dinamica del ranking
-
-### Raccomandazioni Prioritizzate Rimanenti
-
-1. **[P1] Rimuovere base_dataset dallo state** → Riduce memory footprint
-2. **[P2] Estrarre BrokerAgent** → Migliora SRP (separare da EvaluationAgent)
-3. **[P2] Implementare RAG per NormativeAgent** → Supporta documenti lunghi
-4. **[P3] Async Geocoding** → Riduce latenza I/O bound
+1. **[P1] Fondere PoiCategoryAgent + PoiAmenityAgent** → Riduce 1 chiamata LLM
+2. **[P1] Rimuovere base_dataset dallo state** → Riduce memory footprint
+3. **[P2] Estrarre BrokerAgent** → Migliora SRP
+4. **[P2] Implementare RAG per NormativeAgent** → Supporta documenti lunghi
+5. **[P3] Unificare NeedsMetricAgent + UseCaseAgent** → Riduce duplicazione
+6. **[P3] Async Geocoding** → Riduce latenza I/O bound
 
 ### Metriche Chiave da Monitorare
 
 ```
 📊 KPI Suggeriti:
 - avg_pipeline_latency_ms
-- llm_calls_per_request (attualmente ~8-9 per request)
+- llm_calls_per_request
 - retry_rate_percentage
 - fallback_activation_rate
 - memory_peak_mb
@@ -756,16 +852,17 @@ AGENT_MODELS = {
     "default": "gemini-1.5-flash",
     "typology_agent": "gemini-1.5-flash",
     "location_agent": "gemini-1.5-flash",
+    "needs_metric_agent": "gemini-1.5-flash",
     "sql_agent": "gemini-1.5-flash",
     "evaluation_agent": "gemini-1.5-pro",  # Pro per valutazioni complesse
     "ape_agent": "gemini-1.5-flash",
-    "poi_agent": "gemini-1.5-flash",  # Unificato
+    "poi_category_agent": "gemini-1.5-flash",
+    "poi_amenity_agent": "gemini-1.5-flash",
     "normative_agent": "gemini-1.5-pro",  # Pro per documenti
-    "ranking_agent": "gemini-1.5-flash",
     "map_assistant": "gemini-1.5-flash"
 }
 ```
 
 ---
 
-> **Nota Finale:** L'architettura attuale rappresenta un ottimo equilibrio tra modularità, performance e manutenibilità. Gli agenti sono stati razionalizzati da 11 a 8, eliminando ridondanze e migliorando la chiarezza delle responsabilità. Il sistema è production-ready e le ottimizzazioni rimanenti sono di natura evolutiva per supportare scale superiori.
+> **Nota Finale:** Questa architettura rappresenta un buon equilibrio tra modularità e performance. Le ottimizzazioni suggerite sono evolutive, non rivoluzionarie. Il sistema è production-ready con le criticità identificate come "nice-to-have" per scale superiori.

@@ -1,6 +1,5 @@
 import json
 from typing import List
-from app.utils.logger import logger
 
 from langchain_core.output_parsers import PydanticOutputParser
 from langchain_core.prompts import ChatPromptTemplate
@@ -14,12 +13,66 @@ from app.services.llm.agents.base import BaseAgent
 from app.services.llm.agents.schema import (
     EvaluationAgentResponse,
     EvaluationResult,
-    EvaluationList,
     PromptRecord,
 )
 from app.services.llm.langchain_client import get_llm, invoke_with_langfuse
 from app.services.llm.prompt_loader import get_system_prompt, get_user_template
 from app.utils.decorators import log_llm_usage
+
+
+class EvaluationList(BaseModel):
+    evaluations: List[EvaluationResult] = Field(
+        description="Lista delle valutazioni degli immobili"
+    )
+
+
+DEFAULT_SYSTEM = """Sei un Esperto Senior di Valorizzazione Immobiliare e Rigenerazione Urbana per il Ministero dell'Economia e delle Finanze (MEF).
+Il tuo obiettivo è analizzare un portafoglio di immobili pubblici per identificare le migliori opportunità di valorizzazione.
+
+Protocollo di Valutazione:
+1. Analisi del Potenziale: Non limitarti allo stato attuale. Valuta la trasformabilità dell'immobile.
+2. Fattori Critici:
+   - Posizione (zona_omi, punteggi POI: sanita, mobilita, verde, sport, commerciale, educazione)
+   - Dimensione (superficie_di_riferimento_mq)
+   - Sostenibilità Energetica (classe_energetica_ape, ape_score_*)
+   - Accessibilità (tempo_minuti, distanza_km se disponibili)
+
+3. Scoring (0-100):
+   - 90-100 (Top Prospect): Immobile ideale, nessun ostacolo significativo.
+   - 75-89 (High Potential): Ottimo candidato con piccole criticità.
+   - 60-74 (Medium Potential): Adatto ma con sfide da gestire.
+   - <60 (Low Potential): Scarsa vocazione per l'uso richiesto.
+
+{score_legend}
+
+I dati degli immobili sono forniti in formato JSON. Ogni oggetto rappresenta un immobile con i suoi attributi.
+
+{format_instructions}"""
+
+DEFAULT_USER = """Richiesta Utente (Obiettivo Strategico):
+{query}
+
+Scenario di Valorizzazione (Use Case):
+{use_case}
+
+Dati degli Immobili Candidati (JSON):
+{estates_data}"""
+
+
+BROKER_SYSTEM = """Sei un Senior Real Estate Broker e Consulente Strategico per il Ministero.
+Il tuo compito è scrivere una "Executive Summary" COMPARATIVA per il decisore finale.
+
+Istruzioni:
+1. Sintesi Diretta: Inizia con una frase forte che identifica la migliore opportunità.
+2. Comparazione: Confronta i top 3 candidati. Evidenzia pro e contro relativi.
+3. Raccomandazione: Dai un consiglio finale basato sul miglior compromesso.
+4. Tono: Professionale, sintetico, autorevole. Massimo 10-12 righe."""
+
+BROKER_USER = """Richiesta Utente:
+{query}
+
+Top Candidati Selezionati:
+{candidates_data}"""
 
 
 class EvaluationAgent(BaseAgent):
@@ -34,8 +87,8 @@ class EvaluationAgent(BaseAgent):
         self.llm = get_llm(model_name=resolved_model)
 
         # Load system and user prompts separately
-        self.system_prompt = get_system_prompt("evaluation_agent")
-        self.user_template = get_user_template("evaluation_agent")
+        self.system_prompt = get_system_prompt("evaluation_agent", DEFAULT_SYSTEM)
+        self.user_template = get_user_template("evaluation_agent", DEFAULT_USER)
 
         self.parser = PydanticOutputParser(pydantic_object=EvaluationList)
 
@@ -46,7 +99,7 @@ class EvaluationAgent(BaseAgent):
 
         self.prompt = ChatPromptTemplate.from_messages(
             [
-                ("system", "{system_content}"),
+                ("system", system_with_format),
                 ("user", self.user_template),
             ]
         )
@@ -57,7 +110,7 @@ class EvaluationAgent(BaseAgent):
 
         # Se il modello supporta structured output nativo (es. Gemini/OpenAI), usiamolo
         if hasattr(self.llm, "with_structured_output"):
-            self.chain = self.prompt | self.llm.with_structured_output(EvaluationList, method="function_calling")
+            self.chain = self.prompt | self.llm.with_structured_output(EvaluationList)
         else:
             self.chain = self.prompt | self.llm | self.parser
 
@@ -87,59 +140,30 @@ Assicurati che la tua valutazione sia allineata con i requisiti specifici sopra 
             use_case = query_context + "\n\n" + use_case
 
         # Format user prompt with variables
-        user_text = self.render_template(
-            self.user_template,
-            query=query,
-            use_case=use_case,
-            estates_data=estates_data,
+        user_text = self.user_template.format(
+            query=query, use_case=use_case, estates_data=estates_data
         ).strip()
         full_text = f"[SYSTEM]\n{self._system_with_format}\n\n[USER]\n{user_text}"
 
-        # Conteggio immobili in input per verifica output (retry logic)
         try:
-            input_estates = json.loads(estates_data)
-            expected_count = len(input_estates) if isinstance(input_estates, list) else 0
-        except Exception:
-            expected_count = 0
+            result = invoke_with_langfuse(
+                self.chain,
+                {"query": query, "use_case": use_case, "estates_data": estates_data},
+            )
 
-        max_retries = 3
-        result = None
-        raw_text = ""
-        
-        for attempt in range(max_retries):
-            try:
-                result = invoke_with_langfuse(
-                    self.chain,
-                    {
-                        "system_content": self._system_with_format,
-                        "query": query,
-                        "use_case": use_case,
-                        "estates_data": estates_data,
-                    },
-                )
+            # Gestione differenziata in base al tipo di output (oggetto Pydantic o altro)
+            if isinstance(result, EvaluationList):
+                results = result.evaluations
+                raw_text = json.dumps([r.model_dump() for r in results], indent=2)
+            else:
+                # Fallback se la catena restituisce qualcos'altro
+                results = []
+                raw_text = str(result)
 
-                # Gestione differenziata in base al tipo di output (oggetto Pydantic o altro)
-                if isinstance(result, EvaluationList):
-                    results = result.evaluations
-                    raw_text = json.dumps(result.model_dump(), indent=2, ensure_ascii=False)
-                    
-                    # Se abbiamo ricevuto almeno tanti record quanti ne abbiamo inviati, usciamo dal loop
-                    if len(results) >= expected_count:
-                        break
-                    else:
-                        logger.warning(f"L'EvaluationAgent ha restituito {len(results)} record su {expected_count} attesi (tentativo {attempt + 1}/{max_retries}). Rieseguo...")
-                else:
-                    # Fallback se la catena restituisce qualcos'altro
-                    raw_text = str(result)
-                    if expected_count > 0:
-                         logger.warning(f"L'EvaluationAgent non ha restituito una EvaluationList (tentativo {attempt + 1}/{max_retries}). Rieseguo...")
-                    else:
-                        break
-
-            except Exception as e:
-                logger.error(f"Errore nel parsing della valutazione (tentativo {attempt + 1}/{max_retries}): {e}")
-                raw_text = json.dumps({"error": str(e), "evaluations": []})
-                # Continua il loop per il retry
+        except Exception as e:
+            print(f"Errore nel parsing della valutazione: {e}")
+            results = []
+            raw_text = f"Error: {str(e)}"
 
         prompt_record = PromptRecord(
             system=self._system_with_format.strip(),
@@ -148,6 +172,6 @@ Assicurati che la tua valutazione sia allineata con i requisiti specifici sopra 
         )
 
         return EvaluationAgentResponse(
-            prompt=prompt_record, raw_text=raw_text
+            prompt=prompt_record, raw_text=raw_text, results=results
         )
 

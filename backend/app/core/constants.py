@@ -19,16 +19,6 @@ POI (Servizi di Prossimità):
 - educazione: Scuole e istruzione (Scuole, università)
 """
 
-# Legenda specifica per APE Agent (solo APE)
-APE_SCORE_LEGEND = """LEGENDA PUNTEGGI APE (scala 1-5, dove 5=ottimo):
-
-- ape_score_classe: Classe energetica (5=A1-A4, 3=B-E, 1=F-G)
-- ape_score_impianto: Qualità impianto termico (5=Pompa calore/Teleriscaldamento, 3=Condensazione/Biomassa, 1=Tradizionale)
-- ape_score_involucro: Isolamento edificio (5=Ottimo, 3=Medio, 1=Scarso/Assente)
-- ape_score_rinnovabili: Presenza fonti rinnovabili (5=Sì, 1=No)
-- ape_score_total: Media complessiva dei punteggi energetici
-"""
-
 # Colonne filtrabili via SQL (oggettive)
 SQL_FILTERABLE_COLUMNS: List[str] = [
     "superficie_di_riferimento_mq",
@@ -75,20 +65,6 @@ APE_AGENT_COLUMNS: List[str] = [
     "ape_score_total",
 ]
 
-# Colonne specifiche per Typology Agent
-TYPOLOGY_AGENT_COLUMNS: List[str] = [
-    "tipologia_bene_immobile",
-]
-
-# Colonne specifiche per Normative Agent
-NORMATIVE_AGENT_COLUMNS: List[str] = [
-    "superficie_di_riferimento_mq",
-    "tipologia_bene_immobile",
-    "natura_del_bene",
-    "utilizzo_del_bene",
-    "finalita",
-]
-
 # Categorie POI
 POI_CATEGORIES: Dict[str, str] = {
     "sanita": "Ospedali, farmacie, ambulatori",
@@ -98,12 +74,3 @@ POI_CATEGORIES: Dict[str, str] = {
     "commerciale": "Negozi, supermercati",
     "educazione": "Scuole, università",
 }
-# Colonne specifiche per POI Agent
-POI_AGENT_COLUMNS: List[str] = [
-    "sanita",
-    "mobilita",
-    "verde",
-    "sport",
-    "commerciale",
-    "educazione",
-]

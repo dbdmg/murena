@@ -5,9 +5,11 @@ from __future__ import annotations
 from functools import lru_cache
 from pathlib import Path
 import re
+import shutil
 from typing import Dict, List
 
 CONFIG_PATH = Path(__file__).with_name("prompt_config.md")
+DEFAULT_CONFIG_PATH = Path(__file__).with_name("prompt_config.default.md")
 SECTION_PATTERN = re.compile(r"^##\s+([A-Za-z0-9_]+)\.([A-Za-z0-9_]+)\s*$")
 
 
@@ -65,15 +67,12 @@ def _load_overrides() -> Dict[str, Dict[str, str]]:
 
 
 def get_prompt_template(agent: str, key: str = "template", default: str = "") -> str:
-    """Restituisce il prompt per l'agente caricato dal file prompt_config.md."""
-    # Prova negli override (prompt_config.md)
+    """Restituisce il prompt per l'agente, con fallback al default."""
     overrides = _load_overrides()
     agent_prompts = overrides.get(agent)
-    if agent_prompts and key in agent_prompts:
-        return agent_prompts[key]
-
-    # Fallback finale alla stringa passata (se ancora presente nel codice)
-    return default
+    if agent_prompts is None:
+        return default
+    return agent_prompts.get(key, default)
 
 
 def get_system_prompt(agent: str, default: str = "", *, key: str = "system") -> str:
@@ -105,7 +104,7 @@ def get_agent_prompts(agent: str) -> dict[str, str]:
 
 
 def reload_prompt_cache() -> None:
-    """Svuota la cache per ricaricare i prompt dai file."""
+    """Svuota la cache per ricaricare i prompt dal file."""
     _load_overrides.cache_clear()
 
 
@@ -119,8 +118,7 @@ def update_prompt_template(agent: str, key: str, new_text: str) -> None:
     sanitized = (new_text or "").splitlines()
     config_exists = CONFIG_PATH.exists()
     if not config_exists:
-        # Crea il file se non esiste
-        CONFIG_PATH.write_text("# Prompt Configuration\n\n", encoding="utf-8")
+        raise FileNotFoundError(f"Prompt config non trovato: {CONFIG_PATH}")
 
     lines: List[str] = CONFIG_PATH.read_text(encoding="utf-8").splitlines()
     header = f"## {agent}.{key}"
@@ -156,6 +154,98 @@ def update_prompt_template(agent: str, key: str, new_text: str) -> None:
 
     CONFIG_PATH.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
     reload_prompt_cache()
+
+
+def reset_to_defaults(agent: str | None = None) -> dict[str, str]:
+    """Ripristina i prompt ai valori di default.
+
+    Args:
+        agent: Se specificato, resetta solo i prompt di quell'agente.
+               Se None, resetta tutto il file.
+
+    Returns:
+        Dict con info sul reset effettuato.
+
+    Raises:
+        FileNotFoundError: Se il file di default non esiste.
+    """
+    if not DEFAULT_CONFIG_PATH.exists():
+        raise FileNotFoundError(
+            f"File di default non trovato: {DEFAULT_CONFIG_PATH}. "
+            "Impossibile ripristinare i prompt."
+        )
+
+    if agent is None:
+        # Reset completo: copia il file default sul config attivo
+        shutil.copy(DEFAULT_CONFIG_PATH, CONFIG_PATH)
+        reload_prompt_cache()
+        return {
+            "status": "ok",
+            "reset": "all",
+            "message": "Tutti i prompt ripristinati ai valori di default.",
+        }
+
+    # Reset singolo agente: leggi i default e sovrascrivi solo le sezioni dell'agente
+    default_overrides = _load_defaults()
+    agent_defaults = default_overrides.get(agent)
+
+    if not agent_defaults:
+        raise ValueError(f"Nessun default trovato per l'agente: {agent}")
+
+    # Aggiorna ogni chiave dell'agente
+    for key, text in agent_defaults.items():
+        update_prompt_template(agent=agent, key=key, new_text=text)
+
+    reload_prompt_cache()
+    return {
+        "status": "ok",
+        "reset": "agent",
+        "agent": agent,
+        "keys": list(agent_defaults.keys()),
+        "message": f"Prompt dell'agente '{agent}' ripristinati ai valori di default.",
+    }
+
+
+def _load_defaults() -> Dict[str, Dict[str, str]]:
+    """Carica i prompt di default dal file backup (non usa cache)."""
+    if not DEFAULT_CONFIG_PATH.exists():
+        return {}
+
+    text = DEFAULT_CONFIG_PATH.read_text(encoding="utf-8")
+    lines = text.splitlines()
+    overrides: Dict[str, Dict[str, str]] = {}
+    i = 0
+    total = len(lines)
+
+    while i < total:
+        match = SECTION_PATTERN.match(lines[i].strip())
+        if not match:
+            i += 1
+            continue
+
+        agent, key = match.groups()
+        i += 1
+
+        while i < total and not lines[i].strip():
+            i += 1
+
+        if i >= total or not lines[i].strip().startswith("```"):
+            continue
+
+        fence = lines[i].strip()
+        fence_close = "```" if fence.startswith("```") else fence
+        i += 1
+        block: list[str] = []
+        while i < total and not lines[i].strip().startswith(fence_close):
+            block.append(lines[i])
+            i += 1
+
+        if i < total and lines[i].strip().startswith(fence_close):
+            i += 1
+
+        overrides.setdefault(agent, {})[key] = _clean_block(block)
+
+    return overrides
 
 
 def get_available_agents() -> list[str]:

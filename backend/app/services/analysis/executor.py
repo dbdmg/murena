@@ -92,13 +92,6 @@ def execute_sql_query(sql_query, pd_data, dataset_path=None):
                             "CREATE VIEW IMMOBILI AS SELECT * FROM base_immobili"
                         )
 
-                    # Pre-check SQL syntax with EXPLAIN
-                    sql_query = sql_query.strip().rstrip(';')
-                    try:
-                        con.execute(f"EXPLAIN {sql_query}")
-                    except Exception as syntax_error:
-                        return pd.DataFrame(), f"SQL Syntax Error: {str(syntax_error)}"
-
                     return con.execute(sql_query).fetchdf(), None
                 except Exception as e:
                     print(f"DuckDB Native Loading failed, falling back to Pandas: {e}")
@@ -111,14 +104,6 @@ def execute_sql_query(sql_query, pd_data, dataset_path=None):
                 return pd.DataFrame(), error_msg
 
             con.register("IMMOBILI", pd_data)
-            
-            # Pre-check SQL syntax with EXPLAIN
-            sql_query = sql_query.strip().rstrip(';')
-            try:
-                con.execute(f"EXPLAIN {sql_query}")
-            except Exception as syntax_error:
-                return pd.DataFrame(), f"SQL Syntax Error: {str(syntax_error)}"
-
             return con.execute(sql_query).fetchdf(), None
     except Exception as e:
         print(f"Errore nell'esecuzione della query SQL: {e}\nQuery: {sql_query}")

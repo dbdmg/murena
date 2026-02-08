@@ -1,26 +1,53 @@
-import json
-from typing import Any, Dict, List, Optional, Union
-import pandas as pd
-import numpy as np
+from typing import Any, Dict, List, Optional
 
 from langchain_core.output_parsers import StrOutputParser
-from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.prompts import PromptTemplate
 from pydantic import BaseModel, Field
 
 from app.core.config import settings
 
 AGENT_MODELS = settings.agent_models
 from app.services.llm.agents.base import BaseAgent
-from app.services.llm.agents.schema import ApeAgentResult, PromptRecord, ApeResponse
+from app.services.llm.agents.schema import ApeAgentResult, PromptRecord
 from app.services.llm.langchain_client import get_llm, invoke_with_langfuse
 from app.services.llm.prompt_loader import get_system_prompt, get_user_template
 from app.utils.decorators import log_llm_usage
 from app.utils.json_parser import safe_extract_json
 
+DEFAULT_SYSTEM = """Sei un esperto di efficienza energetica e certificazioni APE (Attestato di Prestazione Energetica).
+Hai accesso alle statistiche del dataset immobiliare e alla legenda dei punteggi.
 
-class ApeAgentOutput(ApeResponse):
-    """Schema di output strutturato per l'APE Agent (eredita da ApeResponse)."""
-    pass
+{score_legend}
+
+STATISTICHE DATASET:
+{statistics}
+
+Il tuo compito è:
+1. Analizzare la richiesta dell'utente.
+2. Valutare se è utile applicare filtri energetici per favorire gli immobili più efficienti.
+3. Fornire una risposta discorsiva spiegando la strategia energetica.
+4. Suggerire filtri SPECIFICI sui campi `ape_score_*` o altri campi APE se necessario.
+   NOTA: Usa i filtri solo se l'utente richiede esplicitamente efficienza o risparmio.
+   
+Restituisci ESCLUSIVAMENTE un JSON con la seguente struttura:
+{{
+    "answer": "<spiegazione della strategia>",
+    "suggested_filters": [
+        "ape_score_total >= 4",
+        "classe_energetica_ape IN ('A1', 'A2', 'A3', 'A4')"
+    ]
+}}
+
+Se non ci sono filtri da suggerire, lascia "suggested_filters" vuoto array [].
+"""
+
+DEFAULT_USER = """Richiesta utente: "{query}" """
+
+
+class ApeAgentOutput(BaseModel):
+    """Schema di output strutturato per l'APE Agent."""
+    answer: str = Field(..., description="Spiegazione della strategia energetica")
+    suggested_filters: List[str] = Field(default_factory=list, description="Filtri APE suggeriti (es. 'ape_score_total >= 4')")
 
 
 class ApeAgent(BaseAgent):
@@ -32,8 +59,13 @@ class ApeAgent(BaseAgent):
         )
         self.llm = get_llm(model_name=resolved_model)
 
-        self.system_prompt = get_system_prompt("ape_agent")
-        self.user_template = get_user_template("ape_agent")
+        # Load system and user prompts separately
+        self.system_prompt = get_system_prompt("ape_agent", DEFAULT_SYSTEM)
+        self.user_template = get_user_template("ape_agent", DEFAULT_USER)
+
+        # Create ChatPromptTemplate with system/user separation
+        # Note: We construct the chain dynamically in run() because system prompt changes with stats
+        from langchain_core.prompts import ChatPromptTemplate
 
         self.prompt_template = ChatPromptTemplate.from_messages(
             [
@@ -41,186 +73,87 @@ class ApeAgent(BaseAgent):
                 ("user", self.user_template),
             ]
         )
-        self.structured_llm = self.llm.with_structured_output(ApeAgentOutput, method="json_mode")
+        # Use with_structured_output for guaranteed structured responses
+        self.structured_llm = self.llm.with_structured_output(ApeAgentOutput)
         self.chain = self.prompt_template | self.structured_llm
 
     @log_llm_usage
     def run(
         self,
-        *,
-        query: str = None,
-        mode: str = "filtering",
-        **kwargs
-    ) -> Union[ApeAgentResult, pd.DataFrame]:
-        """
-        Esegue l'agente in due modalità:
-        - filtering: Suggerisce filtri SQL basati sulla query (LLM).
-        - ranking: Calcola uno score 0-100 basato sulle colonne APE (Deterministico).
-        """
-        if mode == "filtering":
-            return self._run_filtering(
-                query=query,
-                statistics=kwargs.get("statistics"),
-                score_legend=kwargs.get("score_legend")
-            )
-        elif mode == "ranking":
-            return self._run_ranking(**kwargs)
-        else:
-            raise ValueError(f"Modalità '{mode}' non supportata dall'ApeAgent.")
-
-    def _run_filtering(
-        self,
         query: str,
+        columns: list[str] = None,
         statistics: dict = None,
         score_legend: str = "",
     ) -> ApeAgentResult:
-        if not statistics and not query:
-            return ApeAgentResult(raw_text="Dati APE non disponibili.", prompt=None)
+        if not statistics and not columns:
+            # Fallback legacy behavior or graceful exit
+            return ApeAgentResult(
+                raw_text="Dati APE non disponibili.",
+                answer="Non sono disponibili dati APE per questa analisi.",
+                relevant_ape_ids=[],
+                suggested_filters=[],
+                prompt=None,
+            )
 
-        stats_str = json.dumps(statistics, indent=2, ensure_ascii=False) if statistics else "N/D"
-        
-        system_content = self.render_template(
-            self.system_prompt,
+        # Format statistics string
+        stats_str = "Nessuna statistica disponibile."
+        if statistics:
+            import json
+
+            stats_str = json.dumps(statistics, indent=2, ensure_ascii=False)
+        elif columns:
+            stats_str = "Colonne disponibili: " + ", ".join(columns)
+
+        # Prepare system prompt content
+        # We manually inject variables into the system string before passing to LLM
+        # This is because get_system_prompt returns a string that expects formatting
+        system_content = self.system_prompt.format(
+            statistics=stats_str,
             score_legend=score_legend or "Nessuna legenda disponibile.",
         )
 
-        prompt_inputs = {
-            "system_content": system_content, 
-            "query": query,
-            "statistics": stats_str
-        }
-        user_text = self.render_template(self.user_template, query=query, statistics=stats_str).strip()
+        prompt_inputs = {"system_content": system_content, "query": query}
+
+        # User text for record keeping
+        user_text = self.user_template.format(query=query).strip()
         full_text = f"[SYSTEM]\n{system_content}\n\n[USER]\n{user_text}"
 
         try:
+            # Use invoke_with_langfuse to get structured output
             structured_response: ApeAgentOutput = invoke_with_langfuse(self.chain, prompt_inputs)
-            has_filters = structured_response.found
+
+            # Extract fields from structured output
+            answer = structured_response.answer
+            suggested_filters = structured_response.suggested_filters
+
+            # Ensure suggested_filters is a list of strings
+            if isinstance(suggested_filters, list):
+                suggested_filters = [
+                    str(f)
+                    for f in suggested_filters
+                    if isinstance(f, (str, int, float))
+                ]
+            else:
+                suggested_filters = []
 
             return ApeAgentResult(
-                raw_text=json.dumps(structured_response.model_dump(), ensure_ascii=False),
-                has_filters=has_filters,
+                raw_text=answer,  # Use the structured answer as raw_text
+                answer=answer,
+                relevant_ape_ids=[],
+                suggested_filters=suggested_filters,
                 prompt=PromptRecord(
                     system=system_content,
                     user=user_text,
                     full_text=full_text,
                 ),
             )
+
         except Exception as e:
+            print(f"Errore ApeAgent: {e}")
             return ApeAgentResult(
-                raw_text=json.dumps({"error": str(e), "found": False, "suggested_filters": []}),
+                raw_text=str(e),
+                answer="Si è verificato un errore nell'analisi energetica.",
+                relevant_ape_ids=[],
+                suggested_filters=[],
                 prompt=None,
             )
-
-    def _run_ranking(self, *, df: pd.DataFrame, requirements: List[Dict[str, Any]] = None) -> pd.DataFrame:
-        """Modalità ranking: calcolo score 0-100 basato su requisiti LLM o logica deterministica."""
-        if df is None or df.empty:
-            if df is not None:
-                df["ape_score"] = 0
-            return df
-
-        df_ranked = df.copy()
-        
-        # 1. Se abbiamo requisiti dinamici dall'LLM (filtering), usiamoli per calcolare lo score
-        # 1. Se abbiamo requisiti dinamici dall'LLM (filtering), usiamoli per calcolare lo score
-        if requirements:
-            total_scores = pd.Series(0.0, index=df_ranked.index)
-            valid_req_count = 0
-            used_columns = set()
-            transparency_cols = []
-
-            for req in requirements:
-                col = req.get("colonna_target")
-                target_val = req.get("valore")
-                op = str(req.get("operatore", "==")).upper()
-
-                if not col or col not in df_ranked.columns or target_val is None:
-                    continue
-
-                valid_req_count += 1
-                used_columns.add(col)
-                
-                # Special handling for energy class (categorical)
-                if col == "classe_energetica_ape":
-                    # Definitive ranking map: Class -> (Score, Rank)
-                    # A4 is best (Rank 1)
-                    ranking_map = {
-                        "A4": (100, 1), "A3": (95, 2), "A2": (90, 3), "A1": (85, 4),
-                        "B": (75, 5), "C": (65, 6), "D": (50, 7), "E": (35, 8),
-                        "F": (20, 9), "G": (5, 10)
-                    }
-                    
-                    vals = df_ranked[col].astype(str).str.upper().str.strip()
-                    
-                    # Helper to extract score and rank safe
-                    def get_class_details(c_val):
-                        if c_val in ranking_map:
-                            return ranking_map[c_val]
-                        return (0.0, "N/A") # fallback
-
-                    details = vals.apply(get_class_details)
-                    
-                    req_score = details.apply(lambda x: x[0])
-                    rank_pos = details.apply(lambda x: x[1])
-                    
-                    # Save transparency metadata
-                    pos_col = f"ape_rank_position_{col}"
-                    mult_col = f"ape_multiplier_{col}"
-                    
-                    df_ranked[pos_col] = rank_pos
-                    df_ranked[mult_col] = (req_score / 100.0).round(2)
-                    
-                    transparency_cols.extend([pos_col, mult_col])
-                    
-                else:
-                    # Generic numeric handling
-                    vals = pd.to_numeric(df_ranked[col], errors="coerce").fillna(0)
-                    target_num = float(target_val)
-                    if op == ">=":
-                        max_val = vals.max() or 1.0
-                        req_score = np.where(vals >= target_num, 100, (vals / (target_num + 1e-6)) * 80)
-                    elif op == "<=":
-                        req_score = np.where(vals <= target_num, 100, (target_num / (vals + 1e-6)) * 80)
-                    else: # ==
-                        req_score = (vals == target_num).astype(float) * 100
-                
-                total_scores += req_score
-
-            if valid_req_count > 0:
-                df_ranked["ape_score"] = (total_scores / valid_req_count).round(1)
-                
-                # Add transparency: weight per column
-                weight = round(1.0 / valid_req_count, 3)
-                for col in used_columns:
-                    df_ranked[f"ape_weight_{col}"] = weight
-            else:
-                df_ranked["ape_score"] = 0.0
-                
-            cols_to_return = ["id", "ape_score"] + list(used_columns)
-            weight_cols = [f"ape_weight_{c}" for c in used_columns]
-            
-            # Combine: Base + Weights + Categorical Transparency
-            return df_ranked[cols_to_return + weight_cols + transparency_cols]
-
-        # 2. Logica Fallback (Deterministica standard)
-        # Here weight is 1.0 for the single source column used
-        used_col = None
-        if "ape_total_points" in df_ranked.columns:
-            points = pd.to_numeric(df_ranked["ape_total_points"], errors="coerce").fillna(6)
-            df_ranked["ape_score"] = (100 * (points - 6) / (20 - 6)).clip(0, 100)
-            used_col = "ape_total_points"
-        elif "ape_score_total" in df_ranked.columns:
-            score = pd.to_numeric(df_ranked["ape_score_total"], errors="coerce").fillna(1)
-            df_ranked["ape_score"] = ((score - 1) * 25).clip(0, 100)
-            used_col = "ape_score_total"
-        else:
-            df_ranked["ape_score"] = 0
-            
-        df_ranked["ape_score"] = df_ranked["ape_score"].round(1)
-        
-        cols_to_return = ["id", "ape_score"]
-        if used_col:
-            cols_to_return.append(used_col)
-            df_ranked[f"ape_weight_{used_col}"] = 1.0
-            cols_to_return.append(f"ape_weight_{used_col}")
-                
-        return df_ranked[cols_to_return]
