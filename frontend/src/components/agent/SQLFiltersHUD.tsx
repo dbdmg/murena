@@ -229,6 +229,7 @@ export const SQLFiltersHUD: React.FC<SQLFiltersHUDProps> = ({
     const [error, setError] = useState<string | null>(null);
     const [viewMode, setViewMode] = useState<'sql' | 'trace'>('sql');
     const [agentTrace, setAgentTrace] = useState<AgentTraceItem[] | null>(null);
+    const [initialQuery, setInitialQuery] = useState<string>('');
     const [isLoadingTrace, setIsLoadingTrace] = useState(false);
 
     // Load SQL steps
@@ -311,6 +312,9 @@ export const SQLFiltersHUD: React.FC<SQLFiltersHUDProps> = ({
             const results = await analysisApi.getResults(activeRunId);
             if (results.agent_trace) {
                 setAgentTrace(results.agent_trace);
+            }
+            if (results.query) {
+                setInitialQuery(results.query);
             }
         } catch (err) {
             console.error("Failed to load trace:", err);
@@ -402,7 +406,7 @@ export const SQLFiltersHUD: React.FC<SQLFiltersHUDProps> = ({
                                             <span>Caricamento trace...</span>
                                         </div>
                                     ) : agentTrace ? (
-                                        <AgentTraceViewer trace={agentTrace} />
+                                        <AgentTraceViewer trace={agentTrace} initialQuery={initialQuery} />
                                     ) : (
                                         <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-500">
                                             <AlertCircle className="w-10 h-10 mb-4 text-red-400" />

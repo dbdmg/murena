@@ -17,12 +17,15 @@ import {
     Check,
     Cpu,
     ArrowDownRight,
-    Command
+    Command,
+    SearchCode
 } from 'lucide-react';
 import type { AgentTraceItem } from '../../api/types';
+import { QueryTooltip } from '../common/QueryTooltip';
 
 interface AgentTraceViewerProps {
     trace: AgentTraceItem[];
+    initialQuery?: string;
     className?: string;
 }
 
@@ -346,7 +349,7 @@ const JSONViewer = ({ data, label, defaultExpanded = false }: { data: unknown; l
 // Main Components
 // ----------------------------------------------------------------------------
 
-export const AgentTraceViewer: React.FC<AgentTraceViewerProps> = ({ trace, className = '' }) => {
+export const AgentTraceViewer: React.FC<AgentTraceViewerProps> = ({ trace, initialQuery, className = '' }) => {
     if (!trace || trace.length === 0) {
         return (
             <div className={`flex flex-col items-center justify-center p-20 text-slate-600 ${className}`}>
@@ -408,6 +411,27 @@ export const AgentTraceViewer: React.FC<AgentTraceViewerProps> = ({ trace, class
 
     return (
         <div className={`relative flex flex-col gap-8 ${className}`}>
+            {/* Sticky Query Header */}
+            {initialQuery && (
+                <div className="sticky top-0 z-100 -mx-8 pl-[39px] pr-8 py-4 bg-[#0f1218] border-b border-white/10 shadow-xl shadow-black/40 flex items-center gap-6 group/sticky-header">
+                    <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center border border-amber-500/20 shrink-0">
+                        <SearchCode className="w-4 h-4 text-amber-500" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                        <div className="text-[10px] font-black text-amber-500/40 uppercase tracking-widest mb-0.5">Contesto Ricerca</div>
+                        <QueryTooltip text={initialQuery}>
+                            <div className="text-white/80 text-[14px] font-medium truncate italic group-hover/sticky-header:text-white transition-colors cursor-help">
+                                "{initialQuery}"
+                            </div>
+                        </QueryTooltip>
+                    </div>
+                    <div className="flex items-center gap-2 opacity-30 group-hover/sticky-header:opacity-100 transition-opacity">
+                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                        <span className="text-[10px] font-mono text-slate-500 uppercase tracking-widest">Active Context</span>
+                    </div>
+                </div>
+            )}
+
             {/* Context Header */}
             <div className="flex items-center justify-between pb-6 border-b border-white/5">
                 <div className="flex items-center gap-3">
