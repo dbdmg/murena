@@ -806,22 +806,7 @@ async def get_analysis_history(
 
     return history_items
 
-        results.append(
-            AnalysisResults(
-                run_id=run.run_id,
-                query=run.query,
-                status=run.status,
-                buildings=[],
-                location=run.location_data,
-                filters_applied=None,
-                gemini_responses=run.gemini_responses,
-                broker_summary=run.status_message,
-                created_at=run.created_at,
-                completed_at=run.completed_at,
-            )
-        )
 
-    return results
 
 
 @router.get("/{run_id}", response_model=AnalysisResults)
