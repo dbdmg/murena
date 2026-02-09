@@ -1,5 +1,5 @@
 import apiClient from '../client';
-import type { MapConfig, MapMarker } from '../types';
+import type { MapConfig, MapMarker, MapMarkerLite } from '../types';
 
 export const mapApi = {
     /**
@@ -23,6 +23,16 @@ export const mapApi = {
      */
     getMarkers: async (filters?: Record<string, unknown>): Promise<MapMarker[]> => {
         const response = await apiClient.get<MapMarker[]>('/map/markers', {
+            params: filters,
+        });
+        return response.data;
+    },
+
+    /**
+     * Get lightweight map markers for background
+     */
+    getMarkersLite: async (filters?: Record<string, unknown>): Promise<MapMarkerLite[]> => {
+        const response = await apiClient.get<MapMarkerLite[]>('/map/markers-lite', {
             params: filters,
         });
         return response.data;

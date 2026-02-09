@@ -73,12 +73,25 @@ export function useIntelligenceMap(
     useEffect(() => {
         const loadBackground = async () => {
             try {
-                const markers = await mapApi.getMarkers({ limit: markersLimit });
-                // Assign tier 1 to all background markers
-                const tier1Markers: MapMarker[] = markers.map(m => ({
-                    ...m,
+                // Use new lightweight endpoint
+                const liteMarkers = await mapApi.getMarkersLite({ limit: markersLimit });
+
+                // Map to MapMarker type (filling required fields for TS, though optional in interface)
+                const tier1Markers: MapMarker[] = liteMarkers.map(m => ({
+                    id: m.id,
+                    lat: m.lat,
+                    lng: m.lng,
                     tier: 1 as MarkerTier,
+                    // Map filter fields
+                    price: m.price,
+                    surface_area: m.surface,
+                    energy_class: m.energy_class,
+                    construction_year: m.year,
+                    property_type: m.type,
+                    description: m.usage,
+                    meta_immobile: m.is_meta
                 }));
+
                 setState(prev => ({ ...prev, backgroundMarkers: tier1Markers }));
             } catch (err) {
                 console.error('Failed to load background markers:', err);

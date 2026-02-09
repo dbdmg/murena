@@ -63,6 +63,25 @@ class SubProperty(BaseModel):
     property_type: Optional[str] = None
 
 
+class MapMarkerLite(BaseModel):
+    """Lightweight marker data for initial map load."""
+
+    id: str
+    lat: float
+    lng: float
+    tier: int = 1
+    # Filter fields (optional to keep payload small, but needed for client-side filtering)
+    price: Optional[float] = None
+    surface: Optional[float] = None
+    energy_class: Optional[str] = None
+    year: Optional[str] = None  # construction_year
+    type: Optional[str] = None  # property_type
+    usage: Optional[str] = None  # description/usage
+    is_meta: bool = False
+    
+    model_config = ConfigDict(from_attributes=True)
+
+
 class BuildingResponse(BaseModel):
     """Response model for a single building."""
 
@@ -116,6 +135,18 @@ class BuildingsListResponse(BaseModel):
     limit: int
     offset: int
     has_more: bool = Field(..., description="Whether more results are available")
+
+
+class AnalysisHistoryItem(BaseModel):
+    """Lightweight summary of an analysis run for history lists."""
+
+    run_id: str
+    query: str
+    status: str
+    created_at: datetime
+    completed_at: Optional[datetime] = None
+    buildings_count: int = 0
+    analysis_mode: str = "agent"  # Default to agent for backward compatibility
 
 
 class AnalysisResults(BaseModel):

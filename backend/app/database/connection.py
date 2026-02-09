@@ -18,6 +18,8 @@ from app.utils.logger import logger
 engine = create_engine(
     settings.DATABASE_URL,
     pool_pre_ping=True,
+    pool_size=settings.DATABASE_POOL_SIZE,
+    max_overflow=settings.DATABASE_MAX_OVERFLOW,
     echo=settings.DEBUG,  # Log SQL queries in debug mode
 )
 
