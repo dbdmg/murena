@@ -27,6 +27,8 @@ from app.utils.json_sanitizer import make_json_safe
 if TYPE_CHECKING:
     from app.services.llm.agents.graph_agent import GraphOrchestratorAgent, OrchestratorResult
 
+import os
+
 logger = logging.getLogger(__name__)
 
 
