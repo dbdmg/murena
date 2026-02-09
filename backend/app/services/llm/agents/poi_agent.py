@@ -158,24 +158,26 @@ class PoiAgent(BaseAgent):
             
             # Get values and handle NaNs
             vals = pd.to_numeric(df_ranked[cat], errors="coerce")
-            
-            # Vectorized normalization
-            # Condition: val > 5.1 (0-100 scale) vs 1-5 scale
-            # We use np.where to handle both cases in one go
-            
-            # Case 1: > 5.1 (assume 0-100) -> val / 100
-            # Case 2: <= 5.1 (assume 1-5) -> (val - 1) / 4
-            
-            # Handle potential NaNs by filling with 0 score (or handle as 0 contribution)
-            # Mask for NaNs
             na_mask = vals.isna()
-            safe_vals = vals.fillna(0)
             
-            norm_vals = np.where(
-                safe_vals > 5.1,
-                (safe_vals / 100.0).clip(0, 1),
-                ((safe_vals - 1) / 4.0).clip(0, 1)
-            )
+            # Min-Max Scaling (Relative)
+            # We ignore strict thresholds (0-100 or 1-5) and scale based on available data range.
+            # Higher values are better.
+            min_val = vals.min()
+            max_val = vals.max()
+            
+            if pd.isna(min_val) or min_val == max_val:
+                # If all NaNs or single value
+                if pd.isna(min_val):
+                     norm_vals = np.zeros(len(vals))
+                else:
+                     norm_vals = np.ones(len(vals))
+            else:
+                 norm_vals = (vals - min_val) / (max_val - min_val)
+                 norm_vals = norm_vals.fillna(0).to_numpy() # Handle NaN result from operation
+            
+            # Clip to be safe (0-1)
+            norm_vals = norm_vals.clip(0, 1)
             
             # Where it was NaN, score is 0
             norm_vals[na_mask] = 0.0

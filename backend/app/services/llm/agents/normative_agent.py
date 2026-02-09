@@ -237,29 +237,30 @@ class NormativeAgent(BaseAgent):
                 vals = pd.to_numeric(df_ranked[col], errors="coerce").fillna(0)
                 target_num = float(target_val)
                 
-                if op == ">=":
-                    max_val = vals.max()
-                    if max_val <= target_num:
-                        req_score = (vals / (target_num + 1e-6) * 100).clip(0, 100)
-                    else:
-                        req_score = np.where(
-                            vals >= target_num,
-                            50 + 50 * (vals - target_num) / (max_val - target_num + 1e-6),
-                            50 * (vals / (target_num + 1e-6))
-                        )
-                elif op == "<=":
-                    min_val = vals.min()
-                    if min_val >= target_num:
-                        req_score = (target_num / (vals + 1e-6) * 100).clip(0, 100)
-                    else:
-                        req_score = np.where(
-                            vals <= target_num,
-                            50 + 50 * (target_num - vals) / (target_num - min_val + 1e-6),
-                            50 * (target_num / (vals + 1e-6))
-                        )
-                else: # ==
-                    diff = np.abs(vals - target_num)
-                    req_score = (100 - (diff / (target_num + 1e-6) * 100)).clip(0, 100)
+                min_val = vals.min()
+                max_val = vals.max()
+                
+                if max_val == min_val:
+                    req_score = pd.Series(100.0, index=df_ranked.index)
+                else:
+                    if op in [">=", ">"]:
+                        # Higher is better: (val - min) / (max - min) * 100
+                        req_score = ((vals - min_val) / (max_val - min_val) * 100).clip(0, 100)
+                    elif op in ["<=", "<"]:
+                        # Lower is better: (max - val) / (max - min) * 100
+                        req_score = ((max_val - vals) / (max_val - min_val) * 100).clip(0, 100)
+                    else: # ==
+                        target_num = float(target_val)
+                        diff = np.abs(vals - target_num)
+                        max_diff = diff.max()
+                        min_diff = diff.min()
+                        
+                        if max_diff == min_diff:
+                             req_score = pd.Series(100.0, index=df_ranked.index)
+                        else:
+                             # Smaller diff is better
+                             # (max_diff - diff) / (max_diff - min_diff)
+                             req_score = ((max_diff - diff) / (max_diff - min_diff) * 100).clip(0, 100)
             
                 # Store partial score for this numeric requirement
                 df_ranked[f"normative_partial_score_{col}"] = req_score.round(1)

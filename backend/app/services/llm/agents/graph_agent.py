@@ -1115,14 +1115,21 @@ class GraphOrchestratorAgent(BaseAgent):
             logger.info(f"Applying DETERMINISTIC RELAXATION (Attempt {retry_count + 1})")
             relaxed_sql, removed_condition = self._deterministic_relaxation(failed_query)
             
-            # If deterministic relaxation returns same query, it failed effectively.
-            if relaxed_sql and relaxed_sql.strip() == failed_query.strip():
-                logger.warning("Deterministic relaxation returned same query. Falling back to LLM.")
-                relaxed_sql = None
+            # If deterministic relaxation fails or returns same query, we must still bypass LLM
+            # to avoid calling it for relaxation purposes.
+            if not relaxed_sql or relaxed_sql.strip() == failed_query.strip():
+                logger.warning("Deterministic relaxation failed to produce a different query. Bypassing LLM with original query.")
+                relaxed_sql = failed_query
                 removed_condition = None
 
         if state.get("relax_constraints") and not is_sql_error:
-            logger.info(f"Applying RELAXATION to SQL prompt (Attempt {retry_count + 1})")
+            logger.info(f"Applying DETERMINISTIC RELAXATION to SQL query (Attempt {retry_count + 1})")
+
+        # Extract ranking requirements from RankingAgent result
+        ranking_result = state.get("ranking_result")
+        ranking_raw = "N/D"
+        if ranking_result and ranking_result.ranking:
+            ranking_raw = ", ".join(ranking_result.ranking.ranking)
 
         sql_result = self.sql_agent.run(
             query=query, # use original query
@@ -1132,6 +1139,7 @@ class GraphOrchestratorAgent(BaseAgent):
             ape_requirements=ape_raw,
             poi_requirements=poi_raw,
             normative_requirements=normative_raw,
+            ranking_requirements=ranking_raw,
             location=loc_obj,
             failed_query=effective_failed_query,
             error_msg=effective_error_msg,
@@ -1162,21 +1170,15 @@ class GraphOrchestratorAgent(BaseAgent):
         if state.get("relax_constraints") or state.get("last_retry_reason") == "few_results":
              agent_name = f"sql-agent (relaxation n. {retry_count})"
              
-             # If we have removed_condition (deterministic), we want to highlight it in the input.
-             if relaxed_sql and removed_condition and sql_result.prompt:
-                 log_msg = f"Relaxation Step (Deterministic): Removed last WHERE condition (lowest priority).\nREMOVED CONSTRAINT: {removed_condition}"
+             if relaxed_sql and sql_result.prompt:
+                 if removed_condition:
+                    log_msg = f"Relaxation Step (Deterministic): Removed last WHERE condition (lowest priority).\nREMOVED CONSTRAINT: {removed_condition}"
+                 else:
+                    log_msg = "Relaxation Step: Deterministic relaxation reached its limit. Retrying with current query."
+                 
                  # We update both user and full_text to ensure visibility in UI
                  sql_result.prompt.user = log_msg
-                 sql_result.prompt.full_text = f"{log_msg}\n\nORIGINAL QUERY:\n{failed_query}"
-             elif (not relaxed_sql) and sql_result.prompt:
-                 # Fallback to LLM relaxation (deterministic failed or skipped)
-                 log_msg = "Relaxation Step (LLM-based): Deterministic relaxation skipped/failed. Asking LLM to relax constraints."
-                 sql_result.prompt.user = log_msg
-                 try:
-                    current_full = sql_result.prompt.full_text or ""
-                    sql_result.prompt.full_text = f"{log_msg}\n\nPROMPT SENT TO LLM:\n{current_full}"
-                 except:
-                    pass
+                 sql_result.prompt.full_text = f"{log_msg}\n\nQUERY:\n{state['sql_query']}"
 
         self._log_execution(state, agent_name, sql_result, 0)
         return state
@@ -1624,8 +1626,8 @@ class GraphOrchestratorAgent(BaseAgent):
             f"Avvio valutazione qualitativa su {total_items} immobili candidati...",
         )
 
-        # Batch processing
-        batch_size = 5
+        # Evaluation one property at a time
+        batch_size = 1
         batches = [
             eval_input_df[i : i + batch_size]
             for i in range(0, len(eval_input_df), batch_size)

@@ -283,7 +283,11 @@ class AnalysisService:
         html_log = None
         agent_executions = None
         agent_trace = getattr(orchestrator_result, "agent_trace", None)
-        if agent_trace is not None:
+        
+        # Skip saving trace files if we are in synthetic evaluation (to avoid duplication)
+        is_synthetic_eval = os.environ.get("_AGENT_LOGGER_ACTIVE") == "true"
+        
+        if agent_trace is not None and not is_synthetic_eval:
             try:
                 # Use settings for log directory
                 log_dir = Path(settings.AGENT_LOGS_DIR)
@@ -320,6 +324,15 @@ class AnalysisService:
                 logger.info(f"Saved trace to history: {json_filename}")
             except Exception as e:
                 logger.error(f"Failed to generate agent HTML log: {e}")
+        elif agent_trace is not None and is_synthetic_eval:
+             # In synthetic eval, we still might want the structured trace in the response
+             # but we skip saving to file and generating HTML.
+             try:
+                 agent_logger = AgentLogger() # No log_dir
+                 run_props = {"use_case": "Synthetic Eval", "prompt_id": run_id, "run_number": 1, "run_timestamp": datetime.utcnow().isoformat()}
+                 agent_executions = agent_logger._process_log_data_for_export(agent_trace, run_props)
+             except:
+                 pass
 
         return {
             "run_id": run_id,

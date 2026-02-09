@@ -181,14 +181,35 @@ class ApeAgent(BaseAgent):
                 else:
                     # Generic numeric handling
                     vals = pd.to_numeric(df_ranked[col], errors="coerce").fillna(0)
-                    target_num = float(target_val)
-                    if op == ">=":
-                        max_val = vals.max() or 1.0
-                        req_score = np.where(vals >= target_num, 100, (vals / (target_num + 1e-6)) * 80)
-                    elif op == "<=":
-                        req_score = np.where(vals <= target_num, 100, (target_num / (vals + 1e-6)) * 80)
-                    else: # ==
-                        req_score = (vals == target_num).astype(float) * 100
+                    min_val = vals.min()
+                    max_val = vals.max()
+                    
+                    if max_val == min_val:
+                         req_score = pd.Series(100.0, index=df_ranked.index)
+                    else:
+                        if op in [">=", ">"]:
+                            # Higher is better: (val - min) / (max - min) * 100
+                            req_score = ((vals - min_val) / (max_val - min_val) * 100).clip(0, 100)
+                        elif op in ["<=", "<"]:
+                            # Lower is better: (max - val) / (max - min) * 100
+                            req_score = ((max_val - vals) / (max_val - min_val) * 100).clip(0, 100)
+                        else: # ==
+                            # For equality, we stick to distance from target as 'relative' is ambiguous without a target
+                            target_num = float(target_val)
+                            diff = np.abs(vals - target_num)
+                            # Normalize diff? 
+                            # Let's keep existing distance logic for == but ensure it ignores threshold?
+                            # Existing: (100 - (diff / target...)). This uses target.
+                            # User said "threshold doesn't count".
+                            # Adapting == to min-max distance? 
+                            # Closest to target gets 100, furthest gets 0.
+                            max_diff = diff.max()
+                            min_diff = diff.min()
+                            if max_diff == min_diff:
+                                req_score = pd.Series(100.0, index=df_ranked.index)
+                            else:
+                                # Smaller diff is better
+                                req_score = ((max_diff - diff) / (max_diff - min_diff) * 100).clip(0, 100)
                 
                 # Store partial score for this requirement
                 df_ranked[f"ape_partial_score_{col}"] = req_score.round(1)
@@ -224,20 +245,29 @@ class ApeAgent(BaseAgent):
         used_col = None
         if "ape_total_points" in df_ranked.columns and not df_ranked["ape_total_points"].isna().all():
             points = pd.to_numeric(df_ranked["ape_total_points"], errors="coerce").fillna(0)
-            # Scala 6-20 -> 0-100. Sotto 6 è 0.
-            partial_score = (100 * (points - 6) / (20 - 6)).clip(0, 100)
-            df_ranked["ape_score"] = np.where(points >= 6, partial_score, 0.0)
+            p_min = points.min()
+            p_max = points.max()
+            
+            if p_max == p_min:
+                partial_score = pd.Series(100.0, index=df_ranked.index)
+            else:
+                partial_score = ((points - p_min) / (p_max - p_min) * 100).clip(0, 100)
+                
+            df_ranked["ape_score"] = partial_score
             used_col = "ape_total_points"
             df_ranked[f"ape_partial_score_{used_col}"] = df_ranked["ape_score"]
+            
         elif "ape_score_total" in df_ranked.columns and not df_ranked["ape_score_total"].isna().all():
             score = pd.to_numeric(df_ranked["ape_score_total"], errors="coerce").fillna(0)
-            # Detect scale
-            if score.max() > 5.1:
-                # Assume 0-100 scale
-                df_ranked["ape_score"] = score.clip(0, 100)
+            s_min = score.min()
+            s_max = score.max()
+            
+            if s_max == s_min:
+                 df_ranked["ape_score"] = 100.0
             else:
-                # Scale 1-5 -> 0-100.
-                df_ranked["ape_score"] = np.where(score >= 1, ((score - 1) * 25).clip(0, 100), 0.0)
+                 # Assumiamo "the higher the better" per lo score totale APE
+                 df_ranked["ape_score"] = ((score - s_min) / (s_max - s_min) * 100).clip(0, 100)
+            
             used_col = "ape_score_total"
             df_ranked[f"ape_partial_score_{used_col}"] = df_ranked["ape_score"]
         else:

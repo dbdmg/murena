@@ -36,6 +36,11 @@ class RankingEvaluator:
         # Crea logger per tracciare gli agenti
         self.agent_logs_dir = Path(__file__).parent.parent.parent / "agent_logs" # Adjust path relative to this file
         self.agent_logs_dir.mkdir(exist_ok=True, parents=True) # Ensure parents exist
+        
+        # Override global settings to prevent writing to data/agent_logs
+        from app.core.config import settings
+        settings.AGENT_LOGS_DIR = str(self.agent_logs_dir)
+        
         self.agent_logger = AgentLogger(self.agent_logs_dir)
     
     def run_prediction(self, query: str, prompt_id: str = "", run_number: int = 1) -> Tuple[List[str], float, Optional[str]]:
