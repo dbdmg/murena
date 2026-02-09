@@ -142,12 +142,17 @@ class ApeAgent(BaseAgent):
                 # Special handling for energy class (categorical)
                 if col == "classe_energetica_ape":
                     # Definitive ranking map: Class -> (Score, Rank)
-                    # A4 is best (Rank 1)
-                    ranking_map = {
-                        "A4": (100, 1), "A3": (95, 2), "A2": (90, 3), "A1": (85, 4),
-                        "B": (75, 5), "C": (65, 6), "D": (50, 7), "E": (35, 8),
-                        "F": (20, 9), "G": (5, 10)
-                    }
+                    # A4 is best (Rank 1), G is worst (Rank 10)
+                    # Score decays linearly from 100 to 0
+                    classes_order = ["A4", "A3", "A2", "A1", "B", "C", "D", "E", "F", "G"]
+                    n_classes = len(classes_order)
+                    ranking_map = {}
+                    
+                    for i, cls_name in enumerate(classes_order):
+                        # Linear decay: 100 at index 0, 0 at index n-1
+                        # Formula: 100 * (1 - i / (n-1))
+                        score = round(100.0 * (1 - i / (n_classes - 1)), 1)
+                        ranking_map[cls_name] = (score, i + 1)
                     
                     vals = df_ranked[col].astype(str).str.upper().str.strip()
                     
@@ -164,12 +169,14 @@ class ApeAgent(BaseAgent):
                     
                     # Save transparency metadata
                     pos_col = f"ape_rank_position_{col}"
-                    mult_col = f"ape_multiplier_{col}"
                     
                     df_ranked[pos_col] = rank_pos
-                    df_ranked[mult_col] = (req_score / 100.0).round(2)
                     
-                    transparency_cols.extend([pos_col, mult_col])
+                    # Store partial score for this categorical requirement
+                    # req_score is already calculated above as details.apply(lambda x: x[0])
+                    df_ranked[f"ape_partial_score_{col}"] = req_score
+                    
+                    transparency_cols.extend([pos_col, f"ape_partial_score_{col}"])
                     
                 else:
                     # Generic numeric handling
@@ -182,6 +189,10 @@ class ApeAgent(BaseAgent):
                         req_score = np.where(vals <= target_num, 100, (target_num / (vals + 1e-6)) * 80)
                     else: # ==
                         req_score = (vals == target_num).astype(float) * 100
+                
+                # Store partial score for this requirement
+                df_ranked[f"ape_partial_score_{col}"] = req_score.round(1)
+                transparency_cols.append(f"ape_partial_score_{col}")
                 
                 total_scores += req_score
 
@@ -198,8 +209,14 @@ class ApeAgent(BaseAgent):
             cols_to_return = ["id", "ape_score"] + list(used_columns)
             weight_cols = [f"ape_weight_{c}" for c in used_columns]
             
-            # Combine: Base + Weights + Categorical Transparency
-            return df_ranked[cols_to_return + weight_cols + transparency_cols]
+            # Combine all requested columns and deduplicate while preserving order
+            all_requested_cols = cols_to_return + weight_cols + transparency_cols
+            unique_cols = []
+            for c in all_requested_cols:
+                if c not in unique_cols and c in df_ranked.columns:
+                    unique_cols.append(c)
+            
+            return df_ranked[unique_cols]
 
         # 2. Logica Fallback (Deterministica standard)
         # Se non ci sono requisiti specifici, assegniamo 0 anziché punteggi medi
@@ -208,8 +225,10 @@ class ApeAgent(BaseAgent):
         if "ape_total_points" in df_ranked.columns and not df_ranked["ape_total_points"].isna().all():
             points = pd.to_numeric(df_ranked["ape_total_points"], errors="coerce").fillna(0)
             # Scala 6-20 -> 0-100. Sotto 6 è 0.
-            df_ranked["ape_score"] = np.where(points >= 6, (100 * (points - 6) / (20 - 6)).clip(0, 100), 0.0)
+            partial_score = (100 * (points - 6) / (20 - 6)).clip(0, 100)
+            df_ranked["ape_score"] = np.where(points >= 6, partial_score, 0.0)
             used_col = "ape_total_points"
+            df_ranked[f"ape_partial_score_{used_col}"] = df_ranked["ape_score"]
         elif "ape_score_total" in df_ranked.columns and not df_ranked["ape_score_total"].isna().all():
             score = pd.to_numeric(df_ranked["ape_score_total"], errors="coerce").fillna(0)
             # Detect scale
@@ -220,6 +239,7 @@ class ApeAgent(BaseAgent):
                 # Scale 1-5 -> 0-100.
                 df_ranked["ape_score"] = np.where(score >= 1, ((score - 1) * 25).clip(0, 100), 0.0)
             used_col = "ape_score_total"
+            df_ranked[f"ape_partial_score_{used_col}"] = df_ranked["ape_score"]
         else:
             df_ranked["ape_score"] = 0.0
             
@@ -230,5 +250,6 @@ class ApeAgent(BaseAgent):
             cols_to_return.append(used_col)
             df_ranked[f"ape_weight_{used_col}"] = 1.0
             cols_to_return.append(f"ape_weight_{used_col}")
+            cols_to_return.append(f"ape_partial_score_{used_col}")
                 
         return df_ranked[cols_to_return]

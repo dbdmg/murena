@@ -192,6 +192,7 @@ class LocationAgent(BaseAgent):
             return radius_map.get(poi, 0.0) if poi else 0.0
 
         df_ranked["location_radius_used_km"] = df_ranked.apply(get_radius, axis=1)
+        df_ranked["location_partial_score"] = df_ranked["location_score"]
 
-        return df_ranked[["id", "location_score", "distanza_km", "poi_riferimento", "location_raw_score", "location_radius_used_km"]]
+        return df_ranked[["id", "location_score", "distanza_km", "poi_riferimento", "location_raw_score", "location_partial_score", "location_radius_used_km"]]
 

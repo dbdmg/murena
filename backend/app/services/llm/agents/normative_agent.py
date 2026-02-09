@@ -34,12 +34,18 @@ def _load_normative_documents() -> tuple[str, list[str], List[Dict[str, Any]]]:
     images = []
     
     for file_path in normative_dir.rglob("*"):
-        if file_path.is_file() and file_path.suffix.lower() in [".txt", ".md", ".pdf", ".doc", ".docx", ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff", ".webp"]:
+        if file_path.is_file() and file_path.suffix.lower() in [".txt", ".md", ".json", ".pdf", ".doc", ".docx", ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff", ".webp"]:
             try:
                 if file_path.suffix.lower() in [".txt", ".md"]:
                     with open(file_path, "r", encoding="utf-8") as f:
                         content = f.read()
                         documents.append(f"--- Documento: {file_path.name} ---\n{content}\n")
+                        sources.append(str(file_path.relative_to(normative_dir.parent.parent.parent)))
+                elif file_path.suffix.lower() == ".json":
+                    with open(file_path, "r", encoding="utf-8") as f:
+                        content = json.load(f)
+                        content_str = json.dumps(content, indent=2, ensure_ascii=False)
+                        documents.append(f"--- Documento: {file_path.name} (JSON) ---\n{content_str}\n")
                         sources.append(str(file_path.relative_to(normative_dir.parent.parent.parent)))
                 elif file_path.suffix.lower() in [".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff", ".webp"]:
                     with open(file_path, "rb") as f:
@@ -255,6 +261,10 @@ class NormativeAgent(BaseAgent):
                     diff = np.abs(vals - target_num)
                     req_score = (100 - (diff / (target_num + 1e-6) * 100)).clip(0, 100)
             
+                # Store partial score for this numeric requirement
+                df_ranked[f"normative_partial_score_{col}"] = req_score.round(1)
+                transparency_cols.append(f"normative_partial_score_{col}")
+            
             else:
                 # Gestione categorica / stringhe
                 vals = df_ranked[col].astype(str).str.lower().str.strip()
@@ -293,13 +303,18 @@ class NormativeAgent(BaseAgent):
                 # Match = Rank 1, Multiplier 1.0
                 # No Match = Rank N/A, Multiplier 0.0
                 rank_pos = np.where(is_match, 1, "N/A")
-                multiplier = np.where(is_match, 1.0, 0.0)
                 
                 df_ranked[f"normative_rank_position_{col}"] = rank_pos
-                df_ranked[f"normative_multiplier_{col}"] = multiplier
                 
                 transparency_cols.append(f"normative_rank_position_{col}")
-                transparency_cols.append(f"normative_multiplier_{col}")
+                
+                # Store partial score for this categorical requirement
+                df_ranked[f"normative_partial_score_{col}"] = req_score
+                transparency_cols.append(f"normative_partial_score_{col}")
+                
+                # Special handling for typology: also show the original typology rank if available
+                if col == "tipologia_bene_immobile" and "typology_rank_position" in df_ranked.columns:
+                    transparency_cols.append("typology_rank_position")
                 
             total_scores += req_score
 
@@ -314,13 +329,18 @@ class NormativeAgent(BaseAgent):
         else:
             df_ranked["normative_score"] = 0.0
 
-        # Return score + used columns + weight columns
-        cols_to_return = ["id", "normative_score"] + list(all_req_columns)
         weight_cols = [f"normative_weight_{c}" for c in used_columns]
         
-        # Ensure weight columns exist (might be empty if valid_req_count is 0)
+        # Ensure weight columns exist (safety check)
         for wc in weight_cols:
             if wc not in df_ranked.columns:
                 df_ranked[wc] = 0.0
+
+        # Combine all requested columns and deduplicate while preserving order
+        all_requested_cols = ["id", "normative_score"] + list(all_req_columns) + weight_cols + transparency_cols
+        unique_cols = []
+        for c in all_requested_cols:
+            if c not in unique_cols and c in df_ranked.columns:
+                unique_cols.append(c)
                 
-        return df_ranked[["id", "normative_score"] + list(all_req_columns) + weight_cols + transparency_cols]
+        return df_ranked[unique_cols]

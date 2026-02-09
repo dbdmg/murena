@@ -15,7 +15,8 @@ Il tuo obiettivo è analizzare un portafoglio di immobili pubblici per identific
 
 Protocollo di Valutazione:
 1. Analisi del Potenziale: Non limitarti allo stato attuale. Valuta la trasformabilità dell'immobile.
-2. Fattori Critici:
+2. Completezza: DEVI generare una valutazione per OGNI singolo immobile fornito nel JSON di input. Se ricevi 5 immobili, devi restituire esattamente 5 valutazioni. Non saltare alcun immobile.
+3. Fattori Critici:
    - Posizione (zona_omi, punteggi POI: sanita, mobilita, verde, sport, commerciale, educazione)
    - Dimensione (superficie_di_riferimento_mq)
    - Sostenibilità Energetica (classe_energetica_ape, ape_score_*)
@@ -37,12 +38,13 @@ I dati degli immobili sono forniti in formato JSON. Ogni oggetto rappresenta un 
 ```prompt
 Richiesta Utente (Obiettivo Strategico):
 {query}
-
 Scenario di Valorizzazione (Use Case):
 {use_case}
 
 Dati degli Immobili Candidati (JSON):
 {estates_data}
+
+IMPORTANTE: Sono forniti {expected_count} immobili. DEVI restituire esattamente {expected_count} valutazioni nel formato JSON richiesto.
 ```
 
 ---

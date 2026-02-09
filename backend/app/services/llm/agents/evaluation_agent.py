@@ -72,9 +72,19 @@ class EvaluationAgent(BaseAgent):
         original_query: str = "",  # NEW: original user query for context
         score_legend: str = "",
     ) -> EvaluationAgentResponse:
-        # If query is empty, use original_query for the prompt
+        # Se query è vuota, usa original_query per il prompt
         if not query:
             query = original_query
+
+        # Conteggio immobili in input per verifica output (retry logic)
+        try:
+            input_estates = json.loads(estates_data or "[]")
+            expected_count = len(input_estates) if isinstance(input_estates, list) else 0
+        except Exception:
+            input_estates = []
+            expected_count = 0
+
+        logger.info(f"EvaluationAgent in esecuzione su {expected_count} immobili.")
 
         # Add original query context to use_case if available and different
         if original_query and query != use_case:
@@ -92,15 +102,9 @@ Assicurati che la tua valutazione sia allineata con i requisiti specifici sopra 
             query=query,
             use_case=use_case,
             estates_data=estates_data,
+            expected_count=expected_count,
         ).strip()
         full_text = f"[SYSTEM]\n{self._system_with_format}\n\n[USER]\n{user_text}"
-
-        # Conteggio immobili in input per verifica output (retry logic)
-        try:
-            input_estates = json.loads(estates_data)
-            expected_count = len(input_estates) if isinstance(input_estates, list) else 0
-        except Exception:
-            expected_count = 0
 
         max_retries = 3
         result = None
@@ -115,6 +119,7 @@ Assicurati che la tua valutazione sia allineata con i requisiti specifici sopra 
                         "query": query,
                         "use_case": use_case,
                         "estates_data": estates_data,
+                        "expected_count": expected_count,
                     },
                 )
 
@@ -127,7 +132,13 @@ Assicurati che la tua valutazione sia allineata con i requisiti specifici sopra 
                     if len(results) >= expected_count:
                         break
                     else:
-                        logger.warning(f"L'EvaluationAgent ha restituito {len(results)} record su {expected_count} attesi (tentativo {attempt + 1}/{max_retries}). Rieseguo...")
+                        try:
+                            received_ids = {str(r.id) for r in results}
+                            input_ids = {str(e.get("id")) for e in input_estates if e.get("id") is not None}
+                            missing_ids = input_ids - received_ids
+                            logger.warning(f"L'EvaluationAgent ha restituito {len(results)} record su {expected_count} attesi. ID mancanti: {missing_ids} (tentativo {attempt + 1}/{max_retries}). Rieseguo...")
+                        except Exception as log_err:
+                            logger.warning(f"L'EvaluationAgent ha restituito {len(results)} record su {expected_count} attesi (tentativo {attempt + 1}/{max_retries}). Errore nel calcolo ID mancanti: {log_err}. Rieseguo...")
                 else:
                     # Fallback se la catena restituisce qualcos'altro
                     raw_text = str(result)

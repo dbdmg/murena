@@ -14,7 +14,7 @@ from app.services.llm.agents.base import BaseAgent
 from app.services.llm.agents.schema import PoiAgentResult, PromptRecord, CategoryResponse
 from app.services.llm.langchain_client import get_llm, invoke_with_langfuse
 from app.services.llm.prompt_loader import get_system_prompt, get_user_template
-from app.utils.decorators import log_llm_usage
+from app.utils.decorators import log_llm_usage, handle_agent_error
 from app.utils.json_parser import safe_extract_json
 
 
@@ -66,7 +66,17 @@ class PoiAgent(BaseAgent):
                 statistics=kwargs.get("statistics")
             )
         elif mode == "ranking":
-            return self._run_ranking(**kwargs)
+            try:
+                return self._run_ranking(**kwargs)
+            except Exception as e:
+                # Fallback sicuro per ranking: restituisci DF originale con score 0
+                df = kwargs.get("df")
+                if df is not None:
+                    # Assicurati che non modifichi l'originale se possibile, ma qui stiamo recuperando da errore
+                    if "poi_score" not in df.columns:
+                        df["poi_score"] = 0.0
+                    return df
+                return pd.DataFrame()
         else:
             raise ValueError(f"Modalità '{mode}' non supportata dal PoiAgent.")
 
@@ -109,7 +119,7 @@ class PoiAgent(BaseAgent):
                 prompt=None,
             )
 
-    def _run_ranking(self, *, df: pd.DataFrame, ranked_categories: List[str]) -> pd.DataFrame:
+    def _run_ranking(self, *, df: pd.DataFrame, ranked_categories: List[str] = None) -> pd.DataFrame:
         """
         Modalità ranking: calcolo punteggio deterministico basato su pesi posizionali (1/1, 1/2, 1/3...).
         """
@@ -134,42 +144,62 @@ class PoiAgent(BaseAgent):
         if total_weight > 0:
             weights = {cat: w / total_weight for cat, w in weights.items()}
             
-        # 3. Calcola lo score pesato per ogni riga
-        # Poiché le colonne originali (sanita, mobilita, ecc.) sono in scala 1-5,
-        # normalizziamo a 0-100: (val - 1) / 4 * 100
+        # 3. Calcola lo score pesato per ogni riga e salva i partial scores
+        # Refactoring to vectorized operations for partial scores
+        total_score_series = pd.Series(0.0, index=df_ranked.index)
         
-        def calculate_row_score(row):
-            score = 0
-            for cat, weight in weights.items():
-                if cat in row:
-                    val = pd.to_numeric(row[cat], errors="coerce")
-                    if not pd.isna(val):
-                        # Detect scale: if values are in 0-100 range (percentage/index),
-                        # use simple division. If in 1-5 range, use legacy normalization.
-                        # Using 10.0 as threshold to safely distinguish between the two scales.
-                        if val > 5.1:
-                             # Assume 0-100 scale
-                             norm_val = max(0, min(1, val / 100.0))
-                        else:
-                             # Assume 1-5 scale
-                             norm_val = max(0, min(1, (val - 1) / 4))
-                        
-                        score += norm_val * weight * 100
-            return score
-
-        df_ranked["poi_score"] = df_ranked.apply(calculate_row_score, axis=1)
-        df_ranked["poi_score"] = df_ranked["poi_score"].round(1)
-
-        # Add transparency columns: weight per category
         cols_to_return = ["id", "poi_score"]
         used_cats = [cat for cat in ranked_categories if cat in df_ranked.columns]
         weight_cols = []
-        
+        partial_score_cols = []
+
         for cat in used_cats:
-            # Weight used for this category
             weight = weights.get(cat, 0.0)
-            col_name = f"poi_weight_{cat}"
-            df_ranked[col_name] = round(weight, 3)
-            weight_cols.append(col_name)
+            
+            # Get values and handle NaNs
+            vals = pd.to_numeric(df_ranked[cat], errors="coerce")
+            
+            # Vectorized normalization
+            # Condition: val > 5.1 (0-100 scale) vs 1-5 scale
+            # We use np.where to handle both cases in one go
+            
+            # Case 1: > 5.1 (assume 0-100) -> val / 100
+            # Case 2: <= 5.1 (assume 1-5) -> (val - 1) / 4
+            
+            # Handle potential NaNs by filling with 0 score (or handle as 0 contribution)
+            # Mask for NaNs
+            na_mask = vals.isna()
+            safe_vals = vals.fillna(0)
+            
+            norm_vals = np.where(
+                safe_vals > 5.1,
+                (safe_vals / 100.0).clip(0, 1),
+                ((safe_vals - 1) / 4.0).clip(0, 1)
+            )
+            
+            # Where it was NaN, score is 0
+            norm_vals[na_mask] = 0.0
+            
+            # Partial score (0-100) for this category
+            partial_score = norm_vals * 100.0
+            col_partial_name = f"poi_partial_score_{cat}"
+            df_ranked[col_partial_name] = partial_score.round(1)
+            partial_score_cols.append(col_partial_name)
+            
+            # Add to total weighted score
+            total_score_series += partial_score * weight
+            
+            # Store weight column
+            col_weight_name = f"poi_weight_{cat}"
+            df_ranked[col_weight_name] = round(weight, 3)
+            weight_cols.append(col_weight_name)
+
+        df_ranked["poi_score"] = total_score_series.round(1)
         
-        return df_ranked[cols_to_return + list(used_cats) + weight_cols]
+        all_requested_cols = cols_to_return + list(used_cats) + weight_cols + partial_score_cols
+        unique_cols = []
+        for c in all_requested_cols:
+            if c not in unique_cols and c in df_ranked.columns:
+                unique_cols.append(c)
+                
+        return df_ranked[unique_cols]

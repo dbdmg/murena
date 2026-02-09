@@ -79,6 +79,9 @@ class AgentLogger:
             output_extracted = output_data['raw_text']
         elif isinstance(output_data, pd.DataFrame):
             # Safe conversion to list of dicts to handle NaNs for JSON serialization
+            # Ensure columns are unique before orient='records'
+            if not output_data.columns.is_unique:
+                output_data = output_data.loc[:, ~output_data.columns.duplicated()]
             output_extracted = json.loads(output_data.to_json(orient="records"))
         
         log_entry = {
@@ -140,23 +143,7 @@ class AgentLogger:
                 except Exception as e:
                     print(f"⚠️ Errore nell'eliminare JSONL {self.current_log_file.name}: {e}")
             
-            # === SALVATAGGIO HTML ===
-            # Usa il metodo generate_html_view per ottenere la stringa HTML
-            # Passiamo il nome del file JSON per permettere all'HTML di caricarlo
-            html_content = self.generate_html_view(
-                agent_executions, 
-                f"Agent Executions (Run {run_props.get('run_number')})",
-                json_filename=json_file.name
-            )
-            
-            html_dir = self.log_dir
-            agent_html = html_dir / f"agent_executions_{run_props.get('use_case')}_{run_props.get('prompt_id')}_run{run_props.get('run_number')}.html"
-            
-            with open(agent_html, 'w', encoding='utf-8') as f:
-                f.write(html_content)
-                
-            print(f"💾 HTML salvato: {agent_html.name}")
-            print(f"💾 JSON mantenuto per modifiche: {json_file.name}")
+            print(f"💾 JSON trace salvato: {json_file.name}")
             
         except Exception as e:
             print(f"⚠️ Errore nel finalizzare log: {e}")

@@ -38,6 +38,18 @@ class SyntheticDataGenerator:
         # Genera valori APE dettagliati basati sulla classe energetica
         ape_data = self._generate_ape_data(classe_energetica)
         
+        # Mapping anno a epoca_costruzione per compatibilità
+        anno = random.randint(1970, 2023)
+        if anno < 1919: epoca = "Prima del 1919"
+        elif anno <= 1945: epoca = "Dal 1919 al 1945"
+        elif anno <= 1960: epoca = "Dal 1946 al 1960"
+        elif anno <= 1970: epoca = "Dal 1961 al 1970"
+        elif anno <= 1980: epoca = "Dal 1971 al 1980"
+        elif anno <= 1990: epoca = "Dal 1981 al 1990"
+        elif anno <= 2000: epoca = "Dal 1991 al 2000"
+        elif anno <= 2010: epoca = "Dal 2001 al 2010"
+        else: epoca = "Dopo il 2010"
+
         immobile = {
             "id": f"IMM{idx:03d}",
             "tipologia_bene_immobile": random.choice(config["preferred_typologies"]),
@@ -50,12 +62,18 @@ class SyntheticDataGenerator:
             "longitudine": lon,
             "zona_omi": zone["name"],
             "classe_energetica": classe_energetica,
-            "anno_costruzione": random.randint(1970, 2023),
+            "anno_costruzione": anno,
+            "epoca_costruzione": epoca,
             "utilizzo_del_bene": random.choices(
                 ["Non utilizzato", "Inutilizzabile", "In ristrutturazione/manutenzione", "Utilizzato direttamente"],
                 weights=[0.5, 0.3, 0.1, 0.1],
                 k=1
-            )[0]
+            )[0],
+            "natura_del_bene": "FABBRICATO",
+            "vincolo_culturale_paesaggistico": "Nessuno",
+            "natura_giuridica_del_bene": "Patrimonio disponibile",
+            "finalita": random.choice(["Altro", "Non Dichiarato", "Utilizzo pubblico"]),
+            "codice_comune": "L219" # Torino
         }
         
         # Aggiungi dati APE
