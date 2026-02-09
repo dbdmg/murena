@@ -135,10 +135,10 @@ export function useAnalysisProgress(
         const ws = new WebSocket(buildWebSocketUrl(runId));
         wsRef.current = ws; // Assign immediately
 
-        console.log(`[WS] Connecting to ${ws.url}`);
+
 
         ws.onopen = () => {
-            console.log('[WS] Connected');
+
             reconnectAttemptsRef.current = 0;
             setState((prev) => ({
                 ...prev,
@@ -150,7 +150,7 @@ export function useAnalysisProgress(
         ws.onmessage = (event) => {
             try {
                 const data: WebSocketMessage = JSON.parse(event.data);
-                console.log('[WS] Message:', data);
+
 
                 if (data.type === 'progress') {
                     const progressData = data as ProgressUpdate;
@@ -188,7 +188,7 @@ export function useAnalysisProgress(
         };
 
         ws.onclose = (event) => {
-            console.log('[WS] Closed:', event.code, event.reason);
+
             setState((prev) => ({ ...prev, isConnected: false }));
             wsRef.current = null;
 
@@ -206,7 +206,7 @@ export function useAnalysisProgress(
                 const baseDelay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 30000);
                 const delay = baseDelay + (Math.random() * 1000);
 
-                console.log(`[WS] Reconnecting in ${Math.round(delay)}ms (attempt ${reconnectAttemptsRef.current})`);
+
 
                 reconnectTimeoutRef.current = setTimeout(() => {
                     setRetryTrigger(prev => prev + 1);

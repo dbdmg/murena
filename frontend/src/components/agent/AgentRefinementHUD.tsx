@@ -396,7 +396,7 @@ export const AgentRefinementHUD: React.FC<AgentRefinementHUDProps> = ({
 
     // Handle Re-Run / Simulate
     const handleReRun = useCallback(async () => {
-        console.log('[AgentTuner] handleReRun called', { currentQuery, selectedAgent, hasChanges });
+
 
         if (!currentQuery) {
             setError('Query non disponibile. Esegui prima una ricerca dalla mappa.');
@@ -409,13 +409,13 @@ export const AgentRefinementHUD: React.FC<AgentRefinementHUDProps> = ({
         setSuccessMessage(null);
 
         const agentName = getAgentNameForStep(selectedAgent);
-        console.log('[AgentTuner] agentName resolved:', agentName);
+
 
         try {
             // Step 1: Save the modified prompts to backend BEFORE running analysis
             if (hasChanges) {
                 try {
-                    console.log('[AgentTuner] Saving prompts...');
+
                     await apiClient.put(`/prompts/overrides/${agentName}/system`, { text: editedSystemPrompt });
                     await apiClient.put(`/prompts/overrides/${agentName}/user`, { text: editedUserPrompt });
                     setSimulationProgress('Prompt salvati. Avvio analisi...');
