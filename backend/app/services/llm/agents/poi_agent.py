@@ -144,10 +144,16 @@ class PoiAgent(BaseAgent):
                 if cat in row:
                     val = pd.to_numeric(row[cat], errors="coerce")
                     if not pd.isna(val):
-                        # (val - 1) / 4 -> scala 0-1
-                        # * weight -> pesato
-                        # * 100 -> scala 0-100
-                        norm_val = max(0, min(1, (val - 1) / 4))
+                        # Detect scale: if values are in 0-100 range (percentage/index),
+                        # use simple division. If in 1-5 range, use legacy normalization.
+                        # Using 10.0 as threshold to safely distinguish between the two scales.
+                        if val > 5.1:
+                             # Assume 0-100 scale
+                             norm_val = max(0, min(1, val / 100.0))
+                        else:
+                             # Assume 1-5 scale
+                             norm_val = max(0, min(1, (val - 1) / 4))
+                        
                         score += norm_val * weight * 100
             return score
 

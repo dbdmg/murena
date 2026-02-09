@@ -262,9 +262,14 @@ class NormativeAgent(BaseAgent):
                 
                 # Determine match (boolean series)
                 if op == "==":
-                    is_match = (vals == target_str)
+                    # Strict match first
+                    strict_match = (vals == target_str)
+                    # Relaxed match: if target is contained in the value or vice-versa
+                    # (helps with long db strings like "Edificio scolastico (es.: ...)")
+                    partial_match = vals.str.contains(target_str, na=False, regex=False) | pd.Series([target_str in v for v in vals], index=vals.index)
+                    is_match = strict_match | partial_match
                 elif op == "LIKE":
-                    is_match = vals.str.contains(target_str, na=False)
+                    is_match = vals.str.contains(target_str, na=False, regex=False)
                 elif op == "IN":
                     if isinstance(target_val, str):
                         target_list = [v.lower().strip() for v in target_val.split(",")]
@@ -272,11 +277,15 @@ class NormativeAgent(BaseAgent):
                         target_list = [str(v).lower().strip() for v in target_val]
                     else:
                         target_list = [target_str]
+                    
+                    # Exact matches in list OR any item in list is contained in value
                     is_match = vals.isin(target_list)
+                    for t in target_list:
+                        is_match = is_match | vals.str.contains(t, na=False, regex=False)
                 else:
                     is_match = (vals == target_str)
                 
-                # Calculate Score
+                # Calculate Score: 100 for match, 0 otherwise
                 req_score = is_match.astype(float) * 100
                 
                 # Transparency Metadata for Categorical

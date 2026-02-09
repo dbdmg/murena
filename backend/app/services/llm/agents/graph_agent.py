@@ -392,14 +392,66 @@ class GraphOrchestratorAgent(BaseAgent):
         
         # Extract output based on agent type and mode
         output_data = None
+        output_structure = None
         
-        # Handle DataFrame results from ranking mode
+        # Handle DataFrame results from ranking mode or filtering mode
         if isinstance(result, pd.DataFrame):
-            # For ranking mode DataFrames, convert to list of records for table display
-            # Limit to first 20 rows for readability
-            df_preview = result.head(20)
-            output_data = json.loads(df_preview.to_json(orient="records"))
-            input_data = f"Ranking mode: {len(result)} records scored"
+            # Per agent di ranking, vogliamo mostrare le colonne che hanno influenzato il punteggio
+            agent_type = agent_name.replace("-agent", "").replace("-extractor", "").replace("-extraction", "").replace("_", "-")
+            
+            # Mappa prefissi colonne per ogni agente
+            prefix_map = {
+                "typology": "typology_",
+                "location": "location_",
+                "ape": "ape_",
+                "normative": "normative_",
+                "poi": "poi_"
+            }
+            prefix = None
+            for k, v in prefix_map.items():
+                if k in agent_type:
+                    prefix = v
+                    break
+            
+            if mode == "ranking" and prefix:
+                # Colonne "Involved": score, rank_position, multiplier, weight e colonne sorgente
+                involved_cols = ["id"]
+                score_col = f"{prefix}score"
+                
+                # Cerchiamo tutte le colonne che iniziano con il prefisso dell'agente (transparency cols)
+                transparency_cols = [c for c in result.columns if c.startswith(prefix) or c.startswith(f"{prefix}rank_") or c.startswith(f"{prefix}weight_")]
+                involved_cols.extend([c for c in transparency_cols if c not in involved_cols])
+                
+                # Aggiungiamo colonne di input rilevanti definite nelle costanti
+                from app.core.constants import APE_AGENT_COLUMNS, TYPOLOGY_AGENT_COLUMNS, NORMATIVE_AGENT_COLUMNS, POI_AGENT_COLUMNS
+                source_cols_map = {
+                    "typology": TYPOLOGY_AGENT_COLUMNS,
+                    "location": ["distanza_km", "poi_riferimento"],
+                    "ape": APE_AGENT_COLUMNS,
+                    "normative": NORMATIVE_AGENT_COLUMNS,
+                    "poi": POI_AGENT_COLUMNS
+                }
+                
+                agent_key = next((k for k in source_cols_map if k in agent_type), None)
+                if agent_key:
+                    source_cols = source_cols_map[agent_key]
+                    involved_cols.extend([c for c in source_cols if c in result.columns and c not in involved_cols])
+                
+                # Limitiamo alle prime 20 righe per il trace, ma manteniamo tutte le colonne coinvolte
+                df_preview = result[involved_cols].head(20)
+                output_data = json.loads(df_preview.to_json(orient="records"))
+                output_structure = {
+                    "involved_columns": involved_cols,
+                    "total_records": len(result),
+                    "mode": "ranking_table"
+                }
+                input_data = f"Ranking Mode: {len(result)} record valutati. Mostrando fattori di scoring."
+            else:
+                # Comportamento standard per DataFrame (es. filtraggio)
+                df_preview = result.head(20)
+                output_data = json.loads(df_preview.to_json(orient="records"))
+                input_data = f"{mode.capitalize()} mode: {len(result)} records"
+                output_structure = {"total_records": len(result)}
         elif agent_name.lower() == "ape-agent" and hasattr(result, 'suggested_filters'):
             output_data = result.suggested_filters
         elif agent_name == "ranking-agent":
@@ -884,13 +936,14 @@ class GraphOrchestratorAgent(BaseAgent):
 
         return state
 
-    def _deterministic_relaxation(self, sql_query: str) -> str:
+    def _deterministic_relaxation(self, sql_query: str) -> tuple[str, Optional[str]]:
         """
         Relaxes the SQL query by removing the last condition from the WHERE clause.
         Uses sqlglot for robust AST manipulation (DuckDB dialect).
+        Returns: (relaxed_sql, removed_condition_string)
         """
         if not sql_query:
-            return sql_query
+            return sql_query, None
             
         try:
             # Basic cleanup of markdown/comments
@@ -908,19 +961,23 @@ class GraphOrchestratorAgent(BaseAgent):
             where = expression.find(exp.Where)
             if not where:
                 logger.warning("No WHERE clause found to relax.")
-                return sql_query
+                return sql_query, None
 
             # The logic is to remove the last top-level condition.
             # In SQL AST for AND/OR chains, this is usually the 'right' child of the top-level binary expression.
             predicate = where.this
             
+            removed_condition = None
+
             if isinstance(predicate, (exp.And, exp.Or)):
                 # We replace the tree with its left child, effectively removing the rightmost branch.
                 # Since LLMs tend to append more specific/less important conditions at the end, 
                 # this correctly targets the "last" condition.
+                removed_condition = predicate.right.sql(dialect="duckdb")
                 where.set("this", predicate.left)
             else:
                 # Only one condition remains in the WHERE clause, so we remove the whole clause.
+                removed_condition = predicate.sql(dialect="duckdb")
                 where.pop()
                 
             # Generate the SQL back. Dialect="duckdb" ensures compatibility.
@@ -928,10 +985,10 @@ class GraphOrchestratorAgent(BaseAgent):
             result = expression.sql(dialect="duckdb", pretty=True)
             
             logger.info(f"DETERMINISTIC RELAXATION (AST): Removed last condition. Result: {result}")
-            return result
+            return result, removed_condition
         except Exception as e:
             logger.error(f"Failed to parse or relax SQL via AST: {e}. Falling back to original query.")
-            return sql_query
+            return sql_query, None
 
     def _format_agent_requirements(self, agent_result: Any) -> str:
         """Formatta i requisiti di un agente (APE o Normative) in formato compatto [col] [op] [val]."""
@@ -1048,18 +1105,24 @@ class GraphOrchestratorAgent(BaseAgent):
         # DETERMINISTIC RELAXATION: If we are retrying because of few results (not a SQL error)
         # we prepare the relaxed query to be passed to the agent run for logging.
         relaxed_sql = None
+        removed_condition = None
+        
+        # DEBUG LOGGING for relaxation
+        if retry_count > 0:
+            logger.info(f"DEBUG: retry_count={retry_count}, relax_constraints={state.get('relax_constraints')}, is_sql_error={is_sql_error}, failed_query_len={len(failed_query)}")
+
         if state.get("relax_constraints") and not is_sql_error and failed_query:
             logger.info(f"Applying DETERMINISTIC RELAXATION (Attempt {retry_count + 1})")
-            relaxed_sql = self._deterministic_relaxation(failed_query)
+            relaxed_sql, removed_condition = self._deterministic_relaxation(failed_query)
+            
+            # If deterministic relaxation returns same query, it failed effectively.
+            if relaxed_sql and relaxed_sql.strip() == failed_query.strip():
+                logger.warning("Deterministic relaxation returned same query. Falling back to LLM.")
+                relaxed_sql = None
+                removed_condition = None
 
         if state.get("relax_constraints") and not is_sql_error:
             logger.info(f"Applying RELAXATION to SQL prompt (Attempt {retry_count + 1})")
-
-        # Extract ranking list
-        ranking_agent_result = state.get("ranking_result")
-        ranking_list = []
-        if ranking_agent_result and hasattr(ranking_agent_result, "ranking") and ranking_agent_result.ranking:
-            ranking_list = ranking_agent_result.ranking.ranking
 
         sql_result = self.sql_agent.run(
             query=query, # use original query
@@ -1073,7 +1136,6 @@ class GraphOrchestratorAgent(BaseAgent):
             failed_query=effective_failed_query,
             error_msg=effective_error_msg,
             db_metadata=json.dumps(state.get("db_metadata", {}), ensure_ascii=False),
-            ranking_list=ranking_list,
             raw_response=relaxed_sql
         )
 
@@ -1094,7 +1156,29 @@ class GraphOrchestratorAgent(BaseAgent):
             "sql_history": state["sql_history"]
         }
         
-        self._log_execution(state, "sql-agent", sql_result, 0)
+        # Prepare log information
+        agent_name = "sql-agent"
+        # Check if we are in relaxation mode (either deterministic or LLM-based)
+        if state.get("relax_constraints") or state.get("last_retry_reason") == "few_results":
+             agent_name = f"sql-agent (relaxation n. {retry_count})"
+             
+             # If we have removed_condition (deterministic), we want to highlight it in the input.
+             if relaxed_sql and removed_condition and sql_result.prompt:
+                 log_msg = f"Relaxation Step (Deterministic): Removed last WHERE condition (lowest priority).\nREMOVED CONSTRAINT: {removed_condition}"
+                 # We update both user and full_text to ensure visibility in UI
+                 sql_result.prompt.user = log_msg
+                 sql_result.prompt.full_text = f"{log_msg}\n\nORIGINAL QUERY:\n{failed_query}"
+             elif (not relaxed_sql) and sql_result.prompt:
+                 # Fallback to LLM relaxation (deterministic failed or skipped)
+                 log_msg = "Relaxation Step (LLM-based): Deterministic relaxation skipped/failed. Asking LLM to relax constraints."
+                 sql_result.prompt.user = log_msg
+                 try:
+                    current_full = sql_result.prompt.full_text or ""
+                    sql_result.prompt.full_text = f"{log_msg}\n\nPROMPT SENT TO LLM:\n{current_full}"
+                 except:
+                    pass
+
+        self._log_execution(state, agent_name, sql_result, 0)
         return state
 
     def _execute_sql(self, state: GraphState) -> GraphState:
@@ -1377,7 +1461,7 @@ class GraphOrchestratorAgent(BaseAgent):
                 data = safe_extract_json(res.raw_text, schema=TypologyResponse)
                 if data and data.typologies:
                     tmp = self.typology_agent.run(mode="ranking", df=df.copy(), ranked_typologies=data.typologies)
-                    return tmp[["id", "typology_score"]]
+                    return tmp
             tmp = df.copy()
             tmp["typology_score"] = 0.0
             return tmp[["id", "typology_score"]]
@@ -1385,7 +1469,7 @@ class GraphOrchestratorAgent(BaseAgent):
         def rank_location():
             if state["context"].locations:
                  tmp = self.location_agent.run(mode="ranking", df=df.copy(), places=state["context"].locations)
-                 return tmp[["id", "location_score"]]
+                 return tmp
             tmp = df.copy()
             tmp["location_score"] = 0.0
             return tmp[["id", "location_score"]]
@@ -1399,7 +1483,7 @@ class GraphOrchestratorAgent(BaseAgent):
                     requirements = data.requisiti
             
             tmp = self.ape_agent.run(mode="ranking", df=df.copy(), requirements=requirements)
-            return tmp[["id", "ape_score"]]
+            return tmp
 
         def rank_normative():
             res = state.get("normative_result")
@@ -1407,7 +1491,7 @@ class GraphOrchestratorAgent(BaseAgent):
                 data = safe_extract_json(res.raw_text, schema=NormativeResponse)
                 if data and data.found:
                     tmp = self.normative_agent.run(mode="ranking", df=df.copy(), requirements=data.requisiti, available_columns=NORMATIVE_AGENT_COLUMNS)
-                    return tmp[["id", "normative_score"]]
+                    return tmp
             tmp = df.copy()
             tmp["normative_score"] = 0.0
             return tmp[["id", "normative_score"]]
@@ -1418,7 +1502,7 @@ class GraphOrchestratorAgent(BaseAgent):
                 data = safe_extract_json(res.raw_text)
                 if data and data.get("categories"):
                     tmp = self.poi_agent.run(mode="ranking", df=df.copy(), ranked_categories=data.get("categories"))
-                    return tmp[["id", "poi_score"]]
+                    return tmp
             tmp = df.copy()
             tmp["poi_score"] = 0.0
             return tmp[["id", "poi_score"]]
@@ -1451,8 +1535,9 @@ class GraphOrchestratorAgent(BaseAgent):
                         # Log this ranking agent execution to the trace
                         self._log_execution(state, f"{name}-agent", res_df, 0, mode="ranking")
 
-                    # Aggiungiamo solo le colonne di score evitando duplicazioni (usiamo 'id' come chiave)
-                    df = df.merge(res_df, on="id", how="left")
+                    # Aggiungiamo solo nuove colonne evitando duplicazioni
+                    new_cols = [c for c in res_df.columns if c not in df.columns or c == "id"]
+                    df = df.merge(res_df[new_cols], on="id", how="left")
                 except Exception as e:
                     logger.error(f"Error in parallel ranking part {name}: {e}")
                     col = "ape_score" if name == "ape" else f"{name}_score"

@@ -122,7 +122,7 @@ Frase: "{query}"
 Sei un esperto di SQL per DuckDB. Il tuo compito è generare una query per la tabella `IMMOBILI` basandoti sui requisiti estratti da vari agenti specializzati (Typology, Location, APE, POI, Normative).
 
 # COMPITI
-1. **RIMOZIONE CONTRADDIZIONI**: Analizza i vari filtri suggeriti. Se trovi conflitti (es. un agente chiede Classe A e un altro chiede un immobile economico), risolvili dando priorità alla richiesta esplicita dell'utente e all'importanza dei requisiti per l'obiettivo finale.
+1. **RIMOZIONE CONTRADDIZIONI**: Analizza i vari filtri suggeriti. Se trovi conflitti (es. un agente chiede Classe A e un altro chiede un immobile economico), risolvili dando priorità alla richiesta esplicita dell'utente e alla rilevanza dei requisiti per l'obiettivo finale.
 2. **GENERAZIONE WHERE**: Traduci i requisiti in clausole WHERE seguendo queste linee guida:
    - Per l'efficienza energetica (APE), usa le colonne `classe_energetica_ape` (per classi come 'A%', 'B', ecc.) e `epglnren_ape` (per valori numerici di prestazione) ESATTAMENTE come suggerito dall'APE Agent.
    - Per le tipologie, usa `IN (...)`.
@@ -130,12 +130,17 @@ Sei un esperto di SQL per DuckDB. Il tuo compito è generare una query per la ta
 3. **NO RANKING**: NON inserire clausole ORDER BY basate su preferenze di qualità (APE, POI, ecc.). La query deve solo estrarre i candidati validi. Se necessario, l'unica eccezione è un ordinamento tecnico per `id` o per distanza `ASC` se esiste un punto di riferimento geografico.
     - Se c'è una location, usa `haversine_km(latitudine, longitudine, {lat}, {lon}) < raggio`.
 
+# GUIDA SU EFFICIENZA ENERGETICA (APE)
+- A meno che la query utente non indichi ESPLICITAMENTE che i requisiti energetici (APE) sono inutili o da ignorare, ASSUMI SEMPRE che abbiano un'ELEVALA RILEVANZA.
+- Se l'APE Agent suggerisce filtri energetici, includili nella query e posizionali tra i primi criteri della clausola `WHERE` (alta priorità), subito dopo i vincoli spaziali o tipologici essenziali.
+- In generale, preferisci mantenere i requisiti energetici anche a scapito di servizi accessori (POI), salvo indicazione contraria dell'utente.
+
 # REGOLE CRITICHE
 - Tabella: `IMMOBILI`.
 - NON filtrare MAI per colonne di punteggio (es. `ape_score_*`, `sanita`, `mobilita`, ecc.). Queste servono solo per il ranking post-query.
 - NON usare LIMIT (o usa LIMIT 10000).
-- Se devi rilassare i vincoli (fase di retry), rimuovi SOLO UN REQUISITO alla volta, partendo dall'ultimo in fondo alla clausola WHERE (il meno importante).
-- **ORDINE CLAUSOLE**: DEVI ordinare le condizioni nella clausola `WHERE` seguendo RIGOROSAMENTE l'ordine indicato in `RANKING PREFERENZE`. Metti i criteri più importanti (primi in lista) in cima alla WHERE.
+- Se devi rilassare i vincoli (fase di retry), rimuovi SOLO UN REQUISITO alla volta, partendo dall'ultimo in fondo alla clausola WHERE (il meno rilevante).
+- **ORDINE CLAUSOLE**: Le condizioni nella clausola `WHERE` devono essere ordinate RIGOROSAMENTE dalla più alla meno rilevante rispetto all'obiettivo dell'utente. Metti i criteri più critici in cima alla `WHERE`. Questo ordine è fondamentale per la procedura di relaxation (rimozione graduale dei vincoli meno rilevanti).
 
 # OUTPUT
 Restituisci ESCLUSIVAMENTE la query SQL valida.
@@ -154,36 +159,6 @@ RISULTATI FILTRAGGIO AGENTI:
 
 SCHEMA DATABASE: {scheme}
 METADATI (valori ammessi): {db_metadata}
-RANKING PREFERENZE (ORDINE OBBLIGATORIO CLAUSOLE): {ranking}
-```
-
-
-## sql_agent.retry_system
-```prompt
-Sei un esperto di SQL e il tuo compito è correggere una query che non ha prodotto risultati o ha generato un errore.
-
-Requisiti:
-- La tabella principale si chiama `IMMOBILI`.
-- Se c'è un errore di sintassi o di colonna, CORREGGILO basandoti sullo schema fornito.
-- Se l'errore è dovuto a scarsi risultati ("Rilassa i vincoli"), prova ad allentare la selezione seguendo rigorosamente queste REGOLE:
-    1. I REQUIREMENTS SONO IMMUTABILI. Non puoi cambiare i valori o i range dei filtri (es. superfici, classi energetiche, distanze, tipologie).
-    2. Puoi soltanto RIMUOVERE COMPLETAMENTE i criteri che ritieni troppo restrittivi.
-    3. AD OGNI STEP DI RELAXATION, RIMUOVI SOLO UN REQUISITO (L'ULTIMO IN FONDO ALLA CLAUSOLA WHERE). Non rimuoverne mai più di uno alla volta.
-    4. **ORDINE CLAUSOLE**: Le condizioni nella clausola `WHERE` sono già ordinate dalla più alla meno importante. La relaxation consiste nel rimuovere l'ultima condizione della clausola WHERE della query precedente (`failed_query`).
-    Esempio: se un filtro su 'superficie_totale BETWEEN 100 AND 200' è l'ultima condizione e non produce risultati, RIMUOVILO dalla clausola WHERE.
-
-Restituisci ESCLUSIVAMENTE la query SQL valida.
-```
-
-## sql_agent.retry_user
-```prompt
-Errore Riscontrato:
-{error_msg}
-
-Parametri di Filtro Originali: "{query}"
-Query Fallita: "{failed_query}"
-Schema Database:
-{scheme}
 ```
 
 ---
@@ -412,7 +387,7 @@ DISTRIBUZIONE DATI (per definire soglie realistiche):
 
 ## ranking_agent.system
 ```prompt
-Sei un esperto analista immobiliare. Il tuo compito è stabilire l'ORDINE DI IMPORTANZA (ranking) di 5 criteri di valutazione basandoti sulle necessità espresse dall'utente nella query.
+Sei un esperto analista immobiliare. Il tuo compito è stabilire l'ORDINE DI RILEVANZA (ranking) di 5 criteri di valutazione basandoti sulle necessità espresse dall'utente nella query.
 
 I CRITERI SONO:
 1. **location**: Vicinanza geografica o posizione specifica richiesta.
@@ -423,8 +398,8 @@ I CRITERI SONO:
 
 REGOLE:
 - Restituisci una lista ordinata chiamata `ranking` contenente i 5 nomi dei criteri.
-- Il primo elemento della lista deve essere il criterio più importante.
-- L'ultimo elemento della lista deve essere il criterio meno importante.
+- Il primo elemento della lista deve essere il criterio più rilevante.
+- L'ultimo elemento della lista deve essere il criterio meno rilevante.
 - Tutti i 5 criteri devono essere presenti nella lista.
 - Se l'utente non esprime preferenze chiare, usa un ordine bilanciato.
 

@@ -178,17 +178,6 @@ class Settings(BaseSettings):
         """Return agent-specific model configuration."""
         return {
             "default": self.OPENAI_MODEL_FAST,
-            # Fast agents
-            "location_agent": self.OPENAI_MODEL_FAST,
-            "typology_agent": self.OPENAI_MODEL_FAST,
-            "poi_category_agent": self.OPENAI_MODEL_FAST,
-            "poi_amenity_agent": self.OPENAI_MODEL_FAST,
-            # Smart agents
-            "normative_agent": self.OPENAI_MODEL_SMART,
-            "ape_agent": self.OPENAI_MODEL_SMART,
-            "consistency_agent": self.OPENAI_MODEL_SMART,
-            "sql_agent": self.OPENAI_MODEL_SMART,
-            "evaluation_agent": self.OPENAI_MODEL_SMART
         }
 
 

@@ -202,18 +202,26 @@ class ApeAgent(BaseAgent):
             return df_ranked[cols_to_return + weight_cols + transparency_cols]
 
         # 2. Logica Fallback (Deterministica standard)
-        # Here weight is 1.0 for the single source column used
+        # Se non ci sono requisiti specifici, assegniamo 0 anziché punteggi medi
+        # per non "sporcare" il ranking se l'utente non ha chiesto esplicitamente APE.
         used_col = None
-        if "ape_total_points" in df_ranked.columns:
-            points = pd.to_numeric(df_ranked["ape_total_points"], errors="coerce").fillna(6)
-            df_ranked["ape_score"] = (100 * (points - 6) / (20 - 6)).clip(0, 100)
+        if "ape_total_points" in df_ranked.columns and not df_ranked["ape_total_points"].isna().all():
+            points = pd.to_numeric(df_ranked["ape_total_points"], errors="coerce").fillna(0)
+            # Scala 6-20 -> 0-100. Sotto 6 è 0.
+            df_ranked["ape_score"] = np.where(points >= 6, (100 * (points - 6) / (20 - 6)).clip(0, 100), 0.0)
             used_col = "ape_total_points"
-        elif "ape_score_total" in df_ranked.columns:
-            score = pd.to_numeric(df_ranked["ape_score_total"], errors="coerce").fillna(1)
-            df_ranked["ape_score"] = ((score - 1) * 25).clip(0, 100)
+        elif "ape_score_total" in df_ranked.columns and not df_ranked["ape_score_total"].isna().all():
+            score = pd.to_numeric(df_ranked["ape_score_total"], errors="coerce").fillna(0)
+            # Detect scale
+            if score.max() > 5.1:
+                # Assume 0-100 scale
+                df_ranked["ape_score"] = score.clip(0, 100)
+            else:
+                # Scale 1-5 -> 0-100.
+                df_ranked["ape_score"] = np.where(score >= 1, ((score - 1) * 25).clip(0, 100), 0.0)
             used_col = "ape_score_total"
         else:
-            df_ranked["ape_score"] = 0
+            df_ranked["ape_score"] = 0.0
             
         df_ranked["ape_score"] = df_ranked["ape_score"].round(1)
         

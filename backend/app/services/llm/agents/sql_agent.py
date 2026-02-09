@@ -127,13 +127,8 @@ class SQLAgent(BaseAgent):
         failed_query: Optional[str] = None,
         error_msg: Optional[str] = None,
         db_metadata: str = "",
-        ranking_list: List[str] = None,
-        ranking_weights: Dict[str, float] = None,
         raw_response: Optional[str] = None,  # If provided, bypass LLM and use this
     ) -> SQLAgentResult:
-        ranking_str = "N/D"
-        if ranking_list:
-            ranking_str = ", ".join(ranking_list)
         location_str = ""
         lat = 0.0
         lon = 0.0
@@ -173,7 +168,6 @@ class SQLAgent(BaseAgent):
             "lon": lon,
             "error_msg": error_msg or "Nessun risultato trovato (query vuota).",
             "db_metadata": db_metadata,
-            "ranking": ranking_str,
         }
 
         if raw_response:

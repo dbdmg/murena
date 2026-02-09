@@ -259,6 +259,66 @@ const SyntaxHighlightedJSON = ({ data }: { data: any }) => {
 };
 
 // ----------------------------------------------------------------------------
+// Ranking Table Component
+// ----------------------------------------------------------------------------
+
+const RankingTable = ({ data, columns, label }: { data: any[]; columns: string[]; label?: string }) => {
+    if (!data || data.length === 0) return null;
+
+    // Use columns provided or infer from data
+    const cols = columns && columns.length > 0 ? columns : Object.keys(data[0]);
+
+    return (
+        <div className="space-y-3">
+            {label && (
+                <div className="flex items-center gap-2">
+                    <div className="w-1 h-3 rounded-full bg-amber-500" />
+                    <span className="text-[14px] font-bold uppercase tracking-widest text-amber-400">
+                        {label}
+                    </span>
+                </div>
+            )}
+            <div className="overflow-x-auto rounded-2xl border border-white/10 bg-[#0a0d12] shadow-2xl">
+                <table className="w-full text-left font-mono text-[13px] border-collapse">
+                    <thead className="bg-white/5 border-b border-white/10 text-slate-500 uppercase tracking-widest font-black">
+                        <tr>
+                            {cols.map(col => (
+                                <th key={col} className="px-5 py-3 whitespace-nowrap">{col.replace(/_/g, ' ')}</th>
+                            ))}
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5">
+                        {data.map((row, idx) => (
+                            <tr key={idx} className="hover:bg-white/5 transition-colors group/row">
+                                {cols.map(col => {
+                                    const value = row[col];
+                                    const isScore = col.includes('score');
+                                    const isId = col === 'id';
+
+                                    return (
+                                        <td key={col} className={`px-5 py-2.5 whitespace-nowrap ${isScore ? 'text-amber-400 font-bold' :
+                                            isId ? 'text-slate-500 font-bold' :
+                                                'text-slate-300'
+                                            }`}>
+                                            {value !== null && value !== undefined ? String(value) : (
+                                                <span className="opacity-20">-</span>
+                                            )}
+                                        </td>
+                                    );
+                                })}
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+                <div className="px-5 py-2 bg-white/2 border-t border-white/5 text-[10px] text-slate-600 font-mono italic">
+                    * Mostrando i primi 20 record. I fattori di calcolo (involved columns) sono estratti automaticamente per trasparenza.
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// ----------------------------------------------------------------------------
 // Sub-Components
 // ----------------------------------------------------------------------------
 
@@ -387,15 +447,19 @@ export const AgentTraceViewer: React.FC<AgentTraceViewerProps> = ({ trace, runId
     // Grouping Logic
     const groups = [
         {
-            id: 'ranking',
-            title: 'Ranking & Extraction Agent',
+            id: 'extraction',
+            title: 'Extraction agents',
             icon: <Zap className="w-4 h-4" />,
             agents: [
                 'sql-agent',
+                'typology-agent',
                 'typology-extractor',
+                'location-agent',
                 'location-extraction-agent',
+                'location-extraction',
                 'ape-agent',
                 'poi-agent',
+                'normative-agent',
                 'ranking-agent'
             ]
         },
@@ -411,25 +475,37 @@ export const AgentTraceViewer: React.FC<AgentTraceViewerProps> = ({ trace, runId
         new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
     );
 
-    const groupedTrace = groups.map(group => ({
-        ...group,
-        items: sortedTrace.filter(item => group.agents.includes(item.agent_name.toLowerCase()))
-    })).filter(group => group.items.length > 0);
-
-    // Any items not in defined groups
-    const otherItems = sortedTrace.filter(item =>
-        !groups.some(g => g.agents.includes(item.agent_name.toLowerCase()))
-    );
-
-    if (otherItems.length > 0) {
-        groupedTrace.push({
-            id: 'others',
-            title: 'Other Operations',
-            icon: <Terminal className="w-4 h-4" />,
-            agents: [],
-            items: otherItems
+    const groupedTrace = groups.map(group => {
+        const groupItems = sortedTrace.filter(item => {
+            const itemName = item.agent_name.toLowerCase();
+            return group.agents.some(agent => itemName === agent || itemName.startsWith(`${agent} `) || itemName.startsWith(`${agent}-`));
         });
-    }
+
+        // Special handling for Extraction group:
+        // Group items by Agent to pair Filtering and Ranking executions
+        if (group.id === 'extraction') {
+            // Get unique agents in order of first appearance
+            const uniqueAgents = Array.from(new Set(groupItems.map(i => i.agent_name)));
+
+            // Reconstruct list: for each agent, get all its items (sequentially)
+            const reorderedItems = uniqueAgents.flatMap(agentName =>
+                groupItems.filter(i => i.agent_name === agentName)
+            );
+
+            return {
+                ...group,
+                items: reorderedItems
+            };
+        }
+
+        return {
+            ...group,
+            items: groupItems
+        };
+    }).filter(group => group.items.length > 0);
+
+    // "Other Operations" section removed as requested
+
 
     return (
         <div className={`relative flex flex-col gap-8 ${className}`}>
@@ -704,8 +780,17 @@ const TraceItemCard = ({ item, runId, existingFeedback }: { item: AgentTraceItem
                                 </div>
 
                                 <div className="space-y-6">
-                                    <JSONViewer data={item.output} label="Reasoning Results (Output)" defaultExpanded />
-                                    {Boolean(item.output_structure) && (
+                                    {(item.output_structure as any)?.mode === 'ranking_table' ? (
+                                        <RankingTable
+                                            data={item.output as any[]}
+                                            columns={(item.output_structure as any)?.involved_columns || []}
+                                            label="Detailed Scoring Matrix"
+                                        />
+                                    ) : (
+                                        <JSONViewer data={item.output} label="Reasoning Results (Output)" defaultExpanded />
+                                    )}
+
+                                    {Boolean(item.output_structure) && (item.output_structure as any)?.mode !== 'ranking_table' && (
                                         <JSONViewer data={item.output_structure} label="Structured Data / Internal Stats" />
                                     )}
                                 </div>
