@@ -71,37 +71,40 @@ class RankingAgent(BaseAgent):
             # Similar to PoiAgent logic requested by user
             ordered_agents = ranking_data.ranking
             
-            # Ensure all agents are present (fallback to defaults if LLM missed some)
-            all_agents = ["location", "normative", "ape", "typology", "poi"]
-            for agent in all_agents:
-                if agent not in ordered_agents:
-                    ordered_agents.append(agent)
+            # Use ONLY agents returned by LLM
+            ordered_agents = ranking_data.ranking
             
-            # Keep only first 5
-            ordered_agents = ordered_agents[:5]
+            # Ensure at least one agent is present for safety
+            if not ordered_agents:
+                 ordered_agents = ["typology"] # Fallback
             
+            # Limit to available agents
+            all_supported = ["location", "normative", "ape", "typology", "poi"]
+            ordered_agents = [a for a in ordered_agents if a in all_supported]
+
+            # Calculate weights based on ranking: 1, 1/2, 1/3, 1/4...
             raw_weights = {}
             for i, agent in enumerate(ordered_agents):
                 raw_weights[agent] = 1.0 / (i + 1)
             
-            # Normalize to sum = 1.0
+            # Normalize to sum = 1.0 across SELECTED agents
             total_sum = sum(raw_weights.values())
             normalized_weights = {k: round(v / total_sum, 1) for k, v in raw_weights.items()}
             
             # Ensure sum is exactly 1.0 (rounding adjustments)
             current_sum = sum(normalized_weights.values())
             diff = round(1.0 - current_sum, 1)
-            if diff != 0:
+            if diff != 0 and ordered_agents:
                 # Adjust the top agent
                 top_agent = ordered_agents[0]
                 normalized_weights[top_agent] = round(normalized_weights[top_agent] + diff, 1)
             
             weights = RankingWeights(
-                location=normalized_weights.get("location", 0.2),
-                normative=normalized_weights.get("normative", 0.2),
-                ape=normalized_weights.get("ape", 0.2),
-                typology=normalized_weights.get("typology", 0.2),
-                poi=normalized_weights.get("poi", 0.2)
+                location=normalized_weights.get("location", 0.0),
+                normative=normalized_weights.get("normative", 0.0),
+                ape=normalized_weights.get("ape", 0.0),
+                typology=normalized_weights.get("typology", 0.0),
+                poi=normalized_weights.get("poi", 0.0)
             )
 
             return RankingAgentResult(

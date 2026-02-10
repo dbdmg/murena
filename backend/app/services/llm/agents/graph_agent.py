@@ -48,6 +48,7 @@ from app.services.llm.agents.schema import (
 from app.services.llm.agents.sql_agent import SQLAgent
 from app.services.llm.agents.typology_agent import TypologyAgent
 from app.services.llm.agents.ranking_agent import RankingAgent
+from app.services.llm.agents.relaxation_agent import RelaxationAgent
 from app.utils.logger import logger
 from app.utils.json_parser import safe_extract_json
 from app.services.llm.mocks import (
@@ -157,6 +158,7 @@ class GraphOrchestratorAgent(BaseAgent):
         self.poi_agent = poi_agent or PoiAgent()
         self.normative_agent = normative_agent or NormativeAgent()
         self.ranking_agent = RankingAgent()
+        self.relaxation_agent = RelaxationAgent()
 
         self.workflow = self._build_graph()
 
@@ -637,7 +639,7 @@ class GraphOrchestratorAgent(BaseAgent):
         return categorical_values
 
     def _analyze_request(self, state: GraphState) -> GraphState:
-        self._update_progress(state, 1, "Analisi richiesta in parallelo...")
+        self._update_progress(state, 1, "Analisi priorità in corso...")
         query = state["query"]
         logger.info(f"Starting analysis for query: {query}")
 
@@ -672,6 +674,22 @@ class GraphOrchestratorAgent(BaseAgent):
             ]
 
             return state
+
+        # 1. Run Ranking Agent FIRST (Sequential)
+        logger.info("⚖️ Executing RankingAgent (Sequential)")
+        ranking_result = self.ranking_agent.run(query=query, mode="ranking")
+        state["ranking_result"] = ranking_result
+        self._log_execution(state, "ranking-agent", ranking_result, 0)
+        
+        # Get active agents from ranking result
+        active_agents = []
+        if ranking_result and ranking_result.ranking:
+            active_agents = ranking_result.ranking.ranking
+        else:
+             # Fallback to all if ranking failed
+             active_agents = ["location", "normative", "ape", "typology", "poi"]
+        
+        logger.info(f"Active agents from ranking: {active_agents}")
 
         dataset_metadata = state["dataset_metadata"]
         db_schema = state["db_schema"]
@@ -784,70 +802,76 @@ class GraphOrchestratorAgent(BaseAgent):
             logger.info("✅ NormativeAgent completed")
             return result
 
-        def run_ranking():
-             self._update_progress(state, 1, "Analisi priorità in corso...")
-             logger.info("⚖️ Executing RankingAgent")
-             # Ranking agent needs query AND metadata
-             result = self.ranking_agent.run(
-                 query=query, 
-                 mode="ranking"
-             )
-             logger.info("✅ RankingAgent completed")
-             return result
+        # 2. Build list of tasks for ACTIVE agents only
+        active_tasks = {}
+        if "typology" in active_agents: active_tasks["typology"] = run_typology
+        if "location" in active_agents: active_tasks["location"] = run_location
+        if "ape" in active_agents: active_tasks["ape"] = run_ape
+        if "poi" in active_agents: active_tasks["poi"] = run_poi
+        if "normative" in active_agents: active_tasks["normative"] = run_normative
 
-        # Execute in parallel
-        # Increased workers to 6 to handle ranking
-        with ThreadPoolExecutor(max_workers=6) as executor:
-            future_typology = executor.submit(run_typology)
-            future_location = executor.submit(run_location)
-            future_ape = executor.submit(run_ape)
-            future_poi = executor.submit(run_poi)
-            future_normative = executor.submit(run_normative)
-            future_ranking = executor.submit(run_ranking)
+        # Results dictionary
+        results = {k: None for k in ["typology", "location", "ape", "poi", "normative"]}
 
-            typology_result = future_typology.result()
-            loc_result = future_location.result()
-            ape_result = future_ape.result()
-            poi_result = future_poi.result()
-            normative_result = future_normative.result()
-            ranking_result = future_ranking.result()
+        # 3. Execute in parallel ONLY active agents
+        if active_tasks:
+            self._update_progress(state, 1, f"Analisi agenti ({', '.join(active_tasks.keys())})...")
+            with ThreadPoolExecutor(max_workers=len(active_tasks)) as executor:
+                future_to_name = {executor.submit(task): name for name, task in active_tasks.items()}
+                for future in as_completed(future_to_name):
+                    agent_name = future_to_name[future]
+                    try:
+                        res = future.result()
+                        results[agent_name] = res
+                        if res:
+                            self._log_execution(state, f"{agent_name}-agent", res, 0)
+                    except Exception as e:
+                        logger.error(f"Error executing {agent_name}-agent: {e}")
 
-            state["typology_result"] = typology_result
-            state["poi_result"] = poi_result
-            state["ape_result"] = ape_result
-            state["normative_result"] = normative_result
-            state["ranking_result"] = ranking_result
-            
-            # Log Executions
-            if typology_result: self._log_execution(state, "typology-agent", typology_result, 0)
-            if loc_result: self._log_execution(state, "location-agent", loc_result, 0)
-            if ape_result: self._log_execution(state, "ape-agent", ape_result, 0)
-            if poi_result: self._log_execution(state, "poi-agent", poi_result, 0)
-            if normative_result: self._log_execution(state, "normative-agent", normative_result, 0)
-            if ranking_result: self._log_execution(state, "ranking-agent", ranking_result, 0)
+        typology_result = results["typology"]
+        loc_result = results["location"]
+        ape_result = results["ape"]
+        poi_result = results["poi"]
+        normative_result = results["normative"]
 
         # Process Typology
-        typ_data = safe_extract_json(typology_result.raw_text, schema=TypologyResponse)
-        typologies = typ_data.typologies if typ_data else []
+        typologies = []
+        if typology_result:
+            typ_data = safe_extract_json(typology_result.raw_text, schema=TypologyResponse)
+            typologies = typ_data.typologies if typ_data else []
+            state["gemini_responses"]["typology_extraction"] = {
+                "prompt": (
+                    typology_result.prompt.model_dump() if typology_result.prompt else None
+                ),
+                "response": typology_result.raw_text,
+                "typologies": typologies,
+            }
+        else:
+            state["gemini_responses"]["typology_extraction"] = {
+                "prompt": None,
+                "response": "Agente disattivato per irrilevanza",
+                "typologies": [],
+            }
         state["typology_result"] = typology_result
-        state["gemini_responses"]["typology_extraction"] = {
-            "prompt": (
-                typology_result.prompt.model_dump() if typology_result.prompt else None
-            ),
-            "response": typology_result.raw_text,
-            "typologies": typologies,
-        }
         state["context"].typology_result = typology_result
 
         # Process Location
-        loc_data = safe_extract_json(loc_result.raw_text, schema=LocationResponse)
-        places = loc_data.places if loc_data else []
+        places = []
+        if loc_result:
+            loc_data = safe_extract_json(loc_result.raw_text, schema=LocationResponse)
+            places = loc_data.places if loc_data else []
+            state["gemini_responses"]["location_extraction"] = {
+                "prompt": loc_result.prompt.model_dump() if loc_result.prompt else None,
+                "response": loc_result.raw_text,
+                "places": [p.model_dump() for p in places],
+            }
+        else:
+            state["gemini_responses"]["location_extraction"] = {
+                "prompt": None,
+                "response": "Agente disattivato per irrilevanza",
+                "places": [],
+            }
         state["context"].locations = places
-        state["gemini_responses"]["location_extraction"] = {
-            "prompt": loc_result.prompt.model_dump() if loc_result.prompt else None,
-            "response": loc_result.raw_text,
-            "places": [p.model_dump() for p in places],
-        }
 
         location_payload = []
         if places:
@@ -871,10 +895,9 @@ class GraphOrchestratorAgent(BaseAgent):
                 "found": poi_data.get('found', False)
             }
         else:
-            logger.warning("⚠️ POI analysis skipped: no result available")
             state["gemini_responses"]["poi_analysis"] = {
                 "prompt": None,
-                "response": "",
+                "response": "Agente disattivato per irrilevanza",
                 "requisiti": [],
                 "found": False
             }
@@ -889,6 +912,13 @@ class GraphOrchestratorAgent(BaseAgent):
                 "response": ape_result.raw_text,
                 "requisiti": ape_data.get('requisiti', []),
                 "found": ape_data.get("found", False)
+            }
+        else:
+            state["gemini_responses"]["ape_analysis"] = {
+                "prompt": None,
+                "response": "Agente disattivato per irrilevanza",
+                "requisiti": [],
+                "found": False
             }
 
         # Process APE Text for Context
@@ -928,6 +958,13 @@ class GraphOrchestratorAgent(BaseAgent):
                 "response": normative_result.raw_text,
                 "normative_info": normative_result.raw_text,
                 "sources": normative_result.sources,
+            }
+        else:
+            state["gemini_responses"]["normative_analysis"] = {
+                "prompt": None,
+                "response": "Agente disattivato per irrilevanza",
+                "normative_info": "",
+                "sources": [],
             }
 
         # Build use_case_str from agent results (no needs_metric)
@@ -1086,6 +1123,108 @@ class GraphOrchestratorAgent(BaseAgent):
             # Fallback in caso di errore
             return str(agent_result.raw_text)[:500]
 
+    def _intelligent_relaxation(self, state: GraphState) -> str:
+        """
+        Utilizza il RelaxationAgent per suggerire modifiche alle clausole WHERE.
+        Le proposte vengono restituite come stringa pronta per essere inclusa nel prompt del SQL Agent.
+        """
+        sql_query = state.get("sql_query")
+        if not sql_query:
+            return ""
+
+        try:
+            # Estrarre le condizioni dalla query attuale
+            expression = parse_one(sql_query, read="duckdb")
+            where = expression.find(exp.Where)
+            if not where:
+                return ""
+
+            def get_conditions(node):
+                if isinstance(node, exp.And):
+                    return get_conditions(node.left) + get_conditions(node.right)
+                return [node]
+
+            conditions = get_conditions(where.this)
+            
+            # Prepariamo i dettagli per ogni condizione (SQL + Metadati)
+            where_details = []
+            involved_columns = []
+            for cond in conditions:
+                cond_sql = cond.sql(dialect="duckdb")
+                cols = [col.name for col in cond.find_all(exp.Column)]
+                involved_columns.extend(cols)
+                
+                # Cerchiamo di capire il tipo della colonna dai metadati
+                col_type = "categorica"
+                if cols:
+                    main_col = cols[0]
+                    db_meta = state.get("db_metadata", {})
+                    if main_col in db_meta and db_meta[main_col].get("type") in ["integer", "float", "double"]:
+                        col_type = "continua"
+                
+                where_details.append({
+                    "colonna": cols[0] if cols else "N/D",
+                    "operatore": str(type(cond)), # Approssimativo, il RelaxationAgent capirà dal SQL
+                    "valore": str(cond.expression) if hasattr(cond, "expression") else "N/D",
+                    "tipo": col_type,
+                    "condizione_full": cond_sql
+                })
+
+            # Otteniamo statistiche per le colonne coinvolte
+            involved_columns = list(set(involved_columns))
+            stats = self._get_column_statistics(
+                columns=involved_columns,
+                dataset_df=state.get("base_dataset"),
+                dataset_path=state.get("dataset_path"),
+                db_metadata=state.get("db_metadata")
+            )
+
+            # Esecuzione del RelaxationAgent
+            logger.info(f"🤖 Calling RelaxationAgent for {len(where_details)} conditions")
+            res = self.relaxation_agent.run(
+                where_conditions=json.dumps(where_details, indent=2, ensure_ascii=False),
+                statistics=json.dumps(stats, indent=2, ensure_ascii=False),
+                min_threshold=10,
+                current_results_count=len(state.get("selected_data", []))
+            )
+            
+            # Log nel trace
+            self._log_execution(state, "relaxation-agent", res, 0)
+
+            if not res.proposals:
+                logger.warning("RelaxationAgent non ha prodotto proposte.")
+                return ""
+
+            # Formattiamo le proposte per il SQL Agent
+            formatted_proposals = []
+            for p in res.proposals:
+                relaxed_val = p.condizione_relaxed
+                if isinstance(relaxed_val, list):
+                    # Se l'agente ha fornito proposte progressive, scegliamo la più conservativa (low)
+                    # o le mostriamo tutte come opzioni. Qui le mostriamo tutte per dare scelta all'agente SQL.
+                    opts = []
+                    for opt in relaxed_val:
+                        if isinstance(opt, dict):
+                            prop = opt.get("proposta", str(opt))
+                            lev = opt.get("livello", "N/D")
+                            opts.append(f"{prop} (Livello: {lev})")
+                        else:
+                            opts.append(str(opt))
+                    relaxed_val = " O ".join(opts) if opts else "N/D"
+
+                formatted_proposals.append(
+                    f"PROPOSTA: Rilassa '{p.condizione_iniziale}' in '{relaxed_val}'. "
+                    f"Strategia: {p.strategia}. Motivazione: {p.motivazione} (Priorità: {p.livello_rilassamento})"
+                )
+            
+            return "\n".join(formatted_proposals)
+
+        except Exception as e:
+            logger.error(f"Errore durante l'intelligent relaxation: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            return ""
+
     def _generate_sql(self, state: GraphState) -> GraphState:
         retry_count = state["retry_count"]
         if "sql_history" not in state or retry_count == 0:
@@ -1180,8 +1319,23 @@ class GraphOrchestratorAgent(BaseAgent):
             logger.info(f"DEBUG: retry_count={retry_count}, relax_constraints={state.get('relax_constraints')}, is_sql_error={is_sql_error}, failed_query_len={len(failed_query)}")
 
         if state.get("relax_constraints") and not is_sql_error and failed_query:
-            logger.info(f"Applying DETERMINISTIC RELAXATION (Attempt {retry_count + 1})")
-            relaxed_sql, removed_condition, attempts = self._deterministic_relaxation(failed_query, state)
+            logger.info(f"Applying RELAXATION STRATEGY (Attempt {retry_count + 1})")
+            
+            # 1. Prova prima il RelaxationAgent (Intelligent Relaxation)
+            relaxation_proposals = self._intelligent_relaxation(state)
+            
+            if relaxation_proposals:
+                logger.info("Intelligent relaxation proposals received. Passing to SQL Agent.")
+                effective_error_msg = (
+                    f"La query ha restituito troppi pochi risultati ({len(state.get('selected_data', []))}). "
+                    f"Il Relaxation Agent suggerisce le seguenti modifiche:\n{relaxation_proposals}\n\n"
+                    "Genera una nuova query SQL applicando questi suggerimenti di rilassamento."
+                )
+                # NOTA: relaxed_sql rimane None, quindi chiameremo l'LLM (SQLAgent) col nuovo error_msg
+            else:
+                # 2. Fallback alla rimozione deterministica se l'agente non propone nulla
+                logger.info("Falling back to DETERMINISTIC RELAXATION")
+                relaxed_sql, removed_condition, attempts = self._deterministic_relaxation(failed_query, state)
             
             # If deterministic relaxation fails or returns same query, we must still bypass LLM
             # to avoid calling it for relaxation purposes.

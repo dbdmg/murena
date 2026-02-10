@@ -127,6 +127,18 @@ class PoiAgentResult(AgentResult):
     requisiti: List[Dict[str, Any]] = Field(default_factory=list)
 
 
+class RelaxationProposal(BaseModel):
+    condizione_iniziale: str = Field(..., description="Rappresentazione testuale della condizione originale")
+    condizione_relaxed: Union[str, List[Dict[str, Any]]] = Field(..., description="Proposta di rilassamento (singola o lista progressiva)")
+    strategia: str = Field(..., description="Descrizione della strategia adottata")
+    motivazione: str = Field(..., description="Spiegazione del perché il rilassamento è appropriato")
+    livello_rilassamento: str = Field(..., description="Livello (low / medium / high)")
+
+
+class RelaxationAgentResult(AgentResult):
+    proposals: List[RelaxationProposal] = Field(default_factory=list)
+
+
 
 
 

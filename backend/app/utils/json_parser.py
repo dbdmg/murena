@@ -55,35 +55,43 @@ def safe_extract_json(text: str, schema: Optional[Type[T]] = None) -> Any:
         if end_idx > start_idx:
             cleaned_text = cleaned_text[start_idx : end_idx + 1]
 
-    # 3. Tentativo di parsing
     # 3. Tentativo di parsing con pulizia progressiva
+    # Sostituiamo caratteri di controllo problematici prima del parsing
+    cleaned_text = re.sub(r'[\x00-\x1F\x7F]', '', cleaned_text)
+
     try:
         data = json.loads(cleaned_text)
-    except json.JSONDecodeError as e:
-        # Fallback 1: Fix errori comuni degli LLM (es. escaping di virgolette singole o spazi)
+    except (json.JSONDecodeError, Exception) as e:
+        # Fallback 1: Fix errori comuni degli LLM
         try:
             # 1. Rimuoviamo escape non necessari che gli LLM mettono spesso (es. \' o \ )
             fixed_text = re.sub(r"\\([' ])", r"\1", cleaned_text)
             
-            # 2. Sostituiamo backslash che non sono seguiti da caratteri validi di escape JSON (n, r, t, b, f, ", \, /, uXXXX)
-            # con un doppio backslash per renderli letterali
+            # 2. Sostituiamo backslash che non sono seguiti da caratteri validi di escape JSON
             fixed_text = re.sub(r'\\(?![tnrfbu"/]|u[0-9a-fA-F]{4})', r'\\\\', fixed_text)
             
-            # 3. Gestione trailing commas - approccio molto semplice
+            # 3. Gestione trailing commas
             fixed_text = re.sub(r',\s*([\]}])', r'\1', fixed_text)
             
+            # 4. Caso specifico: newline non escaped dentro stringhe
+            # Questo è complicato da fare con regex senza rompere il JSON, 
+            # proviamo almeno a normalizzare le newline
+            fixed_text = fixed_text.replace('\n', '\\n').replace('\r', '\\r')
+            # Ma poi dobbiamo ripristinare quelle che erano fuori dalle stringhe... 
+            # In realtà json.loads gestisce bene le newline tra i campi se sono \n reali.
+            
             data = json.loads(fixed_text)
-        except json.JSONDecodeError:
-            # Fallback 2: Pulizia più aggressiva come ultima spiaggia
+        except Exception:
+            # Fallback 2: Pulizia più aggressiva
             try:
-                # Caso specifico: l'LLM ha messo caratteri di controllo non voluti
-                fixed_text = cleaned_text.replace('\\n', '\n').replace('\\t', '\t')
-                fixed_text = re.sub(r'[\x00-\x1F\x7F]', '', fixed_text)
-                # Proviamo a usare un parser più permissivo se disponibile? No, restiamo su json standard
-                data = json.loads(fixed_text)
+                # Ripristiniamo il testo originale e facciamo solo le sostituzioni base
+                basic_fix = cleaned_text.replace('\\', '\\\\') # Escapiamo tutto e poi ripristiniamo i necessari? No.
+                # Tentativo disperato: rimuovere tutto ciò che non è ASCII? No.
+                
+                # Prova a rimuovere commenti // o /* */ se presenti
+                no_comments = re.sub(r'//.*?\n|/\*.*?\*/', '', cleaned_text, flags=re.S)
+                data = json.loads(no_comments)
             except Exception:
-                # Se tutto fallisce, LOG del fallimento per debug (senza print in produzione, ma qui siamo in dev)
-                # print(f"DEBUG: JSON extraction failed even after repairs for: {cleaned_text[:100]}...")
                 return None
         except Exception:
             return None
