@@ -19,7 +19,7 @@ from app.api.deps import get_current_user_optional
 from app.database.connection import get_db
 from app.database.models import User
 from app.models.requests import AnalysisRequest
-from app.models.responses import AnalysisResponse, AnalysisResults, AgentStepsResponse
+from app.models.responses import AnalysisResponse, AnalysisResults, AgentStepsResponse, AnalysisHistoryItem
 from app.repositories import RunRepository
 from app.core.config import settings
 from app.utils.json_sanitizer import make_json_safe
@@ -759,7 +759,7 @@ async def start_analysis(
     )
 
 
-@router.get("/history", response_model=list[AnalysisResults])
+@router.get("/history", response_model=list[AnalysisHistoryItem])
 async def get_analysis_history(
     limit: int = 50,
     offset: int = 0,
@@ -767,53 +767,46 @@ async def get_analysis_history(
     current_user: Optional[User] = Depends(get_current_user_optional),
 ):
     """
-    Get user's analysis history.
+    Get user's analysis history (lightweight summary).
 
     Returns a paginated list of past analyses for the current user,
     ordered by creation date (most recent first).
-
-    Args:
-        limit: Maximum number of results to return
-        offset: Number of results to skip (for pagination)
-
-    Returns:
-        List of AnalysisResults
     """
+    from app.models.responses import AnalysisHistoryItem
+
     repo = RunRepository(db)
     if current_user:
-        runs = repo.get_user_runs(user_id=current_user.id, limit=limit)
+        runs = repo.get_user_runs(user_id=current_user.id, limit=limit + offset)
     else:
         # Without auth, return recent runs across users (dev-mode convenience)
-        runs = repo.get_recent_runs(limit=limit)
+        runs = repo.get_recent_runs(limit=limit + offset)
 
     # Apply offset in memory (repository doesn't support offset yet)
-    runs = runs[offset:]
+    paginated_runs = runs[offset : offset + limit]
 
-    results: list[AnalysisResults] = []
-    for run in runs:
-        if run.results:
-            try:
-                results.append(AnalysisResults.model_validate(run.results))
-                continue
-            except Exception:
-                pass
-
-        results.append(
-            AnalysisResults(
+    history_items: list[AnalysisHistoryItem] = []
+    for run in paginated_runs:
+        try:
+            # Create history item directly from run columns, AVOIDING invalid JSON parsing
+            # of the heavy 'results' or 'gemini_responses' columns.
+            item = AnalysisHistoryItem(
                 run_id=run.run_id,
                 query=run.query,
                 status=run.status,
-                buildings=[],
-                location=run.location_data,
-                filters_applied=None,
-                gemini_responses=run.gemini_responses,
-                broker_summary=run.status_message,
                 created_at=run.created_at,
                 completed_at=run.completed_at,
+                # Use the explicitly stored count if available, otherwise 0
+                buildings_count=run.results_count or 0,
+                analysis_mode=run.analysis_mode or "agent",
             )
-        )
+            history_items.append(item)
+        except Exception as e:
+            logger.error(f"Error mapping run {run.run_id} to history item: {e}")
+            continue
 
-    return results
+    return history_items
+
+
 
 
 @router.get("/{run_id}", response_model=AnalysisResults)

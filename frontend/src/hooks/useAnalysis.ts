@@ -78,7 +78,7 @@ export function useAnalysis(): UseAnalysisReturn {
     const progressState = useAnalysisProgress(runId, {
         autoConnect: true,
         onComplete: async () => {
-            console.log('[useAnalysis] Analysis complete, fetching results...');
+
             try {
                 if (runId) {
                     const analysisResults = await analysisApi.getResults(runId);
@@ -104,13 +104,13 @@ export function useAnalysis(): UseAnalysisReturn {
         setResults(null);
 
         try {
-            console.log('[useAnalysis] Starting analysis:', request);
+
             const response = await analysisApi.startAnalysis(request);
 
             setRunId(response.run_id);
             setStatus('processing');
 
-            console.log('[useAnalysis] Analysis started, run_id:', response.run_id);
+
             return response.run_id;
         } catch (err) {
             console.error('[useAnalysis] Failed to start analysis:', err);
@@ -160,7 +160,7 @@ export function useAnalysis(): UseAnalysisReturn {
         setResults(null);
 
         try {
-            console.log('[useAnalysis] Loading demo:', demoId);
+
             const response = await analysisApi.loadDemo(demoId);
 
             setRunId(response.run_id);
@@ -176,7 +176,7 @@ export function useAnalysis(): UseAnalysisReturn {
                 setStatus('completed');
             }
 
-            console.log('[useAnalysis] Demo started, run_id:', response.run_id, 'status:', response.status);
+
             return response.run_id;
         } catch (err) {
             console.error('[useAnalysis] Failed to load demo:', err);

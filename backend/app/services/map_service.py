@@ -194,6 +194,19 @@ class MapService:
 
         return markers
 
+    async def get_markers_lite(
+        self, limit: int = 1000, filters: Optional[Dict[str, Any]] = None
+    ) -> List[Dict[str, Any]]:
+        """
+        Get lightweight map markers for initial load.
+        """
+        from app.models.requests import BuildingFilters
+
+        build_filters = BuildingFilters(**(filters or {}))
+        return await self.real_estate_service.get_markers_lite(
+            limit=limit, filters=build_filters
+        )
+
     async def get_config(self) -> Dict[str, Any]:
         """Get default map configuration."""
         return {

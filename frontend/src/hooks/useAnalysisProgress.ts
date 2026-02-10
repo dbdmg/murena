@@ -81,7 +81,27 @@ export function useAnalysisProgress(
         // - ws://host:port/api/v1
         // - ws://host:port/api/v1/ws
         // - ws://host:port/ws (legacy)
-        const rawBase = (import.meta.env.VITE_WS_URL || 'ws://localhost:8000').replace(/\/$/, '');
+        let rawBase = (import.meta.env.VITE_WS_URL || '').replace(/\/$/, '');
+
+        // Behavior:
+        // 1. If VITE_WS_URL is explicitly set (and not localhost default), use it.
+        // 2. If VITE_WS_URL is missing or 'localhost' and we are NOT on localhost, infer from window.location.
+        const defaultLocal = 'ws://localhost:8000';
+
+        if (!rawBase || (rawBase === defaultLocal && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1')) {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+
+            // Scenario A: Dev mode (port 5173) on remote machine -> assume backend on port 8000
+            if (window.location.port === '5173') {
+                rawBase = `${protocol}//${window.location.hostname}:8000`;
+            }
+            // Scenario B: Production/Docker (port 80/443 or other) -> assume backend proxied on same origin
+            else {
+                rawBase = `${protocol}//${window.location.host}`;
+            }
+        } else if (!rawBase) {
+            rawBase = defaultLocal;
+        }
 
         if (rawBase.includes('/api/v1/ws')) {
             return `${rawBase.replace(/\/$/, '')}/analysis/${id}`;
@@ -115,10 +135,10 @@ export function useAnalysisProgress(
         const ws = new WebSocket(buildWebSocketUrl(runId));
         wsRef.current = ws; // Assign immediately
 
-        console.log(`[WS] Connecting to ${ws.url}`);
+
 
         ws.onopen = () => {
-            console.log('[WS] Connected');
+
             reconnectAttemptsRef.current = 0;
             setState((prev) => ({
                 ...prev,
@@ -130,7 +150,7 @@ export function useAnalysisProgress(
         ws.onmessage = (event) => {
             try {
                 const data: WebSocketMessage = JSON.parse(event.data);
-                console.log('[WS] Message:', data);
+
 
                 if (data.type === 'progress') {
                     const progressData = data as ProgressUpdate;
@@ -168,7 +188,7 @@ export function useAnalysisProgress(
         };
 
         ws.onclose = (event) => {
-            console.log('[WS] Closed:', event.code, event.reason);
+
             setState((prev) => ({ ...prev, isConnected: false }));
             wsRef.current = null;
 
@@ -186,7 +206,7 @@ export function useAnalysisProgress(
                 const baseDelay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 30000);
                 const delay = baseDelay + (Math.random() * 1000);
 
-                console.log(`[WS] Reconnecting in ${Math.round(delay)}ms (attempt ${reconnectAttemptsRef.current})`);
+
 
                 reconnectTimeoutRef.current = setTimeout(() => {
                     setRetryTrigger(prev => prev + 1);
