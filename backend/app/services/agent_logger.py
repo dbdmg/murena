@@ -58,8 +58,8 @@ class AgentLogger:
         
         # Estrai output dall'output (se presente)
         output_extracted = None
-        if agent_name.lower() == "ape-agent" and hasattr(output_data, 'suggested_filters'):
-            output_extracted = output_data.suggested_filters
+        if agent_name.lower() == "ape-agent" and hasattr(output_data, 'requisiti'):
+            output_extracted = output_data.requisiti
         elif agent_name == "ranking-agent":
             # Per il ranking agent, preferiamo il ranking ordinato se presente, altrimenti i pesi
             if hasattr(output_data, 'ranking') and output_data.ranking:
@@ -67,11 +67,10 @@ class AgentLogger:
             elif hasattr(output_data, 'weights'):
                 output_extracted = output_data.weights.model_dump()
         elif agent_name == "poi-agent":
-            # Per il POI agent (filtering), mostriamo categorie e punteggi minimi
-            if hasattr(output_data, 'categories') and hasattr(output_data, 'punteggi_minimi'):
+            # Per il POI agent (filtering), mostriamo i requisiti
+            if hasattr(output_data, 'requisiti'):
                 output_extracted = {
-                    "ordered_categories": output_data.categories,
-                    "min_scores": output_data.punteggi_minimi
+                    "requisiti": output_data.requisiti
                 }
         elif hasattr(output_data, 'raw_text'):
             output_extracted = output_data.raw_text

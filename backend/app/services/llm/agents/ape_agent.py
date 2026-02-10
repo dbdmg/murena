@@ -107,7 +107,7 @@ class ApeAgent(BaseAgent):
             )
         except Exception as e:
             return ApeAgentResult(
-                raw_text=json.dumps({"error": str(e), "found": False, "suggested_filters": []}),
+                raw_text=json.dumps({"error": str(e), "found": False, "requisiti": []}),
                 prompt=None,
             )
 

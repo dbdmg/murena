@@ -35,7 +35,7 @@ class Place(BaseModel):
 
 class CategoryResponse(BaseModel):
     categories: List[str] = Field(default_factory=list, description="Lista delle categorie selezionate")
-    punteggi_minimi: Dict[str, float] = Field(default_factory=dict, description="Punteggio minimo (scala 1-5) richiesto per ciascuna categoria")
+    requisiti: List[Dict[str, Any]] = Field(default_factory=list, description="Lista di requisiti strutturati")
 
 
 class AmenityResponse(BaseModel):
@@ -50,7 +50,6 @@ class NormativeResponse(BaseModel):
 class ApeResponse(BaseModel):
     requisiti: List[Dict[str, Any]] = Field(default_factory=list, description="Requisiti energetici estratti")
     found: bool = Field(default=False, description="True se sono stati trovati requisiti pertinenti")
-    suggested_filters: List[str] = Field(default_factory=list, description="Filtri SQL suggeriti")
 
 
 
@@ -124,8 +123,7 @@ class NormativeAgentResult(AgentResult):
 
 class PoiAgentResult(AgentResult): 
     has_pois: bool = False
-    categories: List[str] = Field(default_factory=list)
-    punteggi_minimi: Dict[str, float] = Field(default_factory=dict)
+    requisiti: List[Dict[str, Any]] = Field(default_factory=list)
 
 
 

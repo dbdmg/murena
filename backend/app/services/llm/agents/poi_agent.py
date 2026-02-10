@@ -21,8 +21,7 @@ from app.utils.json_parser import safe_extract_json
 class PoiAgentOutput(BaseModel):
     """Schema di output strutturato per il Poi Agent."""
     found: bool = Field(default=False, description="True se sono state identificate necessità relative ai POI nella query dell'utente")
-    categories: List[str] = Field(default_factory=list, description="Lista delle categorie selezionate e ordinate per importanza. Includi SOLO le categorie strettamente pertinenti alla query.")
-    punteggi_minimi: Dict[str, float] = Field(description="Mappatura categoria -> punteggio minimo richiesto (scala 1-5). Deve contenere una chiave per ogni categoria presente in 'categories'.")
+    requisiti: List[Dict[str, Any]] = Field(default_factory=list, description="Lista di requisiti strutturati con operatore e valore.")
 
 
 class PoiAgent(BaseAgent):
@@ -105,8 +104,7 @@ class PoiAgent(BaseAgent):
             return PoiAgentResult(
                 raw_text=json.dumps(structured_response.model_dump(), ensure_ascii=False),
                 has_pois=has_pois,
-                categories=structured_response.categories,
-                punteggi_minimi=structured_response.punteggi_minimi,
+                requisiti=structured_response.requisiti,
                 prompt=PromptRecord(
                     system=system_content,
                     user=user_text,
@@ -115,46 +113,42 @@ class PoiAgent(BaseAgent):
             )
         except Exception as e:
             return PoiAgentResult(
-                raw_text=json.dumps({"error": str(e), "found": False, "categories": [], "punteggi_minimi": {}}),
+                raw_text=json.dumps({"error": str(e), "found": False, "requisiti": []}),
                 prompt=None,
             )
 
-    def _run_ranking(self, *, df: pd.DataFrame, ranked_categories: List[str] = None) -> pd.DataFrame:
-        """
-        Modalità ranking: calcolo punteggio deterministico basato su pesi posizionali (1/1, 1/2, 1/3...).
-        """
-        if df is None or df.empty:
+    def _run_ranking(self, *, df: pd.DataFrame, requirements: List[Dict[str, Any]] = None) -> pd.DataFrame:
+        """Modalità ranking: calcolo score 0-100 basato sui requisiti (POI categories)."""
+        if df is None or df.empty or not requirements:
             if df is not None:
-                df["poi_score"] = 0
-            return df
-
-        if not ranked_categories:
-            df["poi_score"] = 0
+                if "poi_score" not in df.columns:
+                    df["poi_score"] = 0
             return df
 
         df_ranked = df.copy()
         
-        # 1. Calcola i pesi posizionali: 1/1, 1/2, 1/3...
-        weights = {}
-        for i, cat in enumerate(ranked_categories):
-            weights[cat] = 1.0 / (i + 1)
-            
-        # 2. Normalizza i pesi
-        total_weight = sum(weights.values())
-        if total_weight > 0:
-            weights = {cat: w / total_weight for cat, w in weights.items()}
+        # In questa modalità, estraiamo le categorie dai requisiti.
+        # Poiché l'utente ha chiesto di non avere più un ranking (lista ordinata), 
+        # assegniamo un peso uguale a tutti i requisiti identificati.
+        valid_reqs = [r for r in requirements if isinstance(r, dict) and r.get("colonna_target") and r.get("colonna_target") in df_ranked.columns]
+        
+        if not valid_reqs:
+            df_ranked["poi_score"] = 0.0
+            return df_ranked[["id", "poi_score"]]
+
+        n_reqs = len(valid_reqs)
+        weight = 1.0 / n_reqs
             
         # 3. Calcola lo score pesato per ogni riga e salva i partial scores
         # Refactoring to vectorized operations for partial scores
         total_score_series = pd.Series(0.0, index=df_ranked.index)
         
         cols_to_return = ["id", "poi_score"]
-        used_cats = [cat for cat in ranked_categories if cat in df_ranked.columns]
         weight_cols = []
         partial_score_cols = []
-
+        used_cats = [r.get("colonna_target") for r in valid_reqs]
         for cat in used_cats:
-            weight = weights.get(cat, 0.0)
+            # weight è già stato calcolato sopra come peso uguale per tutti
             
             # Get values and handle NaNs
             vals = pd.to_numeric(df_ranked[cat], errors="coerce")

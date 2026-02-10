@@ -452,8 +452,8 @@ class GraphOrchestratorAgent(BaseAgent):
                 output_data = json.loads(df_preview.to_json(orient="records"))
                 input_data = f"{mode.capitalize()} mode: {len(result)} records"
                 output_structure = {"total_records": len(result)}
-        elif agent_name.lower() == "ape-agent" and hasattr(result, 'suggested_filters'):
-            output_data = result.suggested_filters
+        elif agent_name.lower() == "ape-agent" and hasattr(result, 'requisiti'):
+            output_data = result.requisiti
         elif agent_name == "ranking-agent":
             # For ranking agent, prefer the ordered ranking if present, otherwise weights
             if hasattr(result, 'ranking') and result.ranking:
@@ -461,11 +461,10 @@ class GraphOrchestratorAgent(BaseAgent):
             elif hasattr(result, 'weights'):
                 output_data = result.weights.model_dump()
         elif agent_name == "poi-agent":
-            # For POI agent (filtering), show categories and minimum scores
-            if hasattr(result, 'categories') and hasattr(result, 'punteggi_minimi'):
+            # For POI agent (filtering), show requirements
+            if hasattr(result, 'requisiti'):
                 output_data = {
-                    "ordered_categories": result.categories,
-                    "min_scores": result.punteggi_minimi
+                    "requisiti": result.requisiti
                 }
             elif hasattr(result, 'raw_text'):
                 output_data = result.raw_text
@@ -869,8 +868,7 @@ class GraphOrchestratorAgent(BaseAgent):
             state["gemini_responses"]["poi_analysis"] = {
                 "prompt": poi_result.prompt.model_dump() if poi_result.prompt else None,
                 "response": poi_result.raw_text,
-                "categories": poi_data.get('categories', []),
-                "punteggi_minimi": poi_data.get('punteggi_minimi', {}),
+                "requisiti": poi_data.get('requisiti', []),
                 "found": poi_data.get('found', False)
             }
         else:
@@ -878,8 +876,7 @@ class GraphOrchestratorAgent(BaseAgent):
             state["gemini_responses"]["poi_analysis"] = {
                 "prompt": None,
                 "response": "",
-                "categories": [],
-                "punteggi_minimi": {},
+                "requisiti": [],
                 "found": False
             }
 
@@ -891,27 +888,29 @@ class GraphOrchestratorAgent(BaseAgent):
             state["gemini_responses"]["ape_analysis"] = {
                 "prompt": ape_result.prompt.model_dump() if ape_result.prompt else None,
                 "response": ape_result.raw_text,
-                "suggested_filters": ape_data.get("suggested_filters", []),
+                "requisiti": ape_data.get('requisiti', []),
                 "found": ape_data.get("found", False)
             }
 
         # Process APE Text for Context
         ape_text = ""
         if ape_data and ape_data.get("found"):
-            filters = ape_data.get("suggested_filters", [])
-            if filters:
-                ape_text = f"\n\nAnalisi Energetica: L'utente ha espresso necessità relative all'efficienza (APE). Filtri: {', '.join(filters)}."
+            ape_reqs = ape_data.get("requisiti", [])
+            if ape_reqs:
+                target_cols = [r.get('colonna_target') for r in ape_reqs if isinstance(r, dict)]
+                ape_text = f"\n\nAnalisi Energetica: L'utente ha espresso necessità relative all'efficienza (APE). Requisiti su: {', '.join(target_cols)}."
 
         # Process POI Text for Context
         poi_text = ""
         if poi_data:
-            poi_scores = poi_data.get('punteggi_minimi', {})
-            # Consider high priority if score is relatively high (e.g. > 3.0)
-            high_priority = [k for k, v in poi_scores.items() if v >= 3.0]
+            poi_requisiti = poi_data.get('requisiti', [])
+            # Consider high priority if value is relatively high (e.g. >= 3.0)
+            high_priority = [r.get('colonna_target') for r in poi_requisiti if isinstance(r, dict) and r.get('valore', 0) >= 3.0]
             if high_priority:
-                poi_text = f"\n\nAnalisi POI: L'utente ha espresso preferenza per: {', '.join(high_priority)} con soglie di qualità (punteggi 1-5)."
-            elif poi_data.get("categories"):
-                poi_text = f"\n\nAnalisi POI: Categorie rilevanti: {', '.join(poi_data.get('categories'))}."
+                poi_text = f"\n\nAnalisi POI: L'utente ha espresso preferenza per: {', '.join(high_priority)} con soglie di qualità elevate."
+            elif poi_requisiti:
+                all_targets = [r.get('colonna_target') for r in poi_requisiti if isinstance(r, dict)]
+                poi_text = f"\n\nAnalisi POI: Categorie rilevanti: {', '.join(all_targets)}."
 
         # Save normative result in state and context
         state["normative_result"] = normative_result
@@ -936,14 +935,18 @@ class GraphOrchestratorAgent(BaseAgent):
 
         return state
 
-    def _deterministic_relaxation(self, sql_query: str) -> tuple[str, Optional[str]]:
+    def _deterministic_relaxation(self, sql_query: str, state: GraphState) -> tuple[str, Optional[str], List[Dict[str, Any]]]:
         """
-        Relaxes the SQL query by removing the last condition from the WHERE clause.
-        Uses sqlglot for robust AST manipulation (DuckDB dialect).
-        Returns: (relaxed_sql, removed_condition_string)
+        Relaxes the SQL query by removing a single condition from the WHERE clause.
+        Follows a deterministic strategy:
+        1. Tries removing each condition one by one, bottom-up.
+        2. If any removal results in >= 10 rows, stops immediately.
+        3. Otherwise, picks the removal that results in most rows for the next iteration.
+
+        Returns: (relaxed_sql, removed_condition_string, list_of_attempts)
         """
         if not sql_query:
-            return sql_query, None
+            return sql_query, None, []
             
         try:
             # Basic cleanup of markdown/comments
@@ -954,41 +957,84 @@ class GraphOrchestratorAgent(BaseAgent):
                 sql_query = sql_query.split("```")[1].split("```")[0].strip()
 
             # Parse the SQL query using DuckDB dialect
-            # We use sqlglot because it builds a real AST, unlike sqlparse which is just a lexer.
             expression = parse_one(sql_query, read="duckdb")
             
             # Find the WHERE clause
             where = expression.find(exp.Where)
             if not where:
                 logger.warning("No WHERE clause found to relax.")
-                return sql_query, None
+                return sql_query, None, []
 
-            # The logic is to remove the last top-level condition.
-            # In SQL AST for AND/OR chains, this is usually the 'right' child of the top-level binary expression.
-            predicate = where.this
+            # Deterministic relaxation logic:
+            # We flatten the WHERE clause into top-level AND conditions.
+            def get_conditions(node):
+                if isinstance(node, exp.And):
+                    return get_conditions(node.left) + get_conditions(node.right)
+                return [node]
+
+            conditions = get_conditions(where.this)
+            attempts = []
             
-            removed_condition = None
+            best_query = None
+            best_removed = None
+            max_rows = -1
+            
+            # Threshold for "sufficient" results as defined in _check_sql_execution
+            threshold = 10 
 
-            if isinstance(predicate, (exp.And, exp.Or)):
-                # We replace the tree with its left child, effectively removing the rightmost branch.
-                # Since LLMs tend to append more specific/less important conditions at the end, 
-                # this correctly targets the "last" condition.
-                removed_condition = predicate.right.sql(dialect="duckdb")
-                where.set("this", predicate.left)
-            else:
-                # Only one condition remains in the WHERE clause, so we remove the whole clause.
-                removed_condition = predicate.sql(dialect="duckdb")
-                where.pop()
+            # Evaluate each condition removal starting from the bottom (last in list)
+            for i in range(len(conditions) - 1, -1, -1):
+                # Build new query without this condition
+                remaining = [c for j, c in enumerate(conditions) if i != j]
                 
-            # Generate the SQL back. Dialect="duckdb" ensures compatibility.
-            # sqlglot handles spacing and quoting correctly.
-            result = expression.sql(dialect="duckdb", pretty=True)
+                new_expression = expression.copy()
+                new_where = new_expression.find(exp.Where)
+                
+                if not remaining:
+                    new_where.pop()
+                else:
+                    new_predicate = remaining[0]
+                    for next_cond in remaining[1:]:
+                        new_predicate = exp.And(this=new_predicate, expression=next_cond)
+                    new_where.set("this", new_predicate)
+                
+                test_sql = new_expression.sql(dialect="duckdb", pretty=True)
+                removed_cond_str = conditions[i].sql(dialect="duckdb")
+                
+                # Execute test query
+                pd_data = state.get("base_dataset")
+                dataset_path = state.get("dataset_path")
+                selected_data, error = self.execute_sql_fn(test_sql, pd_data, dataset_path=dataset_path)
+                
+                rows = len(selected_data) if not error else 0
+                
+                # Log attempt following the user's requested JSON format
+                attempts.append({
+                    "query": test_sql,
+                    "rows": rows
+                })
+                
+                logger.info(f"Relaxation Step: Attempting removal of '{removed_cond_str}' -> {rows} rows")
+                
+                if rows >= threshold:
+                    logger.info(f"RELAXATION SUCCESS: Removal of '{removed_cond_str}' yielded {rows} rows (>= {threshold})")
+                    return test_sql, removed_cond_str, attempts
+                
+                if rows > max_rows:
+                    max_rows = rows
+                    best_query = test_sql
+                    best_removed = removed_cond_str
             
-            logger.info(f"DETERMINISTIC RELAXATION (AST): Removed last condition. Result: {result}")
-            return result, removed_condition
+            # If no single removal produced sufficient results,Rule 5: pick the best one
+            if best_query:
+                logger.info(f"RELAXATION CONTINUES: No single removal reached {threshold}. Best effort by removing '{best_removed}' -> {max_rows} rows")
+                return best_query, best_removed, attempts
+            
+            return sql_query, None, attempts
+
         except Exception as e:
-            logger.error(f"Failed to parse or relax SQL via AST: {e}. Falling back to original query.")
-            return sql_query, None
+            logger.error(f"Failed to relax SQL via AST: {e}. Falling back to original query.")
+            return sql_query, None, []
 
     def _format_agent_requirements(self, agent_result: Any) -> str:
         """Formatta i requisiti di un agente (APE o Normative) in formato compatto [col] [op] [val]."""
@@ -1052,28 +1098,6 @@ class GraphOrchestratorAgent(BaseAgent):
         ape_result = state.get("ape_result")
         normative_result = state.get("normative_result")
         
-        typologies_raw = typology_result.raw_text if typology_result else "N/D"
-        # Formattazione compatta per POI: solo punteggi_minimi
-        poi_raw = "N/D"
-        if poi_result:
-            try:
-                poi_data = safe_extract_json(poi_result.raw_text)
-                if poi_data and isinstance(poi_data, dict):
-                    poi_raw = json.dumps(poi_data.get("punteggi_minimi", {}), ensure_ascii=False)
-            except:
-                poi_raw = str(poi_result.raw_text)[:500]
-        
-        # Formattazione compatta per APE e Normativa per risparmiare token e migliorare precisione
-        # Per APE, diamo priorità ai suggested_filters che sono già clausole SQL valide (es. IN, LIKE)
-        ape_data = safe_extract_json(ape_result.raw_text) if ape_result else {}
-        if ape_data and ape_data.get("suggested_filters"):
-            ape_raw = "; ".join(ape_data["suggested_filters"])
-        else:
-            ape_raw = self._format_agent_requirements(ape_result)
-            
-        normative_raw = self._format_agent_requirements(normative_result)
-        
-
         # Format locations as JSON string for clarity: only lat, lon, radius_km
         locations_list = state["gemini_responses"].get("location_extraction", {}).get("places", [])
         filtered_locations = []
@@ -1083,7 +1107,38 @@ class GraphOrchestratorAgent(BaseAgent):
                 "lon": loc.get("lon"),
                 "radius_km": loc.get("radius_km")
             })
-        locations_raw = json.dumps(filtered_locations, ensure_ascii=False)
+
+        # Aggregate all requirements into a single list
+        all_reqs = []
+        
+        # 1. Typologies
+        if typology_result and typology_result.raw_text != "N/D":
+            try:
+                t_data = safe_extract_json(typology_result.raw_text)
+                if t_data and isinstance(t_data, dict) and t_data.get("typologies"):
+                    all_reqs.append(", ".join(t_data['typologies']))
+            except: pass
+
+        # 2. Locations
+        if filtered_locations:
+            for loc in filtered_locations:
+                all_reqs.append(f"Coordinate: {loc['lat']}, {loc['lon']} (raggio {loc['radius_km']}km)")
+
+        # 3. Structured requirements (APE, POI, Normative)
+        # Use helper for APE, Normative, and POI
+        ape_fmt = self._format_agent_requirements(ape_result)
+        if ape_fmt != "N/D" and "Nessun requisito" not in ape_fmt:
+            all_reqs.append(ape_fmt)
+            
+        norm_fmt = self._format_agent_requirements(normative_result)
+        if norm_fmt != "N/D" and "Nessun requisito" not in norm_fmt:
+             all_reqs.append(norm_fmt)
+
+        poi_fmt = self._format_agent_requirements(poi_result)
+        if poi_fmt != "N/D" and "Nessun requisito" not in poi_fmt:
+            all_reqs.append(poi_fmt)
+
+        all_requirements_str = "\n".join([f"- {r}" for r in all_reqs]) if all_reqs else "N/D"
 
         if USE_MOCK_RESPONSES:
             logger.info("MOCK MODE: Simulating SQL generation...")
@@ -1113,7 +1168,7 @@ class GraphOrchestratorAgent(BaseAgent):
 
         if state.get("relax_constraints") and not is_sql_error and failed_query:
             logger.info(f"Applying DETERMINISTIC RELAXATION (Attempt {retry_count + 1})")
-            relaxed_sql, removed_condition = self._deterministic_relaxation(failed_query)
+            relaxed_sql, removed_condition, attempts = self._deterministic_relaxation(failed_query, state)
             
             # If deterministic relaxation fails or returns same query, we must still bypass LLM
             # to avoid calling it for relaxation purposes.
@@ -1121,25 +1176,12 @@ class GraphOrchestratorAgent(BaseAgent):
                 logger.warning("Deterministic relaxation failed to produce a different query. Bypassing LLM with original query.")
                 relaxed_sql = failed_query
                 removed_condition = None
-
-        if state.get("relax_constraints") and not is_sql_error:
-            logger.info(f"Applying DETERMINISTIC RELAXATION to SQL query (Attempt {retry_count + 1})")
-
-        # Extract ranking requirements from RankingAgent result
-        ranking_result = state.get("ranking_result")
-        ranking_raw = "N/D"
-        if ranking_result and ranking_result.ranking:
-            ranking_raw = ", ".join(ranking_result.ranking.ranking)
+                attempts = []
 
         sql_result = self.sql_agent.run(
             query=query, # use original query
             scheme=json.dumps(db_schema.get("types", {}), ensure_ascii=False),
-            typologies=typologies_raw,
-            locations=locations_raw,
-            ape_requirements=ape_raw,
-            poi_requirements=poi_raw,
-            normative_requirements=normative_raw,
-            ranking_requirements=ranking_raw,
+            all_requirements=all_requirements_str,
             location=loc_obj,
             failed_query=effective_failed_query,
             error_msg=effective_error_msg,
@@ -1171,14 +1213,10 @@ class GraphOrchestratorAgent(BaseAgent):
              agent_name = f"sql-agent (relaxation n. {retry_count})"
              
              if relaxed_sql and sql_result.prompt:
-                 if removed_condition:
-                    log_msg = f"Relaxation Step (Deterministic): Removed last WHERE condition (lowest priority).\nREMOVED CONSTRAINT: {removed_condition}"
-                 else:
-                    log_msg = "Relaxation Step: Deterministic relaxation reached its limit. Retrying with current query."
-                 
-                 # We update both user and full_text to ensure visibility in UI
-                 sql_result.prompt.user = log_msg
-                 sql_result.prompt.full_text = f"{log_msg}\n\nQUERY:\n{state['sql_query']}"
+                 # Flatten attempts into JSON so the trace shows the list of all removals tried
+                 attempts_json = json.dumps(attempts, ensure_ascii=False)
+                 sql_result.prompt.user = attempts_json
+                 sql_result.prompt.full_text = attempts_json
 
         self._log_execution(state, agent_name, sql_result, 0)
         return state
@@ -1501,9 +1539,9 @@ class GraphOrchestratorAgent(BaseAgent):
         def rank_poi():
             res = state.get("poi_result")
             if res:
-                data = safe_extract_json(res.raw_text)
-                if data and data.get("categories"):
-                    tmp = self.poi_agent.run(mode="ranking", df=df.copy(), ranked_categories=data.get("categories"))
+                poi_data = safe_extract_json(res.raw_text)
+                if poi_data and poi_data.get("requisiti"):
+                    tmp = self.poi_agent.run(mode="ranking", df=df.copy(), requirements=poi_data.get("requisiti"))
                     return tmp
             tmp = df.copy()
             tmp["poi_score"] = 0.0
