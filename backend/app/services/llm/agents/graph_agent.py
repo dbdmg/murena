@@ -790,8 +790,7 @@ class GraphOrchestratorAgent(BaseAgent):
              # Ranking agent needs query AND metadata
              result = self.ranking_agent.run(
                  query=query, 
-                 mode="ranking",
-                 db_metadata=state.get("db_metadata")
+                 mode="ranking"
              )
              logger.info("✅ RankingAgent completed")
              return result
@@ -905,7 +904,15 @@ class GraphOrchestratorAgent(BaseAgent):
         if poi_data:
             poi_requisiti = poi_data.get('requisiti', [])
             # Consider high priority if value is relatively high (e.g. >= 3.0)
-            high_priority = [r.get('colonna_target') for r in poi_requisiti if isinstance(r, dict) and r.get('valore', 0) >= 3.0]
+            def safe_float_compare(v, threshold):
+                if isinstance(v, list):
+                    v = v[0] if v else 0
+                try:
+                    return float(v) >= threshold
+                except (ValueError, TypeError):
+                    return False
+
+            high_priority = [r.get('colonna_target') for r in poi_requisiti if isinstance(r, dict) and safe_float_compare(r.get('valore', 0), 3.0)]
             if high_priority:
                 poi_text = f"\n\nAnalisi POI: L'utente ha espresso preferenza per: {', '.join(high_priority)} con soglie di qualità elevate."
             elif poi_requisiti:
@@ -1061,8 +1068,14 @@ class GraphOrchestratorAgent(BaseAgent):
                 if col and op and val is not None:
                     # Se valore è una lista, formattala come (val1, val2)
                     if isinstance(val, list):
-                        val_str = "(" + ", ".join(f"'{v}'" if isinstance(v, str) else str(v) for v in val) + ")"
-                        formatted.append(f"{col} {op} {val_str}")
+                        if len(val) == 1:
+                            val_str = f"'{val[0]}'" if isinstance(val[0], str) else str(val[0])
+                            formatted.append(f"{col} {op} {val_str}")
+                        else:
+                            val_str = "(" + ", ".join(f"'{v}'" if isinstance(v, str) else str(v) for v in val) + ")"
+                            # Se l'operatore non è IN/NOT IN, l'uso di una lista potrebbe essere tecnicamente errato per l'agente SQL
+                            # ma lo passiamo comunque confidando nella sua capacità di correzione.
+                            formatted.append(f"{col} {op} {val_str}")
                     else:
                         val_str = f"'{val}'" if isinstance(val, str) else str(val)
                         formatted.append(f"{col} {op} {val_str}")

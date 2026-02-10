@@ -1,3 +1,4 @@
+from typing import Union
 from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
@@ -66,7 +67,7 @@ class LocationResponse(BaseModel):
 
 
 class EvaluationResult(BaseModel):
-    id: int = Field(..., description="ID dell'immobile")
+    id: Union[int, str] = Field(..., description="ID dell'immobile")
     evaluation_text: str = Field(..., description="Testo della valutazione")
     final_ranking_score: int = Field(..., description="Punteggio di rilevanza (0-100) basato sul ranking")
     pros: List[str] = Field(default_factory=list, description="Punti di forza")
