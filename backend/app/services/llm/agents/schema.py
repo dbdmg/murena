@@ -68,7 +68,7 @@ class LocationResponse(BaseModel):
 
 class EvaluationResult(BaseModel):
     id: Union[int, str] = Field(..., description="ID dell'immobile")
-    evaluation_text: str = Field(..., description="Testo della valutazione qualitativa")
+    evaluation_text: str = Field(default="", description="Testo della valutazione qualitativa")
     final_ranking_score: Optional[int] = Field(default=0, description="Punteggio di rilevanza (0-100) basato sul ranking deterministico")
     pros: List[str] = Field(default_factory=list, description="Lista dei 3 punti di forza")
     cons: List[str] = Field(default_factory=list, description="Lista dei 3 punti di debolezza")

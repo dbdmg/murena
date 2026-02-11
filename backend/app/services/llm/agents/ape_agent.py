@@ -180,7 +180,9 @@ class ApeAgent(BaseAgent):
                     
                 else:
                     # Generic numeric handling
-                    vals = pd.to_numeric(df_ranked[col], errors="coerce").fillna(0)
+                    vals_raw = pd.to_numeric(df_ranked[col], errors="coerce")
+                    is_missing = vals_raw.isna()
+                    vals = vals_raw.fillna(0)
                     min_val = vals.min()
                     max_val = vals.max()
                     
@@ -210,6 +212,9 @@ class ApeAgent(BaseAgent):
                             else:
                                 # Smaller diff is better
                                 req_score = ((max_diff - diff) / (max_diff - min_diff) * 100).clip(0, 100)
+                    
+                    # Set score to 0 for rows with missing values
+                    req_score = req_score.where(~is_missing, 0)
                 
                 # Store partial score for this requirement
                 df_ranked[f"ape_partial_score_{col}"] = req_score.round(1)
@@ -244,7 +249,9 @@ class ApeAgent(BaseAgent):
         # per non "sporcare" il ranking se l'utente non ha chiesto esplicitamente APE.
         used_col = None
         if "ape_total_points" in df_ranked.columns and not df_ranked["ape_total_points"].isna().all():
-            points = pd.to_numeric(df_ranked["ape_total_points"], errors="coerce").fillna(0)
+            points_raw = pd.to_numeric(df_ranked["ape_total_points"], errors="coerce")
+            is_missing = points_raw.isna()
+            points = points_raw.fillna(0)
             p_min = points.min()
             p_max = points.max()
             
@@ -252,21 +259,29 @@ class ApeAgent(BaseAgent):
                 partial_score = pd.Series(100.0, index=df_ranked.index)
             else:
                 partial_score = ((points - p_min) / (p_max - p_min) * 100).clip(0, 100)
+            
+            # Set score to 0 for rows with missing values
+            partial_score = partial_score.where(~is_missing, 0)
                 
             df_ranked["ape_score"] = partial_score
             used_col = "ape_total_points"
             df_ranked[f"ape_partial_score_{used_col}"] = df_ranked["ape_score"]
             
         elif "ape_score_total" in df_ranked.columns and not df_ranked["ape_score_total"].isna().all():
-            score = pd.to_numeric(df_ranked["ape_score_total"], errors="coerce").fillna(0)
+            score_raw = pd.to_numeric(df_ranked["ape_score_total"], errors="coerce")
+            is_missing = score_raw.isna()
+            score = score_raw.fillna(0)
             s_min = score.min()
             s_max = score.max()
             
             if s_max == s_min:
-                 df_ranked["ape_score"] = 100.0
+                 partial_score = pd.Series(100.0, index=df_ranked.index)
             else:
                  # Assumiamo "the higher the better" per lo score totale APE
-                 df_ranked["ape_score"] = ((score - s_min) / (s_max - s_min) * 100).clip(0, 100)
+                 partial_score = ((score - s_min) / (s_max - s_min) * 100).clip(0, 100)
+            
+            # Set score to 0 for rows with missing values
+            df_ranked["ape_score"] = partial_score.where(~is_missing, 0)
             
             used_col = "ape_score_total"
             df_ranked[f"ape_partial_score_{used_col}"] = df_ranked["ape_score"]

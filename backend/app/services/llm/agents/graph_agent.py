@@ -460,9 +460,20 @@ class GraphOrchestratorAgent(BaseAgent):
                         rank_pos = row.get(f"{prefix}rank_position", "N/A")
                         formula_list = [f"100 / Position({rank_pos})" if rank_pos != "N/A" else "0 (Non corrispondente)"]
                     elif "location" in agent_type:
-                        dist = row.get("distanza_km", 0)
-                        # Formula: 100 * exp(-(dist/2.5)^3)
-                        formula_list = [f"100 * exp(-({dist:.2f}/2.5)^3)"]
+                        dist = row.get("distanza_km")
+                        poi = row.get("poi_riferimento")
+                        score = row.get(score_col, 0)
+                        if dist is not None and not pd.isna(dist) and poi and score > 0:
+                            # Formula: 100 * exp(-(dist/2.5)^3)
+                            formula_list = [f"100 * exp(-({dist:.2f}/2.5)^3)"]
+                        else:
+                            if score == 0:
+                                if not poi or pd.isna(dist):
+                                    formula_list = ["Località non identificata -> 0"]
+                                else:
+                                    formula_list = [f"Distanza eccessiva ({dist:.2f}km) -> 0"]
+                            else:
+                                formula_list = [f"Score: {score}"]
                     elif "poi" in agent_type or "ape" in agent_type or "normative" in agent_type:
                         # Queste logiche usano mediamente dei partial scores (0-100)
                         partial_cols = [c for c in result.columns if f"{prefix}partial_score_" in c]
@@ -785,9 +796,11 @@ class GraphOrchestratorAgent(BaseAgent):
 
         # 1. Run Ranking Agent FIRST (Sequential)
         logger.info("⚖️ Executing RankingAgent (Sequential)")
+        start_time = time.time()
         ranking_result = self.ranking_agent.run(query=query, mode="filtering")
+        duration_ms = (time.time() - start_time) * 1000
         state["ranking_result"] = ranking_result
-        self._log_execution(state, "ranking-agent", ranking_result, 0)
+        self._log_execution(state, "ranking-agent", ranking_result, duration_ms)
         
         # Get active agents from ranking result
         active_agents = []
@@ -807,6 +820,7 @@ class GraphOrchestratorAgent(BaseAgent):
 
         # Define tasks
         def run_typology():
+            start_t = time.time()
             self._update_progress(state, 1, "Analisi tipologie in corso...")
             logger.info("🔧 Executing TypologyAgent")
 
@@ -834,18 +848,20 @@ class GraphOrchestratorAgent(BaseAgent):
             typ_data = safe_extract_json(result.raw_text, schema=TypologyResponse)
             typologies = typ_data.typologies if typ_data else []
             logger.info(f"✅ TypologyAgent completed: {typologies}")
-            return result
+            return result, (time.time() - start_t) * 1000
 
         def run_location():
+            start_t = time.time()
             self._update_progress(state, 1, "Analisi ubicazione in corso...")
             logger.info("📍 Executing LocationAgent")
             result = self.location_agent.run(query=query)
             loc_data = safe_extract_json(result.raw_text, schema=LocationResponse)
             places = loc_data.places if loc_data else []
             logger.info(f"✅ LocationAgent completed: {len(places)} places")
-            return result
+            return result, (time.time() - start_t) * 1000
 
         def run_ape():
+            start_t = time.time()
             # Always run APE agent if data is available
             base_dataset = state.get("base_dataset")
             dataset_path = state.get("dataset_path")
@@ -860,11 +876,12 @@ class GraphOrchestratorAgent(BaseAgent):
                     score_legend=APE_SCORE_LEGEND,
                 )
                 logger.info("✅ ApeAgent completed")
-                return result
+                return result, (time.time() - start_t) * 1000
             logger.info("⚠️ ApeAgent skipped: no data")
-            return None
+            return None, 0
 
         def run_poi():
+            start_t = time.time()
             self._update_progress(state, 1, "Analisi punti di interesse in corso...")
             logger.info("🏪 Executing PoiAgent")
             
@@ -885,9 +902,10 @@ class GraphOrchestratorAgent(BaseAgent):
                 statistics=poi_stats
             )
             logger.info("✅ PoiAgent completed")
-            return result
+            return result, (time.time() - start_t) * 1000
         
         def run_normative():
+            start_t = time.time()
             self._update_progress(state, 1, "Analisi normativa in corso...")
             logger.info("📚 Executing NormativeAgent")
             
@@ -908,7 +926,7 @@ class GraphOrchestratorAgent(BaseAgent):
                 statistics=norm_stats
             )
             logger.info("✅ NormativeAgent completed")
-            return result
+            return result, (time.time() - start_t) * 1000
 
         # 2. Build list of tasks for ACTIVE agents only
         active_tasks = {}
@@ -929,10 +947,10 @@ class GraphOrchestratorAgent(BaseAgent):
                 for future in as_completed(future_to_name):
                     agent_name = future_to_name[future]
                     try:
-                        res = future.result()
+                        res, duration = future.result()
                         results[agent_name] = res
                         if res:
-                            self._log_execution(state, f"{agent_name}-agent", res, 0)
+                            self._log_execution(state, f"{agent_name}-agent", res, duration)
                     except Exception as e:
                         logger.error(f"Error executing {agent_name}-agent: {e}")
 
@@ -1093,6 +1111,7 @@ class GraphOrchestratorAgent(BaseAgent):
         STEP 3-7: Sequential AST-only relaxation without LLM retries.
         """
         threshold = 10 # min_results_threshold (could be made configurable)
+        start_relaxation_time = time.time()
         
         # 1. Prepare data for Relaxation Agent
         where_details, base_conditions, expression = self._prepare_relaxation_data(state, initial_sql)
@@ -1188,7 +1207,8 @@ class GraphOrchestratorAgent(BaseAgent):
                         # Log the relaxation-agent impact
                         res.attempts = all_attempts
                         res.final_sql = trial_sql
-                        self._log_execution(state, "relaxation-agent", res, 0)
+                        duration_ms = (time.time() - start_relaxation_time) * 1000
+                        self._log_execution(state, "relaxation-agent", res, duration_ms)
                         return trial_sql
                         
                     if trial_count > baseline_count:
@@ -1227,7 +1247,8 @@ class GraphOrchestratorAgent(BaseAgent):
                     # Log the relaxation-agent impact
                     res.attempts = all_attempts
                     res.final_sql = trial_sql
-                    self._log_execution(state, "relaxation-agent", res, 0)
+                    duration_ms = (time.time() - start_relaxation_time) * 1000
+                    self._log_execution(state, "relaxation-agent", res, duration_ms)
                     return trial_sql
                 
                 # According to algorithm: "Altrimenti ripristinare la condizione e continuare" (no greedy here)
@@ -1240,7 +1261,8 @@ class GraphOrchestratorAgent(BaseAgent):
         # Log the relaxation-agent impact
         res.attempts = all_attempts
         res.final_sql = current_sql
-        self._log_execution(state, "relaxation-agent", res, 0)
+        duration_ms = (time.time() - start_relaxation_time) * 1000
+        self._log_execution(state, "relaxation-agent", res, duration_ms)
 
         # Max out retry count to signal we are done with relaxation attempts
         state["retry_count"] = 5
@@ -1457,6 +1479,7 @@ class GraphOrchestratorAgent(BaseAgent):
             if not relaxed_sql:
                 relaxed_sql = failed_query
 
+        start_t = time.time()
         sql_result = self.sql_agent.run(
             query=query, # use original query
             scheme=json.dumps(db_schema.get("types", {}), ensure_ascii=False),
@@ -1467,6 +1490,7 @@ class GraphOrchestratorAgent(BaseAgent):
             db_metadata=json.dumps(state.get("db_metadata", {}), ensure_ascii=False),
             raw_response=relaxed_sql
         )
+        duration_ms = (time.time() - start_t) * 1000
 
         # Append to history
         state["sql_history"].append(sql_result.raw_text)
@@ -1493,7 +1517,7 @@ class GraphOrchestratorAgent(BaseAgent):
              
              # We no longer log attempts here as they are in relaxation-agent
 
-        self._log_execution(state, agent_name, sql_result, 0)
+        self._log_execution(state, agent_name, sql_result, duration_ms)
         return state
 
     def _execute_sql(self, state: GraphState) -> GraphState:
@@ -1734,12 +1758,16 @@ class GraphOrchestratorAgent(BaseAgent):
             already_ran = ranking_result is not None
 
             if not ranking_result:
+                start_t = time.time()
                 ranking_result = self.ranking_agent.run(
                     query=query, 
                     mode="filtering", 
                     db_metadata=state.get("db_metadata")
                 )
+                duration_ms = (time.time() - start_t) * 1000
                 state["ranking_result"] = ranking_result
+            else:
+                duration_ms = 0 # Already ran
 
             state["context"].ranking_result = ranking_result
             
@@ -1751,7 +1779,7 @@ class GraphOrchestratorAgent(BaseAgent):
         
             # Only log trace if it wasn't already logged in parallel phase
             if not already_ran:
-                self._log_execution(state, "ranking-agent", ranking_result, 0, mode="ranking")
+                self._log_execution(state, "ranking-agent", ranking_result, duration_ms, mode="ranking")
         
         return state
 
@@ -1768,28 +1796,75 @@ class GraphOrchestratorAgent(BaseAgent):
 
         ranking_res = state.get("ranking_result")
         weights = ranking_res.weights if ranking_res else RankingWeights()
+        
+        # Get active agents from ranking result
+        active_agents = []
+        if ranking_res and ranking_res.ranking:
+            active_agents = ranking_res.ranking.ranking
+        else:
+            # Fallback to all if ranking failed
+            active_agents = ["location", "normative", "ape", "typology", "poi"]
+        
+        logger.info(f"Active agents for ranking: {active_agents}")
+
+        # ASSUNZIONE: Se l'agente location non ha identificato luoghi validi (per mancanza dati o raggio),
+        # lo escludiamo dal ranking finale e ripesiamo gli altri agenti residui.
+        if "location" in active_agents and (not state["context"].locations) and weights.location > 0:
+            logger.info("📍 LocationAgent non ha trovato luoghi: ripesatura ranking in corso...")
+            
+            # Creiamo una copia dei pesi per non sporcare il risultato originale del ranking agent
+            original_weights = weights.model_dump()
+            w_loc = original_weights.pop("location", 0.0)
+            
+            # Somma dei pesi degli agenti residui
+            remaining_weight_sum = sum(original_weights.values())
+            
+            if remaining_weight_sum > 0:
+                # Riproporzioniamo i pesi residui per farli sommare a 1.0
+                new_weights_dict = {
+                    k: round(v / remaining_weight_sum, 2) 
+                    for k, v in original_weights.items()
+                }
+                new_weights_dict["location"] = 0.0
+                
+                # Aggiustamento per arrotondamento (somma deve essere 1.0)
+                current_total = sum(new_weights_dict.values())
+                diff = round(1.0 - current_total, 2)
+                if diff != 0:
+                    # Troviamo l'agente (non location) con peso maggiore per applicare la correzione
+                    active_residui = [a for a in active_agents if a != "location" and a in new_weights_dict]
+                    if active_residui:
+                        max_agent = max(active_residui, key=lambda a: new_weights_dict[a])
+                        new_weights_dict[max_agent] = round(new_weights_dict[max_agent] + diff, 2)
+                
+                # Aggiorniamo l'oggetto weights per l'esecuzione successiva
+                weights = RankingWeights(**new_weights_dict)
+                logger.info(f"⚖️ Nuovi pesi applicati (loc rimosso): {new_weights_dict}")
 
         # Define ranking tasks for parallel execution
         def rank_typology():
+            start_t = time.time()
             res = state.get("typology_result")
             if res:
                 data = safe_extract_json(res.raw_text, schema=TypologyResponse)
                 if data and data.typologies:
                     tmp = self.typology_agent.run(mode="ranking", df=df.copy(), ranked_typologies=data.typologies)
-                    return tmp
+                    return tmp, (time.time() - start_t) * 1000
             tmp = df.copy()
             tmp["typology_score"] = 0.0
-            return tmp[["id", "typology_score"]]
+            return tmp[["id", "typology_score"]], (time.time() - start_t) * 1000
 
         def rank_location():
+            start_t = time.time()
             if state["context"].locations:
                  tmp = self.location_agent.run(mode="ranking", df=df.copy(), places=state["context"].locations)
-                 return tmp
+                 return tmp, (time.time() - start_t) * 1000
             tmp = df.copy()
             tmp["location_score"] = 0.0
-            return tmp[["id", "location_score"]]
+            return tmp[["id", "location_score"]], (time.time() - start_t) * 1000
 
         def rank_ape():
+            start_t = time.time()
             res = state.get("ape_result")
             requirements = None
             if res:
@@ -1798,45 +1873,56 @@ class GraphOrchestratorAgent(BaseAgent):
                     requirements = data.requisiti
             
             tmp = self.ape_agent.run(mode="ranking", df=df.copy(), requirements=requirements)
-            return tmp
+            return tmp, (time.time() - start_t) * 1000
 
         def rank_normative():
+            start_t = time.time()
             res = state.get("normative_result")
             if res:
                 data = safe_extract_json(res.raw_text, schema=NormativeResponse)
                 if data and data.found:
                     tmp = self.normative_agent.run(mode="ranking", df=df.copy(), requirements=data.requisiti, available_columns=NORMATIVE_AGENT_COLUMNS)
-                    return tmp
+                    return tmp, (time.time() - start_t) * 1000
             tmp = df.copy()
             tmp["normative_score"] = 0.0
-            return tmp[["id", "normative_score"]]
+            return tmp[["id", "normative_score"]], (time.time() - start_t) * 1000
 
         def rank_poi():
+            start_t = time.time()
             res = state.get("poi_result")
             if res:
                 poi_data = safe_extract_json(res.raw_text)
                 if poi_data and poi_data.get("requisiti"):
                     tmp = self.poi_agent.run(mode="ranking", df=df.copy(), requirements=poi_data.get("requisiti"))
-                    return tmp
+                    return tmp, (time.time() - start_t) * 1000
             tmp = df.copy()
             tmp["poi_score"] = 0.0
-            return tmp[["id", "poi_score"]]
+            return tmp[["id", "poi_score"]], (time.time() - start_t) * 1000
 
+        # Build active ranking tasks based on active_agents
+        ranking_tasks = {}
+        if "typology" in active_agents:
+            ranking_tasks["typology"] = rank_typology
+        if "location" in active_agents:
+            ranking_tasks["location"] = rank_location
+        if "ape" in active_agents:
+            ranking_tasks["ape"] = rank_ape
+        if "normative" in active_agents:
+            ranking_tasks["normative"] = rank_normative
+        if "poi" in active_agents:
+            ranking_tasks["poi"] = rank_poi
 
-        # Execute parallel ranking tasks
-        with ThreadPoolExecutor(max_workers=5) as executor:
+        # Execute parallel ranking tasks (only for active agents)
+        with ThreadPoolExecutor(max_workers=len(ranking_tasks) if ranking_tasks else 1) as executor:
             task_map = {
-                executor.submit(rank_typology): "typology",
-                executor.submit(rank_location): "location",
-                executor.submit(rank_ape): "ape",
-                executor.submit(rank_normative): "normative",
-                executor.submit(rank_poi): "poi",
+                executor.submit(task): name 
+                for name, task in ranking_tasks.items()
             }
             
             for future in as_completed(task_map):
                 name = task_map[future]
                 try:
-                    res_df = future.result()
+                    res_df, duration = future.result()
                     
                     # Log ranking results as JSON for UI visualization
                     if not res_df.empty:
@@ -1848,7 +1934,7 @@ class GraphOrchestratorAgent(BaseAgent):
                         }
                         
                         # Log this ranking agent execution to the trace
-                        self._log_execution(state, f"{name}-agent", res_df, 0, mode="ranking")
+                        self._log_execution(state, f"{name}-agent", res_df, duration, mode="ranking")
 
                     # Aggiungiamo solo nuove colonne evitando duplicazioni
                     new_cols = [c for c in res_df.columns if c not in df.columns or c == "id"]
@@ -1859,11 +1945,21 @@ class GraphOrchestratorAgent(BaseAgent):
                     if col not in df.columns:
                         df[col] = 0.0
 
+        # Ensure all agent score columns exist (set to 0.0 for inactive agents)
+        all_possible_agents = ["location", "normative", "ape", "typology", "poi"]
+        for agent in all_possible_agents:
+            score_col = "ape_score" if agent == "ape" else f"{agent}_score"
+            if score_col not in df.columns:
+                logger.info(f"Agent '{agent}' not active, setting {score_col} to 0.0")
+                df[score_col] = 0.0
+
         # Calculate final weighted score via RankingAgent (ranking mode)
+        start_t = time.time()
         df = self.ranking_agent.run(mode="ranking", df=df, weights=weights)
+        duration_ms = (time.time() - start_t) * 1000
         
         # Log this final ranking step
-        self._log_execution(state, "ranking-agent", df, 0, mode="ranking")
+        self._log_execution(state, "ranking-agent", df, duration_ms, mode="ranking")
 
         # Sort by total score
         df = df.sort_values(by="final_ranking_score", ascending=False)
@@ -2035,6 +2131,7 @@ class GraphOrchestratorAgent(BaseAgent):
             if batch_df.empty:
                 return []
 
+            start_t = time.time()
             # Use JSON format instead of tabulate for better LLM comprehension
             # The `eval_input_df` is already capped by `llm_cap` (now 10)
             # and `batch_df` is a slice of `eval_input_df`.
@@ -2048,7 +2145,7 @@ class GraphOrchestratorAgent(BaseAgent):
                 original_query=state["query"],  # NEW: pass original query for context
                 score_legend=SCORE_LEGEND,
             )
-            return eval_payload
+            return eval_payload, (time.time() - start_t) * 1000
 
         with ThreadPoolExecutor(max_workers=4) as executor:
             futures = {
@@ -2058,7 +2155,7 @@ class GraphOrchestratorAgent(BaseAgent):
 
             for future in as_completed(futures):
                 try:
-                    payload = future.result()
+                    payload, duration = future.result()
                     finished_batches += 1
                     
                     # Parse results from raw_text using EvaluationList schema
@@ -2081,7 +2178,7 @@ class GraphOrchestratorAgent(BaseAgent):
                         f"Analizzando batch {finished_batches}/{total_batches} con {len(batch_results)} valutazioni...",
                     )
                     
-                    self._log_execution(state, "evaluation-agent", payload, 0, mode="evaluation")
+                    self._log_execution(state, "evaluation-agent", payload, duration, mode="evaluation")
 
                     if batch_results:
                         all_results.extend(batch_results)

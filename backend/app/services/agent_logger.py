@@ -33,7 +33,7 @@ class AgentLogger:
         self.current_log_file = None
         self.log_data = []
     
-    def start_evaluation(self, use_case: str, prompt_id: str, run_number: int, timestamp: str):
+    def start_evaluation(self, use_case: str, prompt_id: str, run_number: int, timestamp: str, user_query: Optional[str] = None):
         """Inizializza un nuovo file di log per una specifica valutazione."""
         self.log_data = []
         
@@ -41,7 +41,7 @@ class AgentLogger:
         header = {
             "use_case": use_case,
             "prompt_id": prompt_id,
-            "user_query": getattr(self, 'last_query', None), # Fallback if we have it
+            "user_query": user_query,  # Passato esplicitamente
             "run_number": run_number,
             "timestamp": datetime.now().isoformat()
         }
@@ -231,6 +231,32 @@ class AgentLogger:
             else:
                 input_extracted = getattr(output_data, 'raw_text', "N/A")
                 output_extracted = "Nessuna proposta applicata"
+        
+        elif agent_name == "sql-agent":
+            # Per l'SQL agent, mostriamo la query SQL generata come output
+            # Input: può essere il prompt o un messaggio descrittivo
+            if hasattr(output_data, 'raw_text'):
+                # raw_text contiene la query SQL generata
+                output_extracted = output_data.raw_text
+            elif isinstance(output_data, str):
+                # Se è già una stringa, è probabilmente la query SQL
+                output_extracted = output_data
+            else:
+                output_extracted = str(output_data)
+            
+            # Input: Costruisci un messaggio descrittivo dei requisiti se disponibili
+            if hasattr(output_data, 'prompt') and output_data.prompt:
+                input_extracted = output_data.prompt.model_dump()
+            elif isinstance(input_data, dict) and ('query' in input_data or 'all_requirements' in input_data):
+                # Sintetizza l'input mostrando solo le info chiave
+                input_summary = {}
+                if 'query' in input_data:
+                    input_summary['user_query'] = input_data['query']
+                if 'all_requirements' in input_data:
+                    input_summary['requirements'] = input_data['all_requirements']
+                input_extracted = input_summary
+            else:
+                input_extracted = input_data
 
         elif agent_name == "ranking-agent":
             if hasattr(output_data, 'ranking') and output_data.ranking:

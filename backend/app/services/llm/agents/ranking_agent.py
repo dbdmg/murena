@@ -155,4 +155,39 @@ class RankingAgent(BaseAgent):
             df_ranked["ranking_weight_poi"] * df_ranked.get("poi_score", 0.0)
         )
         
-        return df_ranked
+        # Create explicit formula column for each property
+        def build_formula(row):
+            components = []
+            
+            # Add each component if weight > 0
+            if weights.location > 0 and "location_score" in df_ranked.columns:
+                loc_score = row.get("location_score", 0.0)
+                components.append(f"{weights.location}*location({loc_score})")
+            
+            if weights.normative > 0 and "normative_score" in df_ranked.columns:
+                norm_score = row.get("normative_score", 0.0)
+                components.append(f"{weights.normative}*normative({norm_score})")
+            
+            if weights.ape > 0 and "ape_score" in df_ranked.columns:
+                ape_score = row.get("ape_score", 0.0)
+                components.append(f"{weights.ape}*ape({ape_score})")
+            
+            if weights.typology > 0 and "typology_score" in df_ranked.columns:
+                typ_score = row.get("typology_score", 0.0)
+                components.append(f"{weights.typology}*typology({typ_score})")
+            
+            if weights.poi > 0 and "poi_score" in df_ranked.columns:
+                poi_score = row.get("poi_score", 0.0)
+                components.append(f"{weights.poi}*poi({poi_score})")
+            
+            if components:
+                formula = " + ".join(components) + f" = {row['final_ranking_score']:.1f}"
+            else:
+                formula = f"{row['final_ranking_score']:.1f}"
+            
+            return formula
+        
+        df_ranked["ranking_formula"] = df_ranked.apply(build_formula, axis=1)
+        
+        # Return only essential columns: id, final score, and formula
+        return df_ranked[["id", "final_ranking_score", "ranking_formula"]]

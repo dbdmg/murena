@@ -57,7 +57,7 @@ class RankingEvaluator:
             pass
         
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        self.agent_logger.start_evaluation(self.use_case, prompt_id, run_number, timestamp)
+        self.agent_logger.start_evaluation(self.use_case, prompt_id, run_number, timestamp, user_query=query)
         
         start_time = time.time()
         

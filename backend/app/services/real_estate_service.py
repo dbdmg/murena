@@ -500,14 +500,14 @@ class RealEstateService:
             lat = lat or safe_get("coordinata_y")
             lon = lon or safe_get("coordinata_x")
 
-        # Coordinates are required
+        # Coordinates are required for mapping
         if lat is None or lon is None:
-            # If coordinates are missing even after enrichment, we can't map it
-            # But we might want to return a partial object?
-            # For now, stick to existing behavior
-            raise ValueError(
-                f"Missing coordinates for building {row.get('id', 'unknown')}"
+            # Log warning but use default coordinates to allow processing to continue
+            logger.warning(
+                f"Missing coordinates for building {row.get('id', 'unknown')}, using default (0, 0)"
             )
+            lat = 0.0
+            lon = 0.0
 
         coordinates = Coordinates(lat=float(lat), lon=float(lon))
 
