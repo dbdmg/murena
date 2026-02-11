@@ -97,7 +97,7 @@ export const QueryTooltip: React.FC<QueryTooltipProps> = ({
                                             </svg>
                                         </div>
                                         <span className="text-xs font-medium text-blue-200/80 uppercase tracking-widest">
-                                            Analysis Query
+                                            Query di Analisi
                                         </span>
                                     </div>
                                 </div>
@@ -112,7 +112,7 @@ export const QueryTooltip: React.FC<QueryTooltipProps> = ({
                                         <button
                                             onClick={handleCopy}
                                             className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white shadow-lg backdrop-blur-md transition-all active:scale-95"
-                                            title="Copy to clipboard"
+                                            title="Copia negli appunti"
                                         >
                                             {isCopied ? (
                                                 <Check className="w-3.5 h-3.5 text-emerald-400" />
@@ -129,7 +129,7 @@ export const QueryTooltip: React.FC<QueryTooltipProps> = ({
                                 <span>ID: SYSTEM</span>
                                 <span className="flex items-center gap-1.5">
                                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500/50 animate-pulse" />
-                                    Active Context
+                                    Contesto Attivo
                                 </span>
                             </div>
                         </motion.div>

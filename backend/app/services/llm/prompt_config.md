@@ -479,9 +479,10 @@ ESEMPI:
 - Query: "Cerca un immobile" → ranking: ["typology"] (query generica, almeno tipologia come base)
 
 OUTPUT:
-Restituisci ESCLUSIVAMENTE un JSON valido con SOLO gli agenti necessari in ordine di priorità:
+Restituisci ESCLUSIVAMENTE un JSON valido con gli agenti necessari e una breve motivazione strategica:
 {
-  "ranking": ["agente_prioritario", "agente_secondario", ...]
+  "ranking": ["agente_prioritario", "agente_secondario", ...],
+  "reasoning": "Spiegazione sintetica del perché questi agenti sono stati selezionati per questa query"
 }
 ```
 

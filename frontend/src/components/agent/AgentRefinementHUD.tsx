@@ -117,7 +117,7 @@ const TriggerButton: React.FC<TriggerButtonProps> = ({ isOpen, onClick, hasActiv
                         }
                     `}
                 >
-                    <span className="font-medium">Agent Tuner</span>
+                    <span className="font-medium">Regolazione Agenti</span>
                     {hasActiveRun && (
                         <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                     )}
@@ -622,7 +622,7 @@ export const AgentRefinementHUD: React.FC<AgentRefinementHUDProps> = ({
                                         <Sparkles className="w-6 h-6 text-white" />
                                     </div>
                                     <div>
-                                        <h2 className="text-xl font-bold text-white">Agent Tuner</h2>
+                                        <h2 className="text-xl font-bold text-white">Regolazione Agenti</h2>
                                         <p className="text-sm text-gray-500">Modifica e valida il comportamento dell'AI</p>
                                     </div>
                                 </div>
@@ -670,7 +670,7 @@ export const AgentRefinementHUD: React.FC<AgentRefinementHUDProps> = ({
                                         {/* Agent Selector */}
                                         {availableAgents.length > 0 && (
                                             <div className="flex items-center gap-3">
-                                                <span className="text-sm text-gray-500">Agent:</span>
+                                                <span className="text-sm text-gray-500">Agente:</span>
                                                 <div className="flex flex-wrap gap-2">
                                                     {availableAgents.map((agent) => (
                                                         <button

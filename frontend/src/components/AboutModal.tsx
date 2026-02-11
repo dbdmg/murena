@@ -209,18 +209,18 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
                                 {/* Title */}
                                 <h1 className="text-3xl font-bold mb-2">
                                     <span className="bg-linear-to-r from-cyan-400 via-blue-400 to-violet-400 bg-clip-text text-transparent">
-                                        Real Estate Analytical System
+                                        Sistema Analitico Immobiliare
                                     </span>
                                 </h1>
                                 <p className="text-sm text-gray-400 mb-3">
-                                    Intelligence Map for Real Estate Asset Management
+                                    Mappa Intelligence per la Gestione del Patrimonio Immobiliare
                                 </p>
 
                                 {/* Version & Stats */}
                                 <div className="flex flex-wrap items-center justify-center gap-2">
-                                    <StatBadge label="Version" value="0.9.2-alpha" />
+                                    <StatBadge label="Versione" value="0.9.2-alpha" />
                                     <StatBadge label="Build" value="2025.01" />
-                                    <StatBadge label="Agents" value="9 AI" />
+                                    <StatBadge label="Agenti" value="9 AI" />
                                 </div>
                             </motion.div>
 

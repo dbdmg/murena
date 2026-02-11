@@ -54,10 +54,10 @@ export const LoginPage: React.FC = () => {
                             <CheckSquare className="w-7 h-7" />
                         </div>
                         <h1 className="text-3xl font-bold text-white tracking-tight">
-                            Welcome Back
+                            Bentornato
                         </h1>
                         <p className="text-gray-400 mt-2 text-sm">
-                            Access the Real Estate Analytical System
+                            Accedi al Sistema Analitico Immobiliare
                         </p>
                     </div>
 
@@ -72,7 +72,7 @@ export const LoginPage: React.FC = () => {
                     {/* Login Form */}
                     <form onSubmit={handleSubmit} className="space-y-5">
                         <div className="space-y-2">
-                            <label className="text-xs font-medium text-gray-400 ml-1">Username</label>
+                            <label className="text-xs font-medium text-gray-400 ml-1">Nome utente</label>
                             <div className="relative group">
                                 <UserIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 group-focus-within:text-cyan-400 transition-colors" />
                                 <input
@@ -80,7 +80,7 @@ export const LoginPage: React.FC = () => {
                                     value={username}
                                     onChange={(e) => setUsername(e.target.value)}
                                     className="w-full bg-[#0a0d12]/80 border border-cyan-500/10 rounded-xl py-3.5 pl-11 pr-4 text-gray-200 placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-cyan-500/50 focus:border-cyan-500/30 transition-all"
-                                    placeholder="Enter your username"
+                                    placeholder="Inserisci il tuo nome utente"
                                     required
                                 />
                             </div>
@@ -100,7 +100,7 @@ export const LoginPage: React.FC = () => {
                                 />
                             </div>
                             <div className="flex justify-end">
-                                <a href="#" className="text-xs text-cyan-400 hover:text-cyan-300 transition-colors">Forgot password?</a>
+                                <a href="#" className="text-xs text-cyan-400 hover:text-cyan-300 transition-colors">Password dimenticata?</a>
                             </div>
                         </div>
 
@@ -113,7 +113,7 @@ export const LoginPage: React.FC = () => {
                                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                             ) : (
                                 <>
-                                    <span>Sign In</span>
+                                    <span>Accedi</span>
                                     <ArrowRight className="w-4 h-4" />
                                 </>
                             )}
@@ -126,7 +126,7 @@ export const LoginPage: React.FC = () => {
                             <div className="w-full border-t border-white/5"></div>
                         </div>
                         <div className="relative flex justify-center text-xs uppercase">
-                            <span className="bg-[#0f1318] px-3 text-gray-500 tracking-wider">Or continue with</span>
+                            <span className="bg-[#0f1318] px-3 text-gray-500 tracking-wider">O continua con</span>
                         </div>
                     </div>
 
@@ -145,7 +145,7 @@ export const LoginPage: React.FC = () => {
                     {/* Integrated Footer with blurred background */}
                     <div className="absolute bottom-0 left-0 w-full bg-[#0a0d12]/50 backdrop-blur-md border-t border-white/5 p-4 rounded-b-2xl">
                         <p className="text-center text-gray-500 text-sm">
-                            Don't have an account? <span className="text-cyan-400 hover:text-cyan-300 cursor-pointer transition-colors">Contact Administrator</span>
+                            Non hai un account? <span className="text-cyan-400 hover:text-cyan-300 cursor-pointer transition-colors">Contatta l'amministratore</span>
                         </p>
                     </div>
 

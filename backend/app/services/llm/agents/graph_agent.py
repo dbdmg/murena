@@ -117,6 +117,7 @@ class GraphState(TypedDict):
     # Progress callback
     set_progress: Optional[Callable[[Any], None]]
     step_definitions: List[Dict[str, str]]
+    steps_state: List[Dict[str, Any]]
     relax_constraints: bool  # Flag for smart relaxation
     last_retry_reason: Optional[str]  # Why we are retrying (error or few_results)
 
@@ -223,15 +224,15 @@ class GraphOrchestratorAgent(BaseAgent):
     ) -> OrchestratorResult:
 
         step_definitions = [
-            {"key": "analysis", "label": "Analisi"},
-            {"key": "sql", "label": "SQL"},
-            {"key": "execution", "label": "Esecuzione"},
-            {"key": "enrichment", "label": "Arricchimento"},
-            {"key": "ranking", "label": "Ranking"},
-            {"key": "evaluation", "label": "Valutazione"},
-            {"key": "broker", "label": "Broker"},
-            {"key": "merge", "label": "Finalizzazione"},
-            {"key": "complete", "label": "Completato"},
+            {"key": "ranking_init", "label": "Analizzo la richiesta utente..."},
+            {"key": "typology", "label": "Valuto le tipologie di immobili opportune..."},
+            {"key": "location", "label": "Individuo una posizione geografica di ricerca..."},
+            {"key": "ape", "label": "Analizzo le prestazioni energetiche degli edifici..."},
+            {"key": "normative", "label": "Verifico i requisiti normativi..."},
+            {"key": "poi", "label": "Esamino la disponibilità di servizi nelle vicinanze..."},
+            {"key": "ranking", "label": "Calcolo gli score..."},
+            {"key": "evaluation", "label": "Fornisco delle motivazioni a supporto delle mie scelte..."},
+            {"key": "broker", "label": "Descrivo la scelta migliore..."},
         ]
 
         # Load metadata
@@ -309,6 +310,10 @@ class GraphOrchestratorAgent(BaseAgent):
             "analysis_mode": self.analysis_mode,
             "set_progress": set_progress,
             "step_definitions": step_definitions,
+            "steps_state": [
+                {"label": s["label"], "state": "pending", "detail": ""}
+                for s in step_definitions
+            ],
             "relax_constraints": False,
             "last_retry_reason": None,
         }
@@ -613,29 +618,33 @@ class GraphOrchestratorAgent(BaseAgent):
     # Nodes
     # ------------------------------------------------------------------
 
-    def _update_progress(self, state: GraphState, step_index: int, message: str):
+    def _update_progress(self, state: GraphState, key: str, message: str, status: str = "current"):
         if state["set_progress"]:
+            # Find index by key in step_definitions
+            idx = -1
+            for i, step in enumerate(state["step_definitions"]):
+                if step["key"] == key:
+                    idx = i
+                    break
+
+            if idx != -1:
+                state["steps_state"][idx]["state"] = status
+                state["steps_state"][idx]["detail"] = message
+                
+                # If we are marking something as current/done, ensure previous ones are done
+                # (but only if they are not already current - to support parallel)
+                if status in ["current", "done"]:
+                    for i in range(idx):
+                        if state["steps_state"][i]["state"] == "pending":
+                            state["steps_state"][i]["state"] = "done"
+                            state["steps_state"][i]["detail"] = ""
+            
             total_steps = len(state["step_definitions"])
-            percent = min(100, step_index * 100 / total_steps)
+            # Use found index + 1 for percentage calculation
+            step_num = idx + 1 if idx != -1 else 1 # Fallback to 1 if not found
+            percent = min(100, step_num * 100 / total_steps) if total_steps > 0 else 0
 
-            # Build step states
-            steps_state = []
-            for idx, step in enumerate(state["step_definitions"], start=1):
-                if idx < step_index:
-                    s = "done"
-                elif idx == step_index:
-                    s = "current"
-                else:
-                    s = "pending"
-                steps_state.append(
-                    {
-                        "label": step.get("label", f"Step {idx}"),
-                        "state": s,
-                        "detail": message if s == "current" else "",
-                    }
-                )
-
-            state["set_progress"]((percent, steps_state))
+            state["set_progress"]((percent, state["steps_state"]))
 
     def _get_column_statistics(self, columns: List[str], dataset_path: str = None, dataset_df: pd.DataFrame = None, target_not_na_col: str = None, db_metadata: dict = None) -> dict:
         """Estrae statistiche per un set di colonne per gli agenti LLM."""
@@ -758,7 +767,7 @@ class GraphOrchestratorAgent(BaseAgent):
         return categorical_values
 
     def _analyze_request(self, state: GraphState) -> GraphState:
-        self._update_progress(state, 1, "Analisi priorità in corso...")
+        self._update_progress(state, "ranking_init", "Agente di Analisi & Priorità in ascolto...")
         query = state["query"]
         logger.info(f"Starting analysis for query: {query}")
 
@@ -801,8 +810,8 @@ class GraphOrchestratorAgent(BaseAgent):
         duration_ms = (time.time() - start_time) * 1000
         state["ranking_result"] = ranking_result
         self._log_execution(state, "ranking-agent", ranking_result, duration_ms)
+        self._update_progress(state, "ranking_init", "", status="done")
         
-        # Get active agents from ranking result
         active_agents = []
         if ranking_result and ranking_result.ranking:
             active_agents = ranking_result.ranking.ranking
@@ -811,6 +820,36 @@ class GraphOrchestratorAgent(BaseAgent):
              active_agents = ["location", "normative", "ape", "typology", "poi"]
         
         logger.info(f"Active agents from ranking: {active_agents}")
+
+        # 1.5 Dynamically update step_definitions to match active agents
+        labels_map = {step["key"]: step["label"] for step in state["step_definitions"]}
+        new_steps = []
+        
+        # Always include ranking_init
+        if "ranking_init" in labels_map:
+            new_steps.append({"key": "ranking_init", "label": labels_map["ranking_init"]})
+            
+        # Add active parallel agents
+        for agent_key in active_agents:
+            if agent_key in labels_map and agent_key not in ["ranking_init", "sql", "ranking", "evaluation", "broker", "finalize", "complete"]:
+                new_steps.append({"key": agent_key, "label": labels_map[agent_key]})
+        
+        # Add the remaining fixed steps
+        fixed_after = ["sql", "ranking", "evaluation", "broker"]
+        for k in fixed_after:
+            if k in labels_map:
+                new_steps.append({"key": k, "label": labels_map[k]})
+                
+        state["step_definitions"] = new_steps
+        
+        # Re-initialize steps_state
+        new_steps_state = []
+        for step in new_steps:
+            s = "done" if step["key"] == "ranking_init" else "pending"
+            new_steps_state.append({"label": step["label"], "state": s, "detail": ""})
+        
+        state["steps_state"] = new_steps_state
+        self._update_progress(state, "ranking_init", "", status="done")
 
         dataset_metadata = state["dataset_metadata"]
         db_schema = state["db_schema"]
@@ -821,7 +860,7 @@ class GraphOrchestratorAgent(BaseAgent):
         # Define tasks
         def run_typology():
             start_t = time.time()
-            self._update_progress(state, 1, "Analisi tipologie in corso...")
+            self._update_progress(state, "typology", "")
             logger.info("🔧 Executing TypologyAgent")
 
             base_dataset = state.get("base_dataset")
@@ -852,7 +891,7 @@ class GraphOrchestratorAgent(BaseAgent):
 
         def run_location():
             start_t = time.time()
-            self._update_progress(state, 1, "Analisi ubicazione in corso...")
+            self._update_progress(state, "location", "")
             logger.info("📍 Executing LocationAgent")
             result = self.location_agent.run(query=query)
             loc_data = safe_extract_json(result.raw_text, schema=LocationResponse)
@@ -866,7 +905,7 @@ class GraphOrchestratorAgent(BaseAgent):
             base_dataset = state.get("base_dataset")
             dataset_path = state.get("dataset_path")
             if base_dataset is not None or dataset_path is not None:
-                self._update_progress(state, 1, "Analisi energetica APE in corso...")
+                self._update_progress(state, "ape", "")
                 logger.info("⚡ Executing ApeAgent")
                 ape_stats = self._get_ape_statistics(dataset_path=dataset_path, dataset_df=base_dataset, db_metadata=state.get("db_metadata"))
                 result = self.ape_agent.run(
@@ -882,7 +921,7 @@ class GraphOrchestratorAgent(BaseAgent):
 
         def run_poi():
             start_t = time.time()
-            self._update_progress(state, 1, "Analisi punti di interesse in corso...")
+            self._update_progress(state, "poi", "")
             logger.info("🏪 Executing PoiAgent")
             
             base_dataset = state.get("base_dataset")
@@ -906,7 +945,7 @@ class GraphOrchestratorAgent(BaseAgent):
         
         def run_normative():
             start_t = time.time()
-            self._update_progress(state, 1, "Analisi normativa in corso...")
+            self._update_progress(state, "normative", "")
             logger.info("📚 Executing NormativeAgent")
             
             base_dataset = state.get("base_dataset")
@@ -941,7 +980,8 @@ class GraphOrchestratorAgent(BaseAgent):
 
         # 3. Execute in parallel ONLY active agents
         if active_tasks:
-            self._update_progress(state, 1, f"Analisi agenti ({', '.join(active_tasks.keys())})...")
+            logger.info(f"Executing active agents in parallel: {', '.join(active_tasks.keys())}")
+            
             with ThreadPoolExecutor(max_workers=len(active_tasks)) as executor:
                 future_to_name = {executor.submit(task): name for name, task in active_tasks.items()}
                 for future in as_completed(future_to_name):
@@ -951,6 +991,11 @@ class GraphOrchestratorAgent(BaseAgent):
                         results[agent_name] = res
                         if res:
                             self._log_execution(state, f"{agent_name}-agent", res, duration)
+                            
+                        # Mark step as done
+                        if agent_name in ["typology", "location", "ape", "normative", "poi"]:
+                             self._update_progress(state, agent_name, "", status="done")
+                            
                     except Exception as e:
                         logger.error(f"Error executing {agent_name}-agent: {e}")
 
@@ -998,6 +1043,14 @@ class GraphOrchestratorAgent(BaseAgent):
                 "places": [],
             }
         state["context"].locations = places
+        
+        # If no places found after execution, remove step from UI
+        if loc_result and not places:
+             logger.info("📍 LocationAgent non ha trovato luoghi: rimuovo lo step dalla UI.")
+             state["step_definitions"] = [s for s in state["step_definitions"] if s["key"] != "location"]
+             state["steps_state"] = [s for s in state["steps_state"] if s["label"] != "Individuo una posizione geografica di ricerca..."]
+             # Force update to refresh UI
+             self._update_progress(state, "ranking_init", "", status="done")
 
         location_payload = []
         if places:
@@ -1377,7 +1430,7 @@ class GraphOrchestratorAgent(BaseAgent):
         if "sql_history" not in state or retry_count == 0:
             state["sql_history"] = []
         self._update_progress(
-            state, 2, f"Generazione SQL (tentativo {retry_count + 1})..."
+            state, "sql", ""
         )
 
         query = state["query"]
@@ -1521,7 +1574,7 @@ class GraphOrchestratorAgent(BaseAgent):
         return state
 
     def _execute_sql(self, state: GraphState) -> GraphState:
-        self._update_progress(state, 3, "Esecuzione query...")
+        self._update_progress(state, "sql", "")
         sql_query = state["sql_query"]
         dataset_path = state.get("dataset_path")
         base_dataset = state.get("base_dataset")
@@ -1588,7 +1641,7 @@ class GraphOrchestratorAgent(BaseAgent):
         Returns top results from full dataset so user always gets something.
         """
         self._update_progress(
-            state, 3, "Nessun risultato trovato. Generazione alternative..."
+            state, "sql", ""
         )
         logger.warning("Fallback activated: loading top results from full dataset")
 
@@ -1653,7 +1706,7 @@ class GraphOrchestratorAgent(BaseAgent):
         return state
 
     def _enrich_results(self, state: GraphState) -> GraphState:
-        self._update_progress(state, 4, "Arricchimento dati...")
+        self._update_progress(state, "sql", "")
         selected_data = state["selected_data"]
         sql_query = state["sql_query"]
         location_payload = state["location_payload"]
@@ -1745,7 +1798,7 @@ class GraphOrchestratorAgent(BaseAgent):
         return float(match.group(1)) if match else 5.0
 
     def _calculate_ranking_weights(self, state: GraphState) -> GraphState:
-        self._update_progress(state, 5, "Analisi pesi per ranking...")
+        self._update_progress(state, "ranking", "")
         query = state["query"]
         
         # In mock mode, use defaults or simulated weights
@@ -1785,7 +1838,7 @@ class GraphOrchestratorAgent(BaseAgent):
 
 
     def _rank_results(self, state: GraphState) -> GraphState:
-        self._update_progress(state, 5, "Ranking parallelo e pesatura...")
+        self._update_progress(state, "ranking", "")
         df = state["selected_data"]
         if df is None or df.empty:
             return state
@@ -1960,6 +2013,7 @@ class GraphOrchestratorAgent(BaseAgent):
         
         # Log this final ranking step
         self._log_execution(state, "ranking-agent", df, duration_ms, mode="ranking")
+        self._update_progress(state, "ranking", "", status="done")
 
         # Sort by total score
         df = df.sort_values(by="final_ranking_score", ascending=False)
@@ -1975,7 +2029,7 @@ class GraphOrchestratorAgent(BaseAgent):
         if USE_MOCK_RESPONSES:
             logger.info("MOCK MODE: Simulating Evaluation...")
             self._update_progress(
-                state, 6, f"Avvio valutazione qualitativa simulata..."
+                state, "evaluation", ""
             )
             time.sleep(1)
 
@@ -2003,8 +2057,8 @@ class GraphOrchestratorAgent(BaseAgent):
                         time.sleep(0.5)
                         self._update_progress(
                             state,
-                            6,
-                            f"Analisi simulata {idx+1}/{min(3, len(enriched_data))}",
+                            "evaluation",
+                            "",
                         )
 
             state["context"].evaluation_results = eval_results
@@ -2016,8 +2070,8 @@ class GraphOrchestratorAgent(BaseAgent):
 
             self._update_progress(
                 state,
-                6,
-                f"Valutazione completata: {len(eval_results)} risultati generati.",
+                "evaluation",
+                "",
             )
             return state
 
@@ -2028,8 +2082,8 @@ class GraphOrchestratorAgent(BaseAgent):
         total_items = len(eval_input_df)
         self._update_progress(
             state,
-            6,
-            f"Avvio valutazione qualitativa su {total_items} immobili candidati...",
+            "evaluation",
+            "",
         )
 
         # Evaluation one property at a time
@@ -2174,8 +2228,8 @@ class GraphOrchestratorAgent(BaseAgent):
                     # Update progress dynamically for each batch
                     self._update_progress(
                         state,
-                        6,
-                        f"Analizzando batch {finished_batches}/{total_batches} con {len(batch_results)} valutazioni...",
+                        "evaluation",
+                        "",
                     )
                     
                     self._log_execution(state, "evaluation-agent", payload, duration, mode="evaluation")
@@ -2202,12 +2256,12 @@ class GraphOrchestratorAgent(BaseAgent):
             ]
 
         self._update_progress(
-            state, 6, f"Valutazione completata: {len(all_results)} risultati generati."
+            state, "evaluation", "", status="done"
         )
         return state
 
     def _broker_review(self, state: GraphState) -> GraphState:
-        self._update_progress(state, 7, "Analisi esperta (Senior Broker)...")
+        self._update_progress(state, "broker", "")
 
         if USE_MOCK_RESPONSES:
             logger.info("MOCK MODE: Simulating Broker Review...")
@@ -2251,12 +2305,12 @@ class GraphOrchestratorAgent(BaseAgent):
 
         state["broker_summary"] = summary
         state["gemini_responses"]["broker_review"] = summary
+        self._update_progress(state, "broker", "", status="done")
         return state
 
     def _finalize_results(self, state: GraphState) -> GraphState:
         trace_len = len(state.get("agent_trace", []))
         logger.info(f"Finalizing results. Agent trace size: {trace_len}")
-        self._update_progress(state, 8, "Finalizzazione...")
 
         if state["selected_data"].empty:
             state["status_msg"] = (
@@ -2284,7 +2338,7 @@ class GraphOrchestratorAgent(BaseAgent):
             state["context"].filtered_dataset_preview = []
             state["gemini_responses"]["agent_context"] = state["context"].model_dump()
             state["gemini_responses"]["agent_context"] = state["context"].model_dump()
-            self._update_progress(state, 9, "Completato (Nessun risultato filtrato).")
+            self._update_progress(state, "complete", "")
             return state
 
         # Dati arricchiti dal percorso agente (solo subset selezionato dalla query)
@@ -2454,7 +2508,6 @@ class GraphOrchestratorAgent(BaseAgent):
 
         state["selected_data"] = map_df  # Risultato finale per la mappa
         state["gemini_responses"]["agent_context"] = state["context"].model_dump()
-        self._update_progress(state, 9, "Completato.")
         return state
 
     # ------------------------------------------------------------------

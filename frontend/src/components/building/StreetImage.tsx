@@ -179,14 +179,14 @@ export const StreetImage: React.FC<StreetImageProps> = ({ lat, lng, buildingId, 
         <div className={`relative ${className}`}>
             <img
                 src={imageUrl}
-                alt="Street view"
+                alt="Vista stradale"
                 className="w-full h-full object-cover"
                 onError={() => setHasError(true)}
             />
             {/* Image type indicator */}
             <div className="absolute bottom-1 right-1 flex items-center gap-1 bg-black/70 backdrop-blur-sm text-[9px] text-gray-200 px-1.5 py-0.5 rounded">
                 <MapPin className="w-2.5 h-2.5" />
-                {imageType === 'mapillary' ? 'Street View' : 'Satellite'}
+                {imageType === 'mapillary' ? 'Vista Stradale' : 'Satellite'}
             </div>
         </div>
     );

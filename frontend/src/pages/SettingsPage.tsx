@@ -221,7 +221,7 @@ export const SettingsPage: React.FC = () => {
                                                     {provider.label}
                                                     {provider.comingSoon && (
                                                         <span className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-gray-500/20 text-gray-500 font-semibold">
-                                                            Coming Soon
+                                                            Prossimamente
                                                         </span>
                                                     )}
                                                 </div>
@@ -238,7 +238,7 @@ export const SettingsPage: React.FC = () => {
 
                         {/* LLM Limit Slider */}
                         <SliderField
-                            label="Deep Analysis Batch Size"
+                            label="Analisi Profonda (Batch)"
                             value={llmLimit}
                             min={5}
                             max={50}
@@ -371,7 +371,7 @@ export const SettingsPage: React.FC = () => {
                             <div className="flex items-center justify-between mb-2">
                                 <div className="flex items-center gap-2">
                                     <Layers className="w-3.5 h-3.5 text-gray-500" />
-                                    <label className="text-sm text-gray-300">Viewport Object Limit</label>
+                                    <label className="text-sm text-gray-300">Limite Oggetti Visualizzati</label>
                                 </div>
                                 <span className="text-xs text-cyan-400 font-mono bg-cyan-500/10 px-2 py-0.5 rounded">
                                     {markersLimit.toLocaleString()}

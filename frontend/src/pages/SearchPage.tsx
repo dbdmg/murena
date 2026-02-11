@@ -150,7 +150,7 @@ export const SearchPage: React.FC = () => {
                     <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/20">
                         <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                         <span className="text-xs font-medium text-emerald-400 tracking-wider uppercase">
-                            Neural Engine Ready
+                            Motore Neurale Pronto
                         </span>
                     </div>
                 </motion.div>
@@ -163,10 +163,10 @@ export const SearchPage: React.FC = () => {
                     className="text-center mb-16"
                 >
                     <h1 className="text-4xl md:text-5xl font-bold text-white mb-3">
-                        Real Estate Intelligence
+                        Intelligence Immobiliare
                     </h1>
                     <h2 className="text-4xl md:text-5xl font-bold bg-linear-to-r from-blue-400 via-cyan-400 to-blue-500 bg-clip-text text-transparent pb-2">
-                        Powered by Agentic AI
+                        Potenziato da AI Agenti
                     </h2>
                 </motion.div>
 
@@ -199,7 +199,7 @@ export const SearchPage: React.FC = () => {
                                 onFocus={() => setIsFocused(true)}
                                 onBlur={() => setIsFocused(false)}
                                 onKeyDown={handleKeyDown}
-                                placeholder="Describe what you're looking for..."
+                                placeholder="Descrivi cosa stai cercando..."
                                 rows={1}
                                 className="
                                     flex-1 bg-transparent text-white placeholder-gray-500
@@ -230,11 +230,11 @@ export const SearchPage: React.FC = () => {
                                     {isLoading ? (
                                         <>
                                             <Loader2 className="w-4 h-4 animate-spin" />
-                                            <span>Starting...</span>
+                                            <span>Avvio...</span>
                                         </>
                                     ) : (
                                         <>
-                                            <span>Initialize</span>
+                                            <span>Inizializza</span>
                                             <ArrowRight className="w-4 h-4" />
                                         </>
                                     )}
@@ -257,7 +257,7 @@ export const SearchPage: React.FC = () => {
                                 <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
                             </span>
                             <span className="text-xs font-medium text-cyan-300 tracking-wide">
-                                Demo Mode Active <span className="text-cyan-500/70 mx-1">|</span> Using pre-computed results (no token usage)
+                                Modalità Demo Attiva <span className="text-cyan-500/70 mx-1">|</span> Utilizzo risultati pre-calcolati (nessun consumo token)
                             </span>
                         </div>
                     </motion.div>
@@ -281,7 +281,7 @@ export const SearchPage: React.FC = () => {
                         ) : (
                             <ToggleLeft className="w-4 h-4" />
                         )}
-                        <span>Demo Mode</span>
+                        <span>Modalità Demo</span>
                     </button>
                 </div>
 
@@ -292,7 +292,7 @@ export const SearchPage: React.FC = () => {
                     transition={{ delay: 0.4 }}
                     className="flex flex-wrap items-center justify-center gap-3 mb-16"
                 >
-                    <span className="text-sm text-gray-500">Suggested:</span>
+                    <span className="text-sm text-gray-500">Suggeriti:</span>
                     {SUGGESTED_QUERIES.map((suggestion, i) => (
                         <button
                             key={i}
@@ -312,9 +312,9 @@ export const SearchPage: React.FC = () => {
                 >
                     <div className="flex items-center gap-2 mb-4">
                         <Clock className="w-4 h-4 text-gray-500" />
-                        <h3 className="text-sm font-medium text-gray-400">Recent Insights</h3>
+                        <h3 className="text-sm font-medium text-gray-400">Approfondimenti Recenti</h3>
                         <span className="text-xs text-gray-600">
-                            {recentHistory.length > 0 && `${recentHistory.length} completed`}
+                            {recentHistory.length > 0 && `${recentHistory.length} completati`}
                         </span>
                     </div>
 
@@ -324,7 +324,7 @@ export const SearchPage: React.FC = () => {
                         </div>
                     ) : recentHistory.length === 0 ? (
                         <div className="text-center py-8 text-gray-500 text-sm">
-                            No completed analyses yet. Start your first search above!
+                            Nessuna analisi completata. Inizia la tua prima ricerca sopra!
                         </div>
                     ) : (
                         <div className="grid gap-3">
@@ -347,7 +347,7 @@ export const SearchPage: React.FC = () => {
                                             <div className="flex items-center gap-2 mb-1.5">
                                                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                                                     <CheckCircle2 className="w-3 h-3" />
-                                                    COMPLETED
+                                                    COMPLETATO
                                                 </span>
                                                 <span className="text-xs text-gray-500">
                                                     {new Date(item.created_at).toLocaleDateString('it-IT', {
@@ -374,7 +374,7 @@ export const SearchPage: React.FC = () => {
                                             {item.buildings_count !== undefined && (
                                                 <div className="flex items-center gap-1 mt-1 text-xs text-gray-500">
                                                     <Building2 className="w-3 h-3" />
-                                                    <span>{item.buildings_count} properties found</span>
+                                                    <span>{item.buildings_count} immobili trovati</span>
                                                 </div>
                                             )}
                                         </div>

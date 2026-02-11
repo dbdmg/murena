@@ -30,10 +30,10 @@ interface AppLayoutProps {
 
 // Navigation items - About is handled separately as it opens a modal
 const navItems = [
-    { label: 'Home', path: '/', icon: Home, description: 'Search & Command Center' },
-    { label: 'Map', path: '/map', icon: MapIcon, description: 'Property Intelligence' },
-    { label: 'History', path: '/history', icon: History, description: 'Past Analyses' },
-    { label: 'Settings', path: '/settings', icon: Settings, description: 'Configuration' },
+    { label: 'Home', path: '/', icon: Home, description: 'Centro di Ricerca e Comando' },
+    { label: 'Mappa', path: '/map', icon: MapIcon, description: 'Intelligence Immobiliare' },
+    { label: 'Cronologia', path: '/history', icon: History, description: 'Analisi Passate' },
+    { label: 'Impostazioni', path: '/settings', icon: Settings, description: 'Configurazione' },
 ];
 
 export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
@@ -73,10 +73,10 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
                                     transition={{ duration: 0.15 }}
                                     className="overflow-hidden"
                                 >
-                                    <h1 className="font-bold text-sm text-white whitespace-nowrap">Command Center</h1>
+                                    <h1 className="font-bold text-sm text-white whitespace-nowrap">Centro di Comando</h1>
                                     <div className="flex items-center gap-1.5">
                                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                                        <span className="text-[10px] text-gray-500 whitespace-nowrap">System Online</span>
+                                        <span className="text-[10px] text-gray-500 whitespace-nowrap">Sistema Online</span>
                                     </div>
                                 </motion.div>
                             )}
@@ -165,7 +165,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
                                     transition={{ duration: 0.15 }}
                                     className="flex-1 overflow-hidden text-left"
                                 >
-                                    <span className="text-sm font-medium block whitespace-nowrap">About</span>
+                                    <span className="text-sm font-medium block whitespace-nowrap">Informazioni</span>
                                 </motion.div>
                             )}
                         </AnimatePresence>
@@ -173,7 +173,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
                         {/* Hover tooltip when collapsed */}
                         {!isExpanded && (
                             <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-xs text-white rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50">
-                                About
+                                Informazioni
                             </div>
                         )}
                     </button>
@@ -199,7 +199,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
                                     className="flex-1 min-w-0 overflow-hidden"
                                 >
                                     <p className="text-sm font-medium text-white truncate">{user?.username}</p>
-                                    <p className="text-[10px] text-gray-500">Administrator</p>
+                                    <p className="text-[10px] text-gray-500">Amministratore</p>
                                 </motion.div>
                             )}
                         </AnimatePresence>
@@ -213,7 +213,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
                                     transition={{ duration: 0.15 }}
                                     onClick={logout}
                                     className="p-1.5 rounded-lg hover:bg-red-500/20 hover:text-red-400 text-gray-500 transition-colors"
-                                    title="Sign Out"
+                                    title="Disconnetti"
                                 >
                                     <LogOut className="w-4 h-4" />
                                 </motion.button>

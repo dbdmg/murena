@@ -113,7 +113,11 @@ class RankingAgent(BaseAgent):
             )
 
             return RankingAgentResult(
-                raw_text=json.dumps({"ranking": ordered_agents, "weights": weights.model_dump()}, ensure_ascii=False),
+                raw_text=json.dumps({
+                    "ranking": ordered_agents, 
+                    "weights": weights.model_dump(),
+                    "reasoning": ranking_data.reasoning
+                }, ensure_ascii=False),
                 weights=weights,
                 ranking=ranking_data,
                 prompt=PromptRecord(

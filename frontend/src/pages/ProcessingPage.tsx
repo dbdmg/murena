@@ -131,13 +131,19 @@ export const ProcessingPage: React.FC = () => {
 
 
     // Determine which steps to show: Structured from backend OR Fallback from logs
-    const displaySteps: ProgressStep[] = progress.steps && progress.steps.length > 0
+    const displaySteps: ProgressStep[] = (progress.steps && progress.steps.length > 0
         ? progress.steps
         : logs.map(l => ({
             label: l.message,
             state: l.status === 'processing' ? 'current' : l.status,
             detail: l.detail
-        } as ProgressStep));
+        } as ProgressStep)))
+        .filter(s => s.state !== 'pending')
+        .sort((a, b) => {
+            if (a.state === 'current' && b.state !== 'current') return 1;
+            if (a.state !== 'current' && b.state === 'current') return -1;
+            return 0;
+        });
 
     const handleViewResults = () => {
         navigate(`/map?run_id=${runId}`);
@@ -154,10 +160,17 @@ export const ProcessingPage: React.FC = () => {
                     <div>
                         <div className="flex items-center gap-2 text-sm text-blue-400 font-medium mb-2">
                             <Zap className="w-4 h-4" />
-                            <span>AI Research Session</span>
+                            <span>Sessione di ricerca AI</span>
                         </div>
-                        <h1 className="text-3xl font-semibold text-white tracking-tight">
-                            {isComplete ? 'Analysis Completed' : 'Processing Request...'}
+                        <h1 className="text-3xl font-semibold text-white tracking-tight flex items-center gap-3">
+                            {isComplete ? (
+                                'Analisi Completata'
+                            ) : (
+                                <>
+                                    <span>Elaborazione richiesta...</span>
+                                    <Loader2 className="w-6 h-6 animate-spin text-blue-500/80" />
+                                </>
+                            )}
                         </h1>
                     </div>
                     {results?.location?.[0] && (
@@ -175,18 +188,7 @@ export const ProcessingPage: React.FC = () => {
 
                     <div className="space-y-8">
                         <AnimatePresence mode="popLayout">
-                            {displaySteps.length === 0 && !isComplete && (
-                                <motion.div
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    className="flex items-center gap-6"
-                                >
-                                    <div className="relative z-10 w-12 h-12 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-400 flex items-center justify-center">
-                                        <Loader2 className="w-6 h-6 animate-spin" />
-                                    </div>
-                                    <span className="text-gray-400 animate-pulse text-lg">Initializing agents...</span>
-                                </motion.div>
-                            )}
+
 
                             {displaySteps.map((step, index) => {
                                 const isCurrent = step.state === 'current';
@@ -266,7 +268,7 @@ export const ProcessingPage: React.FC = () => {
                                 <div className="p-3 bg-emerald-500/10 rounded-2xl border border-emerald-500/20">
                                     <Sparkles className="w-6 h-6 text-emerald-400" />
                                 </div>
-                                <h3 className="text-xl font-semibold text-white">Agent Executive Summary</h3>
+                                <h3 className="text-xl font-semibold text-white">Sintesi Esecutiva dell'Agente</h3>
                             </div>
 
                             <div className="prose prose-invert prose-lg max-w-none text-gray-300 relative z-10">
@@ -284,7 +286,7 @@ export const ProcessingPage: React.FC = () => {
                         transition={{ delay: 0.5 }}
                         className="mt-8 text-center text-gray-500 text-sm"
                     >
-                        Found {buildingsFound} properties matching criteria
+                        Trovati {buildingsFound} immobili corrispondenti ai criteri
                     </motion.div>
                 )}
             </div>
@@ -292,28 +294,30 @@ export const ProcessingPage: React.FC = () => {
             {/* Bottom Floating Action Bar */}
             <div className="fixed bottom-0 left-0 w-full p-6 md:p-8 bg-gradient-to-t from-[#0a0d12] via-[#0a0d12]/95 to-transparent flex items-center justify-center gap-4 z-50 pointer-events-none">
                 <div className="pointer-events-auto flex items-center gap-3 bg-[#12141a]/80 backdrop-blur-xl p-2 rounded-2xl border border-white/10 shadow-2xl">
-                    <button
-                        onClick={() => navigate('/')}
-                        className="px-6 py-3 rounded-xl hover:bg-white/5 text-gray-400 hover:text-white transition-all font-medium flex items-center gap-2"
-                    >
-                        <FileText className="w-4 h-4" />
-                        <span>New Query</span>
-                    </button>
-
                     {isComplete ? (
-                        <button
-                            onClick={handleViewResults}
-                            className="px-8 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 transition-all font-medium flex items-center gap-2"
-                        >
-                            <span>View Interactive Map</span>
-                            <ArrowRight className="w-4 h-4" />
-                        </button>
+                        <>
+                            <button
+                                onClick={() => navigate('/')}
+                                className="px-6 py-3 rounded-xl hover:bg-white/5 text-gray-400 hover:text-white transition-all font-medium flex items-center gap-2"
+                            >
+                                <FileText className="w-4 h-4" />
+                                <span>Nuova ricerca</span>
+                            </button>
+                            <button
+                                onClick={handleViewResults}
+                                className="px-8 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 transition-all font-medium flex items-center gap-2"
+                            >
+                                <span>Visualizza mappa interattiva</span>
+                                <ArrowRight className="w-4 h-4" />
+                            </button>
+                        </>
                     ) : (
                         <button
+                            onClick={() => navigate('/')}
                             className="px-6 py-3 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 transition-colors font-medium flex items-center gap-2"
                         >
                             <StopCircle className="w-4 h-4" />
-                            <span>Stop Analysis</span>
+                            <span>Interrompi analisi</span>
                         </button>
                     )}
                 </div>

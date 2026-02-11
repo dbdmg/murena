@@ -334,7 +334,11 @@ export const RunDetailModal: React.FC<RunDetailModalProps> = ({
                                                 <CheckCircle2 className={`w-4 h-4 ${results.status === 'completed' ? 'text-emerald-400' :
                                                     results.status === 'failed' ? 'text-red-400' : 'text-cyan-400'
                                                     }`} />
-                                                <span className="text-sm text-white capitalize">{results.status}</span>
+                                                <span className="text-sm text-white">
+                                                    {results.status === 'completed' ? 'Completato' :
+                                                        results.status === 'failed' ? 'Fallito' :
+                                                            results.status === 'processing' ? 'In corso' : results.status}
+                                                </span>
                                             </div>
                                         </div>
                                         <div className="bg-white/5 rounded-xl p-4 border border-white/5">

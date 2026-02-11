@@ -206,7 +206,7 @@ const TriggerButton: React.FC<{ isOpen: boolean; onClick: () => void }> = ({ isO
                         }
                     `}
                 >
-                    <span className="font-medium">Inspector</span>
+                    <span className="font-medium">Ispettore</span>
                 </button>
             </div>
         </div>
@@ -364,7 +364,7 @@ export const SQLFiltersHUD: React.FC<SQLFiltersHUDProps> = ({
                                         <SearchCode className="w-6 h-6 text-white" />
                                     </div>
                                     <div>
-                                        <h2 className="text-xl font-bold text-white">Logic Inspector</h2>
+                                        <h2 className="text-xl font-bold text-white">Ispettore Logico</h2>
                                         <p className="text-sm text-gray-500 italic">Analisi granulare dei parametri di ricerca applicati</p>
                                     </div>
                                 </div>

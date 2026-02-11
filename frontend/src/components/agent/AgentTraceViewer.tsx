@@ -377,7 +377,7 @@ export const AgentTraceViewer: React.FC<AgentTraceViewerProps> = ({ trace, class
                                 <span className="px-1.5 py-0.5 rounded bg-white/5 text-[10px] text-slate-500 font-mono">v1.2</span>
                             </h2>
                             <p className="text-[10px] text-slate-500 font-mono flex items-center gap-4 mt-0.5">
-                                <span className="flex items-center gap-1.5"><Hash size={10} className="text-cyan-600" /> {trace.length} Opérations</span>
+                                <span className="flex items-center gap-1.5"><Hash size={10} className="text-cyan-600" /> {trace.length} Operazioni</span>
                                 <span className="flex items-center gap-1.5"><Type size={10} className="text-emerald-600" /> {JSON.stringify(trace).length.toLocaleString()} byte JSON</span>
                             </p>
                         </div>
@@ -391,7 +391,7 @@ export const AgentTraceViewer: React.FC<AgentTraceViewerProps> = ({ trace, class
                                 viewMode === 'tree' ? "bg-cyan-500 text-black shadow-lg shadow-cyan-500/20" : "text-slate-500 hover:text-white"
                             )}
                         >
-                            <List size={14} /> Tree
+                            <List size={14} /> Albero
                         </button>
                         <button
                             onClick={() => setViewMode('table')}
@@ -400,7 +400,7 @@ export const AgentTraceViewer: React.FC<AgentTraceViewerProps> = ({ trace, class
                                 viewMode === 'table' ? "bg-cyan-500 text-black shadow-lg shadow-cyan-500/20" : "text-slate-500 hover:text-white"
                             )}
                         >
-                            <TableIcon size={14} /> Table
+                            <TableIcon size={14} /> Tabella
                         </button>
                     </div>
                 </div>
@@ -415,9 +415,9 @@ export const AgentTraceViewer: React.FC<AgentTraceViewerProps> = ({ trace, class
                     </div>
                     <div className="flex items-center gap-2 text-[10px] opacity-0 group-hover/path:opacity-100 transition-opacity">
                         {isCopied ? (
-                            <span className="text-emerald-500 flex items-center gap-1 font-bold"><Check size={10} /> Copied!</span>
+                            <span className="text-emerald-500 flex items-center gap-1 font-bold"><Check size={10} /> Copiato!</span>
                         ) : (
-                            <span className="text-slate-600 uppercase">Click to copy path</span>
+                            <span className="text-slate-600 uppercase">Clicca per copiare il percorso</span>
                         )}
                     </div>
                 </div>
@@ -466,7 +466,7 @@ export const AgentTraceViewer: React.FC<AgentTraceViewerProps> = ({ trace, class
                             <Box className="w-4 h-4 text-orange-400" />
                         </div>
                         <div>
-                            <div className="text-[10px] text-slate-600 uppercase font-black tracking-widest leading-none">Selected Inspection</div>
+                            <div className="text-[10px] text-slate-600 uppercase font-black tracking-widest leading-none">Ispezione Selezionata</div>
                             <div className="text-xs text-white/80 font-mono mt-1 font-bold">
                                 {selectedPathArr[selectedPathArr.length - 1]}
                             </div>
@@ -492,7 +492,7 @@ export const AgentTraceViewer: React.FC<AgentTraceViewerProps> = ({ trace, class
                         }}
                         className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-xs font-bold text-slate-300 hover:text-white hover:bg-white/10 transition-all"
                     >
-                        <Copy size={14} /> Copy Value
+                        <Copy size={14} /> Copia Valore
                     </button>
                 </div>
             )}

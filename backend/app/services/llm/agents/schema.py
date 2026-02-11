@@ -111,6 +111,9 @@ class RankingRanking(BaseModel):
         default_factory=lambda: ["location", "typology", "poi", "ape", "normative"],
         description="Lista ordinata degli agenti per importanza"
     )
+    reasoning: Optional[str] = Field(
+        None, description="Motivazione sintetica della scelta degli agenti e delle loro priorità"
+    )
 
 class RankingAgentResult(AgentResult): 
     weights: RankingWeights = Field(default_factory=RankingWeights)
