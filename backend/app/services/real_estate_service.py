@@ -85,6 +85,85 @@ class RealEstateService:
 
         return buildings, total_count
 
+    async def get_markers_lite(
+        self,
+        limit: int = 1000,
+        dataset_key: str = "full",
+        filters: Optional[BuildingFilters] = None,
+    ) -> List[Dict]:
+        """
+        Get lightweight markers using vectorized Pandas operations.
+        Returns list of dicts directly for maximum performance.
+        """
+        # Load dataset (async wrapper)
+        df = await asyncio.to_thread(self._load_dataset, dataset_key)
+
+        if df is None or df.empty:
+            return []
+
+        # Apply filters if provided
+        if filters:
+            df = self._apply_filters(df, filters)
+
+        # Apply limit
+        if limit > 0:
+            df = df.head(limit)
+
+        # Vectorized mapping for performance
+        # Select only needed columns and rename them to match MapMarkerLite schema
+        # We use a mapping dict: {new_name: [list of possible old names]}
+        
+        column_mapping = {
+            "id": ["id"],
+            "lat": ["lat", "latitude", "coordinata_y", "latitudine"],
+            "lng": ["lon", "longitude", "coordinata_x", "longitudine"],
+            "price": ["price", "canone_annuale"],
+            "surface": ["surface_area", "superficie_di_riferimento_mq", "superficie"],
+            "energy_class": ["energy_class", "classe_energetica_ape", "classe_energetica"],
+            "year": ["construction_year", "epoca_costruzione"],
+            "type": ["property_type", "tipologia_bene_immobile", "tipologia_edilizia_str"],
+            "usage": ["description", "utilizzo_del_bene"],
+            "is_meta": ["meta_immobile", "meta_building"]
+        }
+
+        # Create a new DataFrame with mapped columns
+        lite_df = pd.DataFrame(index=df.index)
+        
+        for new_col, candidates in column_mapping.items():
+            # Find first available candidate column
+            source_col = next((c for c in candidates if c in df.columns), None)
+            if source_col:
+                lite_df[new_col] = df[source_col]
+            else:
+                # Fill with None/NaN if not found
+                lite_df[new_col] = None
+
+        # Handle type conversions safely
+        # Ensure lat/lng are floats
+        lite_df["lat"] = pd.to_numeric(lite_df["lat"], errors="coerce")
+        lite_df["lng"] = pd.to_numeric(lite_df["lng"], errors="coerce")
+        
+        # Drop rows with invalid coordinates
+        lite_df = lite_df.dropna(subset=["lat", "lng"])
+
+        # Numeric fields
+        lite_df["price"] = pd.to_numeric(lite_df["price"], errors="coerce")
+        lite_df["surface"] = pd.to_numeric(lite_df["surface"], errors="coerce")
+        
+        # Boolean fields (handle string 'True'/'False' if necessary)
+        # Using a vectorized approach for string->bool if column is object/string
+        if "is_meta" in lite_df.columns and lite_df["is_meta"].dtype == "object":
+             lite_df["is_meta"] = lite_df["is_meta"].astype(str).str.lower() == "true"
+        elif "is_meta" in lite_df.columns:
+             lite_df["is_meta"] = lite_df["is_meta"].fillna(False).astype(bool)
+
+        # Add static tier
+        lite_df["tier"] = 1
+
+        # Convert to list of dicts - fastest serialization path
+        # replace NaN with None for valid JSON
+        return lite_df.replace({np.nan: None}).to_dict(orient="records")
+
     async def get_building_by_id(
         self, building_id: str, dataset_key: str = "full"
     ) -> Optional[BuildingResponse]:

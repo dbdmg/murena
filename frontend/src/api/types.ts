@@ -35,6 +35,20 @@ export interface LatLng {
 // Tier enum for Intelligence Map
 export type MarkerTier = 1 | 2 | 3;
 
+export interface MapMarkerLite {
+    id: string;
+    lat: number;
+    lng: number;
+    tier: number;
+    price?: number;
+    surface?: number;
+    energy_class?: string;
+    year?: string;
+    type?: string;
+    usage?: string;
+    is_meta?: boolean;
+}
+
 export interface MapMarker {
     id: string;
     lat: number;
@@ -65,6 +79,7 @@ export interface MapMarker {
         surface_area?: number;
         property_type?: string;
     }[];
+    // Extended property info
     // Extended property info
     property_type?: string;
     legal_nature?: string;
