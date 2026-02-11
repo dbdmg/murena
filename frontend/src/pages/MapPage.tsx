@@ -11,6 +11,9 @@ import { MapLegend } from '../components/map/MapLegend';
 import { AgentRefinementHUD } from '../components/agent/AgentRefinementHUD';
 import { SQLFiltersHUD } from '../components/agent/SQLFiltersHUD';
 import { ResultsSidebar } from '../components/map/ResultsSidebar';
+import { FeedbackPanel } from '../components/agent/FeedbackPanel';
+import { feedbackApi } from '../api/endpoints/feedback';
+import type { AgentFeedbackResponse } from '../api/types';
 
 import { mapApi } from '../api/endpoints/map';
 import { layersApi } from '../api/endpoints/layers';
@@ -66,6 +69,42 @@ export const MapPage: React.FC = () => {
 
     // Results list sidebar state
     const [isListSidebarOpen, setIsListSidebarOpen] = useState(false);
+
+    // Run feedback state
+    const [runFeedbacks, setRunFeedbacks] = useState<AgentFeedbackResponse[]>([]);
+
+    const globalFeedback = useMemo(() =>
+        runFeedbacks.find(f => !f.agent_name && !f.building_id),
+        [runFeedbacks]
+    );
+
+    const buildingRatings = useMemo(() => {
+        const mapping: Record<string, number> = {};
+        runFeedbacks.forEach(f => {
+            if (f.building_id) {
+                mapping[f.building_id] = f.rating;
+            }
+        });
+        return mapping;
+    }, [runFeedbacks]);
+
+    // Fetch all feedback when activeRunId changes
+    const fetchRunFeedback = useCallback(async () => {
+        if (activeRunId) {
+            try {
+                const feedbacks = await feedbackApi.getAllRunFeedback(activeRunId);
+                setRunFeedbacks(feedbacks);
+            } catch (err) {
+                console.error("Failed to fetch run feedback:", err);
+            }
+        } else {
+            setRunFeedbacks([]);
+        }
+    }, [activeRunId]);
+
+    useEffect(() => {
+        fetchRunFeedback();
+    }, [fetchRunFeedback]);
 
     // Filter markers based on Intelligence Map filters
     const filteredMarkers = useMemo(() => {
@@ -372,13 +411,15 @@ export const MapPage: React.FC = () => {
 
                 {/* Row 2: Run Selector & Stats */}
                 <div className="flex items-center gap-2">
-                    <MapRunSelector
-                        history={history}
-                        activeRunId={activeRunId}
-                        isLoading={isLoadingRun}
-                        onSelectRun={handleSelectRun}
-                        onClearResults={handleClearResults}
-                    />
+                    <div className="flex items-center gap-1.5">
+                        <MapRunSelector
+                            history={history}
+                            activeRunId={activeRunId}
+                            isLoading={isLoadingRun}
+                            onSelectRun={handleSelectRun}
+                            onClearResults={handleClearResults}
+                        />
+                    </div>
 
                     {/* Stats Badge */}
                     <div className="bg-slate-900/80 backdrop-blur-xl border border-white/10 rounded-2xl px-4 py-2.5 flex items-center gap-4 shadow-xl shadow-black/40">
@@ -422,6 +463,18 @@ export const MapPage: React.FC = () => {
                             </>
                         )}
                     </div>
+
+                    {activeRunId && (
+                        <FeedbackPanel
+                            runId={activeRunId}
+                            align="right"
+                            existingFeedback={globalFeedback ? {
+                                rating: globalFeedback.rating,
+                                comment: globalFeedback.comment
+                            } : undefined}
+                            onSubmitSuccess={fetchRunFeedback}
+                        />
+                    )}
                 </div>
             </div>
 
@@ -439,6 +492,7 @@ export const MapPage: React.FC = () => {
                     setCarouselSelectedId(marker.id);
                 }}
                 hasActiveRun={!!activeRunId}
+                buildingRatings={buildingRatings}
             />
 
             <div className={`flex-1 relative rounded-xl overflow-hidden shadow-2xl border border-white/5 m-4 mt-1 ${hasTopPicks ? 'mb-36' : ''}`} style={{ marginLeft: isListSidebarOpen ? '320px' : '0', transition: 'margin-left 0.3s ease' }}>
@@ -453,6 +507,7 @@ export const MapPage: React.FC = () => {
                     focusMarkerId={focusMarkerId}
                     hoveredMarkerId={hoveredMarkerId}
                     searchLocation={searchLocation}
+                    buildingRatings={buildingRatings}
                     onMarkerClick={handleMarkerClick}
                     onClusterClick={handleClusterClick}
                 />
@@ -471,6 +526,7 @@ export const MapPage: React.FC = () => {
                         onCardClick={handleCarouselCardClick}
                         onCardHover={handleCarouselHover}
                         sidebarOpen={isSidebarOpen}
+                        buildingRatings={buildingRatings}
                     />
                 </div>
             )}
@@ -480,6 +536,8 @@ export const MapPage: React.FC = () => {
                 isOpen={isSidebarOpen}
                 onClose={() => setIsSidebarOpen(false)}
                 selectedBuildings={selectedBuildings}
+                runId={activeRunId}
+                onFeedbackSuccess={fetchRunFeedback}
             />
         </div>
     );

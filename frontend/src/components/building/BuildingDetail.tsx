@@ -6,7 +6,9 @@ import { APEDetailModal } from './APEDetailModal';
 import { AIEvaluationCard } from './AIEvaluationCard';
 import { StreetImage } from './StreetImage';
 import client from '../../api/client';
-import type { MarkerTier } from '../../api/types';
+import type { MarkerTier, AgentFeedbackResponse } from '../../api/types';
+import { FeedbackPanel } from '../agent/FeedbackPanel';
+import { feedbackApi } from '../../api/endpoints/feedback';
 
 // Interface matching the data structure from MapMarker/Backend
 interface BuildingData {
@@ -71,6 +73,8 @@ interface BuildingData {
 
 interface BuildingDetailProps {
     data: BuildingData;
+    runId?: string;
+    onFeedbackSuccess?: () => void;
 }
 
 // APE file info cache type
@@ -205,9 +209,28 @@ const ApeFilesList: React.FC<{ files: string[]; onFileClick: (file: string) => v
 };
 
 
-export const BuildingDetail: React.FC<BuildingDetailProps> = ({ data }) => {
+export const BuildingDetail: React.FC<BuildingDetailProps> = ({ data, runId, onFeedbackSuccess }) => {
     const details = data;
     const [selectedApeFile, setSelectedApeFile] = useState<string | null>(null);
+    const [existingFeedback, setExistingFeedback] = useState<AgentFeedbackResponse | undefined>(undefined);
+
+    // Fetch existing feedback when building or run changes
+    useEffect(() => {
+        if (runId && details.id) {
+            feedbackApi.getBuildingFeedback(runId, details.id)
+                .then(feedbacks => {
+                    if (feedbacks && feedbacks.length > 0) {
+                        // Use the most recent feedback
+                        setExistingFeedback(feedbacks[0]);
+                    } else {
+                        setExistingFeedback(undefined);
+                    }
+                })
+                .catch(err => console.error("Error loading building feedback:", err));
+        } else {
+            setExistingFeedback(undefined);
+        }
+    }, [runId, details.id]);
 
     // POI Radar data (6 metrics)
     const poiRadarData = useMemo(() => {
@@ -373,6 +396,31 @@ export const BuildingDetail: React.FC<BuildingDetailProps> = ({ data }) => {
                     <MapPin className="w-4 h-4" />
                     Apri in Google Maps
                 </a >
+            )}
+
+            {/* User Feedback/Rating */}
+            {runId && (
+                <div className="flex justify-end">
+                    <FeedbackPanel
+                        runId={runId}
+                        buildingId={details.id}
+                        align="right"
+                        existingFeedback={existingFeedback ? {
+                            rating: existingFeedback.rating,
+                            comment: existingFeedback.comment
+                        } : undefined}
+                        onSubmitSuccess={() => {
+                            // Refresh feedback to update UI state if needed
+                            if (runId && details.id) {
+                                feedbackApi.getBuildingFeedback(runId, details.id)
+                                    .then(feedbacks => {
+                                        if (feedbacks && feedbacks.length > 0) setExistingFeedback(feedbacks[0]);
+                                    });
+                            }
+                            onFeedbackSuccess?.();
+                        }}
+                    />
+                </div>
             )}
 
             {/* AI Evaluation Card - Show prominently for evaluated buildings */}

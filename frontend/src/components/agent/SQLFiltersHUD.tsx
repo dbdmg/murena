@@ -229,7 +229,6 @@ export const SQLFiltersHUD: React.FC<SQLFiltersHUDProps> = ({
     const [error, setError] = useState<string | null>(null);
     const [viewMode, setViewMode] = useState<'sql' | 'trace'>('sql');
     const [agentTrace, setAgentTrace] = useState<AgentTraceItem[] | null>(null);
-    const [initialQuery, setInitialQuery] = useState<string>('');
     const [isLoadingTrace, setIsLoadingTrace] = useState(false);
 
     // Load SQL steps
@@ -292,36 +291,36 @@ export const SQLFiltersHUD: React.FC<SQLFiltersHUDProps> = ({
         };
 
         loadSQL();
-        loadSQL();
 
         // Reset state on open
         if (isOpen) {
             setViewMode('sql');
             setAgentTrace(null);
+            setIsLoadingTrace(false);
+            setError(null);
         }
     }, [activeRunId, isOpen]);
 
-    const handleLoadTrace = async () => {
-        if (!activeRunId) return;
-        setViewMode('trace');
+    // Track viewMode changes to load trace
+    useEffect(() => {
+        if (!activeRunId || !isOpen || viewMode !== 'trace' || agentTrace) return;
 
-        if (agentTrace) return; // Already loaded
+        const loadTrace = async () => {
+            setIsLoadingTrace(true);
+            try {
+                const results = await analysisApi.getResults(activeRunId);
+                if (results.agent_trace) {
+                    setAgentTrace(results.agent_trace);
+                }
+            } catch (err) {
+                console.error("Failed to load trace:", err);
+            } finally {
+                setIsLoadingTrace(false);
+            }
+        };
 
-        setIsLoadingTrace(true);
-        try {
-            const results = await analysisApi.getResults(activeRunId);
-            if (results.agent_trace) {
-                setAgentTrace(results.agent_trace);
-            }
-            if (results.query) {
-                setInitialQuery(results.query);
-            }
-        } catch (err) {
-            console.error("Failed to load trace:", err);
-        } finally {
-            setIsLoadingTrace(false);
-        }
-    };
+        loadTrace();
+    }, [activeRunId, isOpen, viewMode, agentTrace]);
 
     const activeStep = sqlSteps[activeTab];
 
@@ -380,7 +379,7 @@ export const SQLFiltersHUD: React.FC<SQLFiltersHUDProps> = ({
                                     {viewMode === 'sql' ? (
                                         <>
                                             <FileText className="w-4 h-4" />
-                                            <span className="hidden sm:inline" onClick={(e) => { e.stopPropagation(); handleLoadTrace(); }}>Visualizza Trace</span>
+                                            <span className="hidden sm:inline">Visualizza Trace</span>
                                         </>
                                     ) : (
                                         <>
@@ -406,7 +405,7 @@ export const SQLFiltersHUD: React.FC<SQLFiltersHUDProps> = ({
                                             <span>Caricamento trace...</span>
                                         </div>
                                     ) : agentTrace ? (
-                                        <AgentTraceViewer trace={agentTrace} runId={activeRunId || undefined} initialQuery={initialQuery} />
+                                        <AgentTraceViewer trace={agentTrace} />
                                     ) : (
                                         <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-500">
                                             <AlertCircle className="w-10 h-10 mb-4 text-red-400" />

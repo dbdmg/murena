@@ -303,6 +303,7 @@ class AnalysisService:
                 run_props = {
                     "use_case": "Live Analysis",
                     "prompt_id": run_id,
+                    "user_query": query,
                     "run_number": 1,
                     "run_timestamp": datetime.utcnow().isoformat()
                 }
@@ -331,7 +332,7 @@ class AnalysisService:
              # but we skip saving to file and generating HTML.
              try:
                  agent_logger = AgentLogger() # No log_dir
-                 run_props = {"use_case": "Synthetic Eval", "prompt_id": run_id, "run_number": 1, "run_timestamp": datetime.utcnow().isoformat()}
+                 run_props = {"use_case": "Synthetic Eval", "prompt_id": run_id, "user_query": query, "run_number": 1, "run_timestamp": datetime.utcnow().isoformat()}
                  agent_executions = agent_logger._process_log_data_for_export(agent_trace, run_props)
              except:
                  pass

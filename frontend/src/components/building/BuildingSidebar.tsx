@@ -8,12 +8,16 @@ interface BuildingSidebarProps {
     isOpen: boolean;
     onClose: () => void;
     selectedBuildings: MapMarker[];
+    runId: string | null;
+    onFeedbackSuccess?: () => void;
 }
 
 export const BuildingSidebar: React.FC<BuildingSidebarProps> = ({
     isOpen,
     onClose,
-    selectedBuildings
+    selectedBuildings,
+    runId,
+    onFeedbackSuccess
 }) => {
     const [selectedIndex, setSelectedIndex] = useState(0);
     const [prevBuildings, setPrevBuildings] = useState(selectedBuildings);
@@ -95,7 +99,7 @@ export const BuildingSidebar: React.FC<BuildingSidebarProps> = ({
             <div className="flex-1 overflow-auto p-4 custom-scrollbar">
                 {currentBuilding ? (
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    <BuildingDetail data={currentBuilding as unknown as any} />
+                    <BuildingDetail data={currentBuilding as unknown as any} runId={runId || undefined} onFeedbackSuccess={onFeedbackSuccess} />
                 ) : (
                     <div className="text-center text-gray-500 mt-10">
                         <p>Nessun immobile selezionato.</p>

@@ -41,6 +41,7 @@ class AgentLogger:
         header = {
             "use_case": use_case,
             "prompt_id": prompt_id,
+            "user_query": getattr(self, 'last_query', None), # Fallback if we have it
             "run_number": run_number,
             "timestamp": datetime.now().isoformat()
         }
@@ -118,9 +119,9 @@ class AgentLogger:
                 # INPUT: Nomi delle colonne coinvolte (solo sorgenti)
                 input_extracted = ", ".join(source_cols) if source_cols else ", ".join([c for c in involved_cols if c != "id"])
                 
-                # OUTPUT: Formula per immobile (primi 20)
+                # OUTPUT: Formula per immobile (Full)
                 ranking_entries = []
-                for _, row in output_data.head(20).iterrows():
+                for _, row in output_data.iterrows():
                     if agent_name == "ranking-agent":
                         # Final global ranking score
                         scores = []
@@ -218,7 +219,7 @@ class AgentLogger:
                 # Comportamento standard per DataFrame (es. filtraggio)
                 if not output_data.columns.is_unique:
                     output_data = output_data.loc[:, ~output_data.columns.duplicated()]
-                output_extracted = json.loads(output_data.head(20).to_json(orient="records"))
+                output_extracted = json.loads(output_data.to_json(orient="records"))
                 input_extracted = f"{agent_mode.capitalize()} mode: {len(output_data)} records"
         
         elif agent_name == "relaxation-agent":
@@ -252,19 +253,13 @@ class AgentLogger:
         else:
             output_extracted = str(output_data)
         
-        # Estrazione del prompt (se presente)
-        prompt_text = "N/D"
-        if hasattr(output_data, 'prompt') and output_data.prompt:
-            prompt_text = getattr(output_data.prompt, 'full_text', "N/D") or "N/D"
-            
         log_entry = {
             "agent_name": agent_name,
             "agent_mode": agent_mode,
             "timestamp": datetime.now().isoformat(),
             "execution_time_ms": execution_time_ms,
             "input": self._serialize_data(input_extracted) if input_extracted is not None else None,
-            "output": self._serialize_data(output_extracted) if output_extracted is not None else None,
-            "prompt": prompt_text
+            "output": self._serialize_data(output_extracted) if output_extracted is not None else None
         }
         self.log_data.append(log_entry)
         
@@ -297,6 +292,7 @@ class AgentLogger:
             run_props = {
                 "use_case": eval_start.get("use_case"),
                 "prompt_id": eval_start.get("prompt_id"),
+                "user_query": eval_start.get("user_query"),
                 "run_number": eval_start.get("run_number"),
                 "run_timestamp": eval_start.get("timestamp")
             }
@@ -387,8 +383,7 @@ class AgentLogger:
                             "timestamp": entry.get("timestamp"),
                             "execution_time_ms": entry.get("execution_time_ms"),
                             "input": serialized_input,
-                            "output": item,
-                            "notes": ""
+                            "output": item
                         }
                         agent_executions.append(agent_entry)
                         batch_counter += 1
@@ -398,8 +393,7 @@ class AgentLogger:
                         **entry, 
                         "input": serialized_input,
                         "output": serialized_output,
-                        "batch_id": None,
-                        "notes": ""
+                        "batch_id": None
                     }
                     agent_executions.append(agent_entry)
         except Exception as global_ex:
@@ -440,6 +434,7 @@ class AgentLogger:
             agent_rows.append({
                 "use_case": execution.get("use_case"),
                 "prompt_id": execution.get("prompt_id"),
+                "user_query": execution.get("user_query"),
                 "run_number": execution.get("run_number"),
                 "run_timestamp": execution.get("run_timestamp"),
                 "batch_id": execution.get("batch_id"),
@@ -448,8 +443,7 @@ class AgentLogger:
                 "timestamp": execution.get("timestamp"),
                 "execution_time_ms": execution.get("execution_time_ms"),
                 "input": to_display_value(execution.get("input"), "input"),
-                "output": to_display_value(execution.get("output"), "output"),
-                "notes": execution.get("notes", "")
+                "output": to_display_value(execution.get("output"), "output")
             })
         
         df = pd.DataFrame(agent_rows)
@@ -461,8 +455,8 @@ class AgentLogger:
         df['retry_id'] = df.groupby(['agent_name', 'run_number', 'batch_id', 'agent_mode'], dropna=False).cumcount() + 1
         
         desired_order = [
-            'agent_name', 'agent_mode', 'output', 'notes', 'input', 
-            'use_case', 'prompt_id', 'run_number', 'run_timestamp', 
+            'agent_name', 'agent_mode', 'output', 'input', 
+            'use_case', 'prompt_id', 'user_query', 'run_number', 'run_timestamp', 
             'batch_id', 'retry_id', 'timestamp', 'execution_time_ms'
         ]
         existing_columns = [col for col in desired_order if col in df.columns]
@@ -647,7 +641,6 @@ class AgentLogger:
         .narrow-column {{ min-width: 100px; }}
         .numeric-column {{ min-width: 80px; text-align: right; }}
         .timestamp-column {{ min-width: 150px; color: var(--text-muted); font-size: 11px; }}
-        .notes-column {{ min-width: 300px; }}
 
         .hidden-column {{ display: none !important; }}
 
@@ -679,23 +672,7 @@ class AgentLogger:
             overflow-x: auto;
         }}
 
-        .notes-input {{
-            width: 100%;
-            min-height: 60px;
-            padding: 8px;
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            font-family: inherit;
-            font-size: 12px;
-            resize: vertical;
-            transition: border-color 0.2s;
-        }}
 
-        .notes-input:focus {{
-            outline: none;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-        }}
 
         .status-badge {{
             padding: 2px 8px;
@@ -708,11 +685,7 @@ class AgentLogger:
         .status-ranking {{ background: #ede9fe; color: #5b21b6; }}
         .status-evaluation {{ background: #fee2e2; color: #991b1b; }}
 
-        #saveStatus {{
-            margin-left: 12px;
-            font-weight: 500;
-            display: none;
-        }}
+
 
         /* Nuovi stili per visualizzazione a Tab */
         .tabs-header {{
@@ -819,10 +792,6 @@ class AgentLogger:
 <body>
     <div class="header">
         <h1>__TITLE__</h1>
-        <div>
-            <span id="saveStatus"></span>
-            <button id="saveBtn" class="btn-primary" onclick="saveAllNotes()">Salva Note nel JSON</button>
-        </div>
     </div>
     
     <div class="controls-card">
@@ -868,7 +837,7 @@ class AgentLogger:
                     display_value = ""
                     
                     if col == "notes":
-                        display_value = f'<textarea class="notes-input" oninput="updateNote({i}, this.value)" placeholder="Aggiungi una nota...">{value}</textarea>'
+                        continue
                     elif pd.isna(value):
                         display_value = '<span style="color: #94a3b8; font-style: italic;">vuoto</span>'
                     else:
@@ -909,7 +878,6 @@ class AgentLogger:
             for col in df.columns:
                 col_class = "narrow-column"
                 if col in wide_columns: col_class = "wide-column"
-                elif col == "notes": col_class = "notes-column"
                 elif pd.api.types.is_numeric_dtype(df[col]): col_class = "numeric-column"
                 elif 'timestamp' in col.lower(): col_class = "timestamp-column"
                 
@@ -927,8 +895,7 @@ class AgentLogger:
                     display_value = ""
                     
                     if col == "notes":
-                        # Special handling for notes: a textarea
-                        display_value = f'<textarea class="notes-input" oninput="updateNote({i}, this.value)" placeholder="Aggiungi una nota...">{value}</textarea>'
+                        continue
                     elif pd.isna(value):
                         display_value = ""
                     else:
@@ -951,7 +918,6 @@ class AgentLogger:
 
                     col_class = "narrow-column"
                     if col in wide_columns: col_class = "wide-column"
-                    elif col == "notes": col_class = "notes-column"
                     elif pd.api.types.is_numeric_dtype(df[col]): col_class = "numeric-column"
                     elif 'timestamp' in col.lower(): col_class = "timestamp-column"
                     
@@ -964,23 +930,16 @@ class AgentLogger:
     </div>
 """
 
-        html_content += f"""
+        html_content += """
     <script>
         // Stato locale dei dati
-        let localData = {{
-            json_file: '{json_filename or ""}',
-            executions: [] 
-        }};
-
-        // Inizializza le note se possibile
-        const executions = [];
+        let localData = {
 """
-        # Inserisci le note iniziali nel JS per permettere il salvataggio
-        for i, row in df.iterrows():
-            html_content += f"        executions.push({{ index: {i}, notes: `{row['notes']}` }});\n"
+        html_content += f"            json_file: '{json_filename or ''}',\n"
+        html_content += """            executions: [] 
+        };
 
-        html_content += """
-        localData.executions = executions;
+        localData.executions = [];
 
         function showTab(index) {
             // Update buttons
@@ -1011,64 +970,6 @@ class AgentLogger:
                     prop.style.display = isChecked ? 'grid' : 'none';
                 }
             });
-        }
-
-        function updateNote(index, value) {
-            const exe = localData.executions.find(e => e.index === index);
-            if (exe) exe.notes = value;
-            document.getElementById('saveBtn').style.opacity = '1';
-        }
-
-        async function saveAllNotes() {
-            const btn = document.getElementById('saveBtn');
-            const status = document.getElementById('saveStatus');
-            
-            btn.disabled = true;
-            status.style.display = 'inline';
-            status.style.color = 'var(--text-muted)';
-            status.innerText = 'Salvataggio...';
-
-            try {
-                const response = await fetch('/api/v1/logs/update-notes', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        filename: localData.json_file,
-                        notes: localData.executions.map(e => ({ index: e.index, notes: e.notes }))
-                    })
-                });
-
-                if (response.ok) {
-                    status.innerText = '✅ Salvato!';
-                    status.style.color = 'var(--success)';
-                } else {
-                    status.innerText = '⚠️ API non disponibile, scaricamento file...';
-                    status.style.color = 'var(--warning)';
-                    downloadJson();
-                }
-            } catch (err) {
-                console.error('Errore durante il salvataggio:', err);
-                status.innerText = '⚠️ Errore backend, scaricamento file...';
-                status.style.color = 'var(--warning)';
-                downloadJson();
-            } finally {
-                btn.disabled = false;
-                setTimeout(() => {
-                    if (!status.innerText.includes('Errore')) {
-                        status.style.display = 'none';
-                    }
-                }, 3000);
-            }
-        }
-
-        function downloadJson() {
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(localData.executions));
-            const downloadAnchorNode = document.createElement('a');
-            downloadAnchorNode.setAttribute("href", dataStr);
-            downloadAnchorNode.setAttribute("download", localData.json_file || "agent_traces_updated.json");
-            document.body.appendChild(downloadAnchorNode);
-            downloadAnchorNode.click();
-            downloadAnchorNode.remove();
         }
 
         document.addEventListener('DOMContentLoaded', function() {

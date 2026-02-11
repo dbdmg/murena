@@ -10,6 +10,7 @@ interface ResultsCarouselProps {
     onCardClick: (marker: MapMarker) => void;
     onCardHover: (markerId: string | null) => void;
     sidebarOpen?: boolean;
+    buildingRatings?: Record<string, number>;
 }
 
 const CARD_WIDTH = 200; // Width of each card
@@ -39,6 +40,7 @@ export const ResultsCarousel: React.FC<ResultsCarouselProps> = ({
     onCardClick,
     onCardHover,
     sidebarOpen = false,
+    buildingRatings = {},
 }) => {
     const scrollContainerRef = useRef<HTMLDivElement>(null);
     const cardRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
@@ -263,10 +265,20 @@ export const ResultsCarousel: React.FC<ResultsCarouselProps> = ({
                                                 #{index + 1}
                                             </div>
                                             <div className="flex flex-col">
-                                                <span className="text-[10px] text-gray-500 uppercase">Rank</span>
-                                                {index < 3 && (
-                                                    <Star className="w-3 h-3 text-amber-400 fill-amber-400" />
-                                                )}
+                                                <span className="text-[10px] text-slate-500 uppercase font-black tracking-tighter">Rank</span>
+                                                <div className="flex items-center gap-0.5">
+                                                    {[1, 2, 3, 4, 5].map((s) => {
+                                                        const rating = buildingRatings[marker.id] || 0;
+                                                        return (
+                                                            <Star
+                                                                key={s}
+                                                                size={14}
+                                                                fill={s <= rating ? "currentColor" : "none"}
+                                                                className={s <= rating ? 'text-amber-400' : 'text-slate-700'}
+                                                            />
+                                                        );
+                                                    })}
+                                                </div>
                                             </div>
                                         </div>
 

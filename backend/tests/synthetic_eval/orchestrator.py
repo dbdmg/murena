@@ -12,6 +12,9 @@ from .services.generator import SyntheticDataGenerator
 from .services.evaluator import RankingEvaluator
 from .schemas import RankingMetrics, ConsistencyMetrics
 
+import pandas as pd
+from app.core.config import settings
+
 class SyntheticEvaluationTest:
     """Orchestratore test completo."""
     
@@ -31,19 +34,41 @@ class SyntheticEvaluationTest:
         self.timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     
     def step1_generate_dataset(self) -> bool:
-        """Step 1: Genera dataset sintetico."""
-        print("\\n" + "🎯 STEP 1: GENERAZIONE DATASET SINTETICO".center(80, "="))
+        """Step 1: Carica dataset reale (Immobili)."""
+        print("\n" + "🎯 STEP 1: CARICAMENTO DATASET REALE".center(80, "="))
         
-        generator = SyntheticDataGenerator(
-            num_immobili=self.num_immobili,
-            num_poi_per_category=self.num_poi,
-            use_case=self.use_case
-        )
+        # Costruisci path assoluto per il dataset reale
+        # settings.DATASET_FULL è relativo alla root del backend
+        base_dir = Path(__file__).resolve().parent.parent.parent.parent # /backend
+        dataset_path = base_dir / "backend" / settings.DATASET_FULL
         
-        self.dataset_file, self.poi_file, self.distances_file, self.df_immobili = generator.generate_all()
+        if not dataset_path.exists():
+            # Fallback path se non trovato (es. setup locale diverso)
+            dataset_path = Path("/Users/marcodeluca/Downloads/real-estate-ai/backend") / settings.DATASET_FULL
         
-        print(f"✓ Dataset generato con {len(self.df_immobili)} immobili")
-        return True
+        if not dataset_path.exists():
+            print(f"❌ Dataset non trovato: {dataset_path}")
+            return False
+            
+        try:
+            self.df_immobili = pd.read_parquet(dataset_path)
+            # Ensure ID is string
+            if "id" in self.df_immobili.columns:
+                self.df_immobili["id"] = self.df_immobili["id"].astype(str)
+                
+            self.dataset_file = dataset_path
+            
+            # Per il dataset reale, i file POI e Distanze non vengono rigenerati qui
+            # Ma assegniamo path validi esistenti o None
+            self.poi_file = base_dir / "backend" / "data/FOLDER_STATIC_ROME/pois.json"
+            self.distances_file = None
+            
+            print(f"✓ Dataset reale caricato: {self.dataset_file}")
+            print(f"  - {len(self.df_immobili)} immobili")
+            return True
+        except Exception as e:
+            print(f"❌ Errore caricamento dataset: {e}")
+            return False
     
     def step2_create_ground_truth(self) -> bool:
         """Step 2: Crea ground truth automatico."""

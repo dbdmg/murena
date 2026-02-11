@@ -40,7 +40,25 @@ const clusterIcon = (count: number) => {
     });
 };
 
-// Selected cluster icon (Vibrant Green with enhanced pulse)
+// Custom helper to render stars above icons
+const renderStarsOverlay = (rating?: number) => {
+    if (!rating || rating <= 0) return '';
+
+    let starsHtml = '';
+    for (let i = 1; i <= 5; i++) {
+        const color = i <= rating ? 'text-amber-400' : 'text-slate-600';
+        starsHtml += `<span class="${color} drop-shadow-[0_1px_1px_rgba(0,0,0,0.8)]">★</span>`;
+    }
+
+    return `
+        <div class="absolute -top-5 left-1/2 -translate-x-1/2 flex text-[10px] whitespace-nowrap pointer-events-none z-50">
+            ${starsHtml}
+        </div>
+    `;
+};
+
+
+// selectedClusterIcon (Vibrant Green with enhanced pulse)
 const selectedClusterIcon = (count: number) => {
     return L.divIcon({
         html: `
@@ -61,10 +79,11 @@ const selectedClusterIcon = (count: number) => {
 
 
 // Tier 1 Icon - Indigo (Background markers) - Bigger & more visible
-const tier1Icon = () => {
+const tier1Icon = (rating?: number) => {
     return L.divIcon({
         html: `
             <div class="relative w-5 h-5 group transition-all duration-200 hover:scale-125">
+                ${renderStarsOverlay(rating)}
                 <div class="absolute inset-[-4px] bg-indigo-500/30 rounded-full blur-xs group-hover:opacity-100 transition-opacity"></div>
                 <div class="absolute -inset-px bg-indigo-400/40 rounded-full"></div>
                 <div class="relative w-5 h-5 rounded-full bg-linear-to-br from-indigo-500 to-indigo-800 border-2 border-white/60 shadow-lg transition-colors"></div>
@@ -78,10 +97,11 @@ const tier1Icon = () => {
 };
 
 // Tier 2 Icon - Rich teal-blue (Search Results)
-const tier2Icon = () => {
+const tier2Icon = (rating?: number) => {
     return L.divIcon({
         html: `
             <div class="relative w-5 h-5 group transition-all duration-200">
+                ${renderStarsOverlay(rating)}
                 <div class="absolute inset-[-2px] bg-linear-to-br from-teal-400 to-cyan-500 rounded-full blur-xs opacity-50 group-hover:opacity-80 transition-opacity"></div>
                 <div class="relative w-5 h-5 rounded-full bg-linear-to-br from-teal-400 to-cyan-600 border border-white/60 shadow-md shadow-cyan-500/30 transition-transform group-hover:scale-110"></div>
                 <div class="absolute inset-[5px] bg-white/30 rounded-full"></div>
@@ -94,13 +114,14 @@ const tier2Icon = () => {
 };
 
 // Tier 3 Icon - Premium champagne/gold (Top Picks - AI evaluated)
-const tier3Icon = (isHovered: boolean = false) => {
+const tier3Icon = (isHovered: boolean = false, rating?: number) => {
     const glowClass = isHovered ? 'opacity-90' : 'opacity-60';
     const scaleClass = isHovered ? 'scale-115' : '';
 
     return L.divIcon({
         html: `
             <div class="relative w-8 h-8 ${scaleClass} transition-all duration-300">
+                ${renderStarsOverlay(rating)}
                 <div class="absolute inset-[-4px] bg-linear-to-br from-amber-300 to-orange-400 rounded-full animate-pulse opacity-25"></div>
                 <div class="absolute inset-[-2px] bg-linear-to-br from-amber-400/80 to-yellow-500/80 rounded-full blur-xs ${glowClass} transition-opacity"></div>
                 <div class="absolute inset-0 bg-linear-to-br from-slate-800/90 to-slate-900/90 rounded-full backdrop-blur-sm"></div>
@@ -141,24 +162,25 @@ const locationIcon = () => {
 };
 
 // Get icon based on marker tier
-const getTierIcon = (tier?: MarkerTier, isHovered: boolean = false) => {
+const getTierIcon = (tier?: MarkerTier, isHovered: boolean = false, rating?: number) => {
     switch (tier) {
         case 3:
-            return tier3Icon(isHovered);
+            return tier3Icon(isHovered, rating);
         case 2:
-            return tier2Icon();
+            return tier2Icon(rating);
         case 1:
         default:
-            return tier1Icon();
+            return tier1Icon(rating);
     }
 };
 
 
 // Selected marker icon (Vibrant Green/Emerald with enhanced pulse & ping)
-const selectedIcon = () => {
+const selectedIcon = (rating?: number) => {
     return L.divIcon({
         html: `
             <div class="relative" style="width: 36px; height: 36px;">
+                ${renderStarsOverlay(rating)}
                 <!-- Animated Rings -->
                 <div class="absolute inset-[-14px] bg-emerald-400/20 rounded-full animate-ping"></div>
                 <div class="absolute inset-[-7px] bg-emerald-400/40 rounded-full animate-pulse"></div>
@@ -283,6 +305,7 @@ interface MapProps {
     focusMarkerId?: string | null;
     hoveredMarkerId?: string | null; // For carousel hover sync
     searchLocation?: { name: string; lat: number; lng: number } | null; // Red location marker
+    buildingRatings?: Record<string, number>;
     onMarkerClick?: (marker: MapMarker) => void;
     onClusterClick?: (markers: MapMarker[]) => void;
 }
@@ -300,6 +323,7 @@ export const Map: React.FC<MapProps> = ({
     focusMarkerId,
     hoveredMarkerId,
     searchLocation,
+    buildingRatings = {},
     onMarkerClick,
     onClusterClick,
 }) => {
@@ -406,11 +430,12 @@ export const Map: React.FC<MapProps> = ({
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const markerData = cluster.properties as any as MapMarker;
         const isSelected = selectedBuildingIds.includes(markerId);
+        const rating = buildingRatings[markerId];
 
         // Use tier-based icon for non-clustered markers
         const markerIcon = isSelected
-            ? selectedIcon()
-            : getTierIcon(markerData.tier);
+            ? selectedIcon(rating)
+            : getTierIcon(markerData.tier, false, rating);
 
         return (
             <Marker
@@ -434,12 +459,13 @@ export const Map: React.FC<MapProps> = ({
     const renderedTier3Markers = useMemo(() => tier3Markers.map((marker) => {
         const isSelected = selectedBuildingIds.includes(marker.id);
         const isHovered = hoveredMarkerId === marker.id;
+        const rating = buildingRatings[marker.id];
 
         return (
             <Marker
                 key={`tier3-${marker.id}`}
                 position={[marker.lat, marker.lng]}
-                icon={isSelected ? selectedIcon() : tier3Icon(isHovered)}
+                icon={isSelected ? selectedIcon(rating) : tier3Icon(isHovered, rating)}
                 zIndexOffset={isSelected ? 2000 : 1500} // Always on top
                 eventHandlers={{
                     click: () => {

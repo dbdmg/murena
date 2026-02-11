@@ -20,7 +20,8 @@ import {
     Zap,
     Layers,
     Check,
-    Search
+    Search,
+    Star
 } from 'lucide-react';
 import type { MapMarker } from '../../api/types';
 
@@ -31,6 +32,7 @@ interface ResultsSidebarProps {
     selectedId: string | null;
     onSelect: (marker: MapMarker) => void;
     hasActiveRun?: boolean;
+    buildingRatings?: Record<string, number>;
 }
 
 type SortOption = 'score' | 'surface' | 'energy' | 'address';
@@ -53,6 +55,7 @@ export const ResultsSidebar: React.FC<ResultsSidebarProps> = ({
     selectedId,
     onSelect,
     hasActiveRun = false,
+    buildingRatings = {},
 }) => {
     const [sortBy, setSortBy] = useState<SortOption>(hasActiveRun ? 'score' : 'address');
     const [currentPage, setCurrentPage] = useState(1);
@@ -293,20 +296,35 @@ export const ResultsSidebar: React.FC<ResultsSidebarProps> = ({
                                                     )}
                                                 </div>
 
-                                                {/* Score badge */}
-                                                {marker.ranking_score != null && (
-                                                    <div className={`
-                                                        px-2 py-1 rounded-lg font-bold text-xs shrink-0
-                                                        ${marker.ranking_score >= 80
-                                                            ? 'bg-linear-to-br from-amber-400 to-yellow-500 text-black'
-                                                            : marker.ranking_score >= 60
-                                                                ? 'bg-amber-500/30 text-amber-400'
-                                                                : 'bg-slate-600/50 text-gray-300'
-                                                        }
-                                                    `}>
-                                                        {marker.ranking_score}
-                                                    </div>
-                                                )}
+                                                {/* Score badge & stars */}
+                                                <div className="flex flex-col items-end gap-1 shrink-0">
+                                                    {marker.ranking_score != null && (
+                                                        <div className={`
+                                                            px-2 py-1 rounded-lg font-bold text-xs
+                                                            ${marker.ranking_score >= 80
+                                                                ? 'bg-linear-to-br from-amber-400 to-yellow-500 text-black'
+                                                                : marker.ranking_score >= 60
+                                                                    ? 'bg-amber-500/30 text-amber-400'
+                                                                    : 'bg-slate-600/50 text-gray-300'
+                                                            }
+                                                        `}>
+                                                            {marker.ranking_score}
+                                                        </div>
+                                                    )}
+
+                                                    {buildingRatings[marker.id] > 0 && (
+                                                        <div className="flex items-center gap-0.5">
+                                                            {[1, 2, 3, 4, 5].map(s => (
+                                                                <Star
+                                                                    key={s}
+                                                                    size={11}
+                                                                    fill={s <= (buildingRatings[marker.id] || 0) ? "currentColor" : "none"}
+                                                                    className={s <= (buildingRatings[marker.id] || 0) ? 'text-amber-400' : 'text-slate-700'}
+                                                                />
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </div>
 
                                             {/* Info badges - Simplified: only surface, energy class, OMI zone */}

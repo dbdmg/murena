@@ -371,10 +371,19 @@ export interface AgentFeedbackSubmit {
     comment?: string;
 }
 
+export interface BuildingFeedbackSubmit {
+    run_id: string;
+    building_id: string;
+    rating: 1 | 2 | 3 | 4 | 5;
+    comment?: string;
+    helpful?: boolean;
+}
+
 export interface AgentFeedbackResponse {
     id: number;
     run_id: string;
     agent_name?: string;
+    building_id?: string;
     rating: number;
     comment?: string;
     created_at: string;

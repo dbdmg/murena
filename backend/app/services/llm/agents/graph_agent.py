@@ -444,7 +444,7 @@ class GraphOrchestratorAgent(BaseAgent):
                 
                 # OUTPUT: Formula per immobile (primi 20)
                 ranking_entries = []
-                for _, row in result.head(20).iterrows():
+                for _, row in result.iterrows():
                     formula_parts = []
                     
                     if agent_name == "ranking-agent":
@@ -542,8 +542,7 @@ class GraphOrchestratorAgent(BaseAgent):
                 output_data = ranking_entries
             else:
                 # Comportamento standard per DataFrame (es. filtraggio)
-                df_preview = result.head(20)
-                output_data = json.loads(df_preview.to_json(orient="records"))
+                output_data = json.loads(result.to_json(orient="records"))
                 input_data = f"{mode.capitalize()} mode: {len(result)} records"
         elif agent_name == "relaxation-agent":
             # Per l'agente di rilassamento, mostriamo i tentativi effettuati come input
@@ -577,19 +576,13 @@ class GraphOrchestratorAgent(BaseAgent):
         else:
             output_data = str(result)
             
-        # Estrazione del prompt (se presente)
-        prompt_text = "N/D"
-        if hasattr(result, 'prompt') and result.prompt:
-            prompt_text = getattr(result.prompt, 'full_text', "N/D") or "N/D"
-
         entry = {
             "agent_name": agent_name,
             "agent_mode": mode,
             "timestamp": datetime.now().isoformat(),
             "execution_time_ms": duration_ms,
             "input": input_data,
-            "output": output_data,
-            "prompt": prompt_text
+            "output": output_data
         }
         state["agent_trace"].append(entry)
 

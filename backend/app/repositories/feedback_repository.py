@@ -195,3 +195,23 @@ class FeedbackRepository(BaseRepository[Feedback]):
         else:
             query = query.filter(Feedback.agent_name == agent_name)
         return query.first()
+
+    def get_feedback_by_building(
+        self, run_id: str, building_id: str
+    ) -> Optional[Feedback]:
+        """
+        Get feedback for a specific building in a run.
+
+        Args:
+            run_id: Run ID
+            building_id: Building ID
+
+        Returns:
+            Feedback instance or None
+        """
+        return (
+            self.db.query(Feedback)
+            .filter(Feedback.run_id == run_id)
+            .filter(Feedback.building_id == building_id)
+            .first()
+        )

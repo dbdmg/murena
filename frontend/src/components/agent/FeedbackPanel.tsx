@@ -6,19 +6,23 @@ import { feedbackApi } from '../../api/endpoints/feedback';
 interface FeedbackPanelProps {
     runId: string;
     agentName?: string; // undefined = global feedback
+    buildingId?: string; // NEW
     existingFeedback?: {
         rating: number;
         comment?: string;
     };
     variant?: 'compact' | 'expanded';
+    align?: 'left' | 'right';
     onSubmitSuccess?: () => void;
 }
 
 export const FeedbackPanel: React.FC<FeedbackPanelProps> = ({
     runId,
     agentName,
+    buildingId,
     existingFeedback,
     variant = 'compact',
+    align = 'left',
     onSubmitSuccess,
 }) => {
     const [rating, setRating] = useState(existingFeedback?.rating || 0);
@@ -29,6 +33,7 @@ export const FeedbackPanel: React.FC<FeedbackPanelProps> = ({
     const [isSubmitted, setIsSubmitted] = useState(!!existingFeedback);
     const [error, setError] = useState<string | null>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
 
     // Auto-expand textarea
     useEffect(() => {
@@ -38,12 +43,36 @@ export const FeedbackPanel: React.FC<FeedbackPanelProps> = ({
         }
     }, [comment, isExpanded]);
 
+    // Click away to close
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+                if (variant === 'compact') {
+                    setIsExpanded(false);
+                }
+            }
+        };
+
+        if (isExpanded) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [isExpanded, variant]);
+
     // Sync state when existingFeedback changes (e.g. after fetch in parent)
     useEffect(() => {
         if (existingFeedback) {
             setRating(existingFeedback.rating);
             setComment(existingFeedback.comment || '');
             setIsSubmitted(true);
+        } else {
+            // Reset to default state if no feedback exists
+            setRating(0);
+            setComment('');
+            setIsSubmitted(false);
+            setError(null);
         }
     }, [existingFeedback]);
 
@@ -57,12 +86,21 @@ export const FeedbackPanel: React.FC<FeedbackPanelProps> = ({
         setError(null);
 
         try {
-            await feedbackApi.submitAgentFeedback({
-                run_id: runId,
-                agent_name: agentName || undefined,
-                rating: rating as 1 | 2 | 3 | 4 | 5,
-                comment: comment.trim() || undefined,
-            });
+            if (buildingId) {
+                await feedbackApi.submitBuildingFeedback({
+                    run_id: runId,
+                    building_id: buildingId,
+                    rating: rating as 1 | 2 | 3 | 4 | 5,
+                    comment: comment.trim() || undefined,
+                });
+            } else {
+                await feedbackApi.submitAgentFeedback({
+                    run_id: runId,
+                    agent_name: agentName || undefined,
+                    rating: rating as 1 | 2 | 3 | 4 | 5,
+                    comment: comment.trim() || undefined,
+                });
+            }
 
             setIsSubmitted(true);
             if (onSubmitSuccess) onSubmitSuccess();
@@ -83,27 +121,34 @@ export const FeedbackPanel: React.FC<FeedbackPanelProps> = ({
     const displayRating = hoveredRating || rating;
 
     return (
-        <div className="relative">
+        <div className="relative" ref={containerRef}>
             {/* Compact Trigger */}
-            {!isExpanded && (
-                <button
-                    onClick={() => setIsExpanded(true)}
-                    className={`
-                        flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all group shadow-lg shadow-amber-500/20
-                        ${isSubmitted
-                            ? 'bg-emerald-500/20 border border-emerald-500/30 text-emerald-400'
-                            : 'bg-amber-500 border border-amber-600 text-black hover:bg-amber-400'
-                        }
-                    `}
-                    title="Invia feedback"
-                >
-                    <Star className={`w-3.5 h-3.5 ${isSubmitted ? 'text-emerald-400' : 'text-black opacity-70 group-hover:opacity-100'} transition-colors`} />
-                    <span className="text-[11px] font-bold uppercase tracking-widest">
-                        {isSubmitted ? 'Feedback Inviato' : 'Valuta'}
-                    </span>
-                    {isSubmitted && <Check className="w-3 h-3 text-emerald-400" />}
-                </button>
-            )}
+            <button
+                onClick={() => setIsExpanded(!isExpanded)}
+                className={`
+                    flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all group shadow-lg
+                    ${isSubmitted
+                        ? 'bg-emerald-600 border border-emerald-700 text-white shadow-lg shadow-emerald-900/20'
+                        : buildingId
+                            ? 'bg-cyan-500 border border-cyan-600 text-black hover:bg-cyan-400 shadow-cyan-500/20'
+                            : 'bg-amber-500 border border-amber-600 text-black hover:bg-amber-400 shadow-amber-500/20'
+                    }
+                `}
+                title={buildingId ? "Valuta questo immobile" : "Valuta questa ricerca"}
+            >
+                <Star className={`w-3.5 h-3.5 ${isSubmitted ? 'text-white' : 'text-black opacity-70 group-hover:opacity-100'} transition-colors`} />
+                <span className="text-[10px] font-black uppercase tracking-widest whitespace-nowrap">
+                    {isSubmitted
+                        ? 'Votato'
+                        : buildingId
+                            ? 'Valuta Immobile'
+                            : agentName
+                                ? 'Valuta Agente'
+                                : 'Valuta Ricerca'
+                    }
+                </span>
+                {isSubmitted && <Check className="w-3 h-3 text-white" />}
+            </button>
 
             {/* Expanded Panel */}
             <AnimatePresence>
@@ -113,14 +158,18 @@ export const FeedbackPanel: React.FC<FeedbackPanelProps> = ({
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.95, y: -10 }}
                         transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-                        className="absolute right-0 top-0 z-50 w-80 bg-[#0a0f16]/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden"
+                        className={`absolute ${align === 'left' ? 'left-0' : 'right-0'} top-full mt-2 z-50 w-80 bg-[#0a0f16]/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden`}
                     >
                         {/* Header */}
                         <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 bg-white/5">
                             <div className="flex items-center gap-2">
-                                <MessageSquare className="w-4 h-4 text-amber-500" />
+                                <MessageSquare className={`w-4 h-4 ${buildingId ? 'text-cyan-400' : 'text-amber-500'}`} />
                                 <span className="text-sm font-bold text-white">
-                                    {agentName ? `Feedback: ${agentName}` : 'Feedback Globale'}
+                                    {buildingId
+                                        ? 'Valutazione Immobile'
+                                        : agentName
+                                            ? `Feedback Agente: ${agentName}`
+                                            : 'Feedback Ricerca Globale'}
                                 </span>
                             </div>
                             <button
@@ -150,7 +199,9 @@ export const FeedbackPanel: React.FC<FeedbackPanelProps> = ({
                                         >
                                             <Star
                                                 className={`w-8 h-8 transition-all ${star <= displayRating
-                                                    ? 'fill-amber-500 text-amber-500 drop-shadow-[0_0_8px_rgba(251,191,36,0.5)]'
+                                                    ? buildingId
+                                                        ? 'fill-cyan-400 text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.5)]'
+                                                        : 'fill-amber-500 text-amber-500 drop-shadow-[0_0_8px_rgba(251,191,36,0.5)]'
                                                     : 'text-slate-700 hover:text-slate-600'
                                                     }`}
                                             />
@@ -194,7 +245,10 @@ export const FeedbackPanel: React.FC<FeedbackPanelProps> = ({
                                         <button
                                             onClick={handleSubmit}
                                             disabled={isSubmitting || rating === 0}
-                                            className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-600 disabled:bg-slate-700 text-white font-medium rounded-lg transition-colors disabled:cursor-not-allowed"
+                                            className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 font-medium rounded-lg transition-colors disabled:cursor-not-allowed ${buildingId
+                                                ? 'bg-cyan-500 hover:bg-cyan-600'
+                                                : 'bg-amber-500 hover:bg-amber-600'
+                                                } disabled:bg-slate-700 text-white`}
                                         >
                                             {isSubmitting ? (
                                                 <>
@@ -217,8 +271,8 @@ export const FeedbackPanel: React.FC<FeedbackPanelProps> = ({
                                     </>
                                 ) : (
                                     <>
-                                        <div className="flex-1 flex items-center gap-2 px-4 py-2 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-medium rounded-lg">
-                                            <Check className="w-4 h-4" />
+                                        <div className="flex-1 flex items-center gap-2 px-4 py-2 bg-emerald-600 border border-emerald-700 text-white font-medium rounded-lg">
+                                            <Check className="w-4 h-4 text-white" />
                                             <span>Feedback Inviato!</span>
                                         </div>
                                         <button
