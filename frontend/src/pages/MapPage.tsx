@@ -14,6 +14,7 @@ import { ResultsSidebar } from '../components/map/ResultsSidebar';
 
 import { mapApi } from '../api/endpoints/map';
 import { layersApi } from '../api/endpoints/layers';
+import { buildingsApi } from '../api/endpoints/buildings';
 import type { MapConfig, MapMarker, POI } from '../api/types';
 import { Loader2, Sparkles, Building2, List } from 'lucide-react';
 
@@ -208,7 +209,8 @@ export const MapPage: React.FC = () => {
     }, [activePOICategoriesKey]);
 
     // Handle marker click from map
-    const handleMarkerClick = useCallback((marker: MapMarker) => {
+    const handleMarkerClick = useCallback(async (marker: MapMarker) => {
+        // Optimistically set selected
         setSelectedBuildings([marker]);
         setIsSidebarOpen(true);
 
@@ -216,12 +218,57 @@ export const MapPage: React.FC = () => {
         if (marker.tier === 3) {
             setCarouselSelectedId(marker.id);
         }
+
+        // Check if we need to fetch details (Tier 1 background markers usually lack details)
+        if (marker.tier === 1 || !marker.poi_scores) {
+            try {
+                // Fetch details
+                const fullBuilding = await buildingsApi.getBuilding(marker.id);
+
+                const richMarker: MapMarker = {
+                    ...marker,
+                    ...fullBuilding,
+                    lat: fullBuilding.coordinates.lat,
+                    lng: fullBuilding.coordinates.lng ?? (fullBuilding.coordinates as any).lon ?? marker.lng,
+                    tier: marker.tier
+                };
+
+                // Update selected buildings with the rich one
+                setSelectedBuildings([richMarker]);
+            } catch (err) {
+                console.error("Failed to fetch building details", err);
+            }
+        }
     }, []);
 
     // Handle cluster click
-    const handleClusterClick = useCallback((clusterMarkers: MapMarker[]) => {
+    const handleClusterClick = useCallback(async (clusterMarkers: MapMarker[]) => {
         setSelectedBuildings(clusterMarkers);
         setIsSidebarOpen(true);
+
+        // Fetch details for the first one at least, so something shows up.
+        if (clusterMarkers.length > 0) {
+            const first = clusterMarkers[0];
+            if (first.tier === 1 || !first.poi_scores) {
+                try {
+                    const fullBuilding = await buildingsApi.getBuilding(first.id);
+                    const richMarker: MapMarker = {
+                        ...first,
+                        ...fullBuilding,
+                        lat: fullBuilding.coordinates.lat,
+                        lng: fullBuilding.coordinates.lng ?? (fullBuilding.coordinates as any).lon ?? first.lng,
+                        tier: first.tier
+                    };
+
+                    // Replace the first one in the array
+                    const newMarkers = [...clusterMarkers];
+                    newMarkers[0] = richMarker;
+                    setSelectedBuildings(newMarkers);
+                } catch (e) {
+                    console.error("Failed to fetch cluster building details", e);
+                }
+            }
+        }
     }, []);
 
     // Handle carousel card click - bidirectional sync
