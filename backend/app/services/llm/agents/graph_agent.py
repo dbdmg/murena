@@ -1897,7 +1897,6 @@ class GraphOrchestratorAgent(BaseAgent):
         # Define ranking tasks for parallel execution
         def rank_typology():
             start_t = time.time()
-            self._update_progress(state, "typology", "Aggiorno i punteggi in base alla tipologia...")
             res = state.get("typology_result")
             if res:
                 data = safe_extract_json(res.raw_text, schema=TypologyResponse)
@@ -1910,7 +1909,6 @@ class GraphOrchestratorAgent(BaseAgent):
 
         def rank_location():
             start_t = time.time()
-            self._update_progress(state, "location", "Calcolo la rilevanza della posizione geografica...")
             if state["context"].locations:
                  tmp = self.location_agent.run(mode="ranking", df=df.copy(), places=state["context"].locations)
                  return tmp, (time.time() - start_t) * 1000
@@ -1920,7 +1918,6 @@ class GraphOrchestratorAgent(BaseAgent):
 
         def rank_ape():
             start_t = time.time()
-            self._update_progress(state, "ape", "Valuto l'efficienza energetica...")
             res = state.get("ape_result")
             requirements = None
             if res:
@@ -1933,7 +1930,6 @@ class GraphOrchestratorAgent(BaseAgent):
 
         def rank_normative():
             start_t = time.time()
-            self._update_progress(state, "normative", "Verifico il rispetto dei requisiti normativi...")
             res = state.get("normative_result")
             if res:
                 data = safe_extract_json(res.raw_text, schema=NormativeResponse)
@@ -1946,7 +1942,6 @@ class GraphOrchestratorAgent(BaseAgent):
 
         def rank_poi():
             start_t = time.time()
-            self._update_progress(state, "poi", "Misuro la vicinanza ai punti di interesse...")
             res = state.get("poi_result")
             if res:
                 poi_data = safe_extract_json(res.raw_text)

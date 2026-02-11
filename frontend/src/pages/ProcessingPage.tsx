@@ -139,6 +139,7 @@ export const ProcessingPage: React.FC = () => {
             detail: l.detail
         } as ProgressStep)))
         .filter(s => s.state !== 'pending')
+        .map(s => isComplete ? { ...s, state: 'done' as const } : s)
         .sort((a, b) => {
             if (a.state === 'current' && b.state !== 'current') return 1;
             if (a.state !== 'current' && b.state === 'current') return -1;
