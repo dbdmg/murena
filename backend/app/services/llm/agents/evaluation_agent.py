@@ -123,27 +123,34 @@ Assicurati che la tua valutazione sia allineata con i requisiti specifici sopra 
                     },
                 )
 
-                # Gestione differenziata in base al tipo di output (oggetto Pydantic o altro)
-                if isinstance(result, EvaluationList):
-                    results = result.evaluations
+                # Gestione differenziata in base al tipo di output
+                if hasattr(result, "model_dump"):
                     raw_text = json.dumps(result.model_dump(), indent=2, ensure_ascii=False)
-                    
+                else:
+                    raw_text = str(result)
+
+                eval_list = None
+                if isinstance(result, EvaluationList):
+                    eval_list = result
+                elif isinstance(result, dict):
+                    try:
+                        eval_list = EvaluationList(**result)
+                    except:
+                        # Se è un dict con la chiave 'evaluations', prova a estrarla
+                        if "evaluations" in result:
+                            eval_list = EvaluationList(evaluations=result["evaluations"])
+                
+                if eval_list:
+                    results = eval_list.evaluations
                     # Se abbiamo ricevuto almeno tanti record quanti ne abbiamo inviati, usciamo dal loop
                     if len(results) >= expected_count:
+                        result = eval_list # Assicuriamo che 'result' sia l'oggetto validato per il prosieguo
                         break
                     else:
-                        try:
-                            received_ids = {str(r.id) for r in results}
-                            input_ids = {str(e.get("id")) for e in input_estates if e.get("id") is not None}
-                            missing_ids = input_ids - received_ids
-                            logger.warning(f"L'EvaluationAgent ha restituito {len(results)} record su {expected_count} attesi. ID mancanti: {missing_ids} (tentativo {attempt + 1}/{max_retries}). Rieseguo...")
-                        except Exception as log_err:
-                            logger.warning(f"L'EvaluationAgent ha restituito {len(results)} record su {expected_count} attesi (tentativo {attempt + 1}/{max_retries}). Errore nel calcolo ID mancanti: {log_err}. Rieseguo...")
+                        logger.warning(f"L'EvaluationAgent ha restituito {len(results)} record su {expected_count} attesi (tentativo {attempt + 1}/{max_retries}).")
                 else:
-                    # Fallback se la catena restituisce qualcos'altro
-                    raw_text = str(result)
                     if expected_count > 0:
-                         logger.warning(f"L'EvaluationAgent non ha restituito una EvaluationList (tentativo {attempt + 1}/{max_retries}). Rieseguo...")
+                         logger.warning(f"L'EvaluationAgent non ha restituito una struttura valida (tentativo {attempt + 1}/{max_retries}).")
                     else:
                         break
 

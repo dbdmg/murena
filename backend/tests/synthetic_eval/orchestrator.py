@@ -82,11 +82,12 @@ class SyntheticEvaluationTest:
                                         "Posizione strategica per destinazione d'uso",
                                         "Buona accessibilità mezzi pubblici",
                                         "Vicinanza servizi essenziali"
-                                    ] if i < 3 else ["Ubicazione discreta", "Superficie adeguata"],
+                                    ],
                                     "cons": [
-                                        "Necessità interventi di riqualificazione energetica",
-                                        "Accessibilità da migliorare"
-                                    ] if i > 5 else ["Costi ristrutturazione contenuti"] if i > 2 else [],
+                                        "Interventi di riqualificazione necessari",
+                                        "Costi di manutenzione ordinaria",
+                                        "Adeguamento normativo da completare"
+                                    ],
                                     "comment": f"Valutazione esperto MEF - edificio dismesso candidato per riqualificazione {self.use_case}"
                                 }
                                 for i in range(10)

@@ -271,39 +271,58 @@ class NormativeAgent(BaseAgent):
                 vals = df_ranked[col].astype(str).str.lower().str.strip()
                 target_str = str(target_val).lower().strip()
                 
-                # Determine match (boolean series)
-                if op == "==":
-                    # Strict match first
-                    strict_match = (vals == target_str)
-                    # Relaxed match: if target is contained in the value or vice-versa
-                    # (helps with long db strings like "Edificio scolastico (es.: ...)")
-                    partial_match = vals.str.contains(target_str, na=False, regex=False) | pd.Series([target_str in v for v in vals], index=vals.index)
-                    is_match = strict_match | partial_match
-                elif op == "LIKE":
-                    is_match = vals.str.contains(target_str, na=False, regex=False)
-                elif op == "IN":
+                if col == "tipologia_bene_immobile":
+                    # Punteggio basato sulla posizione nel ranking (come TypologyAgent)
                     if isinstance(target_val, str):
-                        target_list = [v.lower().strip() for v in target_val.split(",")]
+                        target_list = [v.lower().strip().strip("'\"") for v in target_val.split(",")]
                     elif isinstance(target_val, list):
-                        target_list = [str(v).lower().strip() for v in target_val]
+                        target_list = [str(v).lower().strip().strip("'\"") for v in target_val]
                     else:
-                        target_list = [target_str]
-                    
-                    # Exact matches in list OR any item in list is contained in value
-                    is_match = vals.isin(target_list)
-                    for t in target_list:
-                        is_match = is_match | vals.str.contains(t, na=False, regex=False)
+                        target_list = [target_str.strip("'\"")]
+
+                    def get_rank_and_score(v):
+                        v_str = str(v).lower().strip()
+                        for idx, t in enumerate(target_list):
+                            # Corrispondenza precisa o parziale
+                            if t == v_str or t in v_str or v_str in t:
+                                return round(100.0 / (idx + 1), 1), idx + 1
+                        return 0.0, "N/A"
+
+                    details = vals.apply(get_rank_and_score)
+                    req_score = details.apply(lambda x: x[0])
+                    rank_pos = details.apply(lambda x: x[1])
                 else:
-                    is_match = (vals == target_str)
-                
-                # Calculate Score: 100 for match, 0 otherwise
-                req_score = is_match.astype(float) * 100
+                    # Determine match (boolean series)
+                    if op == "==":
+                        # Strict match first
+                        strict_match = (vals == target_str)
+                        # Relaxed match: if target is contained in the value or vice-versa
+                        partial_match = vals.str.contains(target_str, na=False, regex=False) | pd.Series([target_str in v for v in vals], index=vals.index)
+                        is_match = strict_match | partial_match
+                    elif op == "LIKE":
+                        is_match = vals.str.contains(target_str, na=False, regex=False)
+                    elif op == "IN":
+                        if isinstance(target_val, str):
+                            target_list = [v.lower().strip() for v in target_val.split(",")]
+                        elif isinstance(target_val, list):
+                            target_list = [str(v).lower().strip() for v in target_val]
+                        else:
+                            target_list = [target_str]
+                        
+                        # Exact matches in list OR any item in list is contained in value
+                        is_match = vals.isin(target_list)
+                        for t in target_list:
+                            is_match = is_match | vals.str.contains(t, na=False, regex=False)
+                    else:
+                        is_match = (vals == target_str)
+                    
+                    # Calculate Score: 100 for match, 0 otherwise
+                    req_score = is_match.astype(float) * 100
+                    rank_pos = np.where(is_match, 1, "N/A")
                 
                 # Transparency Metadata for Categorical
-                # For basic matching, we can simulate a ranking:
-                # Match = Rank 1, Multiplier 1.0
+                # Match = Rank N, Multiplier calculated from position
                 # No Match = Rank N/A, Multiplier 0.0
-                rank_pos = np.where(is_match, 1, "N/A")
                 
                 df_ranked[f"normative_rank_position_{col}"] = rank_pos
                 

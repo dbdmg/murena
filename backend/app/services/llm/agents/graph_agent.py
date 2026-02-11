@@ -392,9 +392,8 @@ class GraphOrchestratorAgent(BaseAgent):
             else:
                 input_data = str(prompt)
         
-        # Extract output based on agent type and mode
+        # Extract output based
         output_data = None
-        output_structure = None
         
         # Handle DataFrame results from ranking mode or filtering mode
         if isinstance(result, pd.DataFrame):
@@ -435,27 +434,126 @@ class GraphOrchestratorAgent(BaseAgent):
                 }
                 
                 agent_key = next((k for k in source_cols_map if k in agent_type), None)
+                source_cols = []
                 if agent_key:
-                    source_cols = source_cols_map[agent_key]
-                    involved_cols.extend([c for c in source_cols if c in result.columns and c not in involved_cols])
+                    source_cols = [c for c in source_cols_map[agent_key] if c in result.columns]
+                    involved_cols.extend([c for c in source_cols if c not in involved_cols])
                 
-                # Limitiamo alle prime 20 righe per il trace, ma manteniamo tutte le colonne coinvolte
-                df_preview = result[involved_cols].head(20)
-                output_data = json.loads(df_preview.to_json(orient="records"))
-                output_structure = {
-                    "involved_columns": involved_cols,
-                    "total_records": len(result),
-                    "mode": "ranking_table"
-                }
-                input_data = f"Ranking Mode: {len(result)} record valutati. Mostrando fattori di scoring."
+                # INPUT: Nomi delle colonne coinvolte (solo sorgenti)
+                input_data = ", ".join(source_cols) if source_cols else ", ".join([c for c in involved_cols if c != "id"])
+                
+                # OUTPUT: Formula per immobile (primi 20)
+                ranking_entries = []
+                for _, row in result.head(20).iterrows():
+                    formula_parts = []
+                    
+                    if agent_name == "ranking-agent":
+                        # Final global ranking score
+                        scores = []
+                        for agent in ["location", "normative", "ape", "typology", "poi"]:
+                            sc = row.get(f"{agent}_score", 0.0)
+                            w = row.get(f"ranking_weight_{agent}", 0.0)
+                            scores.append(f"{agent}_score({sc}) * Weight({w})")
+                        
+                        formula_list = ["RankingSum("] + [f"  {s}," for s in scores[:-1]] + [f"  {scores[-1]}", ")"]
+                    elif "typology" in agent_type:
+                        rank_pos = row.get(f"{prefix}rank_position", "N/A")
+                        formula_list = [f"100 / Position({rank_pos})" if rank_pos != "N/A" else "0 (Non corrispondente)"]
+                    elif "location" in agent_type:
+                        dist = row.get("distanza_km", 0)
+                        # Formula: 100 * exp(-(dist/2.5)^3)
+                        formula_list = [f"100 * exp(-({dist:.2f}/2.5)^3)"]
+                    elif "poi" in agent_type or "ape" in agent_type or "normative" in agent_type:
+                        # Queste logiche usano mediamente dei partial scores (0-100)
+                        partial_cols = [c for c in result.columns if f"{prefix}partial_score_" in c]
+                        
+                        if partial_cols:
+                            weighted_parts = []
+                            for pc in partial_cols:
+                                col_name = pc.replace(f"{prefix}partial_score_", "")
+                                if col_name not in result.columns:
+                                    continue
+                                
+                                val_raw = row.get(col_name)
+                                score_pt = row.get(pc)
+                                weight = row.get(f"{prefix}weight_{col_name}", 1.0 / len(partial_cols))
+                                
+                                # Caso Speciale: Classe Energetica (Categorico)
+                                if col_name == "classe_energetica_ape":
+                                    rank_pos = row.get(f"ape_rank_position_{col_name}", "N/A")
+                                    if rank_pos != "N/A":
+                                        desc = f"{col_name}({val_raw})[Rank {rank_pos}/10]: 100*(1-{int(rank_pos)-1}/9)={score_pt}"
+                                    else:
+                                        desc = f"{col_name}({val_raw}): {score_pt}"
+                                
+                                # Caso Speciale: Normative Typology Rank
+                                elif col_name == "tipologia_bene_immobile" and "normative" in agent_type:
+                                    rank_pos = row.get(f"normative_rank_position_{col_name}", "N/A")
+                                    if rank_pos != "N/A":
+                                        desc = f"{col_name}({val_raw})[Rank {rank_pos}]: {score_pt}"
+                                    else:
+                                        desc = f"{col_name}({val_raw}): {score_pt}"
+
+                                # Caso Numerico (Min-Max Scaling relativo al dataset attuale)
+                                else:
+                                    try:
+                                        if pd.api.types.is_numeric_dtype(result[col_name]):
+                                            c_vals = pd.to_numeric(result[col_name], errors='coerce').dropna()
+                                            c_min = c_vals.min()
+                                            c_max = c_vals.max()
+                                            val_num = float(val_raw) if val_raw not in [None, "N/D", "N/A"] else 0
+                                            
+                                            if c_max == c_min:
+                                                desc = f"{col_name}({val_raw}): 100"
+                                            else:
+                                                f_up = round(100 * (val_num - c_min) / (c_max - c_min), 1)
+                                                f_down = round(100 * (c_max - val_num) / (c_max - c_min), 1)
+                                                
+                                                if abs(f_up - score_pt) < 1.0:
+                                                    desc = f"{col_name}: 100*({val_num}-{c_min})/({c_max}-{c_min})={score_pt}"
+                                                elif abs(f_down - score_pt) < 1.0:
+                                                    desc = f"{col_name}: 100*({c_max}-{val_num})/({c_max}-{c_min})={score_pt}"
+                                                else:
+                                                    desc = f"{col_name}({val_num}) [Min {c_min}, Max {c_max}]: {score_pt}"
+                                        else:
+                                            desc = f"{col_name}({val_raw}): {score_pt} (Match)"
+                                    except:
+                                        desc = f"{col_name}({val_raw}): {score_pt}"
+                                
+                                weighted_parts.append(f"{desc} * Weight({weight:.3f})")
+
+                            if len(weighted_parts) > 1:
+                                formula_list = ["Sum("] + [f"  {p}," for p in weighted_parts[:-1]] + [f"  {weighted_parts[-1]}", ")"]
+                            else:
+                                formula_list = [f"{weighted_parts[0]}"]
+                        else:
+                            # Fallback generico
+                            val_main = row.get(source_cols[0], "N/D") if source_cols else "N/D"
+                            formula_list = [f"Score({val_main})"]
+                    else:
+                        formula_list = ["Logic Default"]
+
+                    ranking_entries.append({
+                        "id": row["id"],
+                        "score": row.get(score_col, 0),
+                        "formula": formula_list
+                    })
+                
+                output_data = ranking_entries
             else:
                 # Comportamento standard per DataFrame (es. filtraggio)
                 df_preview = result.head(20)
                 output_data = json.loads(df_preview.to_json(orient="records"))
                 input_data = f"{mode.capitalize()} mode: {len(result)} records"
-                output_structure = {"total_records": len(result)}
-        elif agent_name.lower() == "ape-agent" and hasattr(result, 'requisiti'):
-            output_data = result.requisiti
+        elif agent_name == "relaxation-agent":
+            # Per l'agente di rilassamento, mostriamo i tentativi effettuati come input
+            # e la query finale scelta come output
+            if hasattr(result, 'attempts') and result.attempts:
+                input_data = result.attempts
+                output_data = result.final_sql or result.raw_text
+            else:
+                input_data = result.raw_text
+                output_data = "Nessuna proposta applicata"
         elif agent_name == "ranking-agent":
             # For ranking agent, prefer the ordered ranking if present, otherwise weights
             if hasattr(result, 'ranking') and result.ranking:
@@ -479,6 +577,11 @@ class GraphOrchestratorAgent(BaseAgent):
         else:
             output_data = str(result)
             
+        # Estrazione del prompt (se presente)
+        prompt_text = "N/D"
+        if hasattr(result, 'prompt') and result.prompt:
+            prompt_text = getattr(result.prompt, 'full_text', "N/D") or "N/D"
+
         entry = {
             "agent_name": agent_name,
             "agent_mode": mode,
@@ -486,9 +589,21 @@ class GraphOrchestratorAgent(BaseAgent):
             "execution_time_ms": duration_ms,
             "input": input_data,
             "output": output_data,
-            "output_structure": None
+            "prompt": prompt_text
         }
         state["agent_trace"].append(entry)
+
+        # SE esiste un logger di valutazione attivo (es. durante i test sintetici), propaga il log
+        from app.services.agent_logger import get_active_evaluation_logger
+        eval_logger = get_active_evaluation_logger()
+        if eval_logger:
+            eval_logger.log_agent_execution(
+                agent_name=agent_name,
+                input_data=input_data,
+                output_data=result, # Passiamo il result originale per permettere al logger di estrarre ciò che gli serve
+                execution_time_ms=duration_ms,
+                agent_mode=mode
+            )
 
     # ------------------------------------------------------------------
     # Nodes
@@ -677,7 +792,7 @@ class GraphOrchestratorAgent(BaseAgent):
 
         # 1. Run Ranking Agent FIRST (Sequential)
         logger.info("⚖️ Executing RankingAgent (Sequential)")
-        ranking_result = self.ranking_agent.run(query=query, mode="ranking")
+        ranking_result = self.ranking_agent.run(query=query, mode="filtering")
         state["ranking_result"] = ranking_result
         self._log_execution(state, "ranking-agent", ranking_result, 0)
         
@@ -979,106 +1094,224 @@ class GraphOrchestratorAgent(BaseAgent):
 
         return state
 
-    def _deterministic_relaxation(self, sql_query: str, state: GraphState) -> tuple[str, Optional[str], List[Dict[str, Any]]]:
+    def _apply_ast_relaxation_workflow(self, state: GraphState, initial_sql: str) -> str:
         """
-        Relaxes the SQL query by removing a single condition from the WHERE clause.
-        Follows a deterministic strategy:
-        1. Tries removing each condition one by one, bottom-up.
-        2. If any removal results in >= 10 rows, stops immediately.
-        3. Otherwise, picks the removal that results in most rows for the next iteration.
+        Implements the new structured relaxation algorithm:
+        STEP 3-7: Sequential AST-only relaxation without LLM retries.
+        """
+        threshold = 10 # min_results_threshold (could be made configurable)
+        
+        # 1. Prepare data for Relaxation Agent
+        where_details, base_conditions, expression = self._prepare_relaxation_data(state, initial_sql)
+        if not expression or not base_conditions:
+            logger.warning("Could not parse SQL conditions for relaxation.")
+            return initial_sql
 
-        Returns: (relaxed_sql, removed_condition_string, list_of_attempts)
-        """
-        if not sql_query:
-            return sql_query, None, []
+        # Calculate involved columns stats
+        involved_columns = list(set([d["colonna"] for d in where_details if d["colonna"] != "N/D"]))
+        stats = self._get_column_statistics(
+            columns=involved_columns,
+            dataset_df=state.get("base_dataset"),
+            dataset_path=state.get("dataset_path"),
+            db_metadata=state.get("db_metadata")
+        )
+
+        # 2. Call Relaxation Agent ONCE to get all proposals
+        logger.info(f"🤖 Calling RelaxationAgent for structured proposals")
+        res = self.relaxation_agent.run(
+            where_conditions=json.dumps(where_details, indent=2, ensure_ascii=False),
+            statistics=json.dumps(stats, indent=2, ensure_ascii=False),
+            min_threshold=threshold,
+            current_results_count=len(state.get("selected_data", []))
+        )
+        # Note: We don't log here anymore, we log at the end with the impact
+        
+        if not res.proposals:
+            logger.warning("No relaxation proposals received. Proceeding to condition removal fallback.")
+            # We'll skip level loops and go to Step 7
+            proposals = []
+        else:
+            proposals = res.proposals
+
+        # Initial state for relaxation
+        current_sql = initial_sql
+        current_active_conditions = [c.copy() for c in base_conditions]
+        baseline_df = state.get("selected_data")
+        baseline_count = len(baseline_df) if baseline_df is not None else 0
+        
+        # LOGGING initial state
+        all_attempts = []
+
+        # STEP 4-6: Apply LOW, MEDIUM, HIGH Relaxations
+        levels = ["low", "medium", "high"]
+        
+        for level in levels:
+            if baseline_count >= threshold:
+                break
+                
+            logger.info(f"--- Applying level: {level.upper()} ---")
             
+            # Iterate until no more improvements can be made at this level
+            loop_progress = True
+            used_indices_at_this_level = set()
+            
+            while loop_progress and baseline_count < threshold:
+                loop_progress = False
+                best_attempt = None # (count, sql, idx, new_node)
+                
+                # Iterate from last condition to first
+                for i in range(len(current_active_conditions) - 1, -1, -1):
+                    if i in used_indices_at_this_level:
+                        continue
+                        
+                    # Find if we have a proposal for this condition at this level
+                    orig_cond_sql = base_conditions[i].sql(dialect="duckdb")
+                    match = next((p for p in proposals if p.livello_rilassamento.lower() == level and p.condizione_iniziale.strip() == orig_cond_sql.strip()), None)
+                    
+                    if not match:
+                         continue
+                    
+                    # Try applying it
+                    temp_conditions = [c.copy() for c in current_active_conditions]
+                    try:
+                        temp_conditions[i] = parse_one(match.condizione_relaxed, read="duckdb")
+                    except Exception as e:
+                        logger.error(f"Failed to parse relaxed condition '{match.condizione_relaxed}': {e}")
+                        continue
+                        
+                    trial_sql = self._rebuild_sql(expression, temp_conditions)
+                    trial_df, error = self.execute_sql_fn(trial_sql, state.get("base_dataset"), dataset_path=state.get("dataset_path"))
+                    trial_count = len(trial_df) if not error else 0
+                    
+                    # Log attempt for trace
+                    attempt_info = {"level": level, "target_idx": i, "sql": trial_sql, "rows": trial_count, "strategy": match.strategia}
+                    all_attempts.append(attempt_info)
+                    logger.info(f"Attempt {level} on cond {i}: '{match.condizione_relaxed}' -> {trial_count} rows")
+
+                    if trial_count >= threshold:
+                        logger.info(f"✅ SUCCESS at level {level} (Condition {i})")
+                        self._update_state_with_relaxation(state, trial_sql, trial_df, all_attempts)
+                        
+                        # Log the relaxation-agent impact
+                        res.attempts = all_attempts
+                        res.final_sql = trial_sql
+                        self._log_execution(state, "relaxation-agent", res, 0)
+                        return trial_sql
+                        
+                    if trial_count > baseline_count:
+                        if best_attempt is None or trial_count > best_attempt[0]:
+                            best_attempt = (trial_count, trial_sql, i, temp_conditions[i])
+                            
+                if best_attempt:
+                    # Apply best improvement permanently for this level
+                    count, sql, idx, new_node = best_attempt
+                    current_active_conditions[idx] = new_node
+                    baseline_count = count
+                    used_indices_at_this_level.add(idx)
+                    loop_progress = True
+                    current_sql = sql
+                    logger.info(f"Applied best effort for level {level} on cond {idx}: {count} rows. Continuing level.")
+
+        # STEP 7: Condition Removal Fallback
+        if baseline_count < threshold:
+            logger.info("--- Applying fallback: Condition Removal ---")
+            for i in range(len(current_active_conditions) - 1, -1, -1):
+                # Try removing condition i
+                temp_conditions = [c.copy() for j, c in enumerate(current_active_conditions) if i != j]
+                
+                trial_sql = self._rebuild_sql(expression, temp_conditions, remove_where=not temp_conditions)
+                trial_df, error = self.execute_sql_fn(trial_sql, state.get("base_dataset"), dataset_path=state.get("dataset_path"))
+                trial_count = len(trial_df) if not error else 0
+                
+                attempt_info = {"level": "removal", "target_idx": i, "sql": trial_sql, "rows": trial_count}
+                all_attempts.append(attempt_info)
+                logger.info(f"Attempt removal of cond {i} -> {trial_count} rows")
+
+                if trial_count >= threshold:
+                    logger.info(f"✅ SUCCESS via removal of condition {i}")
+                    self._update_state_with_relaxation(state, trial_sql, trial_df, all_attempts)
+                    
+                    # Log the relaxation-agent impact
+                    res.attempts = all_attempts
+                    res.final_sql = trial_sql
+                    self._log_execution(state, "relaxation-agent", res, 0)
+                    return trial_sql
+                
+                # According to algorithm: "Altrimenti ripristinare la condizione e continuare" (no greedy here)
+                
+        # If we reach here, we've exhausted all structured relaxations and removals.
+        # We return the best SQL found and set retry_count to max to stop the loop.
+        final_df, _ = self.execute_sql_fn(current_sql, state.get("base_dataset"), dataset_path=state.get("dataset_path"))
+        self._update_state_with_relaxation(state, current_sql, final_df, all_attempts)
+        
+        # Log the relaxation-agent impact
+        res.attempts = all_attempts
+        res.final_sql = current_sql
+        self._log_execution(state, "relaxation-agent", res, 0)
+
+        # Max out retry count to signal we are done with relaxation attempts
+        state["retry_count"] = 5
+        logger.info(f"Structured relaxation complete. Final row count: {len(final_df)}")
+        return current_sql
+
+    def _prepare_relaxation_data(self, state: GraphState, sql_query: str):
         try:
-            # Basic cleanup of markdown/comments
-            sql_query = sql_query.strip()
-            if sql_query.startswith("```sql"):
-                sql_query = sql_query.split("```sql")[1].split("```")[0].strip()
-            elif sql_query.startswith("```"):
-                sql_query = sql_query.split("```")[1].split("```")[0].strip()
-
-            # Parse the SQL query using DuckDB dialect
             expression = parse_one(sql_query, read="duckdb")
-            
-            # Find the WHERE clause
             where = expression.find(exp.Where)
             if not where:
-                logger.warning("No WHERE clause found to relax.")
-                return sql_query, None, []
+                return [], [], expression
 
-            # Deterministic relaxation logic:
-            # We flatten the WHERE clause into top-level AND conditions.
             def get_conditions(node):
                 if isinstance(node, exp.And):
                     return get_conditions(node.left) + get_conditions(node.right)
                 return [node]
 
             conditions = get_conditions(where.this)
-            attempts = []
             
-            best_query = None
-            best_removed = None
-            max_rows = -1
-            
-            # Threshold for "sufficient" results as defined in _check_sql_execution
-            threshold = 10 
-
-            # Evaluate each condition removal starting from the bottom (last in list)
-            for i in range(len(conditions) - 1, -1, -1):
-                # Build new query without this condition
-                remaining = [c for j, c in enumerate(conditions) if i != j]
+            where_details = []
+            for cond in conditions:
+                cols = [col.name for col in cond.find_all(exp.Column)]
+                col_type = "categorica"
+                if cols:
+                    main_col = cols[0]
+                    db_meta = state.get("db_metadata", {})
+                    if main_col in db_meta and db_meta[main_col].get("type") in ["integer", "float", "double"]:
+                        col_type = "continua"
                 
-                new_expression = expression.copy()
-                new_where = new_expression.find(exp.Where)
-                
-                if not remaining:
-                    new_where.pop()
-                else:
-                    new_predicate = remaining[0]
-                    for next_cond in remaining[1:]:
-                        new_predicate = exp.And(this=new_predicate, expression=next_cond)
-                    new_where.set("this", new_predicate)
-                
-                test_sql = new_expression.sql(dialect="duckdb", pretty=True)
-                removed_cond_str = conditions[i].sql(dialect="duckdb")
-                
-                # Execute test query
-                pd_data = state.get("base_dataset")
-                dataset_path = state.get("dataset_path")
-                selected_data, error = self.execute_sql_fn(test_sql, pd_data, dataset_path=dataset_path)
-                
-                rows = len(selected_data) if not error else 0
-                
-                # Log attempt following the user's requested JSON format
-                attempts.append({
-                    "query": test_sql,
-                    "rows": rows
+                where_details.append({
+                    "colonna": cols[0] if cols else "N/D",
+                    "operatore": str(type(cond)),
+                    "valore": str(cond.expression) if hasattr(cond, "expression") else "N/D",
+                    "tipo": col_type,
+                    "condizione_full": cond.sql(dialect="duckdb")
                 })
-                
-                logger.info(f"Relaxation Step: Attempting removal of '{removed_cond_str}' -> {rows} rows")
-                
-                if rows >= threshold:
-                    logger.info(f"RELAXATION SUCCESS: Removal of '{removed_cond_str}' yielded {rows} rows (>= {threshold})")
-                    return test_sql, removed_cond_str, attempts
-                
-                if rows > max_rows:
-                    max_rows = rows
-                    best_query = test_sql
-                    best_removed = removed_cond_str
-            
-            # If no single removal produced sufficient results,Rule 5: pick the best one
-            if best_query:
-                logger.info(f"RELAXATION CONTINUES: No single removal reached {threshold}. Best effort by removing '{best_removed}' -> {max_rows} rows")
-                return best_query, best_removed, attempts
-            
-            return sql_query, None, attempts
-
+            return where_details, conditions, expression
         except Exception as e:
-            logger.error(f"Failed to relax SQL via AST: {e}. Falling back to original query.")
-            return sql_query, None, []
+            logger.error(f"Error preparing relaxation data: {e}")
+            return [], [], None
+
+    def _rebuild_sql(self, expression, conditions, remove_where=False):
+        new_expression = expression.copy()
+        where = new_expression.find(exp.Where)
+        if not conditions or remove_where:
+            if where:
+                where.pop()
+        else:
+            new_predicate = conditions[0]
+            for next_cond in conditions[1:]:
+                new_predicate = exp.And(this=new_predicate, expression=next_cond)
+            where.set("this", new_predicate)
+        return new_expression.sql(dialect="duckdb", pretty=True)
+
+    def _update_state_with_relaxation(self, state: GraphState, sql: str, df: pd.DataFrame, attempts: List[Dict]):
+        state["sql_query"] = sql
+        state["selected_data"] = df
+        state["relaxation_attempts"] = attempts
+        # If we hit threshold, we might want to signal success. 
+        # But _check_sql_execution will handle the "continue" logic based on df length.
+        if len(df) >= 10:
+            state["retry_count"] = 5 # Avoid further retries even if we succeeded
+
 
     def _format_agent_requirements(self, agent_result: Any) -> str:
         """Formatta i requisiti di un agente (APE o Normative) in formato compatto [col] [op] [val]."""
@@ -1123,107 +1356,6 @@ class GraphOrchestratorAgent(BaseAgent):
             # Fallback in caso di errore
             return str(agent_result.raw_text)[:500]
 
-    def _intelligent_relaxation(self, state: GraphState) -> str:
-        """
-        Utilizza il RelaxationAgent per suggerire modifiche alle clausole WHERE.
-        Le proposte vengono restituite come stringa pronta per essere inclusa nel prompt del SQL Agent.
-        """
-        sql_query = state.get("sql_query")
-        if not sql_query:
-            return ""
-
-        try:
-            # Estrarre le condizioni dalla query attuale
-            expression = parse_one(sql_query, read="duckdb")
-            where = expression.find(exp.Where)
-            if not where:
-                return ""
-
-            def get_conditions(node):
-                if isinstance(node, exp.And):
-                    return get_conditions(node.left) + get_conditions(node.right)
-                return [node]
-
-            conditions = get_conditions(where.this)
-            
-            # Prepariamo i dettagli per ogni condizione (SQL + Metadati)
-            where_details = []
-            involved_columns = []
-            for cond in conditions:
-                cond_sql = cond.sql(dialect="duckdb")
-                cols = [col.name for col in cond.find_all(exp.Column)]
-                involved_columns.extend(cols)
-                
-                # Cerchiamo di capire il tipo della colonna dai metadati
-                col_type = "categorica"
-                if cols:
-                    main_col = cols[0]
-                    db_meta = state.get("db_metadata", {})
-                    if main_col in db_meta and db_meta[main_col].get("type") in ["integer", "float", "double"]:
-                        col_type = "continua"
-                
-                where_details.append({
-                    "colonna": cols[0] if cols else "N/D",
-                    "operatore": str(type(cond)), # Approssimativo, il RelaxationAgent capirà dal SQL
-                    "valore": str(cond.expression) if hasattr(cond, "expression") else "N/D",
-                    "tipo": col_type,
-                    "condizione_full": cond_sql
-                })
-
-            # Otteniamo statistiche per le colonne coinvolte
-            involved_columns = list(set(involved_columns))
-            stats = self._get_column_statistics(
-                columns=involved_columns,
-                dataset_df=state.get("base_dataset"),
-                dataset_path=state.get("dataset_path"),
-                db_metadata=state.get("db_metadata")
-            )
-
-            # Esecuzione del RelaxationAgent
-            logger.info(f"🤖 Calling RelaxationAgent for {len(where_details)} conditions")
-            res = self.relaxation_agent.run(
-                where_conditions=json.dumps(where_details, indent=2, ensure_ascii=False),
-                statistics=json.dumps(stats, indent=2, ensure_ascii=False),
-                min_threshold=10,
-                current_results_count=len(state.get("selected_data", []))
-            )
-            
-            # Log nel trace
-            self._log_execution(state, "relaxation-agent", res, 0)
-
-            if not res.proposals:
-                logger.warning("RelaxationAgent non ha prodotto proposte.")
-                return ""
-
-            # Formattiamo le proposte per il SQL Agent
-            formatted_proposals = []
-            for p in res.proposals:
-                relaxed_val = p.condizione_relaxed
-                if isinstance(relaxed_val, list):
-                    # Se l'agente ha fornito proposte progressive, scegliamo la più conservativa (low)
-                    # o le mostriamo tutte come opzioni. Qui le mostriamo tutte per dare scelta all'agente SQL.
-                    opts = []
-                    for opt in relaxed_val:
-                        if isinstance(opt, dict):
-                            prop = opt.get("proposta", str(opt))
-                            lev = opt.get("livello", "N/D")
-                            opts.append(f"{prop} (Livello: {lev})")
-                        else:
-                            opts.append(str(opt))
-                    relaxed_val = " O ".join(opts) if opts else "N/D"
-
-                formatted_proposals.append(
-                    f"PROPOSTA: Rilassa '{p.condizione_iniziale}' in '{relaxed_val}'. "
-                    f"Strategia: {p.strategia}. Motivazione: {p.motivazione} (Priorità: {p.livello_rilassamento})"
-                )
-            
-            return "\n".join(formatted_proposals)
-
-        except Exception as e:
-            logger.error(f"Errore durante l'intelligent relaxation: {e}")
-            import traceback
-            logger.error(traceback.format_exc())
-            return ""
 
     def _generate_sql(self, state: GraphState) -> GraphState:
         retry_count = state["retry_count"]
@@ -1319,31 +1451,18 @@ class GraphOrchestratorAgent(BaseAgent):
             logger.info(f"DEBUG: retry_count={retry_count}, relax_constraints={state.get('relax_constraints')}, is_sql_error={is_sql_error}, failed_query_len={len(failed_query)}")
 
         if state.get("relax_constraints") and not is_sql_error and failed_query:
-            logger.info(f"Applying RELAXATION STRATEGY (Attempt {retry_count + 1})")
+            logger.info("Applying STRUCTURED RELAXATION (AST-based, no LLM retry)")
             
-            # 1. Prova prima il RelaxationAgent (Intelligent Relaxation)
-            relaxation_proposals = self._intelligent_relaxation(state)
+            # This calls the new multi-stage sequential relaxation algorithm
+            relaxed_sql = self._apply_ast_relaxation_workflow(state, failed_query)
             
-            if relaxation_proposals:
-                logger.info("Intelligent relaxation proposals received. Passing to SQL Agent.")
-                effective_error_msg = (
-                    f"La query ha restituito troppi pochi risultati ({len(state.get('selected_data', []))}). "
-                    f"Il Relaxation Agent suggerisce le seguenti modifiche:\n{relaxation_proposals}\n\n"
-                    "Genera una nuova query SQL applicando questi suggerimenti di rilassamento."
-                )
-                # NOTA: relaxed_sql rimane None, quindi chiameremo l'LLM (SQLAgent) col nuovo error_msg
-            else:
-                # 2. Fallback alla rimozione deterministica se l'agente non propone nulla
-                logger.info("Falling back to DETERMINISTIC RELAXATION")
-                relaxed_sql, removed_condition, attempts = self._deterministic_relaxation(failed_query, state)
+            # Note: _apply_ast_relaxation_workflow already updated state["selected_data"] 
+            # and state["sql_query"] with the best result found.
             
-            # If deterministic relaxation fails or returns same query, we must still bypass LLM
-            # to avoid calling it for relaxation purposes.
-            if not relaxed_sql or relaxed_sql.strip() == failed_query.strip():
-                logger.warning("Deterministic relaxation failed to produce a different query. Bypassing LLM with original query.")
+            # Prepare dummy relaxed_sql for SQLAgent to bypass LLM
+            # but preserve the actual result.
+            if not relaxed_sql:
                 relaxed_sql = failed_query
-                removed_condition = None
-                attempts = []
 
         sql_result = self.sql_agent.run(
             query=query, # use original query
@@ -1379,11 +1498,7 @@ class GraphOrchestratorAgent(BaseAgent):
         if state.get("relax_constraints") or state.get("last_retry_reason") == "few_results":
              agent_name = f"sql-agent (relaxation n. {retry_count})"
              
-             if relaxed_sql and sql_result.prompt:
-                 # Flatten attempts into JSON so the trace shows the list of all removals tried
-                 attempts_json = json.dumps(attempts, ensure_ascii=False)
-                 sql_result.prompt.user = attempts_json
-                 sql_result.prompt.full_text = attempts_json
+             # We no longer log attempts here as they are in relaxation-agent
 
         self._log_execution(state, agent_name, sql_result, 0)
         return state
@@ -1628,7 +1743,7 @@ class GraphOrchestratorAgent(BaseAgent):
             if not ranking_result:
                 ranking_result = self.ranking_agent.run(
                     query=query, 
-                    mode="ranking", 
+                    mode="filtering", 
                     db_metadata=state.get("db_metadata")
                 )
                 state["ranking_result"] = ranking_result
@@ -1751,14 +1866,11 @@ class GraphOrchestratorAgent(BaseAgent):
                     if col not in df.columns:
                         df[col] = 0.0
 
-        # Calculate final weighted score
-        df["final_ranking_score"] = (
-            weights.location * df.get("location_score", 0.0) +
-            weights.normative * df.get("normative_score", 0.0) +
-            weights.ape * df.get("ape_score", 0.0) +
-            weights.typology * df.get("typology_score", 0.0) +
-            weights.poi * df.get("poi_score", 0.0)
-        )
+        # Calculate final weighted score via RankingAgent (ranking mode)
+        df = self.ranking_agent.run(mode="ranking", df=df, weights=weights)
+        
+        # Log this final ranking step
+        self._log_execution(state, "ranking-agent", df, 0, mode="ranking")
 
         # Sort by total score
         df = df.sort_values(by="final_ranking_score", ascending=False)

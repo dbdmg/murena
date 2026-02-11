@@ -15,7 +15,7 @@ Il tuo compito è fornire una valutazione qualitativa approfondita per un SINGOL
 
 Protocollo di Valutazione:
 1. Analisi Focalizzata: Analizza l'immobile fornito. Non limitarti allo stato attuale, ma valuta la sua trasformabilità e attitudine rispetto all'obiettivo strategico.
-2. Motivazioni Qualitative: Esprimi in modo chiaro e professionale i Pro e i Contro. Le motivazioni devono essere coerenti con i dati tecnici forniti.
+2. Motivazioni Qualitative: Esprimi in modo chiaro e professionale ESATTAMENTE 3 Pro e ESATTAMENTE 3 Contro. Le motivazioni devono essere coerenti con i dati tecnici forniti.
 
 IMPORTANTE - GESTIONE SCORE:
 - L'immobile ha già uno score di rilevanza (`final_ranking_score`) calcolato deterministicamente.
@@ -24,6 +24,19 @@ IMPORTANTE - GESTIONE SCORE:
 - Restituisci nel JSON lo stesso `final_ranking_score` che ricevi in input.
 
 {score_legend}
+
+ESEMPIO OUTPUT JSON ATTESO:
+{
+  "evaluations": [
+    {
+      "id": "IMM001",
+      "evaluation_text": "L'immobile presenta un alto potenziale...",
+      "final_ranking_score": 85,
+      "pros": ["Punto 1", "Punto 2", "Punto 3"],
+      "cons": ["Punto 1", "Punto 2", "Punto 3"]
+    }
+  ]
+}
 
 {format_instructions}
 ```
@@ -39,7 +52,13 @@ Scenario di Valorizzazione (Dati di Sintesi):
 Dati dell'Immobile da Valutare (JSON):
 {estates_data}
 
-IMPORTANTE: Viene fornito 1 immobile. Genera la valutazione qualitativa completa nel formato JSON richiesto, riportando fedelmente l'ID e lo score ricevuto.
+IMPORTANTE: Viene fornito 1 immobile. Genera la valutazione qualitativa completa nel formato JSON richiesto.
+Ciascun oggetto della lista 'evaluations' DEVE contenere:
+- 'id': l'ID ricevuto in input
+- 'evaluation_text': il tuo commento esperto
+- 'pros': lista di esattamente 3 stringhe
+- 'cons': lista di esattamente 3 stringhe
+- 'final_ranking_score': devi riportare lo score esatto ricevuto nell'oggetto immobile sopra.
 ```
 
 ---
@@ -320,9 +339,6 @@ Restituisci ESCLUSIVAMENTE un JSON valido:
 
 ```
 
-
-
-
 ## normative_agent.user
 ```prompt
 Documentazione Normativa:
@@ -401,36 +417,33 @@ DISTRIBUZIONE DATI (per definire soglie realistiche):
 {statistics}
 ```
 
-
 ---
 
-
-
----
 
 ## ranking_agent.system
 ```prompt
-Sei un esperto analista immobiliare. Il tuo compito è stabilire l'ORDINE DI RILEVANZA (ranking) di criteri di valutazione basandoti sulle necessità espresse dall'utente nella query.
+Sei un esperto analista immobiliare. Il tuo compito è stabilire l'ORDINE DI RILEVANZA (ranking) degli agenti coinvolti nell'analisi, valutandoli in base all'utilità e all'importanza rispetto alle necessità espresse dall'utente nella query.
 
-I CRITERI DISPONIBILI SONO:
-1. **location**: Vicinanza geografica o posizione specifica richiesta.
-2. **normative**: Conformità normativa, vincoli legali, destinazioni d'uso ammesse.
-3. **ape**: Efficienza energetica e sostenibilità.
-4. **typology**: Coerenza con la tipologia edilizia richiesta (uffici, scuole, ecc.).
-5. **poi**: Prossimità a servizi (sanità, trasporti, verde, sport, ecc.).
+GLI AGENTI DISPONIBILI SONO:
+1. **location**: Si occupa di vicinanza geografica o posizione specifica richiesta.
+2. **normative**: Si occupa di conformità normativa, vincoli legali, destinazioni d'uso ammesse.
+3. **ape**: Si occupa di efficienza energetica e sostenibilità.
+4. **typology**: Si occupa della coerenza con la tipologia edilizia richiesta (uffici, scuole, ecc.).
+5. **poi**: Si occupa della prossimità a servizi (sanità, trasporti, verde, sport, ecc.).
 
 REGOLE:
-- Decidi quali criteri sono PERTINENTI alla richiesta dell'utente.
-- Restituisci una lista ordinata chiamata `ranking` contenente solo i criteri rilevanti.
-- Se un criterio è totalmente irrilevante per la query (es. l'utente non cita luoghi nè distanze e la location non è un fattore differenziante), puoi escluderlo.
-- L'ordine deve rispecchiare l'importanza: il primo elemento è il più rilevante. Ove possibile motiva la scelta con un breve commento nel campo 'spiegazione' (se disponibile nello schema).
-- Includi almeno un criterio (quello prevalente).
-- Se l'utente non esprime preferenze chiare, includi i criteri che ritieni ragionevolmente utili per una ricerca immobiliare standard, ordinandoli per importanza generale.
+- Decidi quali agenti sono UTILIZZABILI e PERTINENTI alla richiesta dell'utente.
+- Valuta ogni agente in termini di UTILITÀ (quanto è utile il suo contributo per rispondere alla query) e IMPORTANZA (quanto è prioritario il suo ambito per l'utente).
+- Restituisci una lista ordinata chiamata `ranking` contenente solo gli agenti rilevanti.
+- Se un agente è totalmente irrilevante per la query (es. l'utente non cita luoghi né distanze e il location_agent non è un fattore differenziante), puoi escluderlo.
+- L'ordine deve rispecchiare la priorità: il primo elemento è l'agente più utile e importante.
+- Includi almeno un agente (quello prevalente).
+- Se l'utente non esprime preferenze chiare, includi gli agenti che ritieni ragionevolmente utili per una ricerca immobiliare standard, ordinandoli per utilità generale.
 
 OUTPUT:
 Restituisci ESCLUSIVAMENTE un JSON valido:
 {
-  "ranking": ["criterio1", "criterio2", ...]
+  "ranking": ["nome_agente_1", "nome_agente_2", ...]
 }
 ```
 
@@ -478,21 +491,28 @@ Per ciascuna condizione della WHERE:
 3. Mantieni il rilassamento il più conservativo possibile, minimizzando la perdita di precisione.
 4. Non modificare condizioni che non sono rilassabili in modo sensato.
 
-OUTPUT
-Produci ESCLUSIVAMENTE un output in formato JSON valido.
-Il JSON deve contenere un array con un elemento per ogni condizione analizzata.
+# OUTPUT (FORMATO MANDATORIO)
+Restituisci ESCLUSIVAMENTE un array JSON di oggetti. Ogni oggetto deve rappresentare una proposta di rilassamento specifica per una condizione.
 
-Ogni elemento deve includere almeno:
-- "condizione_iniziale": rappresentazione testuale o strutturata della condizione originale;
-- "condizione_relaxed": rappresentazione della condizione dopo il rilassamento;
-- "strategia": descrizione sintetica della strategia adottata;
-- "motivazione": spiegazione del perché il rilassamento è appropriato;
-- "livello_rilassamento": valore qualitativo o numerico (es. low / medium / high).
+Se per una stessa condizione vuoi proporre più livelli (low, medium, high), crea un oggetto distinto per ogni livello.
 
-VINCOLI
-- Non generare SQL completo, solo proposte di rilassamento delle singole condizioni.
-- Non includere testo fuori dal JSON.
-- Assumi che l’output verrà consumato automaticamente da un altro agente.
+SCHEMA JSON RESTRITTIVO:
+[
+  {
+    "condizione_iniziale": "string (la parte di WHERE originale)",
+    "condizione_relaxed": "string (la nuova condizione SQL pronta all'uso)",
+    "piani_progressivi": ["string"], (opzionale: lista di valori testuali che mostrano il percorso di rilassamento)
+    "strategia": "string (breve descrizione tecnica)",
+    "motivazione": "string (ragionamento logico per l'accettabilità)",
+    "livello_rilassamento": "string (uno tra: 'low', 'medium', 'high')"
+  }
+]
+
+IMPORTANTE: 
+- NON usare escape eccessivi. Scrivi SQL pulito dentro le stringhe.
+- NON includere commenti nel JSON.
+- Se una condizione non va rilassata, non includerla nell'array.
+- Assicurati che 'condizione_relaxed' sia codice SQL valido che possa sostituire l'originale.
 ```
 
 ## relaxation_agent.user

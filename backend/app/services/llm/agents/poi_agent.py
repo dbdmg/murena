@@ -136,8 +136,12 @@ class PoiAgent(BaseAgent):
             df_ranked["poi_score"] = 0.0
             return df_ranked[["id", "poi_score"]]
 
+        # Calcolo pesi armonici basati sulla posizione nel ranking
+        # (1.0, 0.5, 0.33, ...) normalizzati per somma = 1.0
         n_reqs = len(valid_reqs)
-        weight = 1.0 / n_reqs
+        harmonic_weights = [1.0 / (i + 1) for i in range(n_reqs)]
+        total_harmonic_sum = sum(harmonic_weights)
+        norm_weights = [w / total_harmonic_sum for w in harmonic_weights]
             
         # 3. Calcola lo score pesato per ogni riga e salva i partial scores
         # Refactoring to vectorized operations for partial scores
@@ -147,8 +151,8 @@ class PoiAgent(BaseAgent):
         weight_cols = []
         partial_score_cols = []
         used_cats = [r.get("colonna_target") for r in valid_reqs]
-        for cat in used_cats:
-            # weight è già stato calcolato sopra come peso uguale per tutti
+        for i, cat in enumerate(used_cats):
+            weight = norm_weights[i]
             
             # Get values and handle NaNs
             vals = pd.to_numeric(df_ranked[cat], errors="coerce")

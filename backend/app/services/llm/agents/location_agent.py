@@ -164,10 +164,6 @@ class LocationAgent(BaseAgent):
             R = 2.5
             x = dist
             
-            # Requirement: 0 score if distance >= 3 km
-            if x >= 3.0:
-                return 0.0, 0.0
-            
             # Exponential decay formula: e^(-(x/R)^3)
             # This produces a value between 0 and 1
             raw_score = np.exp(-((x / R) ** 3))

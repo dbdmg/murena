@@ -15,6 +15,7 @@ USE_CASE_CONFIGS = {
         "preferred_typologies": ["Ufficio strutturato ed assimilabili", "Abitazione", "Struttura residenziale collettiva (es.: collegi e convitti, educandati, ricoveri, orfanotrofi, ospizi, conventi, seminari)"],
         "ape_classes": ["A", "B", "C"],
         "test_queries": [
+            "Cerca un'abitazione tra i 2500 e i 3000 m2 da riconvertire in studentato. L'abitazione deve essere vicino alla linea della Metropolitana."
             "Cerca un edificio dismesso vicino a Palazzo Nuovo con superficie totale di 500 m² per farne uno studentato strutturato a micro alloggi di circa 40-60 m² ciascuno. Preferirei un edificio con classe energetica alta per ridurre i costi di gestione.",
             "Cerco immobile zona Crocetta, superficie 400-600 m², da convertire in studentato. Vicinanza Politecnico essenziale, accesso mezzi pubblici entro 300m. Budget contenuto, anche classe energetica C accettabile.",
             "Edificio abbandonato zona Centro, minimo 350 m², per studentato universitario. Deve avere almeno 8-10 locali per creare micro appartamenti. Presenza trasporti pubblici e supermercati nel raggio di 500m.",

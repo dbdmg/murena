@@ -11,6 +11,15 @@ try:
 except ImportError:
     ChatPromptTemplate = None
 
+_active_evaluation_logger: Optional['AgentLogger'] = None
+
+def set_active_evaluation_logger(logger: 'AgentLogger'):
+    global _active_evaluation_logger
+    _active_evaluation_logger = logger
+
+def get_active_evaluation_logger() -> Optional['AgentLogger']:
+    return _active_evaluation_logger
+
 class AgentLogger:
     """Logger per tracciare input/output di ogni agente."""
     
@@ -55,34 +64,199 @@ class AgentLogger:
             else:
                 # Altrimenti cerca input in vari modi possibili
                 input_extracted = input_data.get('prompt') or input_data.get('query') or input_data.get('input')
+        elif isinstance(input_data, list):
+            input_extracted = input_data
+        else:
+            input_extracted = input_data
         
         # Estrai output dall'output (se presente)
         output_extracted = None
-        if agent_name.lower() == "ape-agent" and hasattr(output_data, 'requisiti'):
-            output_extracted = output_data.requisiti
+
+        # Case 1: result is a DataFrame (Ranking or Mapping mode)
+        if isinstance(output_data, pd.DataFrame):
+            agent_type = agent_name.replace("-agent", "").replace("-extractor", "").replace("-extraction", "").replace("_", "-")
+            
+            # Mappa prefissi colonne per ogni agente
+            prefix_map = {
+                "typology": "typology_",
+                "location": "location_",
+                "ape": "ape_",
+                "normative": "normative_",
+                "poi": "poi_"
+            }
+            prefix = None
+            for k, v in prefix_map.items():
+                if k in agent_type:
+                    prefix = v
+                    break
+            
+            if agent_mode == "ranking" and prefix:
+                # REPLICATE FORMULA LOGIC FROM GRAPH_AGENT
+                involved_cols = ["id"]
+                score_col = f"{prefix}score"
+                transparency_cols = [c for c in output_data.columns if c.startswith(prefix) or c.startswith(f"{prefix}rank_") or c.startswith(f"{prefix}weight_")]
+                involved_cols.extend([c for c in transparency_cols if c not in involved_cols])
+                
+                # Aggiungiamo colonne di input rilevanti definite nelle costanti (lazy import inside method if needed)
+                try:
+                    from app.core.constants import APE_AGENT_COLUMNS, TYPOLOGY_AGENT_COLUMNS, NORMATIVE_AGENT_COLUMNS, POI_AGENT_COLUMNS
+                    source_cols_map = {
+                        "typology": TYPOLOGY_AGENT_COLUMNS,
+                        "location": ["distanza_km", "poi_riferimento"],
+                        "ape": APE_AGENT_COLUMNS,
+                        "normative": NORMATIVE_AGENT_COLUMNS,
+                        "poi": POI_AGENT_COLUMNS
+                    }
+                    agent_key = next((k for k in source_cols_map if k in agent_type), None)
+                    source_cols = []
+                    if agent_key:
+                        source_cols = [c for c in source_cols_map[agent_key] if c in output_data.columns]
+                        involved_cols.extend([c for c in source_cols if c not in involved_cols])
+                except:
+                    source_cols = []
+
+                # INPUT: Nomi delle colonne coinvolte (solo sorgenti)
+                input_extracted = ", ".join(source_cols) if source_cols else ", ".join([c for c in involved_cols if c != "id"])
+                
+                # OUTPUT: Formula per immobile (primi 20)
+                ranking_entries = []
+                for _, row in output_data.head(20).iterrows():
+                    if agent_name == "ranking-agent":
+                        # Final global ranking score
+                        scores = []
+                        for agent in ["location", "normative", "ape", "typology", "poi"]:
+                            sc = row.get(f"{agent}_score", 0.0)
+                            w = row.get(f"ranking_weight_{agent}", 0.0)
+                            scores.append(f"{agent}_score({sc}) * Weight({w})")
+                        
+                        formula_list = ["RankingSum("] + [f"  {s}," for s in scores[:-1]] + [f"  {scores[-1]}", ")"]
+                    elif "typology" in agent_type:
+                        rank_pos = row.get(f"{prefix}rank_position", "N/A")
+                        formula_list = [f"100 / Position({rank_pos})" if rank_pos != "N/A" else "0 (Non corrispondente)"]
+                    elif "location" in agent_type:
+                        dist = row.get("distanza_km", 0)
+                        # Formula: 100 * exp(-(dist/2.5)^3)
+                        formula_list = [f"100 * exp(-({dist:.2f}/2.5)^3)"]
+                    elif any(x in agent_type for x in ["poi", "ape", "normative"]):
+                        # Queste logiche usano mediamente dei partial scores (0-100)
+                        partial_cols = [c for c in output_data.columns if f"{prefix}partial_score_" in c]
+                        
+                        if partial_cols:
+                            weighted_parts = []
+                            for pc in partial_cols:
+                                col_name = pc.replace(f"{prefix}partial_score_", "")
+                                if col_name not in output_data.columns:
+                                    continue
+                                
+                                val_raw = row.get(col_name)
+                                score_pt = row.get(pc)
+                                weight = row.get(f"{prefix}weight_{col_name}", 1.0 / len(partial_cols))
+                                
+                                # Caso Speciale: Classe Energetica (Categorico)
+                                if col_name == "classe_energetica_ape":
+                                    rank_pos = row.get(f"ape_rank_position_{col_name}", "N/A")
+                                    if rank_pos != "N/A":
+                                        desc = f"{col_name}({val_raw})[Rank {rank_pos}/10]: 100*(1-{int(rank_pos)-1}/9)={score_pt}"
+                                    else:
+                                        desc = f"{col_name}({val_raw}): {score_pt}"
+                                
+                                # Caso Speciale: Normative Typology Rank
+                                elif col_name == "tipologia_bene_immobile" and "normative" in agent_type:
+                                    rank_pos = row.get(f"normative_rank_position_{col_name}", "N/A")
+                                    if rank_pos != "N/A":
+                                        desc = f"{col_name}({val_raw})[Rank {rank_pos}]: {score_pt}"
+                                    else:
+                                        desc = f"{col_name}({val_raw}): {score_pt}"
+
+                                # Caso Numerico (Min-Max Scaling relativo al dataset attuale)
+                                else:
+                                    try:
+                                        if pd.api.types.is_numeric_dtype(output_data[col_name]):
+                                            c_vals = pd.to_numeric(output_data[col_name], errors='coerce').dropna()
+                                            c_min = c_vals.min()
+                                            c_max = c_vals.max()
+                                            val_num = float(val_raw) if val_raw not in [None, "N/D", "N/A"] else 0
+                                            
+                                            if c_max == c_min:
+                                                desc = f"{col_name}({val_raw}): 100"
+                                            else:
+                                                f_up = round(100 * (val_num - c_min) / (c_max - c_min), 1)
+                                                f_down = round(100 * (c_max - val_num) / (c_max - c_min), 1)
+                                                
+                                                if abs(f_up - score_pt) < 1.0:
+                                                    desc = f"{col_name}: 100*({val_num}-{c_min})/({c_max}-{c_min})={score_pt}"
+                                                elif abs(f_down - score_pt) < 1.0:
+                                                    desc = f"{col_name}: 100*({c_max}-{val_num})/({c_max}-{c_min})={score_pt}"
+                                                else:
+                                                    desc = f"{col_name}({val_num}) [Min {c_min}, Max {c_max}]: {score_pt}"
+                                        else:
+                                            desc = f"{col_name}({val_raw}): {score_pt} (Match)"
+                                    except:
+                                        desc = f"{col_name}({val_raw}): {score_pt}"
+                                
+                                weighted_parts.append(f"{desc} * Weight({weight:.3f})")
+
+                            if len(weighted_parts) > 1:
+                                formula_list = ["Sum("] + [f"  {p}," for p in weighted_parts[:-1]] + [f"  {weighted_parts[-1]}", ")"]
+                            else:
+                                formula_list = [f"{weighted_parts[0]}"]
+                        else:
+                            # Fallback generico
+                            val_main = row.get(source_cols[0], "N/D") if source_cols else "N/D"
+                            formula_list = [f"Score({val_main})"]
+                    else:
+                        formula_list = ["Logic Default"]
+
+                    ranking_entries.append({
+                        "id": row["id"],
+                        "score": row.get(score_col, 0),
+                        "formula": formula_list
+                    })
+                
+                output_extracted = ranking_entries
+            else:
+                # Comportamento standard per DataFrame (es. filtraggio)
+                if not output_data.columns.is_unique:
+                    output_data = output_data.loc[:, ~output_data.columns.duplicated()]
+                output_extracted = json.loads(output_data.head(20).to_json(orient="records"))
+                input_extracted = f"{agent_mode.capitalize()} mode: {len(output_data)} records"
+        
+        elif agent_name == "relaxation-agent":
+            # Per l'agente di rilassamento, mostriamo i tentativi effettuati come input
+            # e la query finale scelta come output
+            if hasattr(output_data, 'attempts') and output_data.attempts:
+                input_extracted = output_data.attempts
+                output_extracted = getattr(output_data, 'final_sql', None) or getattr(output_data, 'raw_text', "N/A")
+            else:
+                input_extracted = getattr(output_data, 'raw_text', "N/A")
+                output_extracted = "Nessuna proposta applicata"
+
         elif agent_name == "ranking-agent":
-            # Per il ranking agent, preferiamo il ranking ordinato se presente, altrimenti i pesi
             if hasattr(output_data, 'ranking') and output_data.ranking:
                 output_extracted = {"ranking": output_data.ranking.ranking}
             elif hasattr(output_data, 'weights'):
                 output_extracted = output_data.weights.model_dump()
+        
         elif agent_name == "poi-agent":
-            # Per il POI agent (filtering), mostriamo i requisiti
             if hasattr(output_data, 'requisiti'):
-                output_extracted = {
-                    "requisiti": output_data.requisiti
-                }
+                output_extracted = {"requisiti": output_data.requisiti}
+            elif hasattr(output_data, 'raw_text'):
+                output_extracted = output_data.raw_text
+        
         elif hasattr(output_data, 'raw_text'):
             output_extracted = output_data.raw_text
         elif isinstance(output_data, dict) and 'raw_text' in output_data:
             output_extracted = output_data['raw_text']
-        elif isinstance(output_data, pd.DataFrame):
-            # Safe conversion to list of dicts to handle NaNs for JSON serialization
-            # Ensure columns are unique before orient='records'
-            if not output_data.columns.is_unique:
-                output_data = output_data.loc[:, ~output_data.columns.duplicated()]
-            output_extracted = json.loads(output_data.to_json(orient="records"))
+        elif hasattr(output_data, 'model_dump'):
+            output_extracted = output_data.model_dump()
+        else:
+            output_extracted = str(output_data)
         
+        # Estrazione del prompt (se presente)
+        prompt_text = "N/D"
+        if hasattr(output_data, 'prompt') and output_data.prompt:
+            prompt_text = getattr(output_data.prompt, 'full_text', "N/D") or "N/D"
+            
         log_entry = {
             "agent_name": agent_name,
             "agent_mode": agent_mode,
@@ -90,7 +264,7 @@ class AgentLogger:
             "execution_time_ms": execution_time_ms,
             "input": self._serialize_data(input_extracted) if input_extracted is not None else None,
             "output": self._serialize_data(output_extracted) if output_extracted is not None else None,
-            "output_structure": self._serialize_data(output_data) if output_data is not None else None
+            "prompt": prompt_text
         }
         self.log_data.append(log_entry)
         
@@ -171,7 +345,6 @@ class AgentLogger:
                 
                 input_val = entry.get("input")
                 output_val = entry.get("output")
-                output_struct = entry.get("output_structure")
                 
                 # Re-run serialize to catch any nested JSON strings or non-serializable objects
                 # that might have been passed directly. 
@@ -180,12 +353,10 @@ class AgentLogger:
                 try:
                     serialized_input = self._serialize_data(input_val)
                     serialized_output = self._serialize_data(output_val)
-                    serialized_struct = self._serialize_data(output_struct)
                 except Exception as ex:
                     print(f"⚠️ Errore durante la serializzazione dell'entry {entry.get('agent_name')}: {ex}")
                     serialized_input = str(input_val)
                     serialized_output = str(output_val)
-                    serialized_struct = str(output_struct)
                 
                 if entry["agent_name"] == "evaluation-agent":
                     # Estrai la lista di valutazioni se presente in un dizionario
@@ -217,7 +388,6 @@ class AgentLogger:
                             "execution_time_ms": entry.get("execution_time_ms"),
                             "input": serialized_input,
                             "output": item,
-                            "output_structure": serialized_struct,
                             "notes": ""
                         }
                         agent_executions.append(agent_entry)
@@ -228,7 +398,6 @@ class AgentLogger:
                         **entry, 
                         "input": serialized_input,
                         "output": serialized_output,
-                        "output_structure": serialized_struct,
                         "batch_id": None,
                         "notes": ""
                     }
@@ -250,9 +419,6 @@ class AgentLogger:
             def to_display_value(value, field_name=None):
                 if value is None:
                     return None
-                elif field_name == "output_structure" and isinstance(value, dict):
-                    # Per output_structure, mostra solo le chiavi
-                    return "<br>".join(sorted(value.keys()))
                 elif isinstance(value, dict):
                     return self._dict_to_html_table(value)
                 elif isinstance(value, list):
@@ -282,7 +448,6 @@ class AgentLogger:
                 "timestamp": execution.get("timestamp"),
                 "execution_time_ms": execution.get("execution_time_ms"),
                 "input": to_display_value(execution.get("input"), "input"),
-                "output_structure": to_display_value(execution.get("output_structure"), "output_structure"),
                 "output": to_display_value(execution.get("output"), "output"),
                 "notes": execution.get("notes", "")
             })
@@ -298,7 +463,7 @@ class AgentLogger:
         desired_order = [
             'agent_name', 'agent_mode', 'output', 'notes', 'input', 
             'use_case', 'prompt_id', 'run_number', 'run_timestamp', 
-            'batch_id', 'retry_id', 'timestamp', 'execution_time_ms', 'output_structure'
+            'batch_id', 'retry_id', 'timestamp', 'execution_time_ms'
         ]
         existing_columns = [col for col in desired_order if col in df.columns]
         # Add any other columns at the end
@@ -316,7 +481,7 @@ class AgentLogger:
     def _render_html_template(self, df: pd.DataFrame, title: str, json_filename: Optional[str] = None, view_mode: str = "table") -> str:
         """Renderizza il template HTML con i dati del DataFrame usando il layout specificato."""
         
-        wide_columns = ['input', 'output', 'output_structure']
+        wide_columns = ['input', 'output']
         html_content = f"""
 <!DOCTYPE html>
 <html lang="it">

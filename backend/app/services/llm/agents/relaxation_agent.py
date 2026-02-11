@@ -95,12 +95,13 @@ class RelaxationAgent(BaseAgent):
         for item in items:
             if not isinstance(item, dict):
                 continue
+            
             try:
-                # Validazione manuale per essere robusti
+                # Validazione rigorosa sul nuovo schema
                 p = RelaxationProposal.model_validate(item)
                 proposals.append(p)
             except Exception as e:
-                logger.warning(f"Salto proposta di rilassamento non valida: {e}")
+                logger.warning(f"Salto proposta di rilassamento non valida o incompleta: {e}")
                 continue
 
         return RelaxationAgentResult(

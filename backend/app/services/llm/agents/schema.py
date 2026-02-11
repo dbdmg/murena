@@ -68,10 +68,10 @@ class LocationResponse(BaseModel):
 
 class EvaluationResult(BaseModel):
     id: Union[int, str] = Field(..., description="ID dell'immobile")
-    evaluation_text: str = Field(..., description="Testo della valutazione")
-    final_ranking_score: int = Field(..., description="Punteggio di rilevanza (0-100) basato sul ranking")
-    pros: List[str] = Field(default_factory=list, description="Punti di forza")
-    cons: List[str] = Field(default_factory=list, description="Punti di debolezza")
+    evaluation_text: str = Field(..., description="Testo della valutazione qualitativa")
+    final_ranking_score: Optional[int] = Field(default=0, description="Punteggio di rilevanza (0-100) basato sul ranking deterministico")
+    pros: List[str] = Field(default_factory=list, description="Lista dei 3 punti di forza")
+    cons: List[str] = Field(default_factory=list, description="Lista dei 3 punti di debolezza")
 
 
 class EvaluationList(BaseModel):
@@ -128,15 +128,18 @@ class PoiAgentResult(AgentResult):
 
 
 class RelaxationProposal(BaseModel):
-    condizione_iniziale: str = Field(..., description="Rappresentazione testuale della condizione originale")
-    condizione_relaxed: Union[str, List[Dict[str, Any]]] = Field(..., description="Proposta di rilassamento (singola o lista progressiva)")
-    strategia: str = Field(..., description="Descrizione della strategia adottata")
-    motivazione: str = Field(..., description="Spiegazione del perché il rilassamento è appropriato")
-    livello_rilassamento: str = Field(..., description="Livello (low / medium / high)")
+    condizione_iniziale: str = Field(..., description="La condizione SQL originale (es. 'superficie > 100')")
+    condizione_relaxed: str = Field(..., description="La NUOVA condizione SQL rilassata (es. 'superficie > 80')")
+    piani_progressivi: Optional[List[str]] = Field(default_factory=list, description="Eventuali step intermedi di rilassamento (opzionale)")
+    strategia: str = Field(..., description="Tipo di intervento (es. 'Espansione raggio', 'Cambio soglia')")
+    motivazione: str = Field(..., description="Perché questo rilassamento è sensato rispetto alla query")
+    livello_rilassamento: str = Field(..., description="Indice di deviazione: 'low', 'medium' o 'high'")
 
 
 class RelaxationAgentResult(AgentResult):
     proposals: List[RelaxationProposal] = Field(default_factory=list)
+    attempts: List[Dict[str, Any]] = Field(default_factory=list)
+    final_sql: Optional[str] = None
 
 
 

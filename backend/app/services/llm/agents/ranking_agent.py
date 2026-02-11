@@ -1,4 +1,5 @@
-from typing import Any, List, Optional
+import pandas as pd
+from typing import Union
 import json
 
 from langchain_core.prompts import ChatPromptTemplate
@@ -47,14 +48,18 @@ class RankingAgent(BaseAgent):
             raw_text="{}", weights=RankingWeights(), prompt=None
         )
     )
-    def run(self, *, query: str = None, mode: str = "ranking") -> RankingAgentResult:
+    def run(self, *, query: str = None, mode: str = "filtering", **kwargs) -> Union[RankingAgentResult, pd.DataFrame]:
         """
-        Esegue l'agente per definire i pesi.
-        Il RankingAgent opera esclusivamente in modalità 'ranking'.
+        Esegue l'agente per definire i pesi o calcolare il ranking finale.
         """
-        if mode != "ranking":
-            raise ValueError(f"RankingAgent non supporta la modalità '{mode}'.")
-            
+        if mode == "filtering":
+            return self._run_filtering(query=query)
+        elif mode == "ranking":
+            return self._run_ranking(**kwargs)
+        else:
+            raise ValueError(f"Modalità '{mode}' non supportata dal RankingAgent.")
+
+    def _run_filtering(self, query: str) -> RankingAgentResult:
         if not query:
             return RankingAgentResult(raw_text="{}", weights=RankingWeights(), prompt=None)
 
@@ -123,3 +128,31 @@ class RankingAgent(BaseAgent):
                 weights=RankingWeights(),
                 prompt=None,
             )
+
+    def _run_ranking(self, *, df: pd.DataFrame, weights: RankingWeights) -> pd.DataFrame:
+        """
+        Calcola il final_ranking_score pesando i punteggi degli altri agenti.
+        """
+        if df is None or df.empty:
+            return df
+        
+        df_ranked = df.copy()
+        
+        # Store ranking weights in DF for logging transparency
+        df_ranked["ranking_weight_location"] = weights.location
+        df_ranked["ranking_weight_normative"] = weights.normative
+        df_ranked["ranking_weight_ape"] = weights.ape
+        df_ranked["ranking_weight_typology"] = weights.typology
+        df_ranked["ranking_weight_poi"] = weights.poi
+
+        # Calcolo score pesato finale
+        # Componenti pesati secondo la posizione nel ranking (già riflesso nei pesi)
+        df_ranked["final_ranking_score"] = (
+            df_ranked["ranking_weight_location"] * df_ranked.get("location_score", 0.0) +
+            df_ranked["ranking_weight_normative"] * df_ranked.get("normative_score", 0.0) +
+            df_ranked["ranking_weight_ape"] * df_ranked.get("ape_score", 0.0) +
+            df_ranked["ranking_weight_typology"] * df_ranked.get("typology_score", 0.0) +
+            df_ranked["ranking_weight_poi"] * df_ranked.get("poi_score", 0.0)
+        )
+        
+        return df_ranked

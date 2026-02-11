@@ -41,7 +41,9 @@ class RankingEvaluator:
         from app.core.config import settings
         settings.AGENT_LOGS_DIR = str(self.agent_logs_dir)
         
+        from app.services.agent_logger import AgentLogger, set_active_evaluation_logger
         self.agent_logger = AgentLogger(self.agent_logs_dir)
+        set_active_evaluation_logger(self.agent_logger)
     
     def run_prediction(self, query: str, prompt_id: str = "", run_number: int = 1) -> Tuple[List[str], float, Optional[str]]:
         """Esegue predizione e ritorna lista ID ordinati."""
@@ -136,11 +138,9 @@ class RankingEvaluator:
             from app.services.llm.agents.normative_agent import NormativeAgent
             from app.services.llm.agents.sql_agent import SQLAgent
             from app.services.llm.agents.evaluation_agent import EvaluationAgent
-            
-            agent_classes = [
-                LocationAgent, TypologyAgent, ApeAgent, PoiAgent, 
-                RankingAgent, NormativeAgent, SQLAgent, EvaluationAgent
-            ]
+            # Gli agenti sono ora loggati direttamente dal GraphOrchestratorAgent tramite _log_execution
+            # che propaga i log al logger globale attivo. Disabilitiamo gli hooks per evitare duplicati.
+            agent_classes = []
             
             if not hasattr(self, '_original_run_methods'):
                 self._original_run_methods = {}
