@@ -165,7 +165,7 @@ export const ProcessingPage: React.FC = () => {
                         </div>
                         <h1 className="text-3xl font-semibold text-white tracking-tight flex items-center gap-3">
                             {isComplete ? (
-                                'Analisi Completata'
+                                'Analisi completata'
                             ) : (
                                 <>
                                     <span>Elaborazione richiesta...</span>
@@ -269,7 +269,7 @@ export const ProcessingPage: React.FC = () => {
                                 <div className="p-3 bg-emerald-500/10 rounded-2xl border border-emerald-500/20">
                                     <Sparkles className="w-6 h-6 text-emerald-400" />
                                 </div>
-                                <h3 className="text-xl font-semibold text-white">Sintesi Esecutiva dell'Agente</h3>
+                                <h3 className="text-xl font-semibold text-white">Executive summary</h3>
                             </div>
 
                             <div className="prose prose-invert prose-lg max-w-none text-gray-300 relative z-10">
