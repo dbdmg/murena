@@ -79,7 +79,7 @@ class RankingEvaluator:
                 run_id=run_id,
                 query=query,
                 dataset_key="full",
-                map_limit=20,
+                map_limit=15000,
                 llm_limit=10,
                 analysis_mode="agent",
                 progress_callback=mock_set_progress,

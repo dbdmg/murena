@@ -4,21 +4,6 @@
 # ============================================================================
 
 USE_CASE_CONFIGS = {
-    "esperti": {
-        "superficie_range": (300, 800),
-        "prezzo_mq_range": (1200, 2200),
-        "piano_range": (0, 5),
-        "locali_range": (10, 30),
-        "poi_categories": ["università", "mensa", "biblioteca", "supermercato", "trasporti"],
-        "poi_max_distance": 2000,
-        "required_features": ["internet", "riscaldamento", "ascensore"],
-        "preferred_typologies": ["Ufficio strutturato ed assimilabili", "Abitazione", "Struttura residenziale collettiva (es.: collegi e convitti, educandati, ricoveri, orfanotrofi, ospizi, conventi, seminari)"],
-        "ape_classes": ["A", "B", "C"],
-        "test_queries": [
-            "Cercami immobili vicino Piazza Castello",
-            "Cerca un'abitazione tra i 2500 e i 3000 m2 da riconvertire in studentato. L'abitazione deve essere vicino alla linea della Metropolitana."
-        ]
-    },
     "studentato": {
         "superficie_range": (300, 800),
         "prezzo_mq_range": (1200, 2200),
