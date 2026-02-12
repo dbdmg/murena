@@ -70,6 +70,7 @@ class OrchestratorResult:
     gemini_responses: Dict[str, Any]
     where_clause: str
     context: AgentContext
+    match_count: int = 0
     broker_summary: Optional[str] = None
     agent_trace: Optional[List[Dict[str, Any]]] = None
 
@@ -106,6 +107,7 @@ class GraphState(TypedDict):
     broker_summary: str  # Executive summary from Senior Broker
     sql_history: List[str]  # History of all SQL queries tried (initial + relaxations)
 
+    match_count: int
     agent_trace: List[Dict[str, Any]]
     
     # Config
@@ -303,6 +305,7 @@ class GraphOrchestratorAgent(BaseAgent):
             },
             "context": AgentContext(user_query=query),
             "where_clause": "",
+            "match_count": 0,
             "broker_summary": "",
             "llm_limit": llm_limit,
             "map_limit": map_limit,
@@ -372,6 +375,7 @@ class GraphOrchestratorAgent(BaseAgent):
             gemini_responses=final_state["gemini_responses"],
             where_clause=final_state["where_clause"],
             context=final_state["context"],
+            match_count=final_state["match_count"],
             broker_summary=final_state.get("broker_summary", ""),
             agent_trace=final_state.get("agent_trace", []),
         )
@@ -1779,6 +1783,7 @@ class GraphOrchestratorAgent(BaseAgent):
         if "distanza_km" not in enriched_data.columns:
             enriched_data["distanza_km"] = np.nan
 
+        state["selected_data"] = enriched_data # Update state
         state["context"].filtered_dataset_preview = enriched_data.head(10).to_dict(
             "records"
         )
@@ -2335,8 +2340,8 @@ class GraphOrchestratorAgent(BaseAgent):
                 full_df["distanza_km"] = np.nan
 
             state["selected_data"] = full_df
+            state["match_count"] = 0
             state["context"].filtered_dataset_preview = []
-            state["gemini_responses"]["agent_context"] = state["context"].model_dump()
             state["gemini_responses"]["agent_context"] = state["context"].model_dump()
             self._update_progress(state, "complete", "")
             return state
@@ -2376,16 +2381,17 @@ class GraphOrchestratorAgent(BaseAgent):
             enriched_data["id"] = enriched_data["id"].astype(str)
 
         # Sovrascrivi/aggiungi colonne di matching e ranking solo dove l'agente ha lavorato
-        overlay_cols = [
-            col
-            for col in ["id", "is_match", "final_ranking_score", "distanza_km"]
-            if col in enriched_data.columns
-        ]
-        if overlay_cols:
-            overlay_df = enriched_data[overlay_cols].drop_duplicates("id")
-            map_df = pd.merge(
-                map_df, overlay_df, on="id", how="left", suffixes=("", "_ann")
-            )
+        overlay_cols = ["id", "is_match", "final_ranking_score", "distanza_km"]
+        
+        # Drop existing columns from map_df to avoid suffix collisions and ensure overlay wins
+        cols_to_drop = [c for c in overlay_cols if c != "id" and c in map_df.columns]
+        if cols_to_drop:
+            map_df = map_df.drop(columns=cols_to_drop)
+
+        if not enriched_data.empty:
+            actual_overlay_cols = [c for c in overlay_cols if c in enriched_data.columns]
+            overlay_df = enriched_data[actual_overlay_cols].drop_duplicates("id")
+            map_df = pd.merge(map_df, overlay_df, on="id", how="left")
 
         # Default robusti per flag e score
         if "is_match" not in map_df.columns:
@@ -2398,7 +2404,10 @@ class GraphOrchestratorAgent(BaseAgent):
             ).fillna(0)
 
         eval_results = state["context"].evaluation_results
-        total_count = len(map_df)
+        
+        # The true "found" count is the number of matching properties
+        total_matches = len(enriched_data)
+        state["match_count"] = total_matches
         evaluated_total = 0
 
         if eval_results:
@@ -2492,14 +2501,14 @@ class GraphOrchestratorAgent(BaseAgent):
 
         if evaluated_total > 0:
             msg = (
-                f"Trovati {total_count} risultati (mostrati {shown_count} per limite mappa {map_cap}). "
+                f"Trovati {total_matches} immobili corrispondenti. "
+                f"Punti visibili in mappa: {shown_count} (limite {map_cap}). "
                 f"LLM ha valutato {evaluated_total}/{llm_cap} elementi. "
-                f"Valutati visibili in mappa: {evaluated_in_map}. "
-                f"Selezionati in mappa: {selected_in_map}"
             )
         else:
             msg = (
-                f"Trovati {total_count} risultati (mostrati {shown_count} per limite mappa {map_cap}). "
+                f"Trovati {total_matches} immobili corrispondenti. "
+                f"Punti visibili in mappa: {shown_count} (limite {map_cap}). "
                 "Nessuna valutazione LLM disponibile."
             )
 

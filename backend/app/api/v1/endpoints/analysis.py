@@ -737,7 +737,7 @@ async def start_analysis(
                     location_data=results_json.get("location"),
                     status_message=results_json.get("broker_summary")
                     or "Analysis completed",
-                    results_count=len(results_json.get("buildings") or []),
+                    results_count=results_json.get("results_count") or 0,
                 )
         except Exception as e:
             with BackgroundSessionLocal() as bg_db:

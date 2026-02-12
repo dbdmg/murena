@@ -107,6 +107,7 @@ class BuildingResponse(BaseModel):
     cadastral_sheet: Optional[str] = None  # foglio
     cadastral_parcel: Optional[str] = None  # particella
     is_evaluated: bool = False
+    is_match: bool = True
     meta_building: bool = False
     # Extra fields requested by user
     meta_immobile: Optional[bool] = None
@@ -159,6 +160,7 @@ class AnalysisResults(BaseModel):
     location: Optional[List[List[Any]]] = None  # [[name, lat, lon], ...]
     filters_applied: Optional[Dict[str, Any]] = None
     gemini_responses: Optional[Dict[str, Any]] = None
+    results_count: int = 0
     broker_summary: Optional[str] = None
     agent_trace: Optional[List[Dict[str, Any]]] = None
     context: Optional[Dict[str, Any]] = None

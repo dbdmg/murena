@@ -36,7 +36,7 @@ class FeedbackResponse(BaseModel):
     run_id: str
     agent_name: Optional[str] = None
     building_id: Optional[str] = None
-    rating: int
+    rating: Optional[int] = None
     comment: Optional[str] = None
     created_at: datetime
     user_id: Optional[int] = None

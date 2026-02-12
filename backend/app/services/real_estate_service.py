@@ -694,6 +694,7 @@ class RealEstateService:
                 safe_get("cadastral_parcel", alternatives=["particella"])
             ),
             is_evaluated=bool(safe_get("is_evaluated", default=False)),
+            is_match=bool(safe_get("is_match", default=True)),
             meta_building=self._str_to_bool(safe_get("meta_immobile", default=False)),
             # Map new requested fields explicitly
             meta_immobile=self._str_to_bool(safe_get("meta_immobile", default=False)),
@@ -710,6 +711,6 @@ class RealEstateService:
             ape_scores=ape_scores,
             poi_scores=poi_scores,
             ape_files=ape_files,
-            distance_km=None,
-            poi_reference=None,
+            distance_km=safe_get("distance_km", alternatives=["distanza_km"]),
+            poi_reference=safe_get("poi_reference", alternatives=["poi_riferimento"]),
         )

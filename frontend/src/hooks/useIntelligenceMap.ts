@@ -183,6 +183,7 @@ export function useIntelligenceMap(
                         score: evalData?.score ?? b.score,
                         description: b.description,
                         is_evaluated: isEvaluated,
+                        is_match: b.is_match,
                         meta_building: b.meta_building,
                         // New metadata fields
                         meta_immobile: b.meta_immobile,
@@ -213,9 +214,9 @@ export function useIntelligenceMap(
                     } as MapMarker;
                 });
 
-            // Separate into Tier 2 (non-evaluated) and Tier 3 (evaluated)
+            // Separate into Tier 2 (non-evaluated matches) and Tier 3 (evaluated matches)
             const tier3Candidates = allAnalysisMarkers
-                .filter(m => m.is_evaluated && m.ranking_score != null)
+                .filter(m => m.is_match && m.is_evaluated && m.ranking_score != null)
                 .sort((a, b) => (b.ranking_score ?? 0) - (a.ranking_score ?? 0))
                 .slice(0, 25) // Max 25 top picks
                 .map(m => ({ ...m, tier: 3 as MarkerTier }));
@@ -223,8 +224,13 @@ export function useIntelligenceMap(
             const tier3Ids = new Set(tier3Candidates.map(m => m.id));
 
             const tier2Markers = allAnalysisMarkers
-                .filter(m => !tier3Ids.has(m.id))
+                .filter(m => m.is_match && !tier3Ids.has(m.id))
                 .map(m => ({ ...m, tier: 2 as MarkerTier }));
+
+            // Tier 1 markers from analysis (rich data for non-matches)
+            const tier1RichMarkers = allAnalysisMarkers
+                .filter(m => !m.is_match)
+                .map(m => ({ ...m, tier: 1 as MarkerTier }));
 
             // Add to history
             addToHistory({
@@ -233,7 +239,7 @@ export function useIntelligenceMap(
                 status: results.status,
                 created_at: results.created_at,
                 completed_at: results.completed_at,
-                buildings_count: results.buildings.length,
+                buildings_count: results.buildings.filter(b => b.is_match).length,
             });
 
             setState(prev => ({
@@ -243,6 +249,10 @@ export function useIntelligenceMap(
                 currentQuery: results.query || null,
                 searchResults: tier2Markers,
                 topPicks: tier3Candidates,
+                backgroundMarkers: [
+                    ...prev.backgroundMarkers.filter(m => !tier3Ids.has(m.id) && !tier2Markers.some(s => s.id === m.id) && !tier1RichMarkers.some(r => r.id === m.id)),
+                    ...tier1RichMarkers
+                ],
                 searchLocation,
             }));
         } catch (err) {

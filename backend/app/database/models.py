@@ -92,13 +92,6 @@ class Feedback(Base):
     comment = Column(Text, nullable=True)
     helpful = Column(Integer, nullable=True)  # 0=no, 1=yes, null=not answered
 
-    # Additional evaluation fields
-    feedback_e1 = Column(Text, nullable=True)
-    feedback_e2 = Column(Text, nullable=True)
-    feedback_e3 = Column(Text, nullable=True)
-    feedback_e4 = Column(Text, nullable=True)
-    feedback_e5 = Column(Text, nullable=True)
-
     # Timestamp
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
 

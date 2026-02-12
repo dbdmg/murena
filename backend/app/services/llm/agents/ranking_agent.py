@@ -193,5 +193,5 @@ class RankingAgent(BaseAgent):
         
         df_ranked["ranking_formula"] = df_ranked.apply(build_formula, axis=1)
         
-        # Return only essential columns: id, final score, and formula
-        return df_ranked[["id", "final_ranking_score", "ranking_formula"]]
+        # Return full dataframe to preserve all columns (is_match, is_evaluated, etc.)
+        return df_ranked

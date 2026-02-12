@@ -76,7 +76,6 @@ class FeedbackRepository(BaseRepository[Feedback]):
         rating: Optional[int] = None,
         comment: Optional[str] = None,
         helpful: Optional[int] = None,
-        **evaluation_fields,
     ) -> Optional[Feedback]:
         """
         Update existing feedback.
@@ -86,7 +85,6 @@ class FeedbackRepository(BaseRepository[Feedback]):
             rating: Optional new rating
             comment: Optional new comment
             helpful: Optional new helpful value
-            **evaluation_fields: Additional evaluation fields (e1-e5)
 
         Returns:
             Updated Feedback instance or None if not found
@@ -99,11 +97,6 @@ class FeedbackRepository(BaseRepository[Feedback]):
                 feedback.comment = comment
             if helpful is not None:
                 feedback.helpful = helpful
-
-            # Update evaluation fields
-            for key, value in evaluation_fields.items():
-                if hasattr(feedback, f"feedback_{key}"):
-                    setattr(feedback, f"feedback_{key}", value)
 
             self.db.commit()
             self.db.refresh(feedback)

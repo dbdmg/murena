@@ -199,6 +199,7 @@ export const MapPage: React.FC = () => {
         const runId = queryParams.get('run_id');
         if (runId && !activeRunId) {
             loadRun(runId);
+            setFilters(prev => ({ ...prev, showOnlyResults: true }));
         }
     }, [loadRun, activeRunId]);
 
@@ -329,6 +330,7 @@ export const MapPage: React.FC = () => {
     // Handle run selection from dropdown
     const handleSelectRun = useCallback((runId: string) => {
         loadRun(runId);
+        setFilters(prev => ({ ...prev, showOnlyResults: true }));
         // Update URL without reload
         const url = new URL(window.location.href);
         url.searchParams.set('run_id', runId);

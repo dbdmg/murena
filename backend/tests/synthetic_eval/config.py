@@ -15,6 +15,7 @@ USE_CASE_CONFIGS = {
         "preferred_typologies": ["Ufficio strutturato ed assimilabili", "Abitazione", "Struttura residenziale collettiva (es.: collegi e convitti, educandati, ricoveri, orfanotrofi, ospizi, conventi, seminari)"],
         "ape_classes": ["A", "B", "C"],
         "test_queries": [
+            "Cercami immobili vicino Piazza Castello",
             "Cerca un'abitazione tra i 2500 e i 3000 m2 da riconvertire in studentato. L'abitazione deve essere vicino alla linea della Metropolitana."
         ]
     },

@@ -66,6 +66,7 @@ export interface MapMarker {
     bathrooms?: number;
     floor?: string;
     is_evaluated?: boolean;
+    is_match?: boolean;
     meta_building?: boolean;
     // New fields
     meta_immobile?: boolean;
@@ -151,6 +152,7 @@ export interface BuildingResponse {
     price?: number;
     description?: string;
     is_evaluated: boolean;
+    is_match: boolean;
     meta_building: boolean;
     // New fields
     meta_immobile?: boolean;
