@@ -471,6 +471,7 @@ export const MapPage: React.FC = () => {
                             runId={activeRunId}
                             align="right"
                             existingFeedback={globalFeedback ? {
+                                id: globalFeedback.id,
                                 rating: globalFeedback.rating,
                                 comment: globalFeedback.comment
                             } : undefined}

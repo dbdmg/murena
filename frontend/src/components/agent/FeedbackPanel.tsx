@@ -8,6 +8,7 @@ interface FeedbackPanelProps {
     agentName?: string; // undefined = global feedback
     buildingId?: string; // NEW
     existingFeedback?: {
+        id: number;
         rating: number;
         comment?: string;
     };
@@ -111,9 +112,28 @@ export const FeedbackPanel: React.FC<FeedbackPanelProps> = ({
         }
     };
 
+    const handleDelete = async () => {
+        if (!existingFeedback?.id) return;
+
+        setIsSubmitting(true);
+        setError(null);
+
+        try {
+            await feedbackApi.deleteFeedback(existingFeedback.id);
+            setIsSubmitted(false);
+            setRating(0);
+            setComment('');
+            if (onSubmitSuccess) onSubmitSuccess();
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Errore durante la rimozione del feedback');
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
     const handleReset = () => {
-        setRating(0);
-        setComment('');
+        setRating(existingFeedback?.rating || 0);
+        setComment(existingFeedback?.comment || '');
         setIsSubmitted(false);
         setError(null);
     };
@@ -275,12 +295,23 @@ export const FeedbackPanel: React.FC<FeedbackPanelProps> = ({
                                             <Check className="w-4 h-4 text-white" />
                                             <span>Feedback Inviato!</span>
                                         </div>
-                                        <button
-                                            onClick={handleReset}
-                                            className="px-4 py-2 bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white font-medium rounded-lg transition-colors text-sm"
-                                        >
-                                            Modifica
-                                        </button>
+                                        <div className="flex items-center gap-1">
+                                            <button
+                                                onClick={handleReset}
+                                                className="px-3 py-2 bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white font-medium rounded-lg transition-colors text-xs"
+                                                title="Modifica"
+                                            >
+                                                Modifica
+                                            </button>
+                                            <button
+                                                onClick={handleDelete}
+                                                disabled={isSubmitting}
+                                                className="px-3 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 font-medium rounded-lg transition-colors text-xs disabled:opacity-50"
+                                                title="Rimuovi"
+                                            >
+                                                {isSubmitting ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Rimuovi'}
+                                            </button>
+                                        </div>
                                     </>
                                 )}
                             </div>

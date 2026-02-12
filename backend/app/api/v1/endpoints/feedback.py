@@ -13,7 +13,7 @@ import json
 from typing import Optional, Any
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Response
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user_optional
@@ -343,3 +343,39 @@ async def get_building_feedback(
     )
     
     return [FeedbackResponse.model_validate(fb) for fb in feedbacks]
+    
+
+@router.delete("/{feedback_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_feedback(
+    feedback_id: int,
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user_optional),
+):
+    """
+    Delete a feedback entry.
+    
+    Checks that the feedback exists and that the current user has permission
+    to delete it (either by owning the associated run or the feedback entry itself).
+    """
+    repo = FeedbackRepository(db)
+    feedback = repo.get(feedback_id)
+    if not feedback:
+        raise HTTPException(status_code=404, detail="Feedback not found")
+
+    # Verify ownership: check associated run ownership
+    run = RunRepository(db).get_by_run_id(feedback.run_id)
+    
+    # Permission check: if run has a user_id, it must match current_user
+    if run and run.user_id is not None:
+        if not current_user or run.user_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Access denied: You do not own this analysis")
+    
+    # Extra check if feedback itself has a user_id
+    if hasattr(feedback, 'user_id') and feedback.user_id is not None:
+        if not current_user or feedback.user_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Access denied: You do not own this feedback")
+
+    deleted = repo.delete(feedback_id)
+    if not deleted:
+        raise HTTPException(status_code=500, detail="Failed to delete feedback")
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

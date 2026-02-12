@@ -51,4 +51,11 @@ export const feedbackApi = {
         });
         return response.data;
     },
+
+    /**
+     * Delete a feedback entry
+     */
+    async deleteFeedback(feedbackId: number): Promise<void> {
+        await apiClient.delete(`/feedback/${feedbackId}`);
+    },
 };

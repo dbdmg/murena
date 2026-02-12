@@ -406,6 +406,7 @@ export const BuildingDetail: React.FC<BuildingDetailProps> = ({ data, runId, onF
                         buildingId={details.id}
                         align="right"
                         existingFeedback={existingFeedback ? {
+                            id: existingFeedback.id,
                             rating: existingFeedback.rating,
                             comment: existingFeedback.comment
                         } : undefined}
