@@ -345,6 +345,7 @@ class AnalysisService:
             "location": make_json_safe(orchestrator_result.location),
             "filters_applied": {
                 "where_clause": make_json_safe(orchestrator_result.where_clause),
+                "final_sql": make_json_safe(orchestrator_result.sql_query),
             },
             "gemini_responses": make_json_safe(orchestrator_result.gemini_responses),
             "results_count": orchestrator_result.match_count,

@@ -64,7 +64,11 @@ class ApeAgent(BaseAgent):
                 score_legend=kwargs.get("score_legend")
             )
         elif mode == "ranking":
-            return self._run_ranking(**kwargs)
+            return self._run_ranking(
+                df=kwargs.get("df"),
+                requirements=kwargs.get("requirements"),
+                global_stats=kwargs.get("global_stats")
+            )
         else:
             raise ValueError(f"Modalità '{mode}' non supportata dall'ApeAgent.")
 
@@ -111,7 +115,7 @@ class ApeAgent(BaseAgent):
                 prompt=None,
             )
 
-    def _run_ranking(self, *, df: pd.DataFrame, requirements: List[Dict[str, Any]] = None) -> pd.DataFrame:
+    def _run_ranking(self, *, df: pd.DataFrame, requirements: List[Dict[str, Any]] = None, global_stats: Dict[str, Any] = None) -> pd.DataFrame:
         """Modalità ranking: calcolo score 0-100 basato su requisiti LLM o logica deterministica."""
         if df is None or df.empty:
             if df is not None:
@@ -120,7 +124,6 @@ class ApeAgent(BaseAgent):
 
         df_ranked = df.copy()
         
-        # 1. Se abbiamo requisiti dinamici dall'LLM (filtering), usiamoli per calcolare lo score
         # 1. Se abbiamo requisiti dinamici dall'LLM (filtering), usiamoli per calcolare lo score
         if requirements:
             total_scores = pd.Series(0.0, index=df_ranked.index)
@@ -183,8 +186,15 @@ class ApeAgent(BaseAgent):
                     vals_raw = pd.to_numeric(df_ranked[col], errors="coerce")
                     is_missing = vals_raw.isna()
                     vals = vals_raw.fillna(0)
-                    min_val = vals.min()
-                    max_val = vals.max()
+                    
+                    # Global vs Local Normalization
+                    col_stats = global_stats.get(col) if global_stats else None
+                    if col_stats and isinstance(col_stats, dict) and "min" in col_stats and "max" in col_stats:
+                        min_val = float(col_stats["min"])
+                        max_val = float(col_stats["max"])
+                    else:
+                        min_val = vals.min()
+                        max_val = vals.max()
                     
                     if max_val == min_val:
                          req_score = pd.Series(100.0, index=df_ranked.index)
@@ -199,19 +209,20 @@ class ApeAgent(BaseAgent):
                             # For equality, we stick to distance from target as 'relative' is ambiguous without a target
                             target_num = float(target_val)
                             diff = np.abs(vals - target_num)
-                            # Normalize diff? 
-                            # Let's keep existing distance logic for == but ensure it ignores threshold?
-                            # Existing: (100 - (diff / target...)). This uses target.
-                            # User said "threshold doesn't count".
-                            # Adapting == to min-max distance? 
-                            # Closest to target gets 100, furthest gets 0.
-                            max_diff = diff.max()
-                            min_diff = diff.min()
-                            if max_diff == min_diff:
-                                req_score = pd.Series(100.0, index=df_ranked.index)
+                            
+                            # Normalizzazione relativa (la distanza massima è definita dal range del dataset)
+                            # Se usiamo global_stats, il denominatore è (max_val - min_val)
+                            # Altrimenti usiamo il diff massimo locale
+                            range_val = (max_val - min_val) if max_val != min_val else 0
+                            if range_val > 0:
+                                req_score = (100 - (diff / range_val * 100)).clip(0, 100)
                             else:
-                                # Smaller diff is better
-                                req_score = ((max_diff - diff) / (max_diff - min_diff) * 100).clip(0, 100)
+                                max_diff = diff.max()
+                                min_diff = diff.min()
+                                if max_diff == min_diff:
+                                    req_score = pd.Series(100.0, index=df_ranked.index)
+                                else:
+                                    req_score = ((max_diff - diff) / (max_diff - min_diff) * 100).clip(0, 100)
                     
                     # Set score to 0 for rows with missing values
                     req_score = req_score.where(~is_missing, 0)
@@ -249,11 +260,22 @@ class ApeAgent(BaseAgent):
         # per non "sporcare" il ranking se l'utente non ha chiesto esplicitamente APE.
         used_col = None
         if "ape_total_points" in df_ranked.columns and not df_ranked["ape_total_points"].isna().all():
-            points_raw = pd.to_numeric(df_ranked["ape_total_points"], errors="coerce")
+            used_col = "ape_total_points"
+        elif "ape_score_total" in df_ranked.columns and not df_ranked["ape_score_total"].isna().all():
+            used_col = "ape_score_total"
+
+        if used_col:
+            points_raw = pd.to_numeric(df_ranked[used_col], errors="coerce")
             is_missing = points_raw.isna()
             points = points_raw.fillna(0)
-            p_min = points.min()
-            p_max = points.max()
+            
+            col_stats = global_stats.get(used_col) if global_stats else None
+            if col_stats and isinstance(col_stats, dict) and "min" in col_stats and "max" in col_stats:
+                p_min = float(col_stats["min"])
+                p_max = float(col_stats["max"])
+            else:
+                p_min = points.min()
+                p_max = points.max()
             
             if p_max == p_min:
                 partial_score = pd.Series(100.0, index=df_ranked.index)
@@ -264,37 +286,15 @@ class ApeAgent(BaseAgent):
             partial_score = partial_score.where(~is_missing, 0)
                 
             df_ranked["ape_score"] = partial_score
-            used_col = "ape_total_points"
             df_ranked[f"ape_partial_score_{used_col}"] = df_ranked["ape_score"]
+            df_ranked["ape_score"] = df_ranked["ape_score"].round(1)
             
-        elif "ape_score_total" in df_ranked.columns and not df_ranked["ape_score_total"].isna().all():
-            score_raw = pd.to_numeric(df_ranked["ape_score_total"], errors="coerce")
-            is_missing = score_raw.isna()
-            score = score_raw.fillna(0)
-            s_min = score.min()
-            s_max = score.max()
-            
-            if s_max == s_min:
-                 partial_score = pd.Series(100.0, index=df_ranked.index)
-            else:
-                 # Assumiamo "the higher the better" per lo score totale APE
-                 partial_score = ((score - s_min) / (s_max - s_min) * 100).clip(0, 100)
-            
-            # Set score to 0 for rows with missing values
-            df_ranked["ape_score"] = partial_score.where(~is_missing, 0)
-            
-            used_col = "ape_score_total"
-            df_ranked[f"ape_partial_score_{used_col}"] = df_ranked["ape_score"]
-        else:
-            df_ranked["ape_score"] = 0.0
-            
-        df_ranked["ape_score"] = df_ranked["ape_score"].round(1)
-        
-        cols_to_return = ["id", "ape_score"]
-        if used_col:
-            cols_to_return.append(used_col)
+            cols_to_return = ["id", "ape_score", used_col]
             df_ranked[f"ape_weight_{used_col}"] = 1.0
             cols_to_return.append(f"ape_weight_{used_col}")
             cols_to_return.append(f"ape_partial_score_{used_col}")
-                
-        return df_ranked[cols_to_return]
+            return df_ranked[cols_to_return]
+        else:
+            df_ranked["ape_score"] = 0.0
+            return df_ranked[["id", "ape_score"]]
+

@@ -66,7 +66,11 @@ class PoiAgent(BaseAgent):
             )
         elif mode == "ranking":
             try:
-                return self._run_ranking(**kwargs)
+                return self._run_ranking(
+                    df=kwargs.get("df"),
+                    requirements=kwargs.get("requirements"),
+                    global_stats=kwargs.get("global_stats")
+                )
             except Exception as e:
                 # Fallback sicuro per ranking: restituisci DF originale con score 0
                 df = kwargs.get("df")
@@ -117,7 +121,7 @@ class PoiAgent(BaseAgent):
                 prompt=None,
             )
 
-    def _run_ranking(self, *, df: pd.DataFrame, requirements: List[Dict[str, Any]] = None) -> pd.DataFrame:
+    def _run_ranking(self, *, df: pd.DataFrame, requirements: List[Dict[str, Any]] = None, global_stats: Dict[str, Any] = None) -> pd.DataFrame:
         """Modalità ranking: calcolo score 0-100 basato sui requisiti (POI categories)."""
         if df is None or df.empty or not requirements:
             if df is not None:
@@ -157,12 +161,16 @@ class PoiAgent(BaseAgent):
             # Get values and handle NaNs
             vals = pd.to_numeric(df_ranked[cat], errors="coerce")
             na_mask = vals.isna()
+            vals = vals.fillna(0)
             
-            # Min-Max Scaling (Relative)
-            # We ignore strict thresholds (0-100 or 1-5) and scale based on available data range.
-            # Higher values are better.
-            min_val = vals.min()
-            max_val = vals.max()
+            # Global vs Local Normalization
+            col_stats = global_stats.get(cat) if global_stats else None
+            if col_stats and isinstance(col_stats, dict) and "min" in col_stats and "max" in col_stats:
+                min_val = float(col_stats["min"])
+                max_val = float(col_stats["max"])
+            else:
+                min_val = vals.min()
+                max_val = vals.max()
             
             if pd.isna(min_val) or min_val == max_val:
                 # If all NaNs or single value
@@ -172,7 +180,8 @@ class PoiAgent(BaseAgent):
                      norm_vals = np.ones(len(vals))
             else:
                  norm_vals = (vals - min_val) / (max_val - min_val)
-                 norm_vals = norm_vals.fillna(0).to_numpy() # Handle NaN result from operation
+                 # Handle NaN result from operation
+                 norm_vals = norm_vals.fillna(0).to_numpy()
             
             # Clip to be safe (0-1)
             norm_vals = norm_vals.clip(0, 1)
@@ -203,3 +212,4 @@ class PoiAgent(BaseAgent):
                 unique_cols.append(c)
                 
         return df_ranked[unique_cols]
+

@@ -110,7 +110,12 @@ class NormativeAgent(BaseAgent):
                 statistics=kwargs.get("statistics")
             )
         elif mode == "ranking":
-            return self._run_ranking(**kwargs)
+            return self._run_ranking(
+                df=kwargs.get("df"),
+                requirements=kwargs.get("requirements"),
+                available_columns=kwargs.get("available_columns"),
+                global_stats=kwargs.get("global_stats")
+            )
         else:
             raise ValueError(f"Modalità '{mode}' non supportata dal NormativeAgent.")
 
@@ -121,7 +126,7 @@ class NormativeAgent(BaseAgent):
                 "found": True,
                 "requisiti": [
                     {
-                        "categoria": "destinazione_uso",
+                        "categoria": "use_case",
                         "tipo": "destinazione ammessa",
                         "valore": "Abitazione",
                         "unita": "N/A",
@@ -196,7 +201,7 @@ class NormativeAgent(BaseAgent):
             ),
         )
 
-    def _run_ranking(self, *, df: pd.DataFrame, requirements: List[Dict[str, Any]], available_columns: List[str] = None) -> pd.DataFrame:
+    def _run_ranking(self, *, df: pd.DataFrame, requirements: List[Dict[str, Any]], available_columns: List[str] = None, global_stats: Dict[str, Any] = None) -> pd.DataFrame:
         """Modalità ranking: calcolo score deterministico 0-100 basato sui requisiti normativi."""
         if df is None or df.empty or not requirements:
             if df is not None:
@@ -235,10 +240,15 @@ class NormativeAgent(BaseAgent):
             # Gestione tipi numerici vs categorici
             if op in [">=", "<=", "=="] and isinstance(target_val, (int, float)):
                 vals = pd.to_numeric(df_ranked[col], errors="coerce").fillna(0)
-                target_num = float(target_val)
                 
-                min_val = vals.min()
-                max_val = vals.max()
+                # Global vs Local Normalization
+                col_stats = global_stats.get(col) if global_stats else None
+                if col_stats and isinstance(col_stats, dict) and "min" in col_stats and "max" in col_stats:
+                    min_val = float(col_stats["min"])
+                    max_val = float(col_stats["max"])
+                else:
+                    min_val = vals.min()
+                    max_val = vals.max()
                 
                 if max_val == min_val:
                     req_score = pd.Series(100.0, index=df_ranked.index)
@@ -252,15 +262,18 @@ class NormativeAgent(BaseAgent):
                     else: # ==
                         target_num = float(target_val)
                         diff = np.abs(vals - target_num)
-                        max_diff = diff.max()
-                        min_diff = diff.min()
                         
-                        if max_diff == min_diff:
-                             req_score = pd.Series(100.0, index=df_ranked.index)
+                        # Normalizzazione relativa tramite range del dataset (preferibilmente globale)
+                        range_val = (max_val - min_val) if max_val != min_val else 0
+                        if range_val > 0:
+                            req_score = (100 - (diff / range_val * 100)).clip(0, 100)
                         else:
-                             # Smaller diff is better
-                             # (max_diff - diff) / (max_diff - min_diff)
-                             req_score = ((max_diff - diff) / (max_diff - min_diff) * 100).clip(0, 100)
+                            max_diff = diff.max()
+                            min_diff = diff.min()
+                            if max_diff == min_diff:
+                                 req_score = pd.Series(100.0, index=df_ranked.index)
+                            else:
+                                 req_score = ((max_diff - diff) / (max_diff - min_diff) * 100).clip(0, 100)
             
                 # Store partial score for this numeric requirement
                 df_ranked[f"normative_partial_score_{col}"] = req_score.round(1)

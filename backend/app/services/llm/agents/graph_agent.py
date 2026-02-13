@@ -69,6 +69,7 @@ class OrchestratorResult:
     status_msg: str
     gemini_responses: Dict[str, Any]
     where_clause: str
+    sql_query: str
     context: AgentContext
     match_count: int = 0
     broker_summary: Optional[str] = None
@@ -319,6 +320,7 @@ class GraphOrchestratorAgent(BaseAgent):
             ],
             "relax_constraints": False,
             "last_retry_reason": None,
+            "sql_history": [],
         }
 
         # Safe recursion limit to handle retry loops while preventing infinite loops
@@ -374,13 +376,14 @@ class GraphOrchestratorAgent(BaseAgent):
             status_msg=final_state["status_msg"],
             gemini_responses=final_state["gemini_responses"],
             where_clause=final_state["where_clause"],
+            sql_query=final_state["sql_query"],
             context=final_state["context"],
             match_count=final_state["match_count"],
             broker_summary=final_state.get("broker_summary", ""),
             agent_trace=final_state.get("agent_trace", []),
         )
 
-    def _log_execution(self, state: GraphState, agent_name: str, result: Any, duration_ms: float, mode: str = "filtering"):
+    def _log_execution(self, state: GraphState, agent_name: str, result: Any, duration_ms: float, mode: str = "filtering", global_stats: Dict[str, Any] = None):
         """Logs agent execution to the trace with structured input/output extraction."""
         if "agent_trace" not in state:
             state["agent_trace"] = []
@@ -514,27 +517,36 @@ class GraphOrchestratorAgent(BaseAgent):
                                     else:
                                         desc = f"{col_name}({val_raw}): {score_pt}"
 
-                                # Caso Numerico (Min-Max Scaling relativo al dataset attuale)
+                                # Caso Numerico (Min-Max Scaling relativo al dataset via global_stats o locale)
                                 else:
                                     try:
                                         if pd.api.types.is_numeric_dtype(result[col_name]):
-                                            c_vals = pd.to_numeric(result[col_name], errors='coerce').dropna()
-                                            c_min = c_vals.min()
-                                            c_max = c_vals.max()
+                                            # Prefer GLOBAL stats if available (deterministic reference)
+                                            col_stats = global_stats.get(col_name) if global_stats else None
+                                            if col_stats and isinstance(col_stats, dict) and "min" in col_stats and "max" in col_stats:
+                                                c_min = float(col_stats["min"])
+                                                c_max = float(col_stats["max"])
+                                                ref_type = "[Global Ref]"
+                                            else:
+                                                c_vals = pd.to_numeric(result[col_name], errors='coerce').dropna()
+                                                c_min = c_vals.min()
+                                                c_max = c_vals.max()
+                                                ref_type = "[Local Range]"
+                                                
                                             val_num = float(val_raw) if val_raw not in [None, "N/D", "N/A"] else 0
                                             
                                             if c_max == c_min:
-                                                desc = f"{col_name}({val_raw}): 100"
+                                                desc = f"{col_name}({val_raw}): 100 {ref_type}"
                                             else:
                                                 f_up = round(100 * (val_num - c_min) / (c_max - c_min), 1)
                                                 f_down = round(100 * (c_max - val_num) / (c_max - c_min), 1)
                                                 
                                                 if abs(f_up - score_pt) < 1.0:
-                                                    desc = f"{col_name}: 100*({val_num}-{c_min})/({c_max}-{c_min})={score_pt}"
+                                                    desc = f"{col_name}: 100*({val_num}-{c_min})/({c_max}-{c_min})={score_pt} {ref_type}"
                                                 elif abs(f_down - score_pt) < 1.0:
-                                                    desc = f"{col_name}: 100*({c_max}-{val_num})/({c_max}-{c_min})={score_pt}"
+                                                    desc = f"{col_name}: 100*({c_max}-{val_num})/({c_max}-{c_min})={score_pt} {ref_type}"
                                                 else:
-                                                    desc = f"{col_name}({val_num}) [Min {c_min}, Max {c_max}]: {score_pt}"
+                                                    desc = f"{col_name}({val_num}) [Min {c_min}, Max {c_max}]: {score_pt} {ref_type}"
                                         else:
                                             desc = f"{col_name}({val_raw}): {score_pt} (Match)"
                                     except:
@@ -1899,6 +1911,16 @@ class GraphOrchestratorAgent(BaseAgent):
                 weights = RankingWeights(**new_weights_dict)
                 logger.info(f"⚖️ Nuovi pesi applicati (loc rimosso): {new_weights_dict}")
 
+        # Compute global statistics for all relevant columns for ranking
+        # This allows agents to normalize scores against the entire dataset instead of the current subset.
+        all_ranking_cols = list(set(APE_AGENT_COLUMNS + NORMATIVE_AGENT_COLUMNS + POI_AGENT_COLUMNS))
+        global_stats = self._get_column_statistics(
+            columns=all_ranking_cols,
+            dataset_path=state.get("dataset_path"),
+            dataset_df=state.get("base_dataset"),
+            db_metadata=state.get("db_metadata")
+        )
+
         # Define ranking tasks for parallel execution
         def rank_typology():
             start_t = time.time()
@@ -1930,7 +1952,7 @@ class GraphOrchestratorAgent(BaseAgent):
                 if data and data.found:
                     requirements = data.requisiti
             
-            tmp = self.ape_agent.run(mode="ranking", df=df.copy(), requirements=requirements)
+            tmp = self.ape_agent.run(mode="ranking", df=df.copy(), requirements=requirements, global_stats=global_stats)
             return tmp, (time.time() - start_t) * 1000
 
         def rank_normative():
@@ -1939,7 +1961,7 @@ class GraphOrchestratorAgent(BaseAgent):
             if res:
                 data = safe_extract_json(res.raw_text, schema=NormativeResponse)
                 if data and data.found:
-                    tmp = self.normative_agent.run(mode="ranking", df=df.copy(), requirements=data.requisiti, available_columns=NORMATIVE_AGENT_COLUMNS)
+                    tmp = self.normative_agent.run(mode="ranking", df=df.copy(), requirements=data.requisiti, available_columns=NORMATIVE_AGENT_COLUMNS, global_stats=global_stats)
                     return tmp, (time.time() - start_t) * 1000
             tmp = df.copy()
             tmp["normative_score"] = 0.0
@@ -1951,7 +1973,7 @@ class GraphOrchestratorAgent(BaseAgent):
             if res:
                 poi_data = safe_extract_json(res.raw_text)
                 if poi_data and poi_data.get("requisiti"):
-                    tmp = self.poi_agent.run(mode="ranking", df=df.copy(), requirements=poi_data.get("requisiti"))
+                    tmp = self.poi_agent.run(mode="ranking", df=df.copy(), requirements=poi_data.get("requisiti"), global_stats=global_stats)
                     return tmp, (time.time() - start_t) * 1000
             tmp = df.copy()
             tmp["poi_score"] = 0.0
@@ -1992,7 +2014,7 @@ class GraphOrchestratorAgent(BaseAgent):
                         }
                         
                         # Log this ranking agent execution to the trace
-                        self._log_execution(state, f"{name}-agent", res_df, duration, mode="ranking")
+                        self._log_execution(state, f"{name}-agent", res_df, duration, mode="ranking", global_stats=global_stats)
 
                     # Aggiungiamo solo nuove colonne evitando duplicazioni
                     new_cols = [c for c in res_df.columns if c not in df.columns or c == "id"]

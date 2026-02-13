@@ -159,9 +159,19 @@ class LocationAgent(BaseAgent):
             if pd.isna(dist) or poi not in radius_map:
                 return 0.0, 0.0
             
-            # Use fixed R parameter for decay as per requirements, 
-            # ignoring user radius for score shape but respecting cutoff if needed
-            R = 2.5
+            # Use dynamic R parameter based on calculation: e^(-(threshold/R)^3) = 0.2
+            # Solving for R: R = threshold / (-ln(0.2))^(1/3)
+            # R ≈ threshold / 1.17195
+            
+            threshold_radius = radius_map.get(poi)
+            if not threshold_radius or threshold_radius <= 0:
+                threshold_radius = 2.5 # default threshold if missing
+            
+            # Calculate R
+            # (-ln(0.2))^(1/3)
+            decay_constant = (-np.log(0.2))**(1/3)
+            R = threshold_radius / decay_constant
+            
             x = dist
             
             # Exponential decay formula: e^(-(x/R)^3)

@@ -713,4 +713,6 @@ class RealEstateService:
             ape_files=ape_files,
             distance_km=safe_get("distance_km", alternatives=["distanza_km"]),
             poi_reference=safe_get("poi_reference", alternatives=["poi_riferimento"]),
+            epglnren_ape=safe_get("epglnren_ape", default=None),
+            classe_energetica_ape=safe_get("classe_energetica_ape", alternatives=["energy_class"]),
         )

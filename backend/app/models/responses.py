@@ -124,6 +124,8 @@ class BuildingResponse(BaseModel):
     ape_files: Optional[List[str]] = None  # List of APE file paths/identifiers
     distance_km: Optional[float] = None
     poi_reference: Optional[str] = None
+    epglnren_ape: Optional[float] = None  # Indice prestazione energetica globale non rinnovabile
+    classe_energetica_ape: Optional[str] = None  # Alias per energy_class
 
     model_config = ConfigDict(from_attributes=True)
 

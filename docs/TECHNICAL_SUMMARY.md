@@ -78,7 +78,7 @@ The system comprises **10 specialized agents**, each inheriting from `BaseAgent`
 | `LocationAgent` | ✓ (geocoding) | ✓ (distance scoring) | ✓ + Nominatim API | Extracts geographic references; computes Haversine/routing-based distance scores |
 | `TypologyAgent` | ✓ (typology matching) | ✓ (rank-based scoring) | ✓ | Identifies and ranks relevant building typologies |
 | `ApeAgent` | ✓ (energy filters) | ✓ (deterministic scoring) | ✓ | Extracts energy performance requirements; computes APE-based scores (0–100) |
-| `NormativeAgent` | ✓ (regulatory extraction) | ✓ (compliance scoring) | ✓ | Extracts surface/zoning requirements from normative documents |
+| `NormativeAgent` | ✓ (regulatory extraction) | ✓ (compliance scoring) | ✓ | Extracts surface/use case requirements from normative documents |
 | `PoiAgent` | ✓ (POI requirements) | ✓ (proximity scoring) | ✓ | Identifies required Points of Interest categories with quality thresholds |
 | `SQLAgent` | ✓ (query generation) | — | ✓ | Translates structured requirements into DuckDB-compatible SQL |
 | `RelaxationAgent` | ✓ (WHERE relaxation) | — | ✓ | Proposes progressive relaxation strategies for over-constrained queries |
@@ -116,7 +116,7 @@ The system transforms a free-form natural language query into a structured SQL q
    - `LocationAgent`: geographic coordinates and search radii.
    - `TypologyAgent`: ordered list of relevant building typologies.
    - `ApeAgent`: energy performance filter conditions (column, operator, value).
-   - `NormativeAgent`: surface area and zoning constraints from regulatory documents.
+   - `NormativeAgent`: surface area and use case constraints from regulatory documents.
    - `PoiAgent`: POI category thresholds.
 
 3. **Requirement Aggregation**: All extracted requirements are serialized into a structured prompt including the database schema and metadata (column names, value distributions, statistical summaries).
@@ -511,7 +511,7 @@ LangGraph was chosen over LangChain's built-in agent framework (e.g., `AgentExec
 
 ### 6.4 Italian-Language Prompts
 
-All prompts are written in Italian to match the operational context (Italian public administration—MEF). This decision reflects the domain-specific vocabulary (e.g., "Attestato di Prestazione Energetica", "tipologia_bene_immobile", "destinazione d'uso") that would lose precision in translation.
+All prompts are written in Italian to match the operational context (Italian public administration—MEF). This decision reflects the domain-specific vocabulary (e.g., "Attestato di Prestazione Energetica", "tipologia_bene_immobile", "use case") that would lose precision in translation.
 
 ---
 
