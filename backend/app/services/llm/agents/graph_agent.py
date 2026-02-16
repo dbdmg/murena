@@ -829,8 +829,14 @@ class GraphOrchestratorAgent(BaseAgent):
         self._update_progress(state, "ranking_init", "", status="done")
         
         active_agents = []
-        if ranking_result and ranking_result.ranking:
-            active_agents = ranking_result.ranking.ranking
+        if ranking_result and ranking_result.ranking and ranking_result.ranking.ranking:
+            # Extract agent names from RankedAgent objects if present
+            # Handle both new RankedAgent structure and legacy string list
+            ranking_list = ranking_result.ranking.ranking
+            if ranking_list and hasattr(ranking_list[0], 'agent_name'):
+                active_agents = [agent.agent_name for agent in ranking_list]
+            else:
+                active_agents = ranking_list
         else:
              # Fallback to all if ranking failed
              active_agents = ["location", "normative", "ape", "typology", "poi"]
@@ -1883,7 +1889,8 @@ class GraphOrchestratorAgent(BaseAgent):
         # Get active agents from ranking result
         active_agents = []
         if ranking_res and ranking_res.ranking:
-            active_agents = ranking_res.ranking.ranking
+            # Extract agent names from RankedAgent list
+            active_agents = [r.agent_name for r in ranking_res.ranking.ranking]
         else:
             # Fallback to all if ranking failed
             active_agents = ["location", "normative", "ape", "typology", "poi"]

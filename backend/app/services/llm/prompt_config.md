@@ -94,10 +94,10 @@ Il tuo compito è estrarre dalla query dell'utente TUTTI i riferimenti geografic
 
 # REGOLE
 1. Identifica OGNI luogo menzionato esplicitamente o implicitamente.
-2. Per ogni luogo, estrai: nome, città (se presente), coordinate (se note), raggio di ricerca in km (`radius_km`) ed eventualmente una soglia specifica di distanza (`threshold`).
+2. Per ogni luogo, estrai: nome, città (se presente), coordinate (se note), raggio di ricerca in km (`radius_km`).
 3. Se l'utente specifica una distanza (es. "entro 1km", "nel raggio di 500m"), convertila in km.
 4. Se NON specifica una distanza, usa 3.0 km come default per `radius_km`. 
-5. Arrotonda sempre `radius_km` e `threshold` alla SECONDA cifra decimale.
+5. Arrotonda sempre `radius_km` alla SECONDA cifra decimale.
 6. Se non ci sono riferimenti geografici nella query, restituisci "found": false e una lista "places" vuota. 
 7. NON inventare luoghi se non sono nel testo.
 
@@ -111,8 +111,7 @@ Restituisci ESCLUSIVAMENTE un JSON valido:
       "city": "Città (Sempre popola se deducibile, es: Torino)", 
       "lat": 45.07, 
       "lon": 7.68, 
-      "radius_km": 3.0,
-      "threshold": 3.0
+      "radius_km": 3.0
     }
   ]
 }
@@ -164,7 +163,7 @@ Traduci i requisiti in clausole `WHERE` seguendo queste direttive:
 
 - **Range di valori**: "tra X e Y" → `colonna BETWEEN X AND Y` o `colonna >= X AND colonna <= Y`
 - **Liste di valori**: Se ricevi una lista di valori per un concetto (es. tipologie) → `colonna IN ('val1', 'val2')`
-- **Coordinate geografiche**: Se ricevi [lat, lon, radius_km, threshold] → `haversine_km(latitudine, longitudine, {lat}, {lon}) <= {valore}`, dove `{valore}` è `threshold` se presente, altrimenti `radius_km`.
+- **Coordinate geografiche**: Se ricevi [lat, lon, radius_km] → `haversine_km(latitudine, longitudine, {lat}, {lon}) <= {radius_km}`.
 - **Requisiti con operatore**: Se ricevi [colonna] [operatore] [valore] → usali direttamente
 - **Mappatura Colonne**: Usa lo SCHEMA e i METADATI per trovare il nome colonna corretto se quello fornito è un alias o una categoria (es. mapping tra 'educazione' e 'poi_educazione')
 
@@ -274,6 +273,8 @@ Il tuo compito è identificare se l'utente ha esigenze legate al risparmio energ
 6. **Dati Reali**: Tutte le colonne coinvolte devono essere esclusivamente tra quelle presenti nella DISTRIBUZIONE DATI.
 7. **Output**: Se non ci sono richieste energetiche rilevanti o desumibili con certezza dalla query, restituisci `"found": false` e una lista `"requisiti"` vuota.
 8. **Struttura Requisiti**: Restituisci i `requisiti` come lista di oggetti con `colonna_target`, `operatore` e `valore`.
+9. **No Geolocation**: NON occuparti mai di requisiti geografici, latitudini, longitudini o distanze. Il tuo unico ambito è l'efficienza energetica.
+
 
 {score_legend}
 
@@ -452,22 +453,19 @@ REGOLE DI SELEZIONE (CRITICHE):
 2. **NON includere agenti "per sicurezza"**: Se l'utente non richiede informazioni su POI, NON includere "poi". Se non chiede efficienza energetica, NON includere "ape".
 3. **Analizza la query parola per parola**: Identifica solo i bisogni informativi reali.
 4. **Ordina per priorità**: Il primo agente deve essere quello che fornisce l'informazione PIÙ CRITICA per soddisfare la richiesta.
-5. **Minimo 1 agente**: Deve sempre includere almeno l'agente più rilevante, anche per query generiche.
-6. **Uso vs Tipologia (MOLTO IMPORTANTE)**: Distingui tra la **tipologia fisica** dell'immobile (es: "voglio un ufficio", "cerco un appartamento") e lo **scopo d'uso/finalità** (es: "per farci uno studentato", "per un asilo"). 
-   - La finalità ("per farci X", "per un asilo") deve attivare `normative` (per requisiti di legge e use-case), ma NON deve attivare `typology`.
-   - `typology` si attiva SOLO se l'utente descrive l'immobile per quello che è FISICAMENTE (es. "cerco un capannone").
-
-ESEMPI:
-- Query: "Cerca un edificio vicino a Palazzo Nuovo" → ranking: ["location"] (solo location necessaria)
-- Query: "Edificio con classe energetica A" → ranking: ["ape"] (solo efficienza energetica richiesta)
-- Query: "Studentato vicino all'università con buona efficienza energetica" → ranking: ["location", "normative", "ape"] (normative per studentato, NO typology)
-- Query: "Un ufficio per farci un asilo a Torino" → ranking: ["location", "typology", "normative"] (typology=ufficio, normative=asilo)
-- Query: "Cercami un immobile per farci uno studentato" → ranking: ["normative"] (solo normative per lo studentato, immobile è generico quindi NO typology)
+6. **Ranking e Ex-Aequo**: 
+   - Assegna un 'rank' numerico (1 = massima importanza).
+   - Se due agenti sono EQUAMENTE importanti, assegna lo STESSO rank.
+   - Non saltare numeri di rank (es. 1, 1, 2... non 1, 1, 3).
 
 OUTPUT:
-Restituisci ESCLUSIVAMENTE un JSON valido con gli agenti necessari e una breve motivazione strategica:
+Restituisci ESCLUSIVAMENTE un JSON valido:
 {
-  "ranking": ["agente_prioritario", "agente_secondario", ...],
+  "ranking": [
+     {"agent_name": "location", "rank": 1},
+     {"agent_name": "ape", "rank": 1},
+     {"agent_name": "normative", "rank": 2}
+  ],
   "reasoning": "Spiegazione sintetica del perché questi agenti sono stati selezionati per questa query"
 }
 ```

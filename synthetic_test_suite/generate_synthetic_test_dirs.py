@@ -119,14 +119,16 @@ async def run_single_test(agent_name: str, prompt: str, num_tries: int = 1):
             # Extract activated agents from trace
             if "activated_agents" not in extra_info:
                 trace = result.get("agent_trace", [])
-                # Filter out ranking-agent and SQL as they are infrastructure
-                # Map names like 'location-agent' to 'location'
+                # Infrastructure agents that are always allowed/expected
+                infra_agents = ["ranking", "sql", "evaluation", "relaxation", "broker"]
                 active = []
                 for entry in trace:
                     name = entry.get("agent_name", "")
-                    if name and name not in ["ranking-agent"]:
-                        clean_name = name.replace("-agent", "")
-                        if clean_name not in active:
+                    if name:
+                        clean_name = name.replace("-agent", "").lower()
+                        # Skip if it is an infrastructure agent
+                        is_infra = any(infra in clean_name for infra in infra_agents)
+                        if not is_infra and clean_name not in active:
                             active.append(clean_name)
                 extra_info["activated_agents"] = active
             
@@ -134,16 +136,10 @@ async def run_single_test(agent_name: str, prompt: str, num_tries: int = 1):
             if "final_sql" not in extra_info:
                 extra_info["final_sql"] = result.get("filters_applied", {}).get("final_sql", "")
             
-            # Extract location threshold
-            if agent_name == "location_agent" and "location_threshold" not in extra_info:
-                responses = result.get("gemini_responses", {})
-                loc_ext = responses.get("location_extraction", {})
-                places = loc_ext.get("places", [])
-                if places:
-                    # If multiple, take the first one (most common case) or list them
-                    thresholds = [str(p.get("radius_km", "3.0")) for p in places]
-                    extra_info["location_threshold"] = ", ".join(thresholds)
-
+            # Extract all gemini responses for all agents
+            if "gemini_responses" not in extra_info:
+                extra_info["gemini_responses"] = result.get("gemini_responses", {})
+            
             scores = {} # id -> score
             for b in buildings:
                 scores[b.id] = b.score
@@ -312,7 +308,7 @@ def calculate_gt_score(building_data: Dict[str, Any], strategy: Dict[str, Any], 
 
     return 0.0
 
-def generate_files(root_path: Path, agent_name: str, prompt: str, tries_rankings: List[Dict], buildings_info: Dict[str, BuildingResponse], extra_info: Dict[str, Any], columns: List[str], gt_strategy: Dict[str, Any] = None):
+def generate_files(root_path: Path, agent_name: str, prompt: str, tries_rankings: List[Dict], buildings_info: Dict[str, BuildingResponse], extra_info: Dict[str, Any], columns: List[str], gt_strategy: Dict[str, Any] = None, expected_agents: List[str] = None):
     """Generate the output CSV files with score_gt."""
     prompt_dir = root_path / "results" / agent_name / prompt.replace("/", "_")
     prompt_dir.mkdir(parents=True, exist_ok=True)
@@ -320,20 +316,43 @@ def generate_files(root_path: Path, agent_name: str, prompt: str, tries_rankings
     with open(prompt_dir / "prompt.txt", "w", encoding="utf-8") as f:
         f.write(prompt)
     
-    # Write activated agents
-    with open(prompt_dir / "activated_agents.txt", "w", encoding="utf-8") as f:
-        agents = extra_info.get("activated_agents", [])
-        f.write("\n".join(agents))
     
     # Write final SQL query
     if extra_info.get("final_sql"):
         with open(prompt_dir / "final_query.sql", "w", encoding="utf-8") as f:
             f.write(extra_info["final_sql"])
     
-    # Write location threshold
-    if agent_name == "location_agent" and extra_info.get("location_threshold"):
-        with open(prompt_dir / "location_threshold.txt", "w", encoding="utf-8") as f:
-            f.write(extra_info["location_threshold"])
+    # Write Agent Responses
+    responses = extra_info.get("gemini_responses", {})
+    if responses:
+        resp_dir = prompt_dir / "agent_responses"
+        if resp_dir.exists():
+            import shutil
+            shutil.rmtree(resp_dir)
+        resp_dir.mkdir(exist_ok=True)
+        for agent_key, resp_data in responses.items():
+            # Save only structured data (dictionaries) to avoid noise
+            if isinstance(resp_data, dict):
+                with open(resp_dir / f"{agent_key}.json", "w", encoding="utf-8") as f:
+                    json.dump(resp_data, f, indent=2, ensure_ascii=False)
+    
+    
+    # Agent Verification
+    actual_agents = extra_info.get("activated_agents", [])
+    if expected_agents:
+        match = set(actual_agents) == set(expected_agents)
+        verification = {
+            "expected": expected_agents,
+            "actual": actual_agents,
+            "match": match,
+            "missing": list(set(expected_agents) - set(actual_agents)),
+            "extra": list(set(actual_agents) - set(expected_agents))
+        }
+        with open(prompt_dir / "agent_verification.json", "w", encoding="utf-8") as f:
+            json.dump(verification, f, indent=2)
+        
+        status_str = "✅ MATCH" if match else "❌ MISMATCH"
+        print(f"[CHECK]  Agent activation: {status_str} | Expected: {expected_agents} | Actual: {actual_agents}")
     
     # Calculate Ground Truth
     df_full = RealEstateService._dataset_cache.get("full")
@@ -341,46 +360,78 @@ def generate_files(root_path: Path, agent_name: str, prompt: str, tries_rankings
     id_to_gt_score = {}
     id_to_dist = {}
     
-    # Pre-calculate coordinates for distance_decay strategy
-    lat_p, lon_p = None, None
-    if gt_strategy and gt_strategy.get("type") == "distance_decay" and df_full is not None:
-        poi_name = gt_strategy.get("poi")
-        from app.data.loaders import get_coordinates
-        lat_p, lon_p = get_coordinates(poi_name)
-
-    # Removed saving of poi_coordinates.json as requested
-
-    
-    # Calculate GT scores for all relevant strategies
     if gt_strategy and df_full is not None:
+        # Support both single strategy (dict) and multiple strategies (list)
+        strategies = gt_strategy if isinstance(gt_strategy, list) else [gt_strategy]
+        
+        # Initialize temp dataframe for vectorized calculations
+        temp_df = df_full.copy()
+        temp_df["score_gt_combined"] = 0.0
+        
+        # Mask to track if all components are non-zero (for combined strategies)
+        is_multi_strategy = isinstance(gt_strategy, list) and len(gt_strategy) > 1
+        if is_multi_strategy:
+            temp_df["all_components_nonzero"] = True
+        
+        # Calculate weights: use provided weights or default to equal distribution
+        weights_specified = [s.get("weight") for s in strategies if "weight" in s]
+        if len(weights_specified) == len(strategies):
+            total_weight = sum(weights_specified)
+            weights = [w / total_weight for w in weights_specified]
+        else:
+            weights = [1.0 / len(strategies)] * len(strategies)
+
         cols = list(df_full.columns)
         lat_col = next((c for c in ["latitudine", "lat", "latitude", "coordinata_y"] if c in cols), None)
         lon_col = next((c for c in ["longitudine", "lon", "longitude", "coordinata_x"] if c in cols), None)
-        
-        # Fast path for location decay
-        if gt_strategy.get("type") == "distance_decay" and lat_p is not None and lon_p is not None and lat_col and lon_col:
-            temp_df = df_full.dropna(subset=[lat_col, lon_col]).copy()
-            temp_df["dist_km"] = haversine(lat_p, lon_p, temp_df[lat_col].values, temp_df[lon_col].values)
-            
-            threshold = gt_strategy.get("radius_reference", 2.5)
-            # Calculate R such that score is 20 (0.2) at threshold
-            decay_constant = (-np.log(0.2))**(1/3) # approx 1.172
-            rad = threshold / decay_constant
-            
-            # Calculate score using rounded distance to match agent's logic, but cutoff uses precise distance
-            temp_df["score_gt"] = temp_df["dist_km"].apply(lambda x: round(100 * np.exp(-(round(x, 2) / rad)**3), 1))
-            
-            # Enforce hard cutoff if radius_reference is specified
-            if "radius_reference" in gt_strategy:
-                temp_df.loc[temp_df["dist_km"] > threshold, "score_gt"] = 0.0
 
-            id_to_gt_score = {str(k): v for k, v in temp_df.set_index("id")["score_gt"].to_dict().items()}
-            id_to_dist = {str(k): v for k, v in temp_df.set_index("id")["dist_km"].to_dict().items()}
-        else:
-            # Generic strategy (mapping, min_max, exact_match)
-            temp_df = df_full.copy()
-            temp_df["score_gt"] = temp_df.apply(lambda row: calculate_gt_score(row.to_dict(), gt_strategy, global_stats), axis=1)
-            id_to_gt_score = {str(k): v for k, v in temp_df.set_index("id")["score_gt"].to_dict().items()}
+        from app.data.loaders import get_coordinates
+
+        for i, s in enumerate(strategies):
+            weight = weights[i]
+            s_type = s.get("type")
+            
+            if s_type == "distance_decay":
+                poi_name = s.get("poi")
+                lat_p, lon_p = get_coordinates(poi_name)
+                
+                if lat_p is not None and lon_p is not None and lat_col and lon_col:
+                    temp_df["temp_dist"] = haversine(lat_p, lon_p, temp_df[lat_col].values, temp_df[lon_col].values)
+                    threshold = s.get("radius_reference", 2.5)
+                    decay_constant = (-np.log(0.2))**(1/3)
+                    rad = threshold / decay_constant
+                    
+                    # Rounding to match agent logic (consistent with haversine use elsewhere)
+                    s_scores = temp_df["temp_dist"].apply(lambda x: round(100 * np.exp(-(round(x, 2) / rad)**3), 1))
+                    
+                    if "radius_reference" in s:
+                        s_scores.loc[temp_df["temp_dist"] > threshold] = 0.0
+                    
+                    temp_df["score_gt_combined"] += s_scores * weight
+                    if is_multi_strategy:
+                        temp_df["all_components_nonzero"] &= (s_scores > 0)
+                    
+                    # Store distance only for the first distance-based strategy found
+                    if not id_to_dist:
+                        id_to_dist = {str(k): v for k, v in temp_df.set_index("id")["temp_dist"].to_dict().items()}
+                else:
+                    # Fallback if geocoding fails
+                    s_scores = temp_df.apply(lambda row: calculate_gt_score(row.to_dict(), s, global_stats), axis=1)
+                    temp_df["score_gt_combined"] += s_scores * weight
+                    if is_multi_strategy:
+                        temp_df["all_components_nonzero"] &= (s_scores > 0)
+            else:
+                # Generic strategy
+                s_scores = temp_df.apply(lambda row: calculate_gt_score(row.to_dict(), s, global_stats), axis=1)
+                temp_df["score_gt_combined"] += s_scores * weight
+                if is_multi_strategy:
+                    temp_df["all_components_nonzero"] &= (s_scores > 0)
+
+        # Apply the "AND" logic: if it's a combined execution, all components must be non-zero
+        if is_multi_strategy:
+            temp_df.loc[~temp_df["all_components_nonzero"], "score_gt_combined"] = 0.0
+
+        id_to_gt_score = {str(k): round(float(v), 1) for k, v in temp_df.set_index("id")["score_gt_combined"].to_dict().items()}
 
     # Collect all buildings that appeared in ANY run OR have a non-zero GT score
     unique_ids = set()
@@ -486,19 +537,17 @@ async def main():
     # Use a semaphore to limit concurrency and avoid hitting LLM rate limits or OOM
     semaphore = asyncio.Semaphore(3)
     
-    async def run_task(agent, query, cols, gt_strategy):
+    async def run_task(agent, query, cols, gt_strategy, expected_agents=None):
         async with semaphore:
             tries, b_info, extra_info = await run_single_test(agent, query)
-            generate_files(suite_dir, agent, query, tries, b_info, extra_info, cols, gt_strategy)
+            generate_files(suite_dir, agent, query, tries, b_info, extra_info, cols, gt_strategy, expected_agents)
 
     tasks = []
-    for agent, agent_data in tests_dict.items():
-        # Support new structure with "prompts" key
-        if isinstance(agent_data, dict) and "prompts" in agent_data:
-            prompts = agent_data["prompts"]
-        else:
-            # Legacy support (list of prompts)
-            prompts = agent_data
+    for agent, prompts in tests_dict.items():
+        # Ensure prompts is a list
+        if not isinstance(prompts, list):
+            print(f"[WARN] Skipping {agent}: expected list of prompts.")
+            continue
 
         for prompt_data in prompts:
             if isinstance(prompt_data, str):
@@ -511,12 +560,13 @@ async def main():
                 query = prompt_data["query"]
                 columns = prompt_data.get("columns", [])
                 gt_strategy = prompt_data.get("gt_strategy")
+                expected_agents = prompt_data.get("expected_agents")
             
             if not active:
                 print(f"[SKIP] Prompt: {query[:50]}...")
                 continue
                 
-            tasks.append(run_task(agent, query, columns, gt_strategy))
+            tasks.append(run_task(agent, query, columns, gt_strategy, expected_agents))
     
     # Run all tasks in parallel
     if tasks:

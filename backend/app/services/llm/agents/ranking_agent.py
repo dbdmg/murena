@@ -72,37 +72,41 @@ class RankingAgent(BaseAgent):
         try:
             ranking_data: RankingRanking = invoke_with_langfuse(self.chain, prompt_inputs)
             
-            # Calculate weights based on ranking: 1, 1/2, 1/3, 1/4, 1/5
-            # Similar to PoiAgent logic requested by user
-            ordered_agents = ranking_data.ranking
-            
-            # Use ONLY agents returned by LLM
-            ordered_agents = ranking_data.ranking
+            # Calculate weights based on ranking: 1/rank
+            # This allows ex-aequo (same rank = same weight)
+            ranked_agents_list = ranking_data.ranking
             
             # Ensure at least one agent is present for safety
-            if not ordered_agents:
-                 ordered_agents = ["typology"] # Fallback
+            if not ranked_agents_list:
+                 # Fallback: Typology default
+                 from app.services.llm.agents.schema import RankedAgent
+                 ranked_agents_list = [RankedAgent(agent_name="typology", rank=1)]
             
             # Limit to available agents
             all_supported = ["location", "normative", "ape", "typology", "poi"]
-            ordered_agents = [a for a in ordered_agents if a in all_supported]
+            valid_agents = [a for a in ranked_agents_list if a.agent_name in all_supported]
 
-            # Calculate weights based on ranking: 1, 1/2, 1/3, 1/4...
+            # Calculate raw weights: 1.0 / rank (e.g. Rank 1 -> 1.0, Rank 2 -> 0.5)
             raw_weights = {}
-            for i, agent in enumerate(ordered_agents):
-                raw_weights[agent] = 1.0 / (i + 1)
+            for agent_obj in valid_agents:
+                # Safety against rank 0 or negative
+                rank_val = max(1, agent_obj.rank)   
+                raw_weights[agent_obj.agent_name] = 1.0 / rank_val
             
             # Normalize to sum = 1.0 across SELECTED agents
             total_sum = sum(raw_weights.values())
-            normalized_weights = {k: round(v / total_sum, 1) for k, v in raw_weights.items()}
+            normalized_weights = {}
+            
+            if total_sum > 0:
+                normalized_weights = {k: round(v / total_sum, 2) for k, v in raw_weights.items()}
             
             # Ensure sum is exactly 1.0 (rounding adjustments)
             current_sum = sum(normalized_weights.values())
-            diff = round(1.0 - current_sum, 1)
-            if diff != 0 and ordered_agents:
-                # Adjust the top agent
-                top_agent = ordered_agents[0]
-                normalized_weights[top_agent] = round(normalized_weights[top_agent] + diff, 1)
+            diff = round(1.0 - current_sum, 2)
+            if diff != 0 and valid_agents:
+                # Adjust the agent with the highest weight (to minimize relative error)
+                best_agent = max(normalized_weights, key=normalized_weights.get)
+                normalized_weights[best_agent] = round(normalized_weights[best_agent] + diff, 2)
             
             weights = RankingWeights(
                 location=normalized_weights.get("location", 0.0),
@@ -112,9 +116,12 @@ class RankingAgent(BaseAgent):
                 poi=normalized_weights.get("poi", 0.0)
             )
 
+            # Reconstruct simple list of names for backward compatibility if needed in UI/Logs
+            ordered_names = [a.agent_name for a in sorted(valid_agents, key=lambda x: x.rank)]
+
             return RankingAgentResult(
                 raw_text=json.dumps({
-                    "ranking": ordered_agents, 
+                    "ranking": [a.model_dump() for a in valid_agents], 
                     "weights": weights.model_dump(),
                     "reasoning": ranking_data.reasoning
                 }, ensure_ascii=False),

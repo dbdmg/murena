@@ -150,10 +150,9 @@ class LocationAgent(BaseAgent):
         df_ranked = calculate_travel_times_df(df, locations_payload)
 
         # Creiamo un mapping raggio per ogni POI
-        # Priorità a 'threshold' se presente, altrimenti 'radius_km'
         # Arrotondiamo alla seconda cifra decimale come richiesto
         radius_map = {
-            p.name: round(p.threshold if p.threshold is not None else p.radius_km, 2)
+            p.name: round(p.radius_km, 2)
             for p in places
         }
 
@@ -164,21 +163,20 @@ class LocationAgent(BaseAgent):
             if pd.isna(dist) or poi not in radius_map:
                 return 0.0, 0.0
             
-            # Use dynamic R parameter based on calculation: e^(-(threshold/R)^3) = 0.2
-            # Solving for R: R = threshold / (-ln(0.2))^(1/3)
-            # R ≈ threshold / 1.17195
+            # Use dynamic R parameter based on calculation: e^(-(radius_km/R)^3) = 0.2
+            # R ≈ radius_km / 1.17195
             
-            threshold_radius = radius_map.get(poi)
-            if not threshold_radius or threshold_radius <= 0:
-                threshold_radius = 2.5  # default threshold if missing
+            target_radius = radius_map.get(poi)
+            if not target_radius or target_radius <= 0:
+                target_radius = 3.0  # default radius if missing
             
             # Già arrotondato sopra, ma per sicurezza nel caso di default
-            threshold_radius = round(threshold_radius, 2)
+            target_radius = round(target_radius, 2)
 
             # Calculate R
             # (-ln(0.2))^(1/3)
             decay_constant = (-np.log(0.2))**(1/3)
-            R = threshold_radius / decay_constant
+            R = target_radius / decay_constant
             
             x = dist
             

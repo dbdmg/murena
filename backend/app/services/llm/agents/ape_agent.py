@@ -199,23 +199,32 @@ class ApeAgent(BaseAgent):
                     if max_val == min_val:
                          req_score = pd.Series(100.0, index=df_ranked.index)
                     else:
+                        # Helper per gestire valori che potrebbero essere liste (es. [10] invece di 10)
+                        def safe_float(v):
+                            if isinstance(v, list):
+                                return float(v[0]) if v else 0.0
+                            try:
+                                return float(v)
+                            except (ValueError, TypeError):
+                                return 0.0
+
                         if op in [">=", ">"]:
                             # Linear growth with threshold T and cap at 2T
-                            T = float(target_val)
+                            T = safe_float(target_val)
                             if T > 0:
                                 req_score = ((vals - T) / T * 100).clip(0, 100)
                             else:
                                 req_score = pd.Series(100.0, index=df_ranked.index)
                         elif op in ["<=", "<"]:
                             # Linear decay with threshold T and cap at T/2
-                            T = float(target_val)
+                            T = safe_float(target_val)
                             if T > 0:
                                 req_score = ((T - vals) / (T / 2) * 100).clip(0, 100)
                             else:
                                 req_score = pd.Series(0.0, index=df_ranked.index)
-                        else: # ==
+                        else: # == or IN (fallback)
                             # For equality, we stick to distance from target as 'relative' is ambiguous without a target
-                            target_num = float(target_val)
+                            target_num = safe_float(target_val)
                             diff = np.abs(vals - target_num)
                             
                             # Normalizzazione relativa (la distanza massima è definita dal range del dataset)

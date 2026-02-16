@@ -31,7 +31,6 @@ class Place(BaseModel):
     lat: Optional[float] = Field(None, description="Latitudine")
     lon: Optional[float] = Field(None, description="Longitudine")
     radius_km: float = Field(default=3.0, description="Distanza raggio in km")
-    threshold: Optional[float] = Field(None, description="Soglia di distanza opzionale (km)")
 
 
 
@@ -107,10 +106,14 @@ class RankingWeights(BaseModel):
     typology: float = Field(default=0.2)
     poi: float = Field(default=0.2)
 
+class RankedAgent(BaseModel):
+    agent_name: str = Field(..., description="Nome dell'agente (location, normative, ape, typology, poi)")
+    rank: int = Field(..., description="Posizione nel ranking (1 = massima priorità). È ammesso ex-aequo.")
+
 class RankingRanking(BaseModel):
-    ranking: List[str] = Field(
-        default_factory=lambda: ["location", "typology", "poi", "ape", "normative"],
-        description="Lista ordinata degli agenti per importanza"
+    ranking: List[RankedAgent] = Field(
+        default_factory=list,
+        description="Lista degli agenti con relativo rank"
     )
     reasoning: Optional[str] = Field(
         None, description="Motivazione sintetica della scelta degli agenti e delle loro priorità"
