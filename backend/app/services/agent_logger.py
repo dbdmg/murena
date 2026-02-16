@@ -100,13 +100,13 @@ class AgentLogger:
                 
                 # Aggiungiamo colonne di input rilevanti definite nelle costanti (lazy import inside method if needed)
                 try:
-                    from app.core.constants import APE_AGENT_COLUMNS, TYPOLOGY_AGENT_COLUMNS, NORMATIVE_AGENT_COLUMNS, POI_AGENT_COLUMNS
+                    from app.core.constants import ALL_AGENT_COLUMNS
                     source_cols_map = {
-                        "typology": TYPOLOGY_AGENT_COLUMNS,
-                        "location": ["distanza_km", "poi_riferimento"],
-                        "ape": APE_AGENT_COLUMNS,
-                        "normative": NORMATIVE_AGENT_COLUMNS,
-                        "poi": POI_AGENT_COLUMNS
+                        "typology": ALL_AGENT_COLUMNS,
+                        "location": ["distanza_km", "poi_riferimento"] + ALL_AGENT_COLUMNS,
+                        "ape": ALL_AGENT_COLUMNS,
+                        "normative": ALL_AGENT_COLUMNS,
+                        "poi": ALL_AGENT_COLUMNS
                     }
                     agent_key = next((k for k in source_cols_map if k in agent_type), None)
                     source_cols = []

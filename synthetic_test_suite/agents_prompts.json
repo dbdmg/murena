@@ -1,8 +1,8 @@
 {
     "location_agent": {
-        "active": false,
         "prompts": [
             {
+                "active": false,
                 "query": "Cercami immobili vicino Piazza Castello a Torino.",
                 "columns": [
                     "dist_km"
@@ -14,6 +14,7 @@
                 }
             },
             {
+                "active": false,
                 "query": "Cercami immobili entro 1 km da Porta Palazzo a Torino.",
                 "columns": [
                     "dist_km"
@@ -25,6 +26,7 @@
                 }
             },
             {
+                "active": false,
                 "query": "Cercami immobili a 10 minuti a piedi da Piazza Vittorio a Torino.",
                 "columns": [
                     "dist_km"
@@ -38,48 +40,43 @@
         ]
     },
     "ape_agent": {
-        "active": true,
         "prompts": [
             {
+                "active": false,
                 "query": "Cerco un immobile con classe energetica A4 per risparmiare sulle bollette.",
                 "columns": [
                     "classe_energetica_ape"
                 ],
                 "gt_strategy": {
-                    "type": "mapping",
+                    "type": "energy_class",
                     "column": "classe_energetica_ape",
-                    "mapping": {
-                        "A4": 100.0,
-                        "A3": 88.9,
-                        "A2": 77.8,
-                        "A1": 66.7,
-                        "B": 55.6,
-                        "C": 44.4,
-                        "D": 33.3,
-                        "E": 22.2,
-                        "F": 11.1,
-                        "G": 0.0
-                    }
+                    "allowed_classes": [
+                        "A4"
+                    ]
                 }
             },
             {
+                "active": true,
                 "query": "Voglio immobili con un punteggio totale APE maggiore di 10.",
                 "columns": [
                     "ape_score_total"
                 ],
                 "gt_strategy": {
-                    "type": "min_max",
+                    "type": "linear_decay",
                     "column": "ape_score_total",
-                    "order": "desc"
+                    "order": "desc",
+                    "threshold": 10.0,
+                    "exclusive": true
                 }
             },
             {
+                "active": false,
                 "query": "Cercami immobili con bassi consumi energetici.",
                 "columns": [
                     "epglnren_ape"
                 ],
                 "gt_strategy": {
-                    "type": "min_max",
+                    "type": "linear_decay",
                     "column": "epglnren_ape",
                     "order": "asc",
                     "threshold": 126.44
@@ -88,47 +85,52 @@
         ]
     },
     "poi_agent": {
-        "active": true,
         "prompts": [
             {
+                "active": false,
                 "query": "Vorrei vivere vicino a parchi o aree verdi.",
                 "columns": [
                     "verde"
                 ],
                 "gt_strategy": {
-                    "type": "min_max",
+                    "type": "linear_decay",
                     "column": "verde",
-                    "order": "desc"
+                    "order": "desc",
+                    "threshold": 75
                 }
             },
             {
+                "active": false,
                 "query": "Cercami un immobile comodo ai mezzi pubblici.",
                 "columns": [
                     "mobilita"
                 ],
                 "gt_strategy": {
-                    "type": "min_max",
+                    "type": "linear_decay",
                     "column": "mobilita",
-                    "order": "desc"
+                    "order": "desc",
+                    "threshold": 75
                 }
             },
             {
+                "active": false,
                 "query": "Ho bisogno di un immobile vicino alle scuole elementari.",
                 "columns": [
                     "educazione"
                 ],
                 "gt_strategy": {
-                    "type": "min_max",
+                    "type": "linear_decay",
                     "column": "educazione",
-                    "order": "desc"
+                    "order": "desc",
+                    "threshold": 75
                 }
             }
         ]
     },
     "normative_agent": {
-        "active": true,
         "prompts": [
             {
+                "active": false,
                 "query": "Cercami un immobile per farci un asilo nido.",
                 "columns": [
                     "superficie_di_riferimento_mq"
@@ -136,10 +138,12 @@
                 "gt_strategy": {
                     "type": "min_max",
                     "column": "superficie_di_riferimento_mq",
-                    "order": "desc"
+                    "order": "desc",
+                    "threshold": 500
                 }
             },
             {
+                "active": false,
                 "query": "Cercami un immobile per farci uno studentato.",
                 "columns": [
                     "superficie_di_riferimento_mq"
@@ -147,10 +151,12 @@
                 "gt_strategy": {
                     "type": "min_max",
                     "column": "superficie_di_riferimento_mq",
-                    "order": "desc"
+                    "order": "desc",
+                    "threshold": 600
                 }
             },
             {
+                "active": false,
                 "query": "Cercami un immobile per farci un centro diurno anziani.",
                 "columns": [
                     "superficie_di_riferimento_mq"
@@ -158,15 +164,16 @@
                 "gt_strategy": {
                     "type": "min_max",
                     "column": "superficie_di_riferimento_mq",
-                    "order": "desc"
+                    "order": "desc",
+                    "threshold": 300
                 }
             }
         ]
     },
     "typology_agent": {
-        "active": true,
         "prompts": [
             {
+                "active": true,
                 "query": "Cercami un'abitazione.",
                 "columns": [
                     "tipologia_bene_immobile"
@@ -178,6 +185,7 @@
                 }
             },
             {
+                "active": true,
                 "query": "Vorrei un ospedale.",
                 "columns": [
                     "tipologia_bene_immobile"
@@ -189,6 +197,7 @@
                 }
             },
             {
+                "active": true,
                 "query": "Trovami una caserma.",
                 "columns": [
                     "tipologia_bene_immobile"

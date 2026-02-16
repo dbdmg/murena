@@ -715,4 +715,11 @@ class RealEstateService:
             poi_reference=safe_get("poi_reference", alternatives=["poi_riferimento"]),
             epglnren_ape=safe_get("epglnren_ape", default=None),
             classe_energetica_ape=safe_get("classe_energetica_ape", alternatives=["energy_class"]),
+            ape_score_total=safe_get("ape_score_total", default=None),
+            tipologia_bene_immobile=safe_get("tipologia_bene_immobile", alternatives=["property_type"]),
+            superficie_di_riferimento_mq=safe_get("superficie_di_riferimento_mq", alternatives=["surface_area"]),
+            epoca_costruzione=safe_get("epoca_costruzione", alternatives=["construction_year"]),
+            verde=safe_get("verde"),
+            mobilita=safe_get("mobilita"),
+            educazione=safe_get("educazione"),
         )

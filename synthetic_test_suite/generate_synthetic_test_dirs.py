@@ -159,7 +159,7 @@ async def run_single_test(agent_name: str, prompt: str, num_tries: int = 1):
     return tries_rankings, all_buildings_seen, extra_info
 
 def _get_global_stats(df: pd.DataFrame) -> Dict[str, Any]:
-    """Calculate min/max for all numeric columns in dataset."""
+    """Calculate min/max and percentiles for all numeric columns in dataset."""
     stats = {}
     if df is None:
         return stats
@@ -171,7 +171,9 @@ def _get_global_stats(df: pd.DataFrame) -> Dict[str, Any]:
                 if not vals.empty:
                     stats[col] = {
                         "min": float(vals.min()),
-                        "max": float(vals.max())
+                        "max": float(vals.max()),
+                        "median": float(vals.median()),
+                        "p75": float(vals.quantile(0.75))
                     }
         except Exception:
             continue
@@ -192,17 +194,13 @@ def calculate_gt_score(building_data: Dict[str, Any], strategy: Dict[str, Any], 
         
         threshold = strategy.get("radius_reference", 2.5)
         
-        # Enforce hard cutoff if radius_reference is specified
         if "radius_reference" in strategy and dist > threshold:
             return 0.0
 
-        # Calculate R such that score is 20 (0.2) at threshold
         decay_constant = (-np.log(0.2))**(1/3)
         radius = threshold / decay_constant
         
-        # Use rounded distance for score calculation to match Agent's behavior (processors.py rounds to 2 decimals)
         dist_rounded = round(dist, 2)
-        # Use the same exponential decay formula as the location agent
         return float(round(100 * np.exp(-(dist_rounded / radius)**3), 1))
     
     elif st_type == "mapping":
@@ -210,11 +208,59 @@ def calculate_gt_score(building_data: Dict[str, Any], strategy: Dict[str, Any], 
         mapping = strategy.get("mapping", {})
         return float(mapping.get(val, 0.0))
     
-    elif st_type == "min_max":
+    elif st_type == "greater_than":
+        # Binary threshold strategy
+        val = building_data.get(col)
+        if val is None or pd.isna(val) or val == "N/D":
+            return 0.0
+        
+        try:
+            val_f = float(val)
+            threshold = strategy.get("threshold", 0.0)
+            exclusive = strategy.get("exclusive", False)
+            
+            if exclusive:
+                return 100.0 if val_f > threshold else 0.0
+            return 100.0 if val_f >= threshold else 0.0
+        except:
+            return 0.0
+
+    elif st_type in ["linear_decay", "min_max"]:
         val = building_data.get(col)
         if val is None or pd.isna(val):
             return 0.0
-        
+
+        threshold = strategy.get("threshold")
+        order = strategy.get("order", "desc")
+        exclusive = strategy.get("exclusive", False)
+
+        if threshold is not None:
+            try:
+                T = float(threshold)
+                if order == "desc": # higher is better
+                    # Score 0 at T, Score 100 at 2T
+                    if T > 0:
+                        score = ((val - T) / T * 100)
+                    else:
+                        score = 100.0
+                    
+                    if exclusive and val <= T: score = 0.0
+                    elif val < T: score = 0.0
+                else: # asc (lower is better)
+                    # Score 0 at T, Score 100 at T/2
+                    if T > 0:
+                        score = ((T - val) / (T / 2) * 100)
+                    else:
+                        score = 100.0 if val <= 0 else 0.0
+                    
+                    if exclusive and val >= T: score = 0.0
+                    elif val > T: score = 0.0
+                
+                return float(round(np.clip(score, 0, 100), 1))
+            except Exception:
+                pass
+
+        # Fallback to standard min-max if no threshold provided
         stats = global_stats.get(col) if global_stats else None
         if not stats:
             return 0.0
@@ -222,35 +268,48 @@ def calculate_gt_score(building_data: Dict[str, Any], strategy: Dict[str, Any], 
         v_min = stats.get("min", 0)
         v_max = stats.get("max", 1)
         
-        order = strategy.get("order", "desc")
-        threshold = strategy.get("threshold")
-        
-        if threshold is not None:
-            if order == "desc":
-                v_min = float(threshold)
-            else:
-                v_max = float(threshold)
-        
         if v_max <= v_min:
-            if order == "desc":
-                score = 100.0 if val >= v_min else 0.0
-            else:
-                score = 100.0 if val <= v_max else 0.0
+            score = 100.0 if (order == "desc" and val >= v_min) or (order == "asc" and val <= v_max) else 0.0
         else:
             if order == "desc": # higher is better
                 score = (val - v_min) / (v_max - v_min) * 100
-            else: # asc (lower is better, e.g. consumption)
+            else: # asc (lower is better)
                 score = (v_max - val) / (v_max - v_min) * 100
         
         return float(round(np.clip(score, 0, 100), 1))
     
+    elif st_type == "energy_class":
+        col = strategy.get("column", "classe_energetica_ape")
+        val = str(building_data.get(col, "")).upper().strip()
+        classes_order = ["A4", "A3", "A2", "A1", "B", "C", "D", "E", "F", "G"]
+        
+        if val not in classes_order:
+            return 0.0
+            
+        allowed_classes = strategy.get("allowed_classes")
+        if allowed_classes:
+            allowed_classes_clean = [str(c).upper().strip() for c in allowed_classes]
+            if val not in allowed_classes_clean:
+                return 0.0
+                
+        min_class = strategy.get("min_class")
+        if min_class:
+            min_class = str(min_class).upper().strip()
+            if min_class in classes_order:
+                if classes_order.index(val) > classes_order.index(min_class):
+                    return 0.0
+        
+        idx = classes_order.index(val)
+        score = 100.0 * (1 - idx / (len(classes_order) - 1))
+        return float(round(score, 1))
+
     elif st_type == "exact_match":
         val = str(building_data.get(col, "")).lower()
         target = str(strategy.get("value", "")).lower()
         if target in val or val in target:
             return 100.0
         return 0.0
-    
+
     return 0.0
 
 def generate_files(root_path: Path, agent_name: str, prompt: str, tries_rankings: List[Dict], buildings_info: Dict[str, BuildingResponse], extra_info: Dict[str, Any], columns: List[str], gt_strategy: Dict[str, Any] = None):
@@ -323,14 +382,19 @@ def generate_files(root_path: Path, agent_name: str, prompt: str, tries_rankings
             temp_df["score_gt"] = temp_df.apply(lambda row: calculate_gt_score(row.to_dict(), gt_strategy, global_stats), axis=1)
             id_to_gt_score = {str(k): v for k, v in temp_df.set_index("id")["score_gt"].to_dict().items()}
 
-    # Collect all buildings that appeared in ANY run
+    # Collect all buildings that appeared in ANY run OR have a non-zero GT score
     unique_ids = set()
     for run in tries_rankings:
         unique_ids.update(str(k) for k in run.keys())
+    
+    # Also include false negatives (GT > 0 but agent missed them)
+    for bid, gt_val in id_to_gt_score.items():
+        if isinstance(gt_val, (int, float)) and gt_val > 0:
+            unique_ids.add(str(bid))
         
     merged_data = []
     for bid in unique_ids:
-        gt_score = id_to_gt_score.get(bid, "-")
+        gt_score = id_to_gt_score.get(bid, 0.0)
         if isinstance(gt_score, (int, float)):
             gt_score = round(float(gt_score), 1)
             
@@ -338,11 +402,19 @@ def generate_files(root_path: Path, agent_name: str, prompt: str, tries_rankings
         if isinstance(dist_val, (int, float)):
             dist_val = round(float(dist_val), 3)
             
+        # Agent score (ranks) - use 0.0 if excluded by SQL/system
+        agent_scores = []
+        for run in tries_rankings:
+            val = run.get(bid)
+            if val is None:
+                val = run.get(int(bid) if bid.isdigit() else bid, 0.0)
+            agent_scores.append(val)
+
         merged_data.append({
             "id": bid,
             "score_gt": gt_score,
             "dist_km": dist_val,
-            "ranks": [(run.get(bid) if run.get(bid) is not None else run.get(int(bid) if bid.isdigit() else bid, "-")) for run in tries_rankings]
+            "ranks": agent_scores
         })
         
     # Sort by GT Score (descending)
@@ -421,11 +493,8 @@ async def main():
 
     tasks = []
     for agent, agent_data in tests_dict.items():
-        # Support new structure with "active" flag
+        # Support new structure with "prompts" key
         if isinstance(agent_data, dict) and "prompts" in agent_data:
-            if not agent_data.get("active", True):
-                print(f"[SKIP] Agent: {agent} (active=False)")
-                continue
             prompts = agent_data["prompts"]
         else:
             # Legacy support (list of prompts)
@@ -436,11 +505,17 @@ async def main():
                 query = prompt_data
                 columns = []
                 gt_strategy = None
+                active = True
             else:
+                active = prompt_data.get("active", True)
                 query = prompt_data["query"]
                 columns = prompt_data.get("columns", [])
                 gt_strategy = prompt_data.get("gt_strategy")
             
+            if not active:
+                print(f"[SKIP] Prompt: {query[:50]}...")
+                continue
+                
             tasks.append(run_task(agent, query, columns, gt_strategy))
     
     # Run all tasks in parallel

@@ -126,6 +126,13 @@ class BuildingResponse(BaseModel):
     poi_reference: Optional[str] = None
     epglnren_ape: Optional[float] = None  # Indice prestazione energetica globale non rinnovabile
     classe_energetica_ape: Optional[str] = None  # Alias per energy_class
+    ape_score_total: Optional[float] = None  # Punteggio totale APE
+    tipologia_bene_immobile: Optional[str] = None  # Alias per property_type
+    superficie_di_riferimento_mq: Optional[float] = None  # Alias per surface_area
+    epoca_costruzione: Optional[str] = None  # Alias per construction_year
+    verde: Optional[float] = None  # Alias per poi_scores.green
+    mobilita: Optional[float] = None  # Alias per poi_scores.mobility
+    educazione: Optional[float] = None  # Alias per poi_scores.education
 
     model_config = ConfigDict(from_attributes=True)
 

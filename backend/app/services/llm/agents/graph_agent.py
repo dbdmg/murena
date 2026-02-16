@@ -16,7 +16,7 @@ from sqlglot import exp, parse_one
 
 from app.services.analysis.ranking import calculate_ranking_score
 from app.core.config import settings
-from app.core.constants import SCORE_LEGEND, APE_SCORE_LEGEND, APE_AGENT_COLUMNS, NORMATIVE_AGENT_COLUMNS, POI_AGENT_COLUMNS, TYPOLOGY_AGENT_COLUMNS
+from app.core.constants import SCORE_LEGEND, APE_SCORE_LEGEND, APE_AGENT_COLUMNS, NORMATIVE_AGENT_COLUMNS, POI_AGENT_COLUMNS, TYPOLOGY_AGENT_COLUMNS, ALL_AGENT_COLUMNS
 
 MAX_ITEMS_FOR_LLM = settings.MAX_ITEMS_FOR_LLM
 MAX_ITEMS_FOR_MAP = settings.MAX_ITEMS_FOR_MAP
@@ -884,7 +884,7 @@ class GraphOrchestratorAgent(BaseAgent):
             typ_stats = {}
             if base_dataset is not None or dataset_path is not None:
                 typ_stats = self._get_column_statistics(
-                    columns=TYPOLOGY_AGENT_COLUMNS,
+                    columns=ALL_AGENT_COLUMNS,
                     dataset_path=dataset_path,
                     dataset_df=base_dataset,
                     db_metadata=state.get("db_metadata")
@@ -923,7 +923,13 @@ class GraphOrchestratorAgent(BaseAgent):
             if base_dataset is not None or dataset_path is not None:
                 self._update_progress(state, "ape", "")
                 logger.info("⚡ Executing ApeAgent")
-                ape_stats = self._get_ape_statistics(dataset_path=dataset_path, dataset_df=base_dataset, db_metadata=state.get("db_metadata"))
+                ape_stats = self._get_column_statistics(
+                    columns=ALL_AGENT_COLUMNS, 
+                    dataset_path=dataset_path, 
+                    dataset_df=base_dataset,
+                    target_not_na_col="classe_energetica_ape",
+                    db_metadata=state.get("db_metadata")
+                )
                 result = self.ape_agent.run(
                     query=query,
                     mode="filtering",
@@ -945,7 +951,7 @@ class GraphOrchestratorAgent(BaseAgent):
             poi_stats = {}
             if base_dataset is not None or dataset_path is not None:
                 poi_stats = self._get_column_statistics(
-                    columns=POI_AGENT_COLUMNS,
+                    columns=ALL_AGENT_COLUMNS,
                     dataset_path=dataset_path,
                     dataset_df=base_dataset,
                     db_metadata=state.get("db_metadata")
@@ -969,7 +975,7 @@ class GraphOrchestratorAgent(BaseAgent):
             norm_stats = {}
             if base_dataset is not None or dataset_path is not None:
                 norm_stats = self._get_column_statistics(
-                    columns=NORMATIVE_AGENT_COLUMNS,
+                    columns=ALL_AGENT_COLUMNS,
                     dataset_path=dataset_path,
                     dataset_df=base_dataset,
                     db_metadata=state.get("db_metadata")
@@ -977,7 +983,7 @@ class GraphOrchestratorAgent(BaseAgent):
 
             result = self.normative_agent.run(
                 query=query,
-                available_columns=NORMATIVE_AGENT_COLUMNS,
+                available_columns=ALL_AGENT_COLUMNS,
                 statistics=norm_stats
             )
             logger.info("✅ NormativeAgent completed")
@@ -1473,7 +1479,8 @@ class GraphOrchestratorAgent(BaseAgent):
             filtered_locations.append({
                 "lat": loc.get("lat"),
                 "lon": loc.get("lon"),
-                "radius_km": loc.get("radius_km")
+                "radius_km": loc.get("radius_km"),
+                "threshold": loc.get("threshold")
             })
 
         # Aggregate all requirements into a single list
@@ -1490,7 +1497,10 @@ class GraphOrchestratorAgent(BaseAgent):
         # 2. Locations
         if filtered_locations:
             for loc in filtered_locations:
-                all_reqs.append(f"Coordinate: {loc['lat']}, {loc['lon']} (raggio {loc['radius_km']}km)")
+                radius_str = f"raggio {loc['radius_km']}km"
+                if loc.get("threshold"):
+                    radius_str += f", threshold {loc['threshold']}km"
+                all_reqs.append(f"Coordinate: {loc['lat']}, {loc['lon']} ({radius_str})")
 
         # 3. Structured requirements (APE, POI, Normative)
         # Use helper for APE, Normative, and POI
@@ -1621,7 +1631,9 @@ class GraphOrchestratorAgent(BaseAgent):
             logger.error("Max retries reached with error. Activating fallback.")
             return "fallback"
 
-        if len(state["selected_data"]) >= 10:
+        # Consider results sufficient only when we have more than 3 rows.
+        # Apply relaxation only for very small result sets (<= 3).
+        if len(state["selected_data"]) >= 3:
             return "continue"
 
         if state["retry_count"] < 5:
@@ -1636,7 +1648,8 @@ class GraphOrchestratorAgent(BaseAgent):
     def _handle_retry(self, state: GraphState) -> GraphState:
         # Determine if it's an error retry or a relaxation retry
         error = state.get("execution_error")
-        few_results = not error and len(state.get("selected_data", [])) < 10
+        # Treat as "few results" only when there are 3 or fewer rows.
+        few_results = not error and len(state.get("selected_data", [])) <= 3
         
         relax = state.get("relax_constraints", False)
         reason = "error" if error else "few_results" if few_results else None

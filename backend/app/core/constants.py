@@ -108,3 +108,13 @@ POI_AGENT_COLUMNS: List[str] = [
     "commerciale",
     "educazione",
 ]
+
+# Unione di tutte le colonne visibili agli agenti (per cross-functional intelligence)
+ALL_AGENT_COLUMNS: List[str] = sorted(list(set(
+    APE_AGENT_COLUMNS + 
+    TYPOLOGY_AGENT_COLUMNS + 
+    NORMATIVE_AGENT_COLUMNS + 
+    POI_AGENT_COLUMNS + 
+    SQL_FILTERABLE_COLUMNS + 
+    RANKING_ONLY_COLUMNS
+)))

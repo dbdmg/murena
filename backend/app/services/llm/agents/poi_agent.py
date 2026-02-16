@@ -183,6 +183,28 @@ class PoiAgent(BaseAgent):
                  # Handle NaN result from operation
                  norm_vals = norm_vals.fillna(0).to_numpy()
             
+            # CLIP AND APPLY THRESHOLD
+            # If there's a requirement for this category, enforce it in the score too
+            req = next((r for r in requirements if r.get("colonna_target") == cat), None)
+            if req and isinstance(req, dict):
+                op = req.get("operatore", ">=")
+                target_val = req.get("valore")
+                if target_val is not None:
+                    try:
+                        T = float(target_val)
+                        if op in [">=", ">"]:
+                            # Linear growth with threshold T and cap at 2T
+                            # Score 0 below T, 100 at 2T
+                            req_score = ((vals - T) / T * 100).clip(0, 100)
+                        elif op in ["<=", "<"]:
+                            # Linear decay with threshold T and cap at T/2
+                            # Score 0 above T, 100 at T/2
+                            req_score = ((T - vals) / (T / 2) * 100).clip(0, 100)
+                        
+                        norm_vals = req_score.to_numpy() / 100.0
+                    except:
+                        pass
+
             # Clip to be safe (0-1)
             norm_vals = norm_vals.clip(0, 1)
             

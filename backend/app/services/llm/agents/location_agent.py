@@ -150,7 +150,12 @@ class LocationAgent(BaseAgent):
         df_ranked = calculate_travel_times_df(df, locations_payload)
 
         # Creiamo un mapping raggio per ogni POI
-        radius_map = {p.name: p.radius_km for p in places}
+        # Priorità a 'threshold' se presente, altrimenti 'radius_km'
+        # Arrotondiamo alla seconda cifra decimale come richiesto
+        radius_map = {
+            p.name: round(p.threshold if p.threshold is not None else p.radius_km, 2)
+            for p in places
+        }
 
         def calculate_score_details(row):
             poi = row.get("poi_riferimento")
@@ -165,8 +170,11 @@ class LocationAgent(BaseAgent):
             
             threshold_radius = radius_map.get(poi)
             if not threshold_radius or threshold_radius <= 0:
-                threshold_radius = 2.5 # default threshold if missing
+                threshold_radius = 2.5  # default threshold if missing
             
+            # Già arrotondato sopra, ma per sicurezza nel caso di default
+            threshold_radius = round(threshold_radius, 2)
+
             # Calculate R
             # (-ln(0.2))^(1/3)
             decay_constant = (-np.log(0.2))**(1/3)

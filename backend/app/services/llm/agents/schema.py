@@ -30,7 +30,8 @@ class Place(BaseModel):
     city: Optional[str] = Field(None, description="Città se disponibile")
     lat: Optional[float] = Field(None, description="Latitudine")
     lon: Optional[float] = Field(None, description="Longitudine")
-    radius_km: float = Field(default=3.0, description="Distanza soglia in km per il filtraggio")
+    radius_km: float = Field(default=3.0, description="Distanza raggio in km")
+    threshold: Optional[float] = Field(None, description="Soglia di distanza opzionale (km)")
 
 
 

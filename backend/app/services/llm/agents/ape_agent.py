@@ -200,11 +200,19 @@ class ApeAgent(BaseAgent):
                          req_score = pd.Series(100.0, index=df_ranked.index)
                     else:
                         if op in [">=", ">"]:
-                            # Higher is better: (val - min) / (max - min) * 100
-                            req_score = ((vals - min_val) / (max_val - min_val) * 100).clip(0, 100)
+                            # Linear growth with threshold T and cap at 2T
+                            T = float(target_val)
+                            if T > 0:
+                                req_score = ((vals - T) / T * 100).clip(0, 100)
+                            else:
+                                req_score = pd.Series(100.0, index=df_ranked.index)
                         elif op in ["<=", "<"]:
-                            # Lower is better: (max - val) / (max - min) * 100
-                            req_score = ((max_val - vals) / (max_val - min_val) * 100).clip(0, 100)
+                            # Linear decay with threshold T and cap at T/2
+                            T = float(target_val)
+                            if T > 0:
+                                req_score = ((T - vals) / (T / 2) * 100).clip(0, 100)
+                            else:
+                                req_score = pd.Series(0.0, index=df_ranked.index)
                         else: # ==
                             # For equality, we stick to distance from target as 'relative' is ambiguous without a target
                             target_num = float(target_val)
