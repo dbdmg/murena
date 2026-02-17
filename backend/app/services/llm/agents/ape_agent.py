@@ -208,11 +208,17 @@ class ApeAgent(BaseAgent):
                             except (ValueError, TypeError):
                                 return 0.0
 
+                        exclusive = req.get("exclusive", False)
                         if op in [">=", ">"]:
                             # Linear growth with threshold T and cap at 2T
                             T = safe_float(target_val)
                             if T > 0:
                                 req_score = ((vals - T) / T * 100).clip(0, 100)
+                                if exclusive:
+                                    req_score = req_score.mask(vals <= T, 0.0)
+                                
+                                # Ensure minimum 0.1 if vals >= T (but not if missing or exclusive failure)
+                                req_score = req_score.mask((req_score == 0) & (vals >= T) & (~is_missing) & (~exclusive), 0.1)
                             else:
                                 req_score = pd.Series(100.0, index=df_ranked.index)
                         elif op in ["<=", "<"]:
@@ -220,6 +226,11 @@ class ApeAgent(BaseAgent):
                             T = safe_float(target_val)
                             if T > 0:
                                 req_score = ((T - vals) / (T / 2) * 100).clip(0, 100)
+                                if exclusive:
+                                    req_score = req_score.mask(vals >= T, 0.0)
+                                    
+                                # Ensure minimum 0.1 if vals <= T
+                                req_score = req_score.mask((req_score == 0) & (vals <= T) & (~is_missing) & (~exclusive), 0.1)
                             else:
                                 req_score = pd.Series(0.0, index=df_ranked.index)
                         else: # == or IN (fallback)

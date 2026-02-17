@@ -226,7 +226,7 @@
             "gt_strategy": {
                 "type": "exact_match",
                 "column": "tipologia_bene_immobile",
-                "value": "Ospedale"
+                "value": "Ospedali, case di cura, cliniche e assimilabili"
             }
         },
         {
@@ -247,7 +247,7 @@
     ],
     "combined_agents": [
         {
-            "active": true,
+            "active": false,
             "query": "Cercami un immobile vicino Piazza Castello a Torino con classe energetica A.",
             "columns": [
                 "dist_km",
@@ -260,7 +260,7 @@
             "gt_strategy": [
                 {
                     "type": "distance_decay",
-                    "poi": "Piazza Castello, Torino",
+                    "poi": "Piazza Castello",
                     "radius_reference": 3.0,
                     "weight": 0.5
                 },
@@ -273,6 +273,211 @@
                         "A3",
                         "A4"
                     ],
+                    "weight": 0.5
+                }
+            ]
+        },
+        {
+            "active": false,
+            "query": "Cercami un immobile a Torino vicino Piazza Vittorio e che sia comodo ai mezzi pubblici.",
+            "columns": [
+                "dist_km",
+                "mobilita"
+            ],
+            "expected_agents": [
+                "location",
+                "poi"
+            ],
+            "gt_strategy": [
+                {
+                    "type": "distance_decay",
+                    "poi": "Piazza Vittorio",
+                    "radius_reference": 3.0,
+                    "weight": 0.5
+                },
+                {
+                    "type": "linear_decay",
+                    "column": "mobilita",
+                    "order": "desc",
+                    "threshold": 75,
+                    "weight": 0.5
+                }
+            ]
+        },
+        {
+            "active": false,
+            "query": "Cerco un immobile vicino a parchi o aree verdi almeno di classe C.",
+            "columns": [
+                "classe_energetica_ape",
+                "verde"
+            ],
+            "expected_agents": [
+                "ape",
+                "poi"
+            ],
+            "gt_strategy": [
+                {
+                    "type": "energy_class",
+                    "column": "classe_energetica_ape",
+                    "allowed_classes": [
+                        "A4",
+                        "A3",
+                        "A2",
+                        "A1",
+                        "B",
+                        "C"
+                    ],
+                    "weight": 0.5
+                },
+                {
+                    "type": "linear_decay",
+                    "column": "verde",
+                    "order": "desc",
+                    "threshold": 75,
+                    "weight": 0.5
+                }
+            ]
+        },
+        {
+            "active": false,
+            "query": "Trovami un'abitazione entro 1 km da Porta Palazzo.",
+            "columns": [
+                "dist_km",
+                "tipologia_bene_immobile"
+            ],
+            "expected_agents": [
+                "location",
+                "typology"
+            ],
+            "gt_strategy": [
+                {
+                    "type": "distance_decay",
+                    "poi": "Porta Palazzo, Torino",
+                    "radius_reference": 1.0,
+                    "weight": 0.5
+                },
+                {
+                    "type": "exact_match",
+                    "column": "tipologia_bene_immobile",
+                    "value": "Abitazione",
+                    "weight": 0.5
+                }
+            ]
+        },
+        {
+            "active": false,
+            "query": "Cerco un immobile per realizzare un asilo nido vicino a Piazza Castello.",
+            "columns": [
+                "superficie_di_riferimento_mq",
+                "dist_km"
+            ],
+            "expected_agents": [
+                "normative",
+                "location"
+            ],
+            "gt_strategy": [
+                {
+                    "type": "min_max",
+                    "column": "superficie_di_riferimento_mq",
+                    "order": "desc",
+                    "threshold": 500,
+                    "weight": 0.5
+                },
+                {
+                    "type": "distance_decay",
+                    "poi": "Piazza Castello",
+                    "radius_reference": 3.0,
+                    "weight": 0.5
+                }
+            ]
+        },
+        {
+            "active": false,
+            "query": "Cerco un immobile vicino Piazza Vittorio, con bassi consumi energetici e vicino a scuole.",
+            "columns": [
+                "dist_km",
+                "epglnren_ape",
+                "educazione"
+            ],
+            "expected_agents": [
+                "location",
+                "ape",
+                "poi"
+            ],
+            "gt_strategy": [
+                {
+                    "type": "distance_decay",
+                    "poi": "Piazza Vittorio, Torino",
+                    "radius_reference": 0.83,
+                    "weight": 0.34
+                },
+                {
+                    "type": "linear_decay",
+                    "column": "epglnren_ape",
+                    "order": "asc",
+                    "threshold": 126.44,
+                    "weight": 0.33
+                },
+                {
+                    "type": "linear_decay",
+                    "column": "educazione",
+                    "order": "desc",
+                    "threshold": 75,
+                    "weight": 0.33
+                }
+            ]
+        },
+        {
+            "active": true,
+            "query": "Cerco un ospedale comodo ai mezzi pubblici.",
+            "columns": [
+                "tipologia_bene_immobile",
+                "mobilita"
+            ],
+            "expected_agents": [
+                "typology",
+                "poi"
+            ],
+            "gt_strategy": [
+                {
+                    "type": "exact_match",
+                    "column": "tipologia_bene_immobile",
+                    "value": "Ospedali, case di cura, cliniche e assimilabili",
+                    "weight": 0.5
+                },
+                {
+                    "type": "linear_decay",
+                    "column": "mobilita",
+                    "order": "desc",
+                    "threshold": 75,
+                    "weight": 0.5
+                }
+            ]
+        },
+        {
+            "active": true,
+            "query": "Cerco una caserma con un punteggio APE superiore a 5.",
+            "columns": [
+                "ape_score_total",
+                "tipologia_bene_immobile"
+            ],
+            "expected_agents": [
+                "ape",
+                "typology"
+            ],
+            "gt_strategy": [
+                {
+                    "type": "linear_decay",
+                    "column": "ape_score_total",
+                    "order": "desc",
+                    "threshold": 5.0,
+                    "exclusive": true,
+                    "weight": 0.5
+                },
+                {
+                    "type": "exact_match",
+                    "column": "tipologia_bene_immobile",
+                    "value": "Caserma",
                     "weight": 0.5
                 }
             ]

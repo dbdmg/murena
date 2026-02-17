@@ -45,22 +45,37 @@ class LocationAgent(BaseAgent):
         self.structured_llm = self.llm.with_structured_output(LocationResponse, method="function_calling")
         self.chain = self.prompt | self.structured_llm
 
-    @log_llm_usage
-    @handle_agent_error(
-        fallback_value=LocationAgentResult(raw_text="Error", prompt=None)
-    )
-    def run(self, *, query: str = None, mode: str = "filtering", **kwargs) -> Union[LocationAgentResult, pd.DataFrame]:
+    def run(
+        self,
+        *,
+        query: str = None,
+        mode: str = "filtering",
+        **kwargs
+    ) -> Union[LocationAgentResult, pd.DataFrame]:
         """
-        Esegue l'agente in due modalità:
-        - filtering: Estrae i luoghi e la distanza raggio dall'LLM.
-        - ranking: Calcola uno score deterministico (0-100) per gli immobili in base alla distanza.
+        Esegue l'agente per estrarre luoghi (LLM) o calcolare il ranking (Deterministico).
         """
-        if mode == "filtering":
-            return self._run_filtering(query=query)
-        elif mode == "ranking":
-            return self._run_ranking(**kwargs)
-        else:
-            raise ValueError(f"Modalità '{mode}' non supportata dal LocationAgent.")
+        try:
+            if mode == "filtering":
+                return self._run_filtering(query=query)
+            elif mode == "ranking":
+                return self._run_ranking(
+                    df=kwargs.get("df"),
+                    places=kwargs.get("places")
+                )
+            else:
+                raise ValueError(f"Modalità '{mode}' non supportata dal LocationAgent.")
+        except Exception as e:
+            from app.utils.logger import logger
+            logger.error(f"Error in {self.name}.run ({mode}): {e}")
+            if mode == "ranking":
+                df = kwargs.get("df")
+                if df is not None:
+                    if "location_score" not in df.columns:
+                        df["location_score"] = 0.0
+                    return df
+                return pd.DataFrame()
+            return LocationAgentResult(raw_text="{}", found=False, places=[], prompt=None)
 
     def _run_filtering(self, query: str) -> LocationAgentResult:
         """Modalità originale: estrazione entità geografiche tramite LLM + Geocoding."""
@@ -178,15 +193,15 @@ class LocationAgent(BaseAgent):
             decay_constant = (-np.log(0.2))**(1/3)
             R = target_radius / decay_constant
             
-            x = dist
-            
-            # Exponential decay formula: e^(-(x/R)^3)
+            # Truncate if distance exceeds the target radius (consistent with GT)
+            if dist > target_radius:
+                return 0.0, 0.0
+
+            # Exponential decay formula: e(-(dist/R)^3)
             # This produces a value between 0 and 1
-            raw_score = np.exp(-((x / R) ** 3))
+            raw_score = np.exp(-((dist / R) ** 3))
             
             # Normalize to 0-100
-            # Ideally the raw_score is already 1.0 at x=0
-            # We just scale it to 100
             final_score = raw_score * 100.0
             
             return final_score, raw_score

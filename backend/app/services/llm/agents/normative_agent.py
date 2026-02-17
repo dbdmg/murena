@@ -253,20 +253,32 @@ class NormativeAgent(BaseAgent):
                 if max_val == min_val:
                     req_score = pd.Series(100.0, index=df_ranked.index)
                 else:
+                    exclusive = req.get("exclusive", False)
+                    T = float(target_val) # Define T here, as it's used in both branches
                     if op in [">=", ">"]:
                         # Linear growth with threshold T and cap at 2T
                         # Score 0 at T, Score 100 at 2T
-                        T = float(target_val)
                         if T > 0:
                             req_score = ((vals - T) / T * 100).clip(0, 100)
+                            
+                            if exclusive:
+                                req_score = req_score.mask(vals <= T, 0.0)
+                            
+                            # Ensure minimum 0.1 if vals >= T (but not if exclusive failure)
+                            req_score = req_score.mask((req_score == 0) & (vals >= T) & (not exclusive), 0.1)
                         else:
                             req_score = pd.Series(100.0, index=df_ranked.index)
                     elif op in ["<=", "<"]:
                         # Linear decay with threshold T and cap at T/2
                         # Score 0 at T, Score 100 at T/2
-                        T = float(target_val)
                         if T > 0:
                             req_score = ((T - vals) / (T / 2) * 100).clip(0, 100)
+                            
+                            if exclusive:
+                                req_score = req_score.mask(vals >= T, 0.0)
+                            
+                            # Ensure minimum 0.1 if vals <= T
+                            req_score = req_score.mask((req_score == 0) & (vals <= T) & (not exclusive), 0.1)
                         else:
                             req_score = pd.Series(0.0, index=df_ranked.index)
                     else: # ==

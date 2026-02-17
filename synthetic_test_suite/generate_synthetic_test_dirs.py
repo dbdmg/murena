@@ -242,6 +242,7 @@ def calculate_gt_score(building_data: Dict[str, Any], strategy: Dict[str, Any], 
                     
                     if exclusive and val <= T: score = 0.0
                     elif val < T: score = 0.0
+                    else: score = max(score, 0.1) # Ensure min 0.1 if >= T
                 else: # asc (lower is better)
                     # Score 0 at T, Score 100 at T/2
                     if T > 0:
@@ -251,6 +252,7 @@ def calculate_gt_score(building_data: Dict[str, Any], strategy: Dict[str, Any], 
                     
                     if exclusive and val >= T: score = 0.0
                     elif val > T: score = 0.0
+                    else: score = max(score, 0.1) # Ensure min 0.1 if <= T
                 
                 return float(round(np.clip(score, 0, 100), 1))
             except Exception:
@@ -300,8 +302,8 @@ def calculate_gt_score(building_data: Dict[str, Any], strategy: Dict[str, Any], 
         return float(round(score, 1))
 
     elif st_type == "exact_match":
-        val = str(building_data.get(col, "")).lower()
-        target = str(strategy.get("value", "")).lower()
+        val = str(building_data.get(col, "")).lower().replace(";", ",")
+        target = str(strategy.get("value", "")).lower().replace(";", ",")
         if target in val or val in target:
             return 100.0
         return 0.0

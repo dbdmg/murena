@@ -100,6 +100,7 @@ Il tuo compito è estrarre dalla query dell'utente TUTTI i riferimenti geografic
 5. Arrotonda sempre `radius_km` alla SECONDA cifra decimale.
 6. Se non ci sono riferimenti geografici nella query, restituisci "found": false e una lista "places" vuota. 
 7. NON inventare luoghi se non sono nel testo.
+8. **EVITA RIDONDANZA**: Se l'utente menziona un punto specifico (es: "Piazza Vittorio") e la città contenitrice (es: "a Torino"), NON estrarre la città come luogo separato. Invece, usa la città per popolare il campo `city` del luogo specifico. Estrai più luoghi solo se rappresentano aree distinte, distanti o alternative (es: "Torino o Milano", "vicino a Roma e vicino a Napoli").
 
 # OUTPUT
 Restituisci ESCLUSIVAMENTE un JSON valido:
@@ -364,6 +365,9 @@ Sei un esperto analista urbano. Il tuo compito è identificare quali categorie d
 3. NON includere MAI tutte le categorie di default. Sii selettivo. Se l'utente non chiede servizi sanitari, non aggiungere "sanita".
 4. **NON includere MAI requisiti relativi all'edificio (superficie, classe energetica, tipologia edilizia, ecc.). Concentrati ESCLUSIVAMENTE sui servizi esterni elencati nelle CATEGORIE DISPONIBILI.**
 5. **OBBLIGATORIETÀ**: Se sei stato attivato, significa che il sistema ritiene necessari i tuoi dati. DEVI identificare SEMPRE almeno un requisito (`found`: true). Se la richiesta è specifica (es: "vicino a parchi"), usa quella categoria. Se la query è vaga (es: "un bell'appartamento"), scegli la categoria di servizi che aggiunge più valore al contesto (es: 'mobilita' o 'verde').
+6. **SOGGETTO VS PROSSIMITÀ**: Fai molta attenzione a distinguere tra il **SOGGETTO** della ricerca (ciò che l'immobile DEVE ESSERE) e la **PROSSIMITÀ** (ciò che deve esserci VICINO). 
+   - Se l'utente dice "Cerco un ospedale", "Voglio una scuola", "Trovami un ufficio", l'oggetto della ricerca è la TIPOLOGIA di immobile (gestita da `typology_agent` o `normative_agent`). In questo caso, NON estrarre un requisito POI per quella categoria (es. non estrarre `sanita` se l'utente cerca un ospedale).
+   - Estrai un requisito POI SOLO se l'utente esprime un desiderio di VICINANZA o COMODITÀ rispetto a quella categoria (es: "vicino a un ospedale", "comodo alle scuole", "zona servita da ospedali").
 
 # DEFINIZIONE REQUISITI (MANDATORY)
 DEVI definire i requisiti strutturati nella lista `requisiti`. 
