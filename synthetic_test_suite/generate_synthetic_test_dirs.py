@@ -139,6 +139,10 @@ async def run_single_test(agent_name: str, prompt: str, num_tries: int = 1):
             # Extract all gemini responses for all agents
             if "gemini_responses" not in extra_info:
                 extra_info["gemini_responses"] = result.get("gemini_responses", {})
+
+            # Extract full agent trace for results
+            if "agent_trace" not in extra_info:
+                extra_info["agent_trace"] = result.get("agent_trace", [])
             
             scores = {} # id -> score
             for b in buildings:
@@ -312,7 +316,9 @@ def calculate_gt_score(building_data: Dict[str, Any], strategy: Dict[str, Any], 
 
 def generate_files(root_path: Path, agent_name: str, prompt: str, tries_rankings: List[Dict], buildings_info: Dict[str, BuildingResponse], extra_info: Dict[str, Any], columns: List[str], gt_strategy: Dict[str, Any] = None, expected_agents: List[str] = None):
     """Generate the output CSV files with score_gt."""
-    prompt_dir = root_path / "results" / agent_name / prompt.replace("/", "_")
+    # Truncate prompt for directory name to avoid "File name too long" error
+    prompt_slug = prompt.replace("/", "_")[:100]
+    prompt_dir = root_path / "results" / agent_name / prompt_slug
     prompt_dir.mkdir(parents=True, exist_ok=True)
     
     with open(prompt_dir / "prompt.txt", "w", encoding="utf-8") as f:
@@ -339,9 +345,39 @@ def generate_files(root_path: Path, agent_name: str, prompt: str, tries_rankings
                     json.dump(resp_data, f, indent=2, ensure_ascii=False)
     
     
-    # Agent Verification
-    actual_agents = extra_info.get("activated_agents", [])
+    # Agent Verification (considering only those who actually FOUND something)
+    found_agents = []
+    responses = extra_info.get("gemini_responses", {})
+    
+    # Check each agent for "found" status or data
+    # 1. Location
+    loc_resp = responses.get("location_extraction", {})
+    if loc_resp.get("places") and len(loc_resp["places"]) > 0:
+        found_agents.append("location")
+    
+    # 2. Property Technical
+    typ_resp = responses.get("property_technical_extraction", {})
+    if typ_resp.get("typologies") and len(typ_resp["typologies"]) > 0:
+        found_agents.append("property_technical")
+        
+    # 3. Normative
+    norm_resp = responses.get("normative_analysis", {})
+    if norm_resp.get("found"):
+        found_agents.append("normative")
+        
+    # 4. POI
+    poi_resp = responses.get("poi_analysis", {})
+    if poi_resp.get("found"):
+        found_agents.append("poi")
+        
+    # 5. APE
+    ape_resp = responses.get("ape_analysis", {})
+    if ape_resp.get("found"):
+        found_agents.append("ape")
+
+    actual_agents = found_agents
     if expected_agents:
+        # Compare sets to ignore order
         match = set(actual_agents) == set(expected_agents)
         verification = {
             "expected": expected_agents,
@@ -354,7 +390,7 @@ def generate_files(root_path: Path, agent_name: str, prompt: str, tries_rankings
             json.dump(verification, f, indent=2)
         
         status_str = "✅ MATCH" if match else "❌ MISMATCH"
-        print(f"[CHECK]  Agent activation: {status_str} | Expected: {expected_agents} | Actual: {actual_agents}")
+        print(f"[CHECK]  Agents with results: {status_str} | Expected: {expected_agents} | Actual: {actual_agents}")
     
     # Calculate Ground Truth
     df_full = RealEstateService._dataset_cache.get("full")
@@ -525,54 +561,80 @@ def generate_files(root_path: Path, agent_name: str, prompt: str, tries_rankings
 
 async def main():
     suite_dir = Path(__file__).parent
-    input_file = suite_dir / "agents_prompts.json"
+    input_file = suite_dir / "custom_test_case.json"
     
     if not input_file.exists():
-        print(f"Error: {input_file} not found.")
+        print(f"Error: {input_file.name} not found in {suite_dir}.")
         return
     
-    with open(input_file, "r") as f:
-        tests_dict = json.load(f)
-    
     await preload_data()
+    semaphore = asyncio.Semaphore(5)
     
-    # Use a semaphore to limit concurrency and avoid hitting LLM rate limits or OOM
-    semaphore = asyncio.Semaphore(3)
-    
-    async def run_task(agent, query, cols, gt_strategy, expected_agents=None):
+    async def run_task_wrapper(entry):
         async with semaphore:
-            tries, b_info, extra_info = await run_single_test(agent, query)
-            generate_files(suite_dir, agent, query, tries, b_info, extra_info, cols, gt_strategy, expected_agents)
-
-    tasks = []
-    for agent, prompts in tests_dict.items():
-        # Ensure prompts is a list
-        if not isinstance(prompts, list):
-            print(f"[WARN] Skipping {agent}: expected list of prompts.")
-            continue
-
-        for prompt_data in prompts:
-            if isinstance(prompt_data, str):
-                query = prompt_data
-                columns = []
-                gt_strategy = None
-                active = True
-            else:
-                active = prompt_data.get("active", True)
-                query = prompt_data["query"]
-                columns = prompt_data.get("columns", [])
-                gt_strategy = prompt_data.get("gt_strategy")
-                expected_agents = prompt_data.get("expected_agents")
+            agent = entry.get("agent") or entry.get("agent_name")
+            if not agent:
+                exp = entry.get("expected_agents", [])
+                # Multi-agent tests should default to graph_orchestrator
+                if len(exp) > 1:
+                    agent = "graph_orchestrator"
+                elif len(exp) == 1:
+                    agent = f"{exp[0]}_agent"
+                else:
+                    agent = "generic_agent"
             
-            if not active:
-                print(f"[SKIP] Prompt: {query[:50]}...")
-                continue
+            query = entry.get("query", "")
+            tries, b_info, extra_info = await run_single_test(agent, query)
+            
+            # Update the entry with agent trace results (only filtering/requirements)
+            agent_results = []
+            for t in extra_info.get("agent_trace", []):
+                name = t.get("agent_name", "")
+                mode = t.get("agent_mode", "filtering")
                 
-            tasks.append(run_task(agent, query, columns, gt_strategy, expected_agents))
-    
-    # Run all tasks in parallel
-    if tasks:
-        await asyncio.gather(*tasks)
+                # Exclude ranking mode (individual building scoring) and evaluation
+                # but allow ranking-agent (orchestrator priorities)
+                if mode == "ranking" or name == "evaluation-agent":
+                    continue
+                    
+                agent_results.append({
+                    "agent_name": name,
+                    "output": t.get("output")
+                })
+            
+            entry["agent_results"] = agent_results
+            
+            # Remove the redundant top-level keys if they exist in the persistent data
+            for k in ["agent", "agent_name_redundant", "final_sql"]:
+                if k in entry:
+                    del entry[k]
+
+    try:
+        with open(input_file, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        
+        tasks = []
+        if isinstance(data, list):
+            print(f"[LOAD] Processing: {input_file.name}")
+            for entry in data:
+                if not isinstance(entry, dict) or not entry.get("active", True):
+                    continue
+                
+                tasks.append(run_task_wrapper(entry))
+        
+        if tasks:
+            print(f"[INFO] Starting {len(tasks)} tests from {input_file.name}...")
+            await asyncio.gather(*tasks)
+            
+            # Write updated data back to file
+            with open(input_file, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=4, ensure_ascii=False)
+            print(f"[SUCCESS] Updated {input_file.name} with agent results.")
+        else:
+            print(f"[INFO] No active tests found in {input_file.name}.")
+
+    except Exception as e:
+        print(f"[ERROR] Failed to process {input_file.name}: {e}")
 
 if __name__ == "__main__":
     asyncio.run(main())

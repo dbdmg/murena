@@ -32,7 +32,7 @@ graph TD
         ANALYZE[analyze_request]
         ANALYZE --> |ThreadPool max_workers=5| PARALLEL{Esecuzione Parallela}
         
-        PARALLEL --> TYPOLOGY[🏷️ TypologyAgent]
+        PARALLEL --> PROP_TECH[🏷️ PropertyTechnicalAgent]
         PARALLEL --> LOCATION[📍 LocationAgent]
         PARALLEL --> APE[⚡ ApeAgent]
         PARALLEL --> POI[🗺️ PoiAgent]
@@ -40,7 +40,7 @@ graph TD
     end
 
     subgraph "🔧 Fase 2: Generazione & Esecuzione SQL"
-        TYPOLOGY & LOCATION & APE & POI & NORMATIVE --> SQL_GEN
+        PROP_TECH & LOCATION & APE & POI & NORMATIVE --> SQL_GEN
         SQL_GEN[generate_sql<br/>SQLAgent]
         SQL_GEN --> SQL_EXEC[execute_sql]
     end
@@ -59,6 +59,7 @@ graph TD
         FALLBACK --> ENRICH
         ENRICH --> CALC_WEIGHTS[calculate_ranking_weights<br/>RankingAgent]
         CALC_WEIGHTS --> RANK[rank_results<br/>Parallel Ranking]
+        RANK[rank_results<br/>Parallel: property_technical, location, ape, normative, poi]
         RANK --> EVAL[evaluate_results<br/>EvaluationAgent]
         EVAL --> BROKER[broker_review<br/>EvaluationAgent.run_synthesis]
         BROKER --> FINAL[finalize_results]
@@ -83,27 +84,27 @@ graph TD
 sequenceDiagram
     participant O as Orchestrator
     participant TP as ThreadPool(5)
-    participant TY as TypologyAgent
+    participant PT as PropertyTechnicalAgent
     participant LO as LocationAgent
     participant AP as ApeAgent
     participant PO as PoiAgent
     participant NO as NormativeAgent
 
-    O->>TP: submit(run_typology)
+    O->>TP: submit(run_property_technical)
     O->>TP: submit(run_location)
     O->>TP: submit(run_ape)
     O->>TP: submit(run_poi)
     O->>TP: submit(run_normative)
 
     par Esecuzione Parallela
-        TP->>TY: run(query, typologies, statistics)
+        TP->>PT: run(query, typologies, statistics)
         TP->>LO: run(query)
         TP->>AP: run(query, statistics, score_legend)
         TP->>PO: run(query, statistics)
         TP->>NO: run(query, columns, statistics)
     end
 
-    TY-->>O: TypologyAgentResult
+    PT-->>O: PropertyTechnicalAgentResult
     LO-->>O: LocationAgentResult
     AP-->>O: ApeAgentResult
     PO-->>O: PoiAgentResult
@@ -150,7 +151,7 @@ flowchart TB
       direction LR
       A["Analisi Parallela\n(analyze_request)"]
       LA["Location Agent"]
-      TA["Typology Agent"]
+      TA["Property Technical Agent"]
       AA["APE Agent"]
       PA["POI Agent"]
       NO["Normative Agent"]
@@ -202,8 +203,8 @@ graph TD
 
   %% --- Parallel fan-out (analisi iniziale) ---
   AR --> P{{Analisi in parallelo}}
+  P --> T[PropertyTechnicalAgent]
   P --> L[LocationAgent]
-  P --> T[TypologyAgent]
   P --> A[ApeAgent]
   P --> N[NormativeAgent]
   P --> PO[PoiAgent]
@@ -276,7 +277,7 @@ graph TD
   "location": [["Torino Centro", 45.0677, 7.6825]],
   "status_msg": "Trovati 42 immobili corrispondenti.",
   "gemini_responses": {
-    "typology_extraction": {...},
+    "property_technical_extraction": {...},
     "location_extraction": {...},
     "sql_generation": {...},
     "evaluation": {...},
@@ -290,9 +291,9 @@ graph TD
 
 ---
 
-### 🏷️ TypologyAgent
+### 🏷️ PropertyTechnicalAgent
 
-**Scopo:** Mappa la richiesta utente sulle tipologie immobiliari standardizzate del MEF.
+**Scopo:** Analizza la richiesta utente per identificare le caratteristiche planimetriche, tecniche, catastali e tipologiche degli immobili.
 
 **Input State:**
 ```json
@@ -302,7 +303,7 @@ graph TD
 }
 ```
 
-**Output Schema (TypologyAgentResult):**
+**Output Schema (PropertyTechnicalAgentResult):**
 ```json
 {
   "raw_text": "{\"typologies\":[\"Edificio scolastico (es.: scuola...)\"]}",
@@ -310,14 +311,14 @@ graph TD
     "Edificio scolastico (es.: scuola di ogni ordine e grado, università, scuola di formazione)"
   ],
   "prompt": {
-    "system": "Sei il Typology Agent...",
+    "system": "Sei l'esperto delle caratteristiche planimetriche...",
     "user": "Lista delle tipologie disponibili: [...] Richiesta utente: \"...\"",
     "full_text": "[SYSTEM]...[USER]..."
   }
 }
 ```
 
-**Modello LLM:** Configurabile via `settings.agent_models["typology_agent"]`
+**Modello LLM:** Configurabile via `settings.agent_models["property_technical_agent"]`
 
 ---
 
@@ -541,7 +542,7 @@ graph TD
     "location": 0.3,
     "normative": 0.1,
     "ape": 0.3,
-    "typology": 0.1,
+    "property_technical": 0.1,
     "poi": 0.4
   },
   "ranking": {
@@ -628,7 +629,7 @@ PoiAgent unificato (no più dipendenza sequenziale)
 **Benefici:** Riduzione di 1 chiamata LLM, latenza ridotta, logica semplificata.
 
 #### 2. **✅ Eliminazione NeedsMetricAgent/UseCaseAgent** (RISOLTO)
-**Soluzione Implementata:** Rimossi entrambi gli agenti. L'analisi strategica è ora distribuita tra gli agenti specializzati (Ape, Poi, Normative, Typology).  
+**Soluzione Implementata:** Rimossi entrambi gli agenti. L'analisi strategica è ora distribuita tra gli agenti specializzati (Ape, Poi, Normative, PropertyTechnical).  
 **Benefici:** Riduzione complessità, nessuna duplicazione, ogni agente si concentra sul proprio dominio.
 
 #### 3. **✅ Separazione Chiara delle Responsabilità**
@@ -697,7 +698,7 @@ for file_path in normative_dir.rglob("*"):
 
 | Agente | Input Da | Output Verso | Tipo Dipendenza |
 |--------|----------|--------------|-----------------|
-| TypologyAgent | Query, Statistics | SQLAgent, Ranking | Soft (opzionale) |
+| PropertyTechnicalAgent | Query, Statistics | SQLAgent, Ranking | Soft (opzionale) |
 | LocationAgent | Query | SQLAgent, Ranking | Hard (geocoding) |
 | ApeAgent | Query, Statistics | SQLAgent, Ranking | Soft |
 | PoiAgent | Query, Statistics | SQLAgent, Ranking | Soft |
@@ -754,7 +755,7 @@ L'architettura attuale è **ottimizzata e ben bilanciata** per il problema speci
 # Da settings.agent_models
 AGENT_MODELS = {
     "default": "gemini-1.5-flash",
-    "typology_agent": "gemini-1.5-flash",
+    "property_technical_agent": "gemini-1.5-flash",
     "location_agent": "gemini-1.5-flash",
     "sql_agent": "gemini-1.5-flash",
     "evaluation_agent": "gemini-1.5-pro",  # Pro per valutazioni complesse

@@ -250,7 +250,7 @@ export interface GeminiResponses {
         places: Array<{ name: string; city?: string; lat?: number; lon?: number }>;
         response: string;
     };
-    typology_extraction?: {
+    property_technical_extraction?: {
         typologies: string[];
         response: string;
     };

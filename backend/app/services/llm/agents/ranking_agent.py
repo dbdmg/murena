@@ -78,12 +78,12 @@ class RankingAgent(BaseAgent):
             
             # Ensure at least one agent is present for safety
             if not ranked_agents_list:
-                 # Fallback: Typology default
+                 # Fallback: PropertyTechnical default
                  from app.services.llm.agents.schema import RankedAgent
-                 ranked_agents_list = [RankedAgent(agent_name="typology", rank=1)]
+                 ranked_agents_list = [RankedAgent(agent_name="property_technical", rank=1)]
             
             # Limit to available agents
-            all_supported = ["location", "normative", "ape", "typology", "poi"]
+            all_supported = ["location", "normative", "ape", "property_technical", "poi"]
             valid_agents = [a for a in ranked_agents_list if a.agent_name in all_supported]
 
             # Calculate raw weights: 1.0 / rank (e.g. Rank 1 -> 1.0, Rank 2 -> 0.5)
@@ -112,7 +112,7 @@ class RankingAgent(BaseAgent):
                 location=normalized_weights.get("location", 0.0),
                 normative=normalized_weights.get("normative", 0.0),
                 ape=normalized_weights.get("ape", 0.0),
-                typology=normalized_weights.get("typology", 0.0),
+                property_technical=normalized_weights.get("property_technical", 0.0),
                 poi=normalized_weights.get("poi", 0.0)
             )
 
@@ -153,7 +153,7 @@ class RankingAgent(BaseAgent):
         df_ranked["ranking_weight_location"] = weights.location
         df_ranked["ranking_weight_normative"] = weights.normative
         df_ranked["ranking_weight_ape"] = weights.ape
-        df_ranked["ranking_weight_typology"] = weights.typology
+        df_ranked["ranking_weight_property_technical"] = weights.property_technical
         df_ranked["ranking_weight_poi"] = weights.poi
 
         # Calcolo score pesato finale
@@ -162,7 +162,7 @@ class RankingAgent(BaseAgent):
             df_ranked["ranking_weight_location"] * df_ranked.get("location_score", 0.0) +
             df_ranked["ranking_weight_normative"] * df_ranked.get("normative_score", 0.0) +
             df_ranked["ranking_weight_ape"] * df_ranked.get("ape_score", 0.0) +
-            df_ranked["ranking_weight_typology"] * df_ranked.get("typology_score", 0.0) +
+            df_ranked["ranking_weight_property_technical"] * df_ranked.get("property_technical_score", 0.0) +
             df_ranked["ranking_weight_poi"] * df_ranked.get("poi_score", 0.0)
         )
         
@@ -183,9 +183,9 @@ class RankingAgent(BaseAgent):
                 ape_score = row.get("ape_score", 0.0)
                 components.append(f"{weights.ape}*ape({ape_score})")
             
-            if weights.typology > 0 and "typology_score" in df_ranked.columns:
-                typ_score = row.get("typology_score", 0.0)
-                components.append(f"{weights.typology}*typology({typ_score})")
+            if weights.property_technical > 0 and "property_technical_score" in df_ranked.columns:
+                prop_score = row.get("property_technical_score", 0.0)
+                components.append(f"{weights.property_technical}*property_technical({prop_score})")
             
             if weights.poi > 0 and "poi_score" in df_ranked.columns:
                 poi_score = row.get("poi_score", 0.0)

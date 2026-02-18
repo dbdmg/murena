@@ -64,7 +64,7 @@ def calculate_ranking_score(
     poi_weight_factor: float = 0.5,
     distance_weight: float = 0.3,
     normative_weight: float = 0.0,
-    typology_weight: float = 0.0,
+    property_technical_weight: float = 0.0,
 ) -> pd.DataFrame:
     """
     Calcola uno score di ranking per ogni immobile basato su POI, APE e Distanza.
@@ -132,27 +132,27 @@ def calculate_ranking_score(
     if "normative_score" in df.columns:
         normative_score_norm = pd.to_numeric(df["normative_score"], errors="coerce").fillna(0) / 100
     
-    # 5. Score Tipologia (se presente)
-    typology_score_norm = 0.0
-    if "typology_score" in df.columns:
-        typology_score_norm = pd.to_numeric(df["typology_score"], errors="coerce").fillna(0) / 100
+    # 5. Score Property Technical (se presente)
+    property_technical_score_norm = 0.0
+    if "property_technical_score" in df.columns:
+        property_technical_score_norm = pd.to_numeric(df["property_technical_score"], errors="coerce").fillna(0) / 100
 
     # 6. Normalizzazione pesi
     # Sommiamo i pesi solo se le relative colonne di score sono state popolate
     active_normative_weight = normative_weight if "normative_score" in df.columns else 0
-    active_typology_weight = typology_weight if "typology_score" in df.columns else 0
+    active_property_technical_weight = property_technical_weight if "property_technical_score" in df.columns else 0
     active_ape_weight = ape_weight if "ape_score" in df.columns else (ape_weight if "ape_score_total" in df.columns else 0)
     
-    tot_w = active_ape_weight + poi_weight_factor + w_dist + active_normative_weight + active_typology_weight
+    tot_w = active_ape_weight + poi_weight_factor + w_dist + active_normative_weight + active_property_technical_weight
     
     if tot_w > 0:
         w_ape = active_ape_weight / tot_w
         w_poi = poi_weight_factor / tot_w
         w_dist_final = w_dist / tot_w
         w_normative = active_normative_weight / tot_w
-        w_typology = active_typology_weight / tot_w
+        w_property_technical = active_property_technical_weight / tot_w
     else:
-        w_ape, w_poi, w_dist_final, w_normative, w_typology = 0.2, 0.2, 0.2, 0.2, 0.2
+        w_ape, w_poi, w_dist_final, w_normative, w_property_technical = 0.2, 0.2, 0.2, 0.2, 0.2
 
     # 7. Score Totale
     final_score = (
@@ -160,7 +160,7 @@ def calculate_ranking_score(
         (ape_score_norm * w_ape) + 
         (dist_score_norm * w_dist_final) +
         (normative_score_norm * w_normative) +
-        (typology_score_norm * w_typology)
+        (property_technical_score_norm * w_property_technical)
     )
 
     df["final_ranking_score"] = final_score

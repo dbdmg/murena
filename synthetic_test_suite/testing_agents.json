@@ -1,0 +1,253 @@
+[
+    {
+        "active": false,
+        "query": "Cerco un immobile che disti meno di 500 metri dalla stazione centrale.",
+        "columns": [
+            "dist_km"
+        ],
+        "expected_agents": [
+            "location"
+        ],
+        "gt_strategy": {
+            "type": "distance_decay",
+            "poi": "Stazione Centrale",
+            "radius_reference": 0.5
+        },
+        "agent": "location_agent"
+    },
+    {
+        "active": false,
+        "query": "Voglio vivere in una zona molto servita, possibilmente in centro città.",
+        "columns": [
+            "dist_km"
+        ],
+        "expected_agents": [
+            "location"
+        ],
+        "gt_strategy": {
+            "type": "distance_decay",
+            "poi": "Centro Città",
+            "radius_reference": 1.0
+        },
+        "agent": "location_agent"
+    },
+    {
+        "active": false,
+        "query": "Trovami qualcosa nel raggio di 2km dal Politecnico.",
+        "columns": [
+            "dist_km"
+        ],
+        "expected_agents": [
+            "location"
+        ],
+        "gt_strategy": {
+            "type": "distance_decay",
+            "poi": "Politecnico",
+            "radius_reference": 2.0
+        },
+        "agent": "location_agent"
+    },
+    {
+        "active": false,
+        "query": "Quali immobili sono adatti per aprire un asilo nido secondo le normative vigenti?",
+        "columns": [
+            "superficie_di_riferimento_mq"
+        ],
+        "expected_agents": [
+            "normative"
+        ],
+        "gt_strategy": {
+            "type": "min_max",
+            "column": "superficie_di_riferimento_mq",
+            "order": "desc",
+            "threshold": 500
+        },
+        "agent": "normative_agent"
+    },
+    {
+        "active": false,
+        "query": "Cerco una struttura che possa essere convertita in una RSA per anziani.",
+        "columns": [
+            "superficie_di_riferimento_mq"
+        ],
+        "expected_agents": [
+            "normative"
+        ],
+        "gt_strategy": {
+            "type": "min_max",
+            "column": "superficie_di_riferimento_mq",
+            "order": "desc",
+            "threshold": 800
+        },
+        "agent": "normative_agent"
+    },
+    {
+        "active": false,
+        "query": "Ho bisogno di un locale commerciale che rispetti i requisiti per la somministrazione di alimenti.",
+        "columns": [
+            "superficie_di_riferimento_mq"
+        ],
+        "expected_agents": [
+            "normative"
+        ],
+        "gt_strategy": {
+            "type": "min_max",
+            "column": "superficie_di_riferimento_mq",
+            "order": "desc",
+            "threshold": 100
+        },
+        "agent": "normative_agent"
+    },
+    {
+        "active": false,
+        "query": "Mi interessano solo edifici storici o d'epoca da ristrutturare.",
+        "columns": [
+            "tipologia_bene_immobile"
+        ],
+        "expected_agents": [
+            "property_technical"
+        ],
+        "gt_strategy": {
+            "type": "exact_match",
+            "column": "tipologia_bene_immobile",
+            "value": "Palazzo storico, castello"
+        },
+        "agent": "property_technical_agent"
+    },
+    {
+        "active": false,
+        "query": "Cerco un capannone industriale o un magazzino logistico.",
+        "columns": [
+            "tipologia_bene_immobile"
+        ],
+        "expected_agents": [
+            "property_technical"
+        ],
+        "gt_strategy": {
+            "type": "exact_match",
+            "column": "tipologia_bene_immobile",
+            "value": "Fabbricato per attività produttiva (industriale, artigianale o agricola)"
+        },
+        "agent": "property_technical_agent"
+    },
+    {
+        "active": false,
+        "query": "Vorrei valutare l'acquisto di un intero stabile cielo-terra.",
+        "columns": [
+            "tipologia_bene_immobile"
+        ],
+        "expected_agents": [
+            "property_technical"
+        ],
+        "gt_strategy": {
+            "type": "exact_match",
+            "column": "tipologia_bene_immobile",
+            "value": "Abitazione"
+        },
+        "agent": "property_technical_agent"
+    },
+    {
+        "active": false,
+        "query": "Voglio una casa che consumi pochissimo, quasi passiva (nZEB).",
+        "columns": [
+            "classe_energetica_ape"
+        ],
+        "expected_agents": [
+            "ape"
+        ],
+        "gt_strategy": {
+            "type": "energy_class",
+            "column": "classe_energetica_ape",
+            "allowed_classes": [
+                "A4",
+                "A3"
+            ]
+        },
+        "agent": "ape_agent"
+    },
+    {
+        "active": false,
+        "query": "È fondamentale che l'immobile abbia già pannelli solari o fotovoltaici installati.",
+        "columns": [
+            "ape_score_rinnovabili"
+        ],
+        "expected_agents": [
+            "ape"
+        ],
+        "gt_strategy": {
+            "type": "linear_decay",
+            "column": "ape_score_rinnovabili",
+            "order": "desc",
+            "threshold": 3.0
+        },
+        "agent": "ape_agent"
+    },
+    {
+        "active": false,
+        "query": "Cerco solo nuove costruzioni o ristrutturazioni recenti con alta efficienza energetica.",
+        "columns": [
+            "ape_score_total"
+        ],
+        "expected_agents": [
+            "ape"
+        ],
+        "gt_strategy": {
+            "type": "linear_decay",
+            "column": "ape_score_total",
+            "order": "desc",
+            "threshold": 4.0
+        },
+        "agent": "ape_agent"
+    },
+    {
+        "active": false,
+        "query": "Desidero un quartiere vivace, pieno di bar, ristoranti e vita notturna.",
+        "columns": [
+            "commerciale"
+        ],
+        "expected_agents": [
+            "poi"
+        ],
+        "gt_strategy": {
+            "type": "linear_decay",
+            "order": "desc",
+            "threshold": 75,
+            "column": "commerciale"
+        },
+        "agent": "poi_agent"
+    },
+    {
+        "active": false,
+        "query": "Per me è essenziale avere parchi giochi e aree verdi sicure per i bambini sotto casa.",
+        "columns": [
+            "verde"
+        ],
+        "expected_agents": [
+            "poi"
+        ],
+        "gt_strategy": {
+            "type": "linear_decay",
+            "order": "desc",
+            "threshold": 75,
+            "column": "verde"
+        },
+        "agent": "poi_agent"
+    },
+    {
+        "active": false,
+        "query": "Cerco una zona tranquilla ma ben collegata con i mezzi pubblici al resto della città.",
+        "columns": [
+            "mobilita"
+        ],
+        "expected_agents": [
+            "poi"
+        ],
+        "gt_strategy": {
+            "type": "linear_decay",
+            "order": "desc",
+            "threshold": 75,
+            "column": "mobilita"
+        },
+        "agent": "poi_agent"
+    }
+]

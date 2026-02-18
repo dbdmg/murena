@@ -1,0 +1,191 @@
+[
+    {
+        "active": true,
+        "query": "Cerca un edificio vicino a palazzo nuovo con superficie totale di 3000 m2 per farne una residenza per 100 studenti strutturata a micro alloggi di circa 40 – 60 m2 ciascuna. La struttura deve essere vicina a mezzi di trasporto in modo da non distare più di mezz’ora da palazzo nuovo e con elevata efficienza energetica (classe D o superiore).",
+        "columns": [
+            "indirizzo",
+            "superficie_di_riferimento_mq",
+            "mobilita",
+            "verde",
+            "classe_energetica_ape"
+        ],
+        "expected_agents": [
+            "location",
+            "normative",
+            "poi",
+            "property_technical",
+            "ape"
+        ],
+        "gt_strategy": [
+            {
+                "type": "distance_decay",
+                "poi": "Palazzo Nuovo, Torino",
+                "radius_reference": 3.0,
+                "weight": 0.25
+            },
+            {
+                "type": "min_max",
+                "column": "superficie_di_riferimento_mq",
+                "threshold": 1200,
+                "order": "desc",
+                "weight": 0.25
+            },
+            {
+                "type": "linear_decay",
+                "column": "mobilita",
+                "threshold": 70,
+                "order": "desc",
+                "weight": 0.15
+            },
+            {
+                "type": "linear_decay",
+                "column": "verde",
+                "threshold": 70,
+                "order": "desc",
+                "weight": 0.15
+            },
+            {
+                "type": "energy_class",
+                "column": "classe_energetica_ape",
+                "min_class": "A1",
+                "weight": 0.2
+            }
+        ],
+        "agent_results": [
+            {
+                "agent_name": "ranking-agent",
+                "output": {
+                    "ranking": [
+                        {
+                            "agent_name": "location",
+                            "rank": 1
+                        },
+                        {
+                            "agent_name": "poi",
+                            "rank": 1
+                        },
+                        {
+                            "agent_name": "ape",
+                            "rank": 1
+                        },
+                        {
+                            "agent_name": "normative",
+                            "rank": 1
+                        },
+                        {
+                            "agent_name": "property_technical",
+                            "rank": 2
+                        }
+                    ]
+                }
+            },
+            {
+                "agent_name": "normative-agent",
+                "output": {
+                    "found": true,
+                    "requisiti": [
+                        {
+                            "categoria": "superfici",
+                            "tipo": "superficie minima calcolata",
+                            "valore": 2700,
+                            "unita": "mq",
+                            "operatore": ">=",
+                            "colonna_target": "superficie_di_riferimento_mq",
+                            "normativa": "D.M. 1252/2022",
+                            "ambito": "Studentato (PNRR) - residenza per 100 studenti",
+                            "descrizione": "Calcolato come 100 posti × parametro_lordo_filtro 27.0 mq/posto = 2700 mq; valore confrontato con la soglia_minima_immobile_lordo_mq indicata (600 mq) e scelto il valore più alto (2700 mq)."
+                        }
+                    ]
+                }
+            },
+            {
+                "agent_name": "ape-agent",
+                "output": {
+                    "requisiti": [
+                        {
+                            "colonna_target": "classe_energetica_ape",
+                            "operatore": "IN",
+                            "valore": [
+                                "A1",
+                                "A2",
+                                "A3",
+                                "A4",
+                                "B",
+                                "C",
+                                "D"
+                            ],
+                            "descrizione": "Richiesta esplicita: efficienza energetica pari a classe D o superiore (inclusi A1–A4, B, C, D)."
+                        }
+                    ],
+                    "found": true
+                }
+            },
+            {
+                "agent_name": "poi-agent",
+                "output": {
+                    "requisiti": [
+                        {
+                            "colonna_target": "mobilita",
+                            "operatore": ">=",
+                            "valore": 75,
+                            "descrizione": "L'utente richiede vicinanza a mezzi di trasporto (per non distare più di mezz'ora da Palazzo Nuovo). Imposto la soglia al 75° percentile della distribuzione 'mobilita' (75% ≈ 74.99, arrotondato a 75) per garantire elevata accessibilità ai trasporti."
+                        }
+                    ]
+                }
+            },
+            {
+                "agent_name": "property_technical-agent",
+                "output": {
+                    "typologies": [
+                        "Struttura residenziale collettiva (es.: collegi e convitti, educandati, ricoveri, orfanotrofi, ospizi, conventi, seminari)",
+                        "Abitazione",
+                        "Ufficio strutturato ed assimilabili",
+                        "Fabbricato per attività produttiva (industriale, artigianale o agricola)",
+                        "Magazzino e locali di deposito",
+                        "Edificio scolastico (es.: scuola di ogni ordine e grado, università, scuola di formazione)",
+                        "Terreno urbano"
+                    ]
+                }
+            },
+            {
+                "agent_name": "location-agent",
+                "output": {
+                    "places": [
+                        {
+                            "name": "Palazzo Nuovo",
+                            "city": null,
+                            "lat": 45.0688106,
+                            "lon": 7.6953675,
+                            "radius_km": 3.0
+                        }
+                    ],
+                    "found": true
+                }
+            },
+            {
+                "agent_name": "sql-agent",
+                "output": [
+                    "SELECT",
+                    "  *",
+                    "FROM IMMOBILI",
+                    "WHERE",
+                    "  tipologia_bene_immobile IN (",
+                    "    'Struttura residenziale collettiva (es.: collegi e convitti, educandati, ricoveri, orfanotrofi, ospizi, conventi, seminari)',",
+                    "    'Abitazione',",
+                    "    'Ufficio strutturato ed assimilabili',",
+                    "    'Fabbricato per attività produttiva (industriale, artigianale o agricola)',",
+                    "    'Magazzino e locali di deposito',",
+                    "    'Edificio scolastico (es.: scuola di ogni ordine e grado, università, scuola di formazione)',",
+                    "    'Terreno urbano'",
+                    "  )",
+                    "  AND superficie_di_riferimento_mq >= 2700",
+                    "  AND classe_energetica_ape IN ('A1', 'A2', 'A3', 'A4', 'B', 'C', 'D')",
+                    "  AND mobilita >= 75",
+                    "  AND HAVERSINE_KM(latitudine, longitudine, 45.0688106, 7.6953675) <= 3.0",
+                    "ORDER BY",
+                    "  HAVERSINE_KM(latitudine, longitudine, 45.0688106, 7.6953675) ASC"
+                ]
+            }
+        ]
+    }
+]

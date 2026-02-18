@@ -5,7 +5,7 @@ Dummy responses for testing the UI/UX pipeline without burning tokens.
 """
 
 from app.services.llm.agents.schema import (
-    TypologyAgentResult,
+    PropertyTechnicalAgentResult,
     Place,
     LocationAgentResult,
     EvaluationAgentResponse,
@@ -17,8 +17,8 @@ from app.services.llm.agents.schema import (
 
 import json
 
-# Mock Typology
-MOCK_TYPOLOGY = TypologyAgentResult(
+# Mock Property Technical
+MOCK_PROPERTY_TECHNICAL = PropertyTechnicalAgentResult(
     raw_text=json.dumps({"typologies": ["Ufficio", "Caserma"]}, ensure_ascii=False),
     prompt=PromptRecord(system="Mock", user="Mock"),
 )

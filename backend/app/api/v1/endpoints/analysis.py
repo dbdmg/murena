@@ -36,7 +36,7 @@ def _label_for_step_key(key: str) -> str:
 
     base_labels = {
         "location_extraction": "Estrazione località",
-        "typology_extraction": "Estrazione tipologia",
+        "property_technical_extraction": "Caratteristiche tecniche",
         "needs_metric_plan": "Metriche e strategia",
         "use_case_generation": "Generazione use case",
         "sql_generation": "Generazione SQL",
@@ -451,7 +451,7 @@ async def get_run_agent_steps(
     # Prefer a sensible order, then append remaining keys.
     preferred_order = [
         "location_extraction",
-        "typology_extraction",
+        "property_technical_extraction",
         "needs_metric_plan",
         "use_case_generation",
         "sql_generation",
@@ -584,7 +584,7 @@ async def start_demo_run(
     # Define simulated steps for demo progress
     demo_steps = [
         ("Estrazione località", 10),
-        ("Estrazione tipologia", 20),
+        ("Caratteristiche tecniche", 20),
         ("Metriche e strategia", 35),
         ("Generazione SQL", 50),
         ("Analisi APE", 65),

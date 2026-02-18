@@ -150,7 +150,7 @@ ZONE_TORINO = [
 # Agenti disponibili per ablation
 AVAILABLE_AGENTS = [
     "location_agent",
-    "typology_agent",
+    "property_technical_agent",
     "poi_agent",
     "ape_agent",
     "normative_agent",

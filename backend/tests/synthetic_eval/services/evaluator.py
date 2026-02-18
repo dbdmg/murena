@@ -131,7 +131,7 @@ class RankingEvaluator:
         
         try:
             from app.services.llm.agents.location_agent import LocationAgent
-            from app.services.llm.agents.typology_agent import TypologyAgent
+            from app.services.llm.agents.property_technical_agent import PropertyTechnicalAgent
             from app.services.llm.agents.ape_agent import ApeAgent
             from app.services.llm.agents.poi_agent import PoiAgent
             from app.services.llm.agents.ranking_agent import RankingAgent

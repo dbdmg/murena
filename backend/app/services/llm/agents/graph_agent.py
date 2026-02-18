@@ -16,7 +16,7 @@ from sqlglot import exp, parse_one
 
 from app.services.analysis.ranking import calculate_ranking_score
 from app.core.config import settings
-from app.core.constants import SCORE_LEGEND, APE_SCORE_LEGEND, APE_AGENT_COLUMNS, NORMATIVE_AGENT_COLUMNS, POI_AGENT_COLUMNS, TYPOLOGY_AGENT_COLUMNS, ALL_AGENT_COLUMNS
+from app.core.constants import SCORE_LEGEND, APE_SCORE_LEGEND, APE_AGENT_COLUMNS, NORMATIVE_AGENT_COLUMNS, POI_AGENT_COLUMNS, PROPERTY_TECHNICAL_AGENT_COLUMNS, ALL_AGENT_COLUMNS
 
 MAX_ITEMS_FOR_LLM = settings.MAX_ITEMS_FOR_LLM
 MAX_ITEMS_FOR_MAP = settings.MAX_ITEMS_FOR_MAP
@@ -35,24 +35,24 @@ from app.services.llm.agents.schema import (
     AgentContext,
     EvaluationAgentResponse,
     NormativeAgentResult,
-    TypologyAgentResult,
+    PropertyTechnicalAgentResult,
     RankingAgentResult,
     RankingWeights,
     NormativeResponse,
-    TypologyResponse,
+    PropertyTechnicalResponse,
     LocationResponse,
     ApeResponse,
     EvaluationResult,
     EvaluationList,
 )
 from app.services.llm.agents.sql_agent import SQLAgent
-from app.services.llm.agents.typology_agent import TypologyAgent
+from app.services.llm.agents.property_technical_agent import PropertyTechnicalAgent
 from app.services.llm.agents.ranking_agent import RankingAgent
 from app.services.llm.agents.relaxation_agent import RelaxationAgent
 from app.utils.logger import logger
 from app.utils.json_parser import safe_extract_json
 from app.services.llm.mocks import (
-    MOCK_TYPOLOGY,
+    MOCK_PROPERTY_TECHNICAL,
     MOCK_LOCATION,
     MOCK_SQL_QUERY,
     MOCK_EVALUATION,
@@ -90,9 +90,8 @@ class GraphState(TypedDict):
     # Intermediate
     location_payload: List[List[Union[str, float]]]
     use_case_str: str
-    use_case_str: str
     # metrics_plan has been removed as part of clean architecture refactor
-    typology_result: Optional[TypologyAgentResult]
+    property_technical_result: Optional[PropertyTechnicalAgentResult]
     poi_result: Optional[Any]
     ape_result: Optional[Any]
     normative_result: Optional[NormativeAgentResult]
@@ -141,7 +140,7 @@ class GraphOrchestratorAgent(BaseAgent):
         location_agent: Optional[LocationAgent] = None,
         sql_agent: Optional[SQLAgent] = None,
         evaluation_agent: Optional[EvaluationAgent] = None,
-        typology_agent: Optional[TypologyAgent] = None,
+        property_technical_agent: Optional[PropertyTechnicalAgent] = None,
         ape_agent: Optional[ApeAgent] = None,
         poi_agent: Optional[PoiAgent] = None,
         normative_agent: Optional[NormativeAgent] = None,
@@ -157,7 +156,7 @@ class GraphOrchestratorAgent(BaseAgent):
         self.sql_agent = sql_agent or SQLAgent()
         self.evaluation_agent = evaluation_agent or EvaluationAgent()
         self.broker_agent = BrokerAgent()
-        self.typology_agent = typology_agent or TypologyAgent()
+        self.property_technical_agent = property_technical_agent or PropertyTechnicalAgent()
         self.ape_agent = ape_agent or ApeAgent()
         self.poi_agent = poi_agent or PoiAgent()
         self.normative_agent = normative_agent or NormativeAgent()
@@ -228,7 +227,7 @@ class GraphOrchestratorAgent(BaseAgent):
 
         step_definitions = [
             {"key": "ranking_init", "label": "Analizzo la richiesta utente..."},
-            {"key": "typology", "label": "Valuto le tipologie di immobili opportune..."},
+            {"key": "property_technical", "label": "Valuto le caratteristiche planimetriche e tecniche degli immobili..."},
             {"key": "location", "label": "Individuo una posizione geografica di ricerca..."},
             {"key": "ape", "label": "Analizzo le prestazioni energetiche degli edifici..."},
             {"key": "normative", "label": "Verifico i requisiti normativi..."},
@@ -290,7 +289,7 @@ class GraphOrchestratorAgent(BaseAgent):
             "use_case_str": "",
             "use_case_str": "",
             # metrics_plan removed
-            "typology_result": None,
+            "property_technical_result": None,
             "poi_result": None,
             "ape_result": None,
             "normative_result": None,
@@ -414,7 +413,7 @@ class GraphOrchestratorAgent(BaseAgent):
             
             # Mappa prefissi colonne per ogni agente
             prefix_map = {
-                "typology": "typology_",
+                "property_technical": "property_technical_",
                 "location": "location_",
                 "ape": "ape_",
                 "normative": "normative_",
@@ -438,7 +437,7 @@ class GraphOrchestratorAgent(BaseAgent):
                 # Aggiungiamo colonne di input rilevanti definite nelle costanti
                 from app.core.constants import APE_AGENT_COLUMNS, TYPOLOGY_AGENT_COLUMNS, NORMATIVE_AGENT_COLUMNS, POI_AGENT_COLUMNS
                 source_cols_map = {
-                    "typology": TYPOLOGY_AGENT_COLUMNS,
+                    "property_technical": PROPERTY_TECHNICAL_AGENT_COLUMNS,
                     "location": ["distanza_km", "poi_riferimento"],
                     "ape": APE_AGENT_COLUMNS,
                     "normative": NORMATIVE_AGENT_COLUMNS,
@@ -462,13 +461,13 @@ class GraphOrchestratorAgent(BaseAgent):
                     if agent_name == "ranking-agent":
                         # Final global ranking score
                         scores = []
-                        for agent in ["location", "normative", "ape", "typology", "poi"]:
+                        for agent in ["location", "normative", "ape", "property_technical", "poi"]:
                             sc = row.get(f"{agent}_score", 0.0)
                             w = row.get(f"ranking_weight_{agent}", 0.0)
                             scores.append(f"{agent}_score({sc}) * Weight({w})")
                         
                         formula_list = ["RankingSum("] + [f"  {s}," for s in scores[:-1]] + [f"  {scores[-1]}", ")"]
-                    elif "typology" in agent_type:
+                    elif "property_technical" in agent_type:
                         rank_pos = row.get(f"{prefix}rank_position", "N/A")
                         formula_list = [f"100 / Position({rank_pos})" if rank_pos != "N/A" else "0 (Non corrispondente)"]
                     elif "location" in agent_type:
@@ -792,8 +791,8 @@ class GraphOrchestratorAgent(BaseAgent):
             time.sleep(2)
 
             # Mock Typology
-            state["typology_result"] = MOCK_TYPOLOGY
-            state["context"].typology_result = MOCK_TYPOLOGY
+            state["property_technical_result"] = MOCK_PROPERTY_TECHNICAL
+            state["context"].property_technical_result = MOCK_PROPERTY_TECHNICAL
 
             # Mock Location
             state["context"].locations = MOCK_LOCATION.places
@@ -802,9 +801,9 @@ class GraphOrchestratorAgent(BaseAgent):
             state["use_case_str"] = "Mock Use Case Strategy"
 
             # Populate Gemini responses needed for UI
-            state["gemini_responses"]["typology_extraction"] = {
-                "response": MOCK_TYPOLOGY.raw_text,
-                "typologies": MOCK_TYPOLOGY.typologies,
+            state["gemini_responses"]["property_technical_extraction"] = {
+                "response": MOCK_PROPERTY_TECHNICAL.raw_text,
+                "typologies": MOCK_PROPERTY_TECHNICAL.typologies if hasattr(MOCK_PROPERTY_TECHNICAL, 'typologies') else [],
             }
             state["gemini_responses"]["location_extraction"] = {
                 "response": MOCK_LOCATION.raw_text,
@@ -839,7 +838,7 @@ class GraphOrchestratorAgent(BaseAgent):
                 active_agents = ranking_list
         else:
              # Fallback to all if ranking failed
-             active_agents = ["location", "normative", "ape", "typology", "poi"]
+             active_agents = ["location", "normative", "ape", "property_technical", "poi"]
         
         logger.info(f"Active agents from ranking: {active_agents}")
 
@@ -880,23 +879,23 @@ class GraphOrchestratorAgent(BaseAgent):
         sample_columns = dataset_metadata.get("sample_columns", "")
 
         # Define tasks
-        def run_typology():
+        def run_property_technical():
             start_t = time.time()
-            self._update_progress(state, "typology", "")
-            logger.info("🔧 Executing TypologyAgent")
+            self._update_progress(state, "property_technical", "")
+            logger.info("🔧 Executing PropertyTechnicalAgent")
 
             base_dataset = state.get("base_dataset")
             dataset_path = state.get("dataset_path")
-            typ_stats = {}
+            prop_stats = {}
             if base_dataset is not None or dataset_path is not None:
-                typ_stats = self._get_column_statistics(
+                prop_stats = self._get_column_statistics(
                     columns=ALL_AGENT_COLUMNS,
                     dataset_path=dataset_path,
                     dataset_df=base_dataset,
                     db_metadata=state.get("db_metadata")
                 )
 
-            result = self.typology_agent.run(
+            result = self.property_technical_agent.run(
                 query=query,
                 mode="filtering",
                 available_typologies=str(
@@ -904,11 +903,11 @@ class GraphOrchestratorAgent(BaseAgent):
                     .get("tipologia_bene_immobile", {})
                     .get("values", [])
                 ),
-                statistics=typ_stats
+                statistics=prop_stats
             )
-            typ_data = safe_extract_json(result.raw_text, schema=TypologyResponse)
-            typologies = typ_data.typologies if typ_data else []
-            logger.info(f"✅ TypologyAgent completed: {typologies}")
+            prop_data = safe_extract_json(result.raw_text, schema=PropertyTechnicalResponse)
+            typologies = prop_data.typologies if prop_data else []
+            logger.info(f"✅ PropertyTechnicalAgent completed: {typologies}")
             return result, (time.time() - start_t) * 1000
 
         def run_location():
@@ -997,14 +996,14 @@ class GraphOrchestratorAgent(BaseAgent):
 
         # 2. Build list of tasks for ACTIVE agents only
         active_tasks = {}
-        if "typology" in active_agents: active_tasks["typology"] = run_typology
+        if "property_technical" in active_agents: active_tasks["property_technical"] = run_property_technical
         if "location" in active_agents: active_tasks["location"] = run_location
         if "ape" in active_agents: active_tasks["ape"] = run_ape
         if "poi" in active_agents: active_tasks["poi"] = run_poi
         if "normative" in active_agents: active_tasks["normative"] = run_normative
 
         # Results dictionary
-        results = {k: None for k in ["typology", "location", "ape", "poi", "normative"]}
+        results = {k: None for k in ["property_technical", "location", "ape", "poi", "normative"]}
 
         # 3. Execute in parallel ONLY active agents
         if active_tasks:
@@ -1021,38 +1020,38 @@ class GraphOrchestratorAgent(BaseAgent):
                             self._log_execution(state, f"{agent_name}-agent", res, duration)
                             
                         # Mark step as done
-                        if agent_name in ["typology", "location", "ape", "normative", "poi"]:
+                        if agent_name in ["property_technical", "location", "ape", "normative", "poi"]:
                              self._update_progress(state, agent_name, "", status="done")
                             
                     except Exception as e:
                         logger.error(f"Error executing {agent_name}-agent: {e}")
 
-        typology_result = results["typology"]
+        property_technical_result = results["property_technical"]
         loc_result = results["location"]
         ape_result = results["ape"]
         poi_result = results["poi"]
         normative_result = results["normative"]
 
-        # Process Typology
+        # Process PropertyTechnical
         typologies = []
-        if typology_result:
-            typ_data = safe_extract_json(typology_result.raw_text, schema=TypologyResponse)
-            typologies = typ_data.typologies if typ_data else []
-            state["gemini_responses"]["typology_extraction"] = {
+        if property_technical_result:
+            prop_data = safe_extract_json(property_technical_result.raw_text, schema=PropertyTechnicalResponse)
+            typologies = prop_data.typologies if prop_data else []
+            state["gemini_responses"]["property_technical_extraction"] = {
                 "prompt": (
-                    typology_result.prompt.model_dump() if typology_result.prompt else None
+                    property_technical_result.prompt.model_dump() if property_technical_result.prompt else None
                 ),
-                "response": typology_result.raw_text,
+                "response": property_technical_result.raw_text,
                 "typologies": typologies,
             }
         else:
-            state["gemini_responses"]["typology_extraction"] = {
+            state["gemini_responses"]["property_technical_extraction"] = {
                 "prompt": None,
                 "response": "Agente disattivato per irrilevanza",
                 "typologies": [],
             }
-        state["typology_result"] = typology_result
-        state["context"].typology_result = typology_result
+        state["property_technical_result"] = property_technical_result
+        state["context"].property_technical_result = property_technical_result
 
         # Process Location
         places = []
@@ -1159,12 +1158,14 @@ class GraphOrchestratorAgent(BaseAgent):
         # Save normative result in state and context
         state["normative_result"] = normative_result
         state["context"].normative_result = normative_result
+        norm_data = safe_extract_json(normative_result.raw_text, schema=NormativeResponse) if normative_result else None
         if normative_result:
             state["gemini_responses"]["normative_analysis"] = {
                 "prompt": normative_result.prompt.model_dump() if normative_result.prompt else None,
                 "response": normative_result.raw_text,
                 "normative_info": normative_result.raw_text,
                 "sources": normative_result.sources,
+                "found": norm_data.found if norm_data else False
             }
         else:
             state["gemini_responses"]["normative_analysis"] = {
@@ -1473,7 +1474,7 @@ class GraphOrchestratorAgent(BaseAgent):
             loc_obj = {"lat": lat, "lon": lon}
 
         # Raw agent outputs
-        typology_result = state.get("typology_result")
+        property_technical_result = state.get("property_technical_result")
         poi_result = state.get("poi_result")
         ape_result = state.get("ape_result")
         normative_result = state.get("normative_result")
@@ -1492,13 +1493,18 @@ class GraphOrchestratorAgent(BaseAgent):
         # Aggregate all requirements into a single list
         all_reqs = []
         
-        # 1. Typologies
-        if typology_result and typology_result.raw_text != "N/D":
+        # 1. Property Technical
+        if property_technical_result and property_technical_result.raw_text != "N/D":
             try:
-                t_data = safe_extract_json(typology_result.raw_text)
+                t_data = safe_extract_json(property_technical_result.raw_text)
                 if t_data and isinstance(t_data, dict) and t_data.get("typologies"):
                     all_reqs.append(", ".join(t_data['typologies']))
             except: pass
+            
+            # PropertyTechnicalAgent now also extracts structured requirements (ID, contracts, surfaces)
+            prop_fmt = self._format_agent_requirements(property_technical_result)
+            if prop_fmt != "N/D" and "Nessun requisito" not in prop_fmt:
+                all_reqs.append(prop_fmt)
 
         # 2. Locations
         if filtered_locations:
@@ -1839,7 +1845,7 @@ class GraphOrchestratorAgent(BaseAgent):
         
         # In mock mode, use defaults or simulated weights
         if USE_MOCK_RESPONSES:
-            weights = RankingWeights(location=0.3, normative=0.1, ape=0.2, typology=0.2, poi=0.2)
+            weights = RankingWeights(location=0.3, normative=0.1, ape=0.2, property_technical=0.2, poi=0.2)
             state["ranking_result"] = RankingAgentResult(raw_text="{}", weights=weights)
         else:
             # Check if ranking was already computed in parallel phase
@@ -1893,43 +1899,88 @@ class GraphOrchestratorAgent(BaseAgent):
             active_agents = [r.agent_name for r in ranking_res.ranking.ranking]
         else:
             # Fallback to all if ranking failed
-            active_agents = ["location", "normative", "ape", "typology", "poi"]
+            active_agents = ["location", "normative", "ape", "property_technical", "poi"]
         
         logger.info(f"Active agents for ranking: {active_agents}")
 
-        # ASSUNZIONE: Se l'agente location non ha identificato luoghi validi (per mancanza dati o raggio),
-        # lo escludiamo dal ranking finale e ripesiamo gli altri agenti residui.
-        if "location" in active_agents and (not state["context"].locations) and weights.location > 0:
-            logger.info("📍 LocationAgent non ha trovato luoghi: ripesatura ranking in corso...")
+        # Identify agents that actually found something during filtering phase
+        # to exclude those that returned nothing from final ranking determination.
+        really_found_agents = []
+        
+        # 1. Location
+        if state["context"].locations:
+            really_found_agents.append("location")
             
-            # Creiamo una copia dei pesi per non sporcare il risultato originale del ranking agent
-            original_weights = weights.model_dump()
-            w_loc = original_weights.pop("location", 0.0)
+        # 2. Property Technical
+        if state.get("property_technical_result"):
+            t_data = safe_extract_json(state["property_technical_result"].raw_text, schema=PropertyTechnicalResponse)
+            if t_data and t_data.typologies:
+                really_found_agents.append("property_technical")
+                
+        # 3. APE
+        if state.get("ape_result"):
+            a_data = safe_extract_json(state["ape_result"].raw_text, schema=ApeResponse)
+            if a_data and a_data.found:
+                really_found_agents.append("ape")
+                
+        # 4. POI
+        if state.get("poi_result"):
+            p_data = safe_extract_json(state["poi_result"].raw_text)
+            if p_data and p_data.get("found"):
+                really_found_agents.append("poi")
+                
+        # 5. Normative
+        if state.get("normative_result"):
+            n_data = safe_extract_json(state["normative_result"].raw_text, schema=NormativeResponse)
+            if n_data and n_data.found:
+                really_found_agents.append("normative")
+
+        logger.info(f"Agents with found requirements in filtering phase: {really_found_agents}")
+
+        # Check for agents that are in active_agents (selected by query) but didn't find anything
+        agents_to_exclude = [a for a in active_agents if a not in really_found_agents and getattr(weights, a, 0.0) > 0]
+        
+        if agents_to_exclude:
+            logger.info(f"⚖️ Excluding agents from ranking due to no results in filtering: {agents_to_exclude}")
             
-            # Somma dei pesi degli agenti residui
-            remaining_weight_sum = sum(original_weights.values())
+            # Copy weights and identify target for redistribution
+            current_weights_dict = weights.model_dump()
+            
+            # Remaining agents from active_agents that found something
+            active_and_found = [a for a in active_agents if a in really_found_agents]
+            
+            # Sum of weights of agents to be kept
+            remaining_weight_sum = sum(current_weights_dict[a] for a in active_and_found)
             
             if remaining_weight_sum > 0:
-                # Riproporzioniamo i pesi residui per farli sommare a 1.0
-                new_weights_dict = {
-                    k: round(v / remaining_weight_sum, 2) 
-                    for k, v in original_weights.items()
-                }
-                new_weights_dict["location"] = 0.0
-                
-                # Aggiustamento per arrotondamento (somma deve essere 1.0)
+                # Redistribute the total weight of excluded agents to remaining found agents
+                new_weights_dict = {}
+                for a in ["location", "property_technical", "ape", "poi", "normative"]:
+                    if a in active_and_found:
+                        # Proportional redistribution
+                        new_weights_dict[a] = round(current_weights_dict[a] / remaining_weight_sum, 2)
+                    else:
+                        new_weights_dict[a] = 0.0
+
+                # Adjustment for rounding to ensure sum is exactly 1.0
                 current_total = sum(new_weights_dict.values())
                 diff = round(1.0 - current_total, 2)
-                if diff != 0:
-                    # Troviamo l'agente (non location) con peso maggiore per applicare la correzione
-                    active_residui = [a for a in active_agents if a != "location" and a in new_weights_dict]
-                    if active_residui:
-                        max_agent = max(active_residui, key=lambda a: new_weights_dict[a])
-                        new_weights_dict[max_agent] = round(new_weights_dict[max_agent] + diff, 2)
+                if diff != 0 and active_and_found:
+                    # Adjust the agent with the highest new weight
+                    max_agent = max(active_and_found, key=lambda a: new_weights_dict[a])
+                    new_weights_dict[max_agent] = round(new_weights_dict[max_agent] + diff, 2)
                 
-                # Aggiorniamo l'oggetto weights per l'esecuzione successiva
                 weights = RankingWeights(**new_weights_dict)
-                logger.info(f"⚖️ Nuovi pesi applicati (loc rimosso): {new_weights_dict}")
+                logger.info(f"⚖️ Adjusted ranking weights: {new_weights_dict}")
+                
+                # Update active_agents to only include those that really found something
+                # This avoids running ranking mode for agents with 0 weight
+                active_agents = active_and_found
+            else:
+                logger.warning("All active agents returned no requirements. Keeping original weights as fallback.")
+                # If everything is excluded, we keep original weights as fallback to avoid 0.0 scores everywhere
+                # This might happen for very vague queries where every agent is a 'maybe'
+                pass
 
         # Compute global statistics for all relevant columns for ranking
         # This allows agents to normalize scores against the entire dataset instead of the current subset.
@@ -1942,17 +1993,17 @@ class GraphOrchestratorAgent(BaseAgent):
         )
 
         # Define ranking tasks for parallel execution
-        def rank_typology():
+        def rank_property_technical():
             start_t = time.time()
-            res = state.get("typology_result")
+            res = state.get("property_technical_result")
             if res:
-                data = safe_extract_json(res.raw_text, schema=TypologyResponse)
+                data = safe_extract_json(res.raw_text, schema=PropertyTechnicalResponse)
                 if data and data.typologies:
-                    tmp = self.typology_agent.run(mode="ranking", df=df.copy(), ranked_typologies=data.typologies)
+                    tmp = self.property_technical_agent.run(mode="ranking", df=df.copy(), ranked_typologies=data.typologies)
                     return tmp, (time.time() - start_t) * 1000
             tmp = df.copy()
-            tmp["typology_score"] = 0.0
-            return tmp[["id", "typology_score"]], (time.time() - start_t) * 1000
+            tmp["property_technical_score"] = 0.0
+            return tmp[["id", "property_technical_score"]], (time.time() - start_t) * 1000
 
         def rank_location():
             start_t = time.time()
@@ -2001,8 +2052,8 @@ class GraphOrchestratorAgent(BaseAgent):
 
         # Build active ranking tasks based on active_agents
         ranking_tasks = {}
-        if "typology" in active_agents:
-            ranking_tasks["typology"] = rank_typology
+        if "property_technical" in active_agents:
+            ranking_tasks["property_technical"] = rank_property_technical
         if "location" in active_agents:
             ranking_tasks["location"] = rank_location
         if "ape" in active_agents:
@@ -2046,7 +2097,7 @@ class GraphOrchestratorAgent(BaseAgent):
                         df[col] = 0.0
 
         # Ensure all agent score columns exist (set to 0.0 for inactive agents)
-        all_possible_agents = ["location", "normative", "ape", "typology", "poi"]
+        all_possible_agents = ["location", "normative", "ape", "property_technical", "poi"]
         for agent in all_possible_agents:
             score_col = "ape_score" if agent == "ape" else f"{agent}_score"
             if score_col not in df.columns:
@@ -2175,7 +2226,7 @@ class GraphOrchestratorAgent(BaseAgent):
             "ape_score",
             "location_score",
             "normative_score",
-            "typology_score",
+            "property_technical_score",
             "poi_score",
             # Calculated Score
             "final_ranking_score"

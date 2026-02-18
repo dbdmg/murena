@@ -85,7 +85,7 @@ Router: `/api/v1/analysis`
       "analysis_mode": "agent",
       "dataset_key": "full",
       "location_extraction": {...},
-      "typology_extraction": {...},
+      "property_technical_extraction": {...},
       "needs_metric_plan": {...},
       "sql_generation": {...},
       "evaluation": {...},

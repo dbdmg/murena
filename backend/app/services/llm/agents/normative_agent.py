@@ -307,7 +307,7 @@ class NormativeAgent(BaseAgent):
                 target_str = str(target_val).lower().strip()
                 
                 if col == "tipologia_bene_immobile":
-                    # Punteggio basato sulla posizione nel ranking (come TypologyAgent)
+                    # Punteggio basato sulla posizione nel ranking (come PropertyTechnicalAgent)
                     if isinstance(target_val, str):
                         target_list = [v.lower().strip().strip("'\"") for v in target_val.split(",")]
                     elif isinstance(target_val, list):
@@ -367,9 +367,9 @@ class NormativeAgent(BaseAgent):
                 df_ranked[f"normative_partial_score_{col}"] = req_score
                 transparency_cols.append(f"normative_partial_score_{col}")
                 
-                # Special handling for typology: also show the original typology rank if available
-                if col == "tipologia_bene_immobile" and "typology_rank_position" in df_ranked.columns:
-                    transparency_cols.append("typology_rank_position")
+                # Special handling for property_technical: also show the original property_technical rank if available
+                if col == "tipologia_bene_immobile" and "property_technical_rank_position" in df_ranked.columns:
+                    transparency_cols.append("property_technical_rank_position")
                 
             total_scores += req_score
 

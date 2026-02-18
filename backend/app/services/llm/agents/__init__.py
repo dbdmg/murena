@@ -5,7 +5,7 @@ from app.services.llm.agents.location_agent import LocationAgent
 from app.services.llm.agents.normative_agent import NormativeAgent
 from app.services.llm.agents.poi_agent import PoiAgent
 from app.services.llm.agents.sql_agent import SQLAgent
-from app.services.llm.agents.typology_agent import TypologyAgent
+from app.services.llm.agents.property_technical_agent import PropertyTechnicalAgent
 
 __all__ = [
     "GraphOrchestratorAgent",
@@ -13,5 +13,5 @@ __all__ = [
     "NormativeAgent",
     "PoiAgent",
     "SQLAgent",
-    "TypologyAgent",
+    "PropertyTechnicalAgent",
 ]

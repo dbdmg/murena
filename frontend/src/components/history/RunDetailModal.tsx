@@ -54,7 +54,7 @@ interface RunDetailModalProps {
 const AGENT_STEP_CONFIG: Record<string, { icon: React.ElementType; label: string; color: string; bgColor: string }> = {
     intent_analysis: { icon: Target, label: 'Analisi Intent', color: 'text-purple-400', bgColor: 'bg-purple-500/10' },
     location_extraction: { icon: MapPin, label: 'Estrazione Location', color: 'text-blue-400', bgColor: 'bg-blue-500/10' },
-    typology_extraction: { icon: Building2, label: 'Estrazione Tipologia', color: 'text-cyan-400', bgColor: 'bg-cyan-500/10' },
+    property_technical_extraction: { icon: Building2, label: 'Caratteristiche Tecniche', color: 'text-cyan-400', bgColor: 'bg-cyan-500/10' },
 
     sql_generation: { icon: Database, label: 'Generazione SQL', color: 'text-emerald-400', bgColor: 'bg-emerald-500/10' },
     evaluation: { icon: Sparkles, label: 'Valutazione AI', color: 'text-yellow-400', bgColor: 'bg-yellow-500/10' },

@@ -76,9 +76,26 @@ APE_AGENT_COLUMNS: List[str] = [
     "ape_score_total",
 ]
 
-# Colonne specifiche per Typology Agent
-TYPOLOGY_AGENT_COLUMNS: List[str] = [
+# Colonne specifiche per Property Technical Agent
+PROPERTY_TECHNICAL_AGENT_COLUMNS: List[str] = [
     "tipologia_bene_immobile",
+    "natura_del_bene",
+    "epoca_costruzione",
+    "id",
+    "codice_comune",
+    "foglio",
+    "particella",
+    "subalterno",
+    "tipo_detenzione_a_terzi",
+    "canone_annuale",
+    "data_decorrenza",
+    "meta_immobile",
+    "numero_immobili_per_catasto",
+    "superficie_di_riferimento_mq",
+    "vincolo_culturale_paesaggistico",
+    "natura_giuridica_del_bene",
+    "utilizzo_del_bene",
+    "finalita",
 ]
 
 # Colonne specifiche per Normative Agent
@@ -112,7 +129,7 @@ POI_AGENT_COLUMNS: List[str] = [
 # Unione di tutte le colonne visibili agli agenti (per cross-functional intelligence)
 ALL_AGENT_COLUMNS: List[str] = sorted(list(set(
     APE_AGENT_COLUMNS + 
-    TYPOLOGY_AGENT_COLUMNS + 
+    PROPERTY_TECHNICAL_AGENT_COLUMNS + 
     NORMATIVE_AGENT_COLUMNS + 
     POI_AGENT_COLUMNS + 
     SQL_FILTERABLE_COLUMNS + 

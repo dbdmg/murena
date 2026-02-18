@@ -54,8 +54,10 @@ class ApeResponse(BaseModel):
 
 
 
-class TypologyResponse(BaseModel):
+class PropertyTechnicalResponse(BaseModel):
     typologies: List[str] = Field(default_factory=list, description="Tipologie selezionate")
+    found: bool = Field(default=False, description="True se sono stati trovati requisiti pertinenti")
+    requisiti: List[Dict[str, Any]] = Field(default_factory=list, description="Requisiti strutturati estratti")
 
 
 class LocationResponse(BaseModel):
@@ -96,18 +98,18 @@ class AgentResult(BaseModel):
 class LocationAgentResult(AgentResult): 
     has_locations: bool = False
 
-class TypologyAgentResult(AgentResult): pass
+class PropertyTechnicalAgentResult(AgentResult): pass
 class SQLAgentResult(AgentResult): pass
 class EvaluationAgentResponse(AgentResult): pass
 class RankingWeights(BaseModel):
     location: float = Field(default=0.2)
     normative: float = Field(default=0.2)
     ape: float = Field(default=0.2)
-    typology: float = Field(default=0.2)
+    property_technical: float = Field(default=0.2)
     poi: float = Field(default=0.2)
 
 class RankedAgent(BaseModel):
-    agent_name: str = Field(..., description="Nome dell'agente (location, normative, ape, typology, poi)")
+    agent_name: str = Field(..., description="Nome dell'agente (location, normative, ape, property_technical, poi)")
     rank: int = Field(..., description="Posizione nel ranking (1 = massima priorità). È ammesso ex-aequo.")
 
 class RankingRanking(BaseModel):
@@ -157,8 +159,8 @@ class AgentContext(BaseModel):
     locations: List[Place] = Field(
         default_factory=list, description="Luoghi identificati"
     )
-    typology_result: Optional[TypologyAgentResult] = Field(
-        None, description="Risultato del TypologyAgent"
+    property_technical_result: Optional[PropertyTechnicalAgentResult] = Field(
+        None, description="Risultato del PropertyTechnicalAgent"
     )
     # metrics_plan removed
     normative_result: Optional[NormativeAgentResult] = Field(

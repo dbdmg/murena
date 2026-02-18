@@ -46,7 +46,7 @@ import type { AgentStep } from '../../api/types';
 const STEP_TO_AGENT_MAP: Record<string, string> = {
     'evaluation': 'evaluation_agent',
     'location_extraction': 'location_agent',
-    'typology_extraction': 'typology_agent',
+    'property_technical_extraction': 'property_technical_agent',
 
     'use_case_generation': 'use_case_agent',
     'sql_generation': 'sql_agent',

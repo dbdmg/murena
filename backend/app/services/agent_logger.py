@@ -79,7 +79,7 @@ class AgentLogger:
             
             # Mappa prefissi colonne per ogni agente
             prefix_map = {
-                "typology": "typology_",
+                "property_technical": "property_technical_",
                 "location": "location_",
                 "ape": "ape_",
                 "normative": "normative_",
@@ -102,7 +102,7 @@ class AgentLogger:
                 try:
                     from app.core.constants import ALL_AGENT_COLUMNS
                     source_cols_map = {
-                        "typology": ALL_AGENT_COLUMNS,
+                        "property_technical": ALL_AGENT_COLUMNS,
                         "location": ["distanza_km", "poi_riferimento"] + ALL_AGENT_COLUMNS,
                         "ape": ALL_AGENT_COLUMNS,
                         "normative": ALL_AGENT_COLUMNS,
@@ -125,13 +125,13 @@ class AgentLogger:
                     if agent_name == "ranking-agent":
                         # Final global ranking score
                         scores = []
-                        for agent in ["location", "normative", "ape", "typology", "poi"]:
+                        for agent in ["location", "normative", "ape", "property_technical", "poi"]:
                             sc = row.get(f"{agent}_score", 0.0)
                             w = row.get(f"ranking_weight_{agent}", 0.0)
                             scores.append(f"{agent}_score({sc}) * Weight({w})")
                         
                         formula_list = ["RankingSum("] + [f"  {s}," for s in scores[:-1]] + [f"  {scores[-1]}", ")"]
-                    elif "typology" in agent_type:
+                    elif "property_technical" in agent_type:
                         rank_pos = row.get(f"{prefix}rank_position", "N/A")
                         formula_list = [f"100 / Position({rank_pos})" if rank_pos != "N/A" else "0 (Non corrispondente)"]
                     elif "location" in agent_type:
