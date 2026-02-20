@@ -26,11 +26,11 @@ class PromptRecord(BaseModel):
 
 
 class Place(BaseModel):
-    name: str = Field(..., description="Nome del luogo o POI")
-    city: Optional[str] = Field(None, description="Città se disponibile")
-    lat: Optional[float] = Field(None, description="Latitudine")
-    lon: Optional[float] = Field(None, description="Longitudine")
-    radius_km: float = Field(default=3.0, description="Distanza raggio in km")
+    name: str = Field(..., description="Nome del luogo, POI o punto di riferimento (es: 'Palazzo Nuovo', 'Piazza Castello', 'Via Roma')")
+    city: Optional[str] = Field(None, description="Città del luogo (es: 'Torino')")
+    lat: Optional[float] = Field(None, description="Latitudine (se nota)")
+    lon: Optional[float] = Field(None, description="Longitudine (se nota)")
+    radius_km: float = Field(default=3.0, description="Raggio di ricerca in km (default 3.0)")
 
 
 
