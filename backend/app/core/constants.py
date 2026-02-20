@@ -35,16 +35,22 @@ SQL_FILTERABLE_COLUMNS: List[str] = [
     "tipologia_bene_immobile",
     "natura_del_bene",
     "epoca_costruzione",
-    "vincolo_culturale_paesaggistico",
-    "natura_giuridica_del_bene",
-    "utilizzo_del_bene",
-    "finalita",
     "zona_omi",
     "classe_energetica_ape",  # Added to allow filtering by energy class
     "epglnren_ape",           # Added to allow filtering by energy performance value
     "latitudine",
     "longitudine",
     "comune",  # Aggiunto se presente, o codice_comune
+    "codice_comune",
+]
+
+# Colonne specifiche per Location Agent
+LOCATION_AGENT_COLUMNS: List[str] = [
+    "indirizzo",
+    "numero_civico",
+    "latitudine",
+    "longitudine",
+    "zona_omi",
 ]
 
 # Colonne da usare SOLO per ranking (soggettive/punteggi)
@@ -86,16 +92,8 @@ PROPERTY_TECHNICAL_AGENT_COLUMNS: List[str] = [
     "foglio",
     "particella",
     "subalterno",
-    "tipo_detenzione_a_terzi",
-    "canone_annuale",
-    "data_decorrenza",
-    "meta_immobile",
     "numero_immobili_per_catasto",
     "superficie_di_riferimento_mq",
-    "vincolo_culturale_paesaggistico",
-    "natura_giuridica_del_bene",
-    "utilizzo_del_bene",
-    "finalita",
 ]
 
 # Colonne specifiche per Normative Agent
@@ -103,8 +101,6 @@ NORMATIVE_AGENT_COLUMNS: List[str] = [
     "superficie_di_riferimento_mq",
     "tipologia_bene_immobile",
     "natura_del_bene",
-    "utilizzo_del_bene",
-    "finalita",
 ]
 
 # Categorie POI

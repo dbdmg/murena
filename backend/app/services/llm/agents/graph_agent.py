@@ -435,7 +435,7 @@ class GraphOrchestratorAgent(BaseAgent):
                 involved_cols.extend([c for c in transparency_cols if c not in involved_cols])
                 
                 # Aggiungiamo colonne di input rilevanti definite nelle costanti
-                from app.core.constants import APE_AGENT_COLUMNS, TYPOLOGY_AGENT_COLUMNS, NORMATIVE_AGENT_COLUMNS, POI_AGENT_COLUMNS
+                from app.core.constants import APE_AGENT_COLUMNS, PROPERTY_TECHNICAL_AGENT_COLUMNS, NORMATIVE_AGENT_COLUMNS, POI_AGENT_COLUMNS
                 source_cols_map = {
                     "property_technical": PROPERTY_TECHNICAL_AGENT_COLUMNS,
                     "location": ["distanza_km", "poi_riferimento"],
@@ -696,7 +696,7 @@ class GraphOrchestratorAgent(BaseAgent):
                         stats[col] = {str(val): 0 for val in db_metadata[col]["values"]}
                     continue
 
-                if pd.api.types.is_numeric_dtype(df[col]):
+                if pd.api.types.is_numeric_dtype(df[col]) and not pd.api.types.is_bool_dtype(df[col]):
                     valid_data = df[col].dropna()
                     if not valid_data.empty:
                         stats[col] = {
@@ -755,7 +755,6 @@ class GraphOrchestratorAgent(BaseAgent):
             "tipologia_bene_immobile",
             "epoca_costruzione",
             "natura_del_bene",
-            "utilizzo_del_bene",
             "finalita",
         ]
 
@@ -889,7 +888,7 @@ class GraphOrchestratorAgent(BaseAgent):
             prop_stats = {}
             if base_dataset is not None or dataset_path is not None:
                 prop_stats = self._get_column_statistics(
-                    columns=ALL_AGENT_COLUMNS,
+                    columns=PROPERTY_TECHNICAL_AGENT_COLUMNS,
                     dataset_path=dataset_path,
                     dataset_df=base_dataset,
                     db_metadata=state.get("db_metadata")
@@ -929,7 +928,7 @@ class GraphOrchestratorAgent(BaseAgent):
                 self._update_progress(state, "ape", "")
                 logger.info("⚡ Executing ApeAgent")
                 ape_stats = self._get_column_statistics(
-                    columns=ALL_AGENT_COLUMNS, 
+                    columns=APE_AGENT_COLUMNS, 
                     dataset_path=dataset_path, 
                     dataset_df=base_dataset,
                     target_not_na_col="classe_energetica_ape",
@@ -956,7 +955,7 @@ class GraphOrchestratorAgent(BaseAgent):
             poi_stats = {}
             if base_dataset is not None or dataset_path is not None:
                 poi_stats = self._get_column_statistics(
-                    columns=ALL_AGENT_COLUMNS,
+                    columns=POI_AGENT_COLUMNS,
                     dataset_path=dataset_path,
                     dataset_df=base_dataset,
                     db_metadata=state.get("db_metadata")
@@ -977,10 +976,9 @@ class GraphOrchestratorAgent(BaseAgent):
             
             base_dataset = state.get("base_dataset")
             dataset_path = state.get("dataset_path")
-            norm_stats = {}
             if base_dataset is not None or dataset_path is not None:
                 norm_stats = self._get_column_statistics(
-                    columns=ALL_AGENT_COLUMNS,
+                    columns=NORMATIVE_AGENT_COLUMNS,
                     dataset_path=dataset_path,
                     dataset_df=base_dataset,
                     db_metadata=state.get("db_metadata")
@@ -988,7 +986,7 @@ class GraphOrchestratorAgent(BaseAgent):
 
             result = self.normative_agent.run(
                 query=query,
-                available_columns=ALL_AGENT_COLUMNS,
+                available_columns=NORMATIVE_AGENT_COLUMNS,
                 statistics=norm_stats
             )
             logger.info("✅ NormativeAgent completed")
@@ -1187,6 +1185,29 @@ class GraphOrchestratorAgent(BaseAgent):
 
         return state
 
+    def _fix_sql_quotes(self, sql: str) -> str:
+        """
+        Riparazione euristica di errori comuni di quotatura degli LLM.
+        Gestisce casi come 'valore'' (doppio apice finale errato) o apici mancanti.
+        """
+        if not sql:
+            return sql
+        
+        sql = sql.strip()
+        
+        # Caso 1: Doppio apice finale con conteggio totale dispari (hallucination di escaping)
+        if sql.endswith("''") and sql.count("'") % 2 != 0:
+             sql = sql[:-1]
+             
+        # Caso 2: Conteggio dispari di apici (apice mancante alla fine)
+        # Se l'ultimo apice è seguito da testo o chiusura parentesi senza un apice di chiusura
+        if sql.count("'") % 2 != 0:
+            # Proviamo a chiudere la stringa se sembra sensato
+            if sql[-1] not in ["'", ";", " "]:
+                sql += "'"
+                
+        return sql
+
     def _apply_ast_relaxation_workflow(self, state: GraphState, initial_sql: str) -> str:
         """
         Implements the new structured relaxation algorithm:
@@ -1268,7 +1289,9 @@ class GraphOrchestratorAgent(BaseAgent):
                     # Try applying it
                     temp_conditions = [c.copy() for c in current_active_conditions]
                     try:
-                        temp_conditions[i] = parse_one(match.condizione_relaxed, read="duckdb")
+                        # Fix common LLM quoting errors before parsing
+                        relaxed_cond = self._fix_sql_quotes(match.condizione_relaxed)
+                        temp_conditions[i] = parse_one(relaxed_cond, read="duckdb")
                     except Exception as e:
                         logger.error(f"Failed to parse relaxed condition '{match.condizione_relaxed}': {e}")
                         continue
@@ -1353,6 +1376,8 @@ class GraphOrchestratorAgent(BaseAgent):
 
     def _prepare_relaxation_data(self, state: GraphState, sql_query: str):
         try:
+            # Fix potential quoting issues in the initial SQL
+            sql_query = self._fix_sql_quotes(sql_query)
             expression = parse_one(sql_query, read="duckdb")
             where = expression.find(exp.Where)
             if not where:
@@ -1573,7 +1598,6 @@ class GraphOrchestratorAgent(BaseAgent):
         start_t = time.time()
         sql_result = self.sql_agent.run(
             query=query, # use original query
-            scheme=json.dumps(db_schema.get("types", {}), ensure_ascii=False),
             all_requirements=all_requirements_str,
             location=loc_obj,
             failed_query=effective_failed_query,
@@ -2204,7 +2228,6 @@ class GraphOrchestratorAgent(BaseAgent):
             "superficie_di_riferimento_mq",
             "tipologia_bene_immobile",
             "epoca_costruzione",
-            "utilizzo_del_bene",
             "finalita",
             # APE data
             "classe_energetica_ape",

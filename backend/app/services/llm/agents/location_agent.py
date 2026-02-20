@@ -12,6 +12,7 @@ from app.core.config import settings
 AGENT_MODELS = settings.agent_models
 from app.services.llm.agents.base import BaseAgent
 from app.services.llm.agents.schema import LocationAgentResult, Place, PromptRecord, LocationResponse
+from app.core.constants import LOCATION_AGENT_COLUMNS
 from app.services.llm.langchain_client import get_llm, invoke_with_langfuse
 from app.services.llm.prompt_loader import get_system_prompt, get_user_template
 from app.utils.decorators import handle_agent_error, log_llm_usage
@@ -82,15 +83,25 @@ class LocationAgent(BaseAgent):
         from app.data.loaders import get_coordinates
         from concurrent.futures import ThreadPoolExecutor
 
+        # Format specific columns list
+        columns_str = "\n".join([f"- `{col}`" for col in LOCATION_AGENT_COLUMNS])
+
         prompt_inputs = {
-            "system_content": self.system_prompt,
-            "user_content": self.user_template.format(query=query).strip()
+            "query": query,
+            "reference_columns": columns_str
         }
+
+        # Format prompts with variables
+        rendered_system_prompt = self.render_template(self.system_prompt, **prompt_inputs).strip()
+        user_text = self.render_template(self.user_template, **prompt_inputs).strip()
 
         # Invocation with structured output
         loc_data: LocationResponse = invoke_with_langfuse(
             self.chain,
-            prompt_inputs,
+            {
+                "system_content": rendered_system_prompt,
+                "user_content": user_text
+            },
         )
         
         places = loc_data.places if loc_data else []
@@ -130,9 +141,9 @@ class LocationAgent(BaseAgent):
             raw = loc_data.model_dump_json()
 
         prompt_record = PromptRecord(
-            system=self.system_prompt.strip(),
-            user=prompt_inputs["user_content"],
-            full_text=f"[SYSTEM]\n{self.system_prompt}\n\n[USER]\n{prompt_inputs['user_content']}",
+            system=rendered_system_prompt,
+            user=user_text,
+            full_text=f"[SYSTEM]\n{rendered_system_prompt}\n\n[USER]\n{user_text}",
         )
 
         return LocationAgentResult(

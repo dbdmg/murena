@@ -71,9 +71,10 @@ class Settings(BaseSettings):
 
     # LLM Models
     OPENAI_MODEL_FAST: str = (
-        "gpt-5-mini-2025-08-07"  # Modello veloce ed economico OpenAI
+        #"gpt-5-mini-2025-08-07"  # Modello veloce ed economico OpenAI
+        "gpt-5-nano-2025-08-07"
     )
-    OPENAI_MODEL_SMART: str = "gpt-5.2-2025-12-11"  # Modello più potente OpenAI
+    OPENAI_MODEL_SMART: str = "gpt-5-mini-2025-08-07"  # Modello più potente OpenAI
     USE_MOCK_RESPONSES: bool = False
     USE_MOCK_NORMATIVE_AGENT: bool = False
 

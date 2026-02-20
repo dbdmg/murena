@@ -12,6 +12,7 @@ from app.core.config import settings
 AGENT_MODELS = settings.agent_models
 from app.services.llm.agents.base import BaseAgent
 from app.services.llm.agents.schema import ApeAgentResult, PromptRecord, ApeResponse
+from app.core.constants import APE_AGENT_COLUMNS, APE_SCORE_LEGEND
 from app.services.llm.langchain_client import get_llm, invoke_with_langfuse
 from app.services.llm.prompt_loader import get_system_prompt, get_user_template
 from app.utils.decorators import log_llm_usage
@@ -38,7 +39,7 @@ class ApeAgent(BaseAgent):
         self.prompt_template = ChatPromptTemplate.from_messages(
             [
                 ("system", "{system_content}"),
-                ("user", self.user_template),
+                ("user", "{user_content}"),
             ]
         )
         self.structured_llm = self.llm.with_structured_output(ApeAgentOutput, method="json_mode")
@@ -83,28 +84,35 @@ class ApeAgent(BaseAgent):
 
         stats_str = json.dumps(statistics, indent=2, ensure_ascii=False) if statistics else "N/D"
         
-        system_content = self.render_template(
-            self.system_prompt,
-            score_legend=score_legend or "Nessuna legenda disponibile.",
-        )
+        # Format specific columns list
+        columns_str = "\n".join([f"- `{col}`" for col in APE_AGENT_COLUMNS])
 
         prompt_inputs = {
-            "system_content": system_content, 
             "query": query,
-            "statistics": stats_str
+            "statistics": stats_str,
+            "score_legend": score_legend or APE_SCORE_LEGEND,
+            "reference_columns": columns_str
         }
-        user_text = self.render_template(self.user_template, query=query, statistics=stats_str).strip()
-        full_text = f"[SYSTEM]\n{system_content}\n\n[USER]\n{user_text}"
+
+        # Format prompts with variables
+        rendered_system_prompt = self.render_template(self.system_prompt, **prompt_inputs).strip()
+        user_text = self.render_template(self.user_template, **prompt_inputs).strip()
+        full_text = f"[SYSTEM]\n{rendered_system_prompt}\n\n[USER]\n{user_text}"
 
         try:
-            structured_response: ApeAgentOutput = invoke_with_langfuse(self.chain, prompt_inputs)
+            # We explicitly pass the system/user split as expected by Langchain call or prompt_template
+            model_inputs = {
+                "system_content": rendered_system_prompt,
+                "user_content": user_text
+            }
+            structured_response: ApeAgentOutput = invoke_with_langfuse(self.chain, model_inputs)
             has_filters = structured_response.found
 
             return ApeAgentResult(
                 raw_text=json.dumps(structured_response.model_dump(), ensure_ascii=False),
                 has_filters=has_filters,
                 prompt=PromptRecord(
-                    system=system_content,
+                    system=rendered_system_prompt,
                     user=user_text,
                     full_text=full_text,
                 ),

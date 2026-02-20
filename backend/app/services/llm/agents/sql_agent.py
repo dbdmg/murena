@@ -117,7 +117,7 @@ class SQLAgent(BaseAgent):
         self,
         *,
         query: str,
-        scheme: str,
+        scheme: str = "",
         all_requirements: str = "N/D",
         location: Optional[Any] = None,
         failed_query: Optional[str] = None,

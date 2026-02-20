@@ -122,7 +122,6 @@ class RealEstateService:
             "energy_class": ["energy_class", "classe_energetica_ape", "classe_energetica"],
             "year": ["construction_year", "epoca_costruzione"],
             "type": ["property_type", "tipologia_bene_immobile", "tipologia_edilizia_str"],
-            "usage": ["description", "utilizzo_del_bene"],
             "is_meta": ["meta_immobile", "meta_building"]
         }
 
@@ -675,7 +674,7 @@ class RealEstateService:
             floor=None,  # Not present in provided columns
             price=safe_get("price", alternatives=["canone_annuale"]),
             description=safe_get(
-                "description", alternatives=["utilizzo_del_bene", "natura_del_bene"]
+                "description", alternatives=["natura_del_bene"]
             ),
             # Extended property info
             property_type=safe_get(
@@ -684,9 +683,7 @@ class RealEstateService:
             legal_nature=safe_get(
                 "legal_nature", alternatives=["natura_giuridica_del_bene"]
             ),
-            cultural_constraint=safe_get(
-                "cultural_constraint", alternatives=["vincolo_culturale_paesaggistico"]
-            ),
+            cultural_constraint=None,
             purpose=safe_get("purpose", alternatives=["finalita"]),
             omi_zone=safe_get("omi_zone", alternatives=["zona_omi"]),
             cadastral_sheet=str(safe_get("cadastral_sheet", alternatives=["foglio"])),

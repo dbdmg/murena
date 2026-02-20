@@ -12,6 +12,7 @@ from app.core.config import settings
 AGENT_MODELS = settings.agent_models
 from app.services.llm.agents.base import BaseAgent
 from app.services.llm.agents.schema import PromptRecord, PropertyTechnicalAgentResult, PropertyTechnicalResponse
+from app.core.constants import PROPERTY_TECHNICAL_AGENT_COLUMNS
 from app.services.llm.langchain_client import get_llm, invoke_with_langfuse
 from app.services.llm.prompt_loader import get_system_prompt, get_user_template
 from app.utils.decorators import handle_agent_error, log_llm_usage
@@ -73,20 +74,25 @@ class PropertyTechnicalAgent(BaseAgent):
             
         stats_str = json.dumps(statistics, indent=2, ensure_ascii=False) if statistics else "N/D"
 
+        # Format specific columns list
+        columns_str = "\n".join([f"- `{col}`" for col in PROPERTY_TECHNICAL_AGENT_COLUMNS])
+
         prompt_inputs = {
             "query": query, 
             "available_typologies": descriptions_str,
-            "statistics": stats_str
+            "statistics": stats_str,
+            "reference_columns": columns_str
         }
 
-        # Format user prompt with variables
+        # Format prompts with variables
+        rendered_system_prompt = self.render_template(self.system_prompt, **prompt_inputs).strip()
         user_text = self.render_template(self.user_template, **prompt_inputs).strip()
-        full_text = f"[SYSTEM]\n{self.system_prompt}\n\n[USER]\n{user_text}"
+        full_text = f"[SYSTEM]\n{rendered_system_prompt}\n\n[USER]\n{user_text}"
 
         response_text = invoke_with_langfuse(
             self.chain,
             {
-                "system_content": self.system_prompt,
+                "system_content": rendered_system_prompt,
                 "user_content": user_text,
             },
         )
@@ -94,7 +100,7 @@ class PropertyTechnicalAgent(BaseAgent):
         return PropertyTechnicalAgentResult(
             raw_text=response_text,
             prompt=PromptRecord(
-                system=self.system_prompt.strip(),
+                system=rendered_system_prompt,
                 user=user_text,
                 full_text=full_text,
             ),

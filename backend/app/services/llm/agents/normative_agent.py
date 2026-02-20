@@ -13,6 +13,7 @@ from langchain_core.messages import HumanMessage
 from app.core.config import AGENT_MODELS, USE_MOCK_NORMATIVE_AGENT
 from app.services.llm.agents.base import BaseAgent
 from app.services.llm.agents.schema import NormativeAgentResult, PromptRecord, NormativeResponse
+from app.core.constants import NORMATIVE_AGENT_COLUMNS
 from app.services.llm.langchain_client import get_llm, invoke_with_langfuse
 from app.services.llm.prompt_loader import get_system_prompt, get_user_template
 from app.utils.decorators import handle_agent_error, log_llm_usage
@@ -148,7 +149,9 @@ class NormativeAgent(BaseAgent):
         normative_docs, sources, images = _load_normative_documents()
         
         # Inseriamo le colonne disponibili nel prompt
-        columns_str = ", ".join(available_columns) if available_columns else "N/D"
+        # Priority to specifically passed available_columns, fallback to constants
+        cols_list = available_columns or NORMATIVE_AGENT_COLUMNS
+        columns_str = "\n".join([f"- `{col}`" for col in cols_list]) if cols_list else "N/D"
         
         # Gestione statistiche (Data Distribution)
         stats_str = "Nessuna statistica disponibile."
@@ -156,18 +159,15 @@ class NormativeAgent(BaseAgent):
             stats_str = json.dumps(statistics, indent=2, ensure_ascii=False)
 
         # Prepare inputs for templates
-        user_inputs = {
+        prompt_inputs = {
             "query": query, 
             "normative_documents": normative_docs,
-            "statistics": stats_str
+            "statistics": stats_str,
+            "reference_columns": columns_str
         }
         
-        system_inputs = {
-            "available_columns": columns_str
-        }
-        
-        user_text = self.render_template(self.user_template, **user_inputs).strip()
-        system_text = self.render_template(self.system_prompt, **system_inputs).strip()
+        user_text = self.render_template(self.user_template, **prompt_inputs).strip()
+        system_text = self.render_template(self.system_prompt, **prompt_inputs).strip()
         full_text = f"[SYSTEM]\n{system_text}\n\n[USER]\n{user_text}"
 
         

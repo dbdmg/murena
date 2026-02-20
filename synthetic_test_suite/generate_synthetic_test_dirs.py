@@ -561,6 +561,139 @@ def generate_files(root_path: Path, agent_name: str, prompt: str, tries_rankings
 
 async def main():
     suite_dir = Path(__file__).parent
+    
+    # Check for composed_queries.csv logic first as requested
+    queries_csv = suite_dir / "composed_queries.csv"
+    if queries_csv.exists():
+        print(f"[LOAD] Processing queries from: {queries_csv.name}")
+        output_dir = suite_dir / "composed_results"
+        output_dir.mkdir(exist_ok=True)
+        
+        # Load CSV with pandas
+        df_queries = pd.read_csv(queries_csv)
+        
+        # We only process queries with status 0
+        pending_mask = df_queries["status"] == 0
+        pending_queries = df_queries[pending_mask].index.tolist()
+        
+        if not pending_queries:
+            print("[INFO] No pending queries to process (all status != 0).")
+            return
+
+        await preload_data()
+        # limit concurrency to avoid overloading
+        semaphore = asyncio.Semaphore(5)
+        csv_lock = asyncio.Lock()
+        
+        async def process_query(idx):
+            query = df_queries.at[idx, "query"]
+            async with semaphore:
+                agent = "graph_orchestrator"
+                try:
+                    tries, b_info, extra_info = await run_single_test(agent, query)
+                    
+                    agent_results = []
+                    for t in extra_info.get("agent_trace", []):
+                        name = t.get("agent_name", "")
+                        mode = t.get("agent_mode", "filtering")
+                        
+                        if mode == "ranking" or name == "evaluation-agent":
+                            continue
+                            
+                        agent_results.append({
+                            "agent_name": name,
+                            "execution_time_ms": round(t.get("execution_time_ms", 0), 2),
+                            "output": t.get("output")
+                        })
+                    
+                    result_json = {
+                        "query": query,
+                        "final_sql": extra_info.get("final_sql", ""),
+                        "agent_results": agent_results
+                    }
+                    
+                    # Save each query to its own JSON file
+                    output_file = output_dir / f"query_{idx+1:03d}.json"
+                    with open(output_file, "w", encoding="utf-8") as f:
+                        json.dump(result_json, f, indent=4, ensure_ascii=False)
+                    
+                    # Update status to 1 (Success)
+                    async with csv_lock:
+                        df_queries.at[idx, "status"] = 1
+                        df_queries.to_csv(queries_csv, index=False)
+                        
+                except Exception as e:
+                    print(f"[ERROR] Query {idx+1} failed: {e}")
+                    # Update status to 2 (Error)
+                    async with csv_lock:
+                        df_queries.at[idx, "status"] = 2
+                        df_queries.to_csv(queries_csv, index=False)
+
+        tasks = [process_query(idx) for idx in pending_queries]
+        if tasks:
+            print(f"[INFO] Starting {len(tasks)} pending queries...")
+            await asyncio.gather(*tasks)
+            print(f"[SUCCESS] Updated statuses in {queries_csv.name}")
+        return
+
+    # DEPRECATED: Fallback to composed_queries.txt if CSV doesn't exist
+    queries_file = suite_dir / "composed_queries.txt"
+    if queries_file.exists():
+        print(f"[LOAD] Processing queries from: {queries_file.name}")
+        output_dir = suite_dir / "composed_results"
+        output_dir.mkdir(exist_ok=True)
+        
+        with open(queries_file, "r", encoding="utf-8") as f:
+            queries = [line.strip() for line in f if line.strip()]
+        
+        await preload_data()
+        # limit concurrency to avoid overloading
+        semaphore = asyncio.Semaphore(5)
+        
+        async def process_query(idx, query):
+            async with semaphore:
+                # Use graph_orchestrator for general composed queries
+                agent = "graph_orchestrator"
+                try:
+                    # Run without multiple tries and without generating folders unless needed
+                    tries, b_info, extra_info = await run_single_test(agent, query)
+                    
+                    agent_results = []
+                    for t in extra_info.get("agent_trace", []):
+                        name = t.get("agent_name", "")
+                        mode = t.get("agent_mode", "filtering")
+                        
+                        if mode == "ranking" or name == "evaluation-agent":
+                            continue
+                            
+                        agent_results.append({
+                            "agent_name": name,
+                            "execution_time_ms": round(t.get("execution_time_ms", 0), 2),
+                            "output": t.get("output")
+                        })
+                    
+                    result_json = {
+                        "query": query,
+                        "final_sql": extra_info.get("final_sql", ""),
+                        "agent_results": agent_results
+                    }
+                    
+                    # Save each query to its own JSON file
+                    output_file = output_dir / f"query_{idx+1:03d}.json"
+                    with open(output_file, "w", encoding="utf-8") as f:
+                        json.dump(result_json, f, indent=4, ensure_ascii=False)
+                        
+                except Exception as e:
+                    print(f"[ERROR] Query {idx+1} failed: {e}")
+
+        tasks = [process_query(i, q) for i, q in enumerate(queries)]
+        if tasks:
+            print(f"[INFO] Starting {len(tasks)} queries...")
+            await asyncio.gather(*tasks)
+            print(f"[SUCCESS] Saved {len(queries)} JSON results to {output_dir}")
+        return
+
+    # Fallback to existing logic for custom_test_case.json
     input_file = suite_dir / "custom_test_case.json"
     
     if not input_file.exists():
@@ -575,7 +708,6 @@ async def main():
             agent = entry.get("agent") or entry.get("agent_name")
             if not agent:
                 exp = entry.get("expected_agents", [])
-                # Multi-agent tests should default to graph_orchestrator
                 if len(exp) > 1:
                     agent = "graph_orchestrator"
                 elif len(exp) == 1:
@@ -586,25 +718,20 @@ async def main():
             query = entry.get("query", "")
             tries, b_info, extra_info = await run_single_test(agent, query)
             
-            # Update the entry with agent trace results (only filtering/requirements)
             agent_results = []
             for t in extra_info.get("agent_trace", []):
                 name = t.get("agent_name", "")
                 mode = t.get("agent_mode", "filtering")
-                
-                # Exclude ranking mode (individual building scoring) and evaluation
-                # but allow ranking-agent (orchestrator priorities)
                 if mode == "ranking" or name == "evaluation-agent":
                     continue
                     
                 agent_results.append({
                     "agent_name": name,
+                    "execution_time_ms": round(t.get("execution_time_ms", 0), 2),
                     "output": t.get("output")
                 })
             
             entry["agent_results"] = agent_results
-            
-            # Remove the redundant top-level keys if they exist in the persistent data
             for k in ["agent", "agent_name_redundant", "final_sql"]:
                 if k in entry:
                     del entry[k]
@@ -619,14 +746,11 @@ async def main():
             for entry in data:
                 if not isinstance(entry, dict) or not entry.get("active", True):
                     continue
-                
                 tasks.append(run_task_wrapper(entry))
         
         if tasks:
             print(f"[INFO] Starting {len(tasks)} tests from {input_file.name}...")
             await asyncio.gather(*tasks)
-            
-            # Write updated data back to file
             with open(input_file, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=4, ensure_ascii=False)
             print(f"[SUCCESS] Updated {input_file.name} with agent results.")

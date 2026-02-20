@@ -12,6 +12,7 @@ from app.core.config import settings
 AGENT_MODELS = settings.agent_models
 from app.services.llm.agents.base import BaseAgent
 from app.services.llm.agents.schema import PoiAgentResult, PromptRecord, CategoryResponse
+from app.core.constants import POI_AGENT_COLUMNS
 from app.services.llm.langchain_client import get_llm, invoke_with_langfuse
 from app.services.llm.prompt_loader import get_system_prompt, get_user_template
 from app.utils.decorators import log_llm_usage, handle_agent_error
@@ -39,7 +40,7 @@ class PoiAgent(BaseAgent):
         self.prompt_template = ChatPromptTemplate.from_messages(
             [
                 ("system", "{system_content}"),
-                ("user", self.user_template),
+                ("user", "{user_content}"),
             ]
         )
         # Usiamo json_mode per garantire che il modello restituisca correttamente i nuovi campi (percentili_minimi)
@@ -93,16 +94,27 @@ class PoiAgent(BaseAgent):
 
         stats_str = json.dumps(statistics, indent=2, ensure_ascii=False) if statistics else "N/D"
         
-        system_content = self.render_template(
-            self.system_prompt
-        )
+        # Format specific columns list with descriptions from POI_CATEGORIES
+        from app.core.constants import POI_CATEGORIES
+        columns_str = "\n".join([f"- `{col}`: {POI_CATEGORIES.get(col, '')}" for col in POI_AGENT_COLUMNS])
 
-        prompt_inputs = {"system_content": system_content, "query": query, "statistics": stats_str}
-        user_text = self.render_template(self.user_template, query=query, statistics=stats_str).strip()
-        full_text = f"[SYSTEM]\n{system_content}\n\n[USER]\n{user_text}"
+        prompt_inputs = {
+            "query": query,
+            "statistics": stats_str,
+            "reference_columns": columns_str
+        }
+
+        # Format prompts with variables
+        rendered_system_prompt = self.render_template(self.system_prompt, **prompt_inputs).strip()
+        user_text = self.render_template(self.user_template, **prompt_inputs).strip()
+        full_text = f"[SYSTEM]\n{rendered_system_prompt}\n\n[USER]\n{user_text}"
 
         try:
-            structured_response: PoiAgentOutput = invoke_with_langfuse(self.chain, prompt_inputs)
+            model_inputs = {
+                "system_content": rendered_system_prompt,
+                "user_content": user_text
+            }
+            structured_response: PoiAgentOutput = invoke_with_langfuse(self.chain, model_inputs)
             has_pois = structured_response.found
 
             return PoiAgentResult(
@@ -110,7 +122,7 @@ class PoiAgent(BaseAgent):
                 has_pois=has_pois,
                 requisiti=structured_response.requisiti,
                 prompt=PromptRecord(
-                    system=system_content,
+                    system=rendered_system_prompt,
                     user=user_text,
                     full_text=full_text,
                 ),
