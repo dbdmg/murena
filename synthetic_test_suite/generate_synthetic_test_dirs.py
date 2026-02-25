@@ -606,9 +606,21 @@ async def main():
                             "output": t.get("output")
                         })
                     
+                    ranking = []
+                    if tries and tries[0]:
+                        # Sort by score descending
+                        sorted_items = sorted(tries[0].items(), key=lambda x: x[1], reverse=True)
+                        for bid, score in sorted_items:
+                            ranking.append({
+                                "id": str(bid),
+                                "score": float(round(score, 1))
+                            })
+
                     result_json = {
                         "query": query,
+                        "final_query": extra_info.get("final_sql", ""), # Alias requested by user
                         "final_sql": extra_info.get("final_sql", ""),
+                        "ranking": ranking,
                         "agent_results": agent_results
                     }
                     

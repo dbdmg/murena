@@ -43,10 +43,21 @@ def get_llm(model_name: Optional[str] = None, temperature: Optional[float] = Non
     )
 
     # --- LOGICA DI SWITCHING MODELLO ---
-    # Se il modello inizia con "gpt-" o "o1-", usiamo OpenAI
+    # 1. Se il modello richiesto è gpt-oss-120b, usiamo l'istanza locale Hugging Face
+    if resolved_model == "gpt-oss-120b":
+        from app.services.llm.oss_client import ChatOSS
+        # Nota: gpt-oss-120b è la versione open-weight di OpenAI caricabile via HF
+        return ChatOSS(
+            model_id="openai/gpt-oss-120b",
+            temperature=resolved_temperature,
+            device=settings.OSS_DEVICE,
+            max_tokens=settings.OSS_MAX_TOKENS
+        )
+
+    # 2. Se il modello inizia con "gpt-" o "o1-", usiamo OpenAI (via API o server compatibile)
     if resolved_model.startswith("gpt-") or resolved_model.startswith("o1-"):
         api_key = os.getenv("OPENAI_API_KEY")
-        if not api_key:
+        if not api_key and not settings.OPENAI_API_BASE:
             raise RuntimeError(
                 "OPENAI_API_KEY non configurata per utilizzare modelli OpenAI."
             )
@@ -62,7 +73,10 @@ def get_llm(model_name: Optional[str] = None, temperature: Optional[float] = Non
                 ) from e
 
         return ChatOpenAI(
-            model=resolved_model, api_key=api_key, temperature=resolved_temperature
+            model=resolved_model, 
+            api_key=api_key or "sk-dummy", # Fallback for local servers without auth
+            temperature=resolved_temperature,
+            base_url=settings.OPENAI_API_BASE
         )
 
     # --- DEFAULT: GEMINI ---

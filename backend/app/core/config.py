@@ -65,22 +65,24 @@ class Settings(BaseSettings):
     # ==========================================================================
     GEMINI_API_KEY: str = ""
     OPENAI_API_KEY: str = ""
+    OPENAI_API_BASE: Optional[str] = None  # Use custom base URL for OSS models
 
     # LLM Provider: "openai" o "gemini" - controlla quale provider usare di default
     DEFAULT_LLM_PROVIDER: str = "openai"
 
     # LLM Models
-    OPENAI_MODEL_FAST: str = (
-        #"gpt-5-mini-2025-08-07"  # Modello veloce ed economico OpenAI
-        "gpt-5-nano-2025-08-07"
-    )
-    OPENAI_MODEL_SMART: str = "gpt-5-mini-2025-08-07"  # Modello più potente OpenAI
+    OPENAI_MODEL_FAST: str = "gpt-oss-120b"
+    OPENAI_MODEL_SMART: str = "gpt-oss-120b"
     USE_MOCK_RESPONSES: bool = False
     USE_MOCK_NORMATIVE_AGENT: bool = False
 
     # Agent Temperature - 0.0 for fully deterministic outputs (consistency)
     # Set to 0.0 to eliminate non-determinism, higher values allow creativity
     AGENT_TEMPERATURE: float = 0.0
+
+    # OSS Local Model Config
+    OSS_DEVICE: str = "auto"  # "auto", "cpu", "mps", "cuda"
+    OSS_MAX_TOKENS: int = 2048
 
     # Enable JSON export of run results for LLM analysis/debugging
     # Set to False in production to avoid unnecessary file writes

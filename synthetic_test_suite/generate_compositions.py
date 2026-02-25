@@ -20,7 +20,6 @@ def generate_combinations(json_file: str, output_file: str) -> int:
         "metratura_totale",
         "classe_energetica",
         "progetto_destinazione_uso",
-        "dettagli_unita",
         "servizi_accessori"
     ]
     
@@ -40,7 +39,7 @@ def generate_combinations(json_file: str, output_file: str) -> int:
     # Generate Cartesian product
     for combo in itertools.product(*option_lists):
         # Unpack combo (index coincides with keys_order)
-        tipo, poi, metratura, classe, progetto, dettagli, servizi = combo
+        tipo, poi, metratura, classe, progetto, servizi = combo
         
         # Build query string piece by piece
         query = f"Cerca un {tipo}"
@@ -53,8 +52,6 @@ def generate_combinations(json_file: str, output_file: str) -> int:
             query += f" in classe {classe}"
         if progetto:
             query += f", finalizzato a {progetto}"
-        if dettagli:
-            query += f" composto da {dettagli}"
         if servizi:
             query += f" e situato vicino a {servizi}"
             
