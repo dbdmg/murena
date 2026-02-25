@@ -4,7 +4,7 @@ Merged constants from original app/config.py
 """
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from typing import List, Dict
+from typing import List, Dict, Optional
 import os
 
 
