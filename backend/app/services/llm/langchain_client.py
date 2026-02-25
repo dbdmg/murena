@@ -6,12 +6,6 @@ from dotenv import load_dotenv
 
 from app.core.config import settings
 
-# Usa il modello OpenAI fast come default (configurabile via DEFAULT_LLM_PROVIDER)
-if settings.DEFAULT_LLM_PROVIDER == "openai":
-    DEFAULT_MODEL = settings.OPENAI_MODEL_FAST
-else:
-    DEFAULT_MODEL = settings.GEMINI_MODEL_FAST
-
 load_dotenv()
 
 # Global Langfuse client instance
@@ -20,18 +14,21 @@ _langfuse_client = None
 
 @lru_cache(maxsize=8)
 def get_llm(model_name: Optional[str] = None, temperature: Optional[float] = None):
-    """Restituisce un'istanza Chat LLM (Gemini) tramite LangChain.
-
-    Env vars:
-    - GEMINI_KEY: API key Google Generative AI
-    - GEMINI_MODEL_FAST / LLM_MODEL_DEFAULT: nome modello di default
-    - LLM_TEMPERATURE: float opzionale (default: 0.0)
+    """Restituisce un'istanza Chat LLM tramite LangChain.
 
     Args:
-        model_name: override esplicito del modello da usare.
-        temperature: override della temperatura del modello.
+        model_name: override esplicito del modello da usare (es. 'gpt-4o', 'gpt-oss-120b').
+        temperature: override della temperatura del modello (default: 0.0).
     """
-    resolved_model = model_name or os.getenv("LLM_MODEL_DEFAULT", DEFAULT_MODEL)
+    # Determina il modello di default dinamicamente dalle impostazioni globali
+    if not model_name:
+        if settings.DEFAULT_LLM_PROVIDER == "openai":
+            model_name = settings.OPENAI_MODEL_FAST
+        else:
+            # Fallback a gemini se configurato
+            model_name = getattr(settings, "GEMINI_MODEL_FAST", "gemini-1.5-flash")
+
+    resolved_model = model_name or os.getenv("LLM_MODEL_DEFAULT")
 
     try:
         default_temperature = float(os.getenv("LLM_TEMPERATURE", "0.0"))

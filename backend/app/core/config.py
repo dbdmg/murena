@@ -76,6 +76,16 @@ class Settings(BaseSettings):
     USE_MOCK_RESPONSES: bool = False
     USE_MOCK_NORMATIVE_AGENT: bool = False
 
+    def set_llm_model(self, model_type: str):
+        """Sets the LLM model to either 'open-weights' or 'gpt-5-nano'."""
+        if model_type == "open-weights":
+            self.OPENAI_MODEL_FAST = "gpt-oss-120b"
+            self.OPENAI_MODEL_SMART = "gpt-oss-120b"
+        elif model_type == "gpt-5-nano":
+            # Si usa gpt-4o-mini come controparte 'nano' di OpenAI o direttamente la stringa suggerita
+            self.OPENAI_MODEL_FAST = "gpt-4o-mini"
+            self.OPENAI_MODEL_SMART = "gpt-4o-mini"
+
     # Agent Temperature - 0.0 for fully deterministic outputs (consistency)
     # Set to 0.0 to eliminate non-determinism, higher values allow creativity
     AGENT_TEMPERATURE: float = 0.0

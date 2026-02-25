@@ -124,6 +124,23 @@ async def health_check():
 
 if __name__ == "__main__":
     import uvicorn
+    import argparse
+
+    # Parsing argomenti command line
+    parser = argparse.ArgumentParser(description=f"Avvia il server {settings.APP_NAME}")
+    parser.add_argument(
+        "--model", 
+        choices=["open-weights", "gpt-5-nano"], 
+        help="Scegli il sapore del modello LLM da utilizzare"
+    )
+    
+    # parse_known_args permette di ignorare gli argomenti di uvicorn se presenti
+    args, _ = parser.parse_known_args()
+
+    # Applica configurazione modello se specificata
+    if args.model:
+        settings.set_llm_model(args.model)
+        logger.info(f"Modello LLM impostato a: {args.model} ({settings.OPENAI_MODEL_FAST})")
 
     uvicorn.run(
         "app.main:app",
