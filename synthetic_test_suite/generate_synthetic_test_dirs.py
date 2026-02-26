@@ -34,6 +34,7 @@ from app.services.analysis_service import analysis_service
 from app.services.real_estate_service import RealEstateService
 from app.data.loaders import load_and_merge_data
 from app.models.responses import BuildingResponse
+from app.utils.json_parser import safe_extract_json
 
 # 2. Suppress loguru logging (used by the backend) - Done after imports to override backend config
 try:
@@ -643,8 +644,14 @@ async def main():
                     agents_with_requirements = {}
                     ranking_data = None
                     for res in agent_results:
-                        name = res["agent_name"].replace("-agent", "").lower()
-                        out = res["output"]
+                        name = res["agent_name"].replace("-agent", "").replace("-", "_").lower()
+                        out_raw = res["output"]
+                        
+                        if isinstance(out_raw, str):
+                            out = safe_extract_json(out_raw) or out_raw
+                        else:
+                            out = out_raw
+
                         if not out or not isinstance(out, dict): continue
                         
                         if name == "ranking":
@@ -666,9 +673,9 @@ async def main():
                                 has_reqs = True
                                 req_data = {"typologies": typologies, "requisiti": requisiti}
                         elif name in ["ape", "poi", "normative"]:
-                            if out.get("found") and out.get("requisiti") and len(out["requisiti"]) > 0:
+                            if out.get("found") or (out.get("requisiti") and len(out["requisiti"]) > 0):
                                 has_reqs = True
-                                req_data = out["requisiti"]
+                                req_data = out.get("requisiti", [])
                                 
                         if has_reqs:
                             agents_with_requirements[name] = req_data
@@ -797,8 +804,14 @@ async def main():
                     agents_with_requirements = {}
                     ranking_data = None
                     for res in agent_results:
-                        name = res["agent_name"].replace("-agent", "").lower()
-                        out = res["output"]
+                        name = res["agent_name"].replace("-agent", "").replace("-", "_").lower()
+                        out_raw = res["output"]
+
+                        if isinstance(out_raw, str):
+                            out = safe_extract_json(out_raw) or out_raw
+                        else:
+                            out = out_raw
+
                         if not out or not isinstance(out, dict): continue
                         
                         if name == "ranking":
@@ -819,9 +832,9 @@ async def main():
                                 has_reqs = True
                                 req_data = {"typologies": typologies, "requisiti": requisiti}
                         elif name in ["ape", "poi", "normative"]:
-                            if out.get("found") and out.get("requisiti") and len(out["requisiti"]) > 0:
+                            if out.get("found") or (out.get("requisiti") and len(out["requisiti"]) > 0):
                                 has_reqs = True
-                                req_data = out["requisiti"]
+                                req_data = out.get("requisiti", [])
                                 
                         if has_reqs:
                             agents_with_requirements[name] = req_data
