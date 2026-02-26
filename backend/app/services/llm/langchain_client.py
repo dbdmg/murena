@@ -13,48 +13,70 @@ _langfuse_client = None
 
 
 @lru_cache(maxsize=8)
-def get_llm(model_name: Optional[str] = None, temperature: Optional[float] = None):
-    """Restituisce un'istanza Chat LLM tramite LangChain.
-
-    Args:
-        model_name: override esplicito del modello da usare (es. 'gpt-4o', 'gpt-oss-120b').
-        temperature: override della temperatura del modello (default: 0.0).
-    """
-    # Determina il modello di default dinamicamente dalle impostazioni globali
-    if not model_name:
-        if settings.DEFAULT_LLM_PROVIDER == "openai":
-            model_name = settings.OPENAI_MODEL_FAST
-        else:
-            # Fallback a gemini se configurato
-            model_name = getattr(settings, "GEMINI_MODEL_FAST", "gemini-1.5-flash")
-
-    resolved_model = model_name or os.getenv("LLM_MODEL_DEFAULT")
-
-    try:
-        default_temperature = float(os.getenv("LLM_TEMPERATURE", "0.0"))
-    except ValueError:
-        default_temperature = 0.0
-
-    resolved_temperature = (
-        temperature if temperature is not None else default_temperature
-    )
-
+def _get_llm_internal(
+    model_name: str, 
+    temperature: float, 
+    oss_device: str, 
+    oss_max_tokens: int,
+    openai_api_base: Optional[str]
+):
+    """Internal cached model factory to ensure unified instances."""
+    
     # --- LOGICA DI SWITCHING MODELLO ---
-    # 1. Se il modello richiesto è gpt-oss-120b, usiamo l'istanza locale Hugging Face
-    if resolved_model == "gpt-oss-120b":
-        from app.services.llm.oss_client import ChatOSS
-        # Nota: gpt-oss-120b è la versione open-weight di OpenAI caricabile via HF
-        return ChatOSS(
-            model_id="openai/gpt-oss-120b",
-            temperature=resolved_temperature,
-            device=settings.OSS_DEVICE,
-            max_tokens=settings.OSS_MAX_TOKENS
+    # 1. Se il modello richiesto è uno tra quelli OSS supportati, usiamo Ollama
+    oss_models = [
+        "nvidia/Llama-3_3-Nemotron-Super-49B-v1", 
+        "openai/gpt-oss-20b", 
+        "gpt-oss:20b",
+        "microsoft/phi-4", 
+        "google/gemma-3-12b-it"
+    ]
+    if model_name in oss_models:
+        try:
+            from langchain_ollama import ChatOllama
+        except ImportError:
+            raise RuntimeError(
+                "Manca il pacchetto 'langchain-ollama'. Installalo con pip install langchain-ollama"
+            )
+            
+        # Per i modelli gpt-oss, assicuriamoci di usare il tag corretto per Ollama
+        ollama_model = "gpt-oss:20b" if "gpt-oss" in model_name else model_name
+        
+        print(f"[LLM] Utilizzo Ollama per {model_name} -> {ollama_model}")
+        # Sottoclasse per poter fare l'override in sicurezza (invece del monkey patching)
+        class CustomChatOllama(ChatOllama):
+            def with_structured_output(self, schema, **kwargs):
+                from langchain_core.runnables import RunnableLambda
+                from app.utils.json_parser import safe_extract_json
+                from pydantic import BaseModel
+                from typing import Any
+                
+                # Chiediamo al modello di rispondere in formato JSON
+                llm_with_json = self.bind(format="json")
+                
+                def parse_output(generation) -> Any:
+                    if hasattr(generation, "generations") and generation.generations:
+                        text = generation.generations[0].message.content
+                    elif hasattr(generation, "content"):
+                        text = generation.content
+                    else:
+                        text = str(generation)
+                        
+                    pydantic_schema = schema if isinstance(schema, type) and issubclass(schema, BaseModel) else None
+                    return safe_extract_json(text, schema=pydantic_schema)
+
+                return llm_with_json | RunnableLambda(parse_output)
+                
+        return CustomChatOllama(
+            model=ollama_model,
+            temperature=temperature,
+            base_url=settings.OLLAMA_BASE_URL
         )
 
     # 2. Se il modello inizia con "gpt-" o "o1-", usiamo OpenAI (via API o server compatibile)
-    if resolved_model.startswith("gpt-") or resolved_model.startswith("o1-"):
+    if model_name.startswith("gpt-") or model_name.startswith("o1-"):
         api_key = os.getenv("OPENAI_API_KEY")
-        if not api_key and not settings.OPENAI_API_BASE:
+        if not api_key and not openai_api_base:
             raise RuntimeError(
                 "OPENAI_API_KEY non configurata per utilizzare modelli OpenAI."
             )
@@ -70,29 +92,52 @@ def get_llm(model_name: Optional[str] = None, temperature: Optional[float] = Non
                 ) from e
 
         return ChatOpenAI(
-            model=resolved_model, 
+            model=model_name, 
             api_key=api_key or "sk-dummy", # Fallback for local servers without auth
-            temperature=resolved_temperature,
-            base_url=settings.OPENAI_API_BASE
+            temperature=temperature,
+            base_url=openai_api_base
         )
 
-    # --- DEFAULT: GEMINI ---
-    api_key = os.getenv("GEMINI_KEY")
-    if not api_key:
-        raise RuntimeError("GEMINI_KEY non configurata nelle variabili d'ambiente.")
+    raise ValueError(f"Modello non supportato o non riconosciuto: {model_name}")
 
-    # Import lazily per evitare hard dependency all'avvio
-    try:
-        from langchain_google_genai import ChatGoogleGenerativeAI
-    except Exception as e:
-        raise RuntimeError(
-            "Manca il pacchetto 'langchain-google-genai'. Aggiungilo a requirements.txt"
-        ) from e
 
-    return ChatGoogleGenerativeAI(
-        model=resolved_model,
-        api_key=api_key,
+def get_llm(model_name: Optional[str] = None, temperature: Optional[float] = None):
+    """Restituisce un'istanza Chat LLM tramite LangChain.
+    Usa una cache interna per evitare di caricare lo stesso modello più volte.
+
+    Args:
+        model_name: override esplicito del modello da usare (es. 'gpt-4o', 'nvidia/Llama-3_3-Nemotron-Super-49B-v1').
+        temperature: override della temperatura del modello (default: settings.AGENT_TEMPERATURE).
+    """
+    # Determina il modello di default dinamicamente dalle impostazioni globali
+    if not model_name:
+        model_name = settings.OPENAI_MODEL_FAST
+
+    resolved_model = model_name or os.getenv("LLM_MODEL_DEFAULT")
+
+    # Risoluzione della temperatura: 
+    # Priorità: argomento esplicito > colonna env > settings.AGENT_TEMPERATURE (default 0.0)
+    if temperature is not None:
+        resolved_temperature = float(temperature)
+    else:
+        try:
+            env_temp = os.getenv("LLM_TEMPERATURE")
+            if env_temp is not None:
+                resolved_temperature = float(env_temp)
+            else:
+                resolved_temperature = float(settings.AGENT_TEMPERATURE)
+        except ValueError:
+            resolved_temperature = 0.0
+
+    # Deleghiamo alla funzione cacheata internamente passando parametri normalizzati.
+    # Questo evita il ricaricamento del modello se un agente passa temperature=None
+    # e un altro passa temperature=0.0 (che risolvono allo stesso valore).
+    return _get_llm_internal(
+        model_name=resolved_model,
         temperature=resolved_temperature,
+        oss_device=settings.OSS_DEVICE,
+        oss_max_tokens=settings.OSS_MAX_TOKENS,
+        openai_api_base=settings.OPENAI_API_BASE
     )
 
 def get_langfuse_callback(session_id: Optional[str] = None, user_id: Optional[str] = None, tags: Optional[list] = None, trace_name: Optional[str] = None):

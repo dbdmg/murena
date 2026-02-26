@@ -600,8 +600,10 @@ async def main():
             return
 
         await preload_data()
-        # limit concurrency to avoid overloading
-        semaphore = asyncio.Semaphore(5)
+        # limit concurrency to avoid overloading (1 for local models, 5 for cloud)
+        concurrency = 1 if args.model == "open-weights" else 5
+        print(f"[CONFIG] Setting concurrency to: {concurrency}")
+        semaphore = asyncio.Semaphore(concurrency)
         csv_lock = asyncio.Lock()
         
         async def process_query(idx):
@@ -754,8 +756,9 @@ async def main():
             queries = [line.strip() for line in f if line.strip()]
         
         await preload_data()
-        # limit concurrency to avoid overloading
-        semaphore = asyncio.Semaphore(5)
+        # limit concurrency to avoid overloading (1 for local models, 5 for cloud)
+        concurrency = 1 if args.model == "open-weights" else 5
+        semaphore = asyncio.Semaphore(concurrency)
         
         async def process_query(idx, query):
             async with semaphore:
