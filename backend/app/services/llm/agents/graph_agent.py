@@ -1616,9 +1616,15 @@ class GraphOrchestratorAgent(BaseAgent):
             if not relaxed_sql:
                 relaxed_sql = failed_query
 
+        # Prepare technical scheme (all columns and their types)
+        db_schema_obj = state.get("db_schema", {})
+        col_types = db_schema_obj.get("types", {})
+        scheme_str = "\n".join([f"{col}: {dtype}" for col, dtype in col_types.items()])
+
         start_t = time.time()
         sql_result = self.sql_agent.run(
             query=query, # use original query
+            scheme=scheme_str,
             all_requirements=all_requirements_str,
             location=loc_obj,
             failed_query=effective_failed_query,

@@ -180,7 +180,8 @@ QUERY UTENTE: {query}
 REQUISITI ESTRATTI:
 {all_requirements}
 
-METADATI DATASET (Colonne e Valori ammessi): {db_metadata}
+METADATI FILTRAGGIO (Valori ammessi): {db_metadata}
+SCHEMA TECNICO (Colonne e Tipi): {scheme}
 ```
 
 ## sql_agent.retry_system
@@ -200,7 +201,8 @@ ERRORE/MOTIVAZIONE: {error_msg}
 REQUISITI ESTRATTI:
 {all_requirements}
 
-METADATI DATASET: {db_metadata}
+METADATI FILTRAGGIO (Valori ammessi): {db_metadata}
+SCHEMA TECNICO (Colonne e Tipi): {scheme}
 
 LATITUDINE: {lat}
 LONGITUDINE: {lon}
