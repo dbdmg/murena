@@ -430,18 +430,6 @@ class RealEstateService:
                         (result[meta_col] == False) | (result[meta_col].isna())
                     ]
 
-        # Filter by natura_bene (FABBRICATO or TERRENO)
-        if filters.natura_bene:
-            natura_col = None
-            if "natura_del_bene" in result.columns:
-                natura_col = "natura_del_bene"
-            elif "natura" in result.columns:
-                natura_col = "natura"
-
-            if natura_col:
-                result = result[
-                    result[natura_col].str.upper() == filters.natura_bene.upper()
-                ]
 
         # TODO: Filter by run_id (requires database lookup for run results)
         if filters.run_id:
@@ -673,9 +661,8 @@ class RealEstateService:
             bathrooms=None,  # Not present in provided columns
             floor=None,  # Not present in provided columns
             price=safe_get("price", alternatives=["canone_annuale"]),
-            description=safe_get(
-                "description", alternatives=["natura_del_bene"]
-            ),
+            description=safe_get("description"),
+
             # Extended property info
             property_type=safe_get(
                 "property_type", alternatives=["tipologia_bene_immobile"]

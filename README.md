@@ -90,10 +90,10 @@ npm run dev
 ## 📚 Documentazione
 
 - [`TECH_STACK.md`](TECH_STACK.md) - Stack tecnologico completo
-- [`migration_plan.md`](migration_plan.md) - Piano di migrazione
-- [`optimization_plan.md`](optimization_plan.md) - Piano di ottimizzazione
 - [`backend/README.md`](backend/README.md) - Documentazione backend
 - [`frontend/README.md`](frontend/README.md) - Documentazione frontend
+- [`docs/AGENT_ARCHITECTURE.md`](docs/AGENT_ARCHITECTURE.md) - Architettura Agenti LLM
+- [`backend/API_GUIDE.md`](backend/API_GUIDE.md) - Guida API
 
 ## 🛠️ Stack Tecnologico
 
@@ -102,7 +102,7 @@ npm run dev
 - **PostgreSQL** - Database relazionale
 - **Redis** - Caching
 - **SQLAlchemy** - ORM
-- **LangChain** - Orchestrazione LLM (15 agents)
+- **LangChain** - Orchestrazione LLM (8 agents)
 
 ### Frontend
 - **React 18** + **TypeScript**

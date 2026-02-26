@@ -3,6 +3,8 @@
 Questo pacchetto definisce l'architettura degli agenti LLM per l'applicazione, basata su LangChain. 
 Gli agenti incapsulano compiti specifici (estrazione location, generazione SQL, valutazione tecnica, ecc.) con input/outputs strutturati.
 
+> ℹ️ **Nota:** Per la documentazione architettonica completa del sistema multi-agente, inclusi diagrammi di sequenza e retry logic, fare riferimento a [`../../../../../docs/AGENT_ARCHITECTURE.md`](../../../../../docs/AGENT_ARCHITECTURE.md).
+
 ## Architettura
 - `BaseAgent`: interfaccia astratta con metodo `run(**kwargs)`.
 - `schema.py`: modelli Pydantic di I/O per garantire output affidabili e tipizzati.

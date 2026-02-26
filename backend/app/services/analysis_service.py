@@ -349,6 +349,7 @@ class AnalysisService:
             },
             "gemini_responses": make_json_safe(orchestrator_result.gemini_responses),
             "results_count": orchestrator_result.match_count,
+            "relaxation_applied": getattr(orchestrator_result, "relaxation_applied", False),
             "broker_summary": make_json_safe(orchestrator_result.broker_summary),
             "agent_trace": agent_executions,
             "context": (

@@ -6,6 +6,8 @@ import pandas as pd
 import numpy as np
 import sys
 import logging
+import argparse
+import time
 from pathlib import Path
 
 # 1. Suppress standard logging
@@ -143,6 +145,10 @@ async def run_single_test(agent_name: str, prompt: str, num_tries: int = 1):
             # Extract full agent trace for results
             if "agent_trace" not in extra_info:
                 extra_info["agent_trace"] = result.get("agent_trace", [])
+            
+            # Extract results count and relaxation status
+            extra_info["results_count"] = result.get("results_count", 0)
+            extra_info["relaxation_applied"] = result.get("relaxation_applied", False)
             
             scores = {} # id -> score
             for b in buildings:
@@ -560,13 +566,26 @@ def generate_files(root_path: Path, agent_name: str, prompt: str, tries_rankings
             f.write(",".join(row_vals) + "\n")
 
 async def main():
+    # Parse model argument
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--model", type=str, choices=["open-weights", "gpt-5-nano"], help="LLM model flavor")
+    parser.add_argument("--csv", type=str, default="composed_queries.csv", help="CSV file to process")
+    args, _ = parser.parse_known_args()
+
+    if args.model:
+        settings.set_llm_model(args.model)
+        print(f"[CONFIG] Using model flavor: {args.model}")
+
     suite_dir = Path(__file__).parent
     
     # Check for composed_queries.csv logic first as requested
-    queries_csv = suite_dir / "composed_queries.csv"
+    queries_csv = suite_dir / args.csv
     if queries_csv.exists():
         print(f"[LOAD] Processing queries from: {queries_csv.name}")
-        output_dir = suite_dir / "composed_results"
+        
+        # Determine output folder dynamically based on CSV name
+        output_folder_name = "composed_results" if args.csv == "composed_queries.csv" else f"{args.csv.replace('.csv', '')}_results"
+        output_dir = suite_dir / output_folder_name
         output_dir.mkdir(exist_ok=True)
         
         # Load CSV with pandas
@@ -590,7 +609,9 @@ async def main():
             async with semaphore:
                 agent = "graph_orchestrator"
                 try:
+                    start_t = time.time()
                     tries, b_info, extra_info = await run_single_test(agent, query)
+                    duration_ms = round((time.time() - start_t) * 1000, 2)
                     
                     agent_results = []
                     for t in extra_info.get("agent_trace", []):
@@ -616,8 +637,82 @@ async def main():
                                 "score": float(round(score, 1))
                             })
 
+                    # Extract agents that actually produced results/requirements
+                    agents_with_requirements = {}
+                    ranking_data = None
+                    for res in agent_results:
+                        name = res["agent_name"].replace("-agent", "").lower()
+                        out = res["output"]
+                        if not out or not isinstance(out, dict): continue
+                        
+                        if name == "ranking":
+                            ranking_data = out
+                            continue
+
+                        has_reqs = False
+                        req_data = None
+                        
+                        if name == "location":
+                            if out.get("places") and len(out["places"]) > 0:
+                                has_reqs = True
+                                req_data = out["places"]
+                        elif name == "property_technical":
+                            # Check both typologies and specific requirements
+                            typologies = out.get("typologies", [])
+                            requisiti = out.get("requisiti", [])
+                            if typologies or requisiti:
+                                has_reqs = True
+                                req_data = {"typologies": typologies, "requisiti": requisiti}
+                        elif name in ["ape", "poi", "normative"]:
+                            if out.get("found") and out.get("requisiti") and len(out["requisiti"]) > 0:
+                                has_reqs = True
+                                req_data = out["requisiti"]
+                                
+                        if has_reqs:
+                            agents_with_requirements[name] = req_data
+
+                    # Build Ranking Logic with redistribution evidence
+                    ranking_logic = {}
+                    if ranking_data:
+                        initial_weights = ranking_data.get("weights", {})
+                        # Identify which agents were selected by LLM AND found something
+                        found_agent_keys = set(agents_with_requirements.keys())
+                        
+                        # Identify agents to keep (those with initial weight > 0 that found something)
+                        active_and_found = [a for a, w in initial_weights.items() if w > 0 and a in found_agent_keys]
+                        
+                        # Calculate effective weights (redistribution)
+                        remaining_weight_sum = sum(initial_weights.get(a, 0) for a in active_and_found)
+                        
+                        effective_weights = {}
+                        if remaining_weight_sum > 0:
+                            for a in initial_weights.keys():
+                                if a in active_and_found:
+                                    effective_weights[a] = round(initial_weights[a] / remaining_weight_sum, 2)
+                                else:
+                                    effective_weights[a] = 0.0
+                            
+                            # Ensure sum is exactly 1.0
+                            diff = round(1.0 - sum(effective_weights.values()), 2)
+                            if diff != 0 and active_and_found:
+                                max_agent = max(active_and_found, key=lambda a: effective_weights[a])
+                                effective_weights[max_agent] = round(effective_weights[max_agent] + diff, 2)
+                        else:
+                            # Fallback if nothing was found or redistribution failed
+                            effective_weights = initial_weights
+
+                        ranking_logic = {
+                            "original_weights": initial_weights,
+                            "effective_weights": effective_weights,
+                            "reasoning": ranking_data.get("reasoning", "")
+                        }
+
                     result_json = {
                         "query": query,
+                        "results_count": extra_info.get("results_count", 0),
+                        "relaxation_applied": extra_info.get("relaxation_applied", False),
+                        "execution_time_ms": duration_ms,
+                        "ranking_logic": ranking_logic,
                         "final_sql": extra_info.get("final_sql", ""),
                         "ranking": ranking
                     }
@@ -631,6 +726,8 @@ async def main():
                     async with csv_lock:
                         df_queries.at[idx, "status"] = 1
                         df_queries.to_csv(queries_csv, index=False)
+                    
+                    print(f"[SUCCESS] Query {idx+1} saved to {output_file.name}")
                         
                 except Exception as e:
                     print(f"[ERROR] Query {idx+1} failed: {e}")
@@ -666,7 +763,9 @@ async def main():
                 agent = "graph_orchestrator"
                 try:
                     # Run without multiple tries and without generating folders unless needed
+                    start_t = time.time()
                     tries, b_info, extra_info = await run_single_test(agent, query)
+                    duration_ms = round((time.time() - start_t) * 1000, 2)
                     
                     agent_results = []
                     for t in extra_info.get("agent_trace", []):
@@ -691,8 +790,72 @@ async def main():
                                 "score": float(round(score, 1))
                             })
 
+                    # Extract agents that actually produced results/requirements
+                    agents_with_requirements = {}
+                    ranking_data = None
+                    for res in agent_results:
+                        name = res["agent_name"].replace("-agent", "").lower()
+                        out = res["output"]
+                        if not out or not isinstance(out, dict): continue
+                        
+                        if name == "ranking":
+                            ranking_data = out
+                            continue
+
+                        has_reqs = False
+                        req_data = None
+                        
+                        if name == "location":
+                            if out.get("places") and len(out["places"]) > 0:
+                                has_reqs = True
+                                req_data = out["places"]
+                        elif name == "property_technical":
+                            typologies = out.get("typologies", [])
+                            requisiti = out.get("requisiti", [])
+                            if typologies or requisiti:
+                                has_reqs = True
+                                req_data = {"typologies": typologies, "requisiti": requisiti}
+                        elif name in ["ape", "poi", "normative"]:
+                            if out.get("found") and out.get("requisiti") and len(out["requisiti"]) > 0:
+                                has_reqs = True
+                                req_data = out["requisiti"]
+                                
+                        if has_reqs:
+                            agents_with_requirements[name] = req_data
+
+                    # Build Ranking Logic with redistribution evidence
+                    ranking_logic = {}
+                    if ranking_data:
+                        initial_weights = ranking_data.get("weights", {})
+                        found_agent_keys = set(agents_with_requirements.keys())
+                        active_and_found = [a for a, w in initial_weights.items() if w > 0 and a in found_agent_keys]
+                        
+                        remaining_weight_sum = sum(initial_weights.get(a, 0) for a in active_and_found)
+                        
+                        effective_weights = {}
+                        if remaining_weight_sum > 0:
+                            for a in initial_weights.keys():
+                                if a in active_and_found:
+                                    effective_weights[a] = round(initial_weights[a] / remaining_weight_sum, 2)
+                                else:
+                                    effective_weights[a] = 0.0
+                            
+                            diff = round(1.0 - sum(effective_weights.values()), 2)
+                            if diff != 0 and active_and_found:
+                                max_agent = max(active_and_found, key=lambda a: effective_weights[a])
+                                effective_weights[max_agent] = round(effective_weights[max_agent] + diff, 2)
+                        else:
+                            effective_weights = initial_weights
+
+                        ranking_logic = {
+                            "original_weights": initial_weights,
+                            "effective_weights": effective_weights
+                        }
+
                     result_json = {
                         "query": query,
+                        "execution_time_ms": duration_ms,
+                        "ranking_logic": ranking_logic,
                         "final_sql": extra_info.get("final_sql", ""),
                         "ranking": ranking
                     }
@@ -735,7 +898,9 @@ async def main():
                     agent = "generic_agent"
             
             query = entry.get("query", "")
+            start_t = time.time()
             tries, b_info, extra_info = await run_single_test(agent, query)
+            duration_ms = round((time.time() - start_t) * 1000, 2)
             
             agent_results = []
             for t in extra_info.get("agent_trace", []):
@@ -750,7 +915,71 @@ async def main():
                     "output": t.get("output")
                 })
             
+            # Extract agents that actually produced results/requirements
+            agents_with_requirements = {}
+            ranking_data = None
+            for res in agent_results:
+                name = res["agent_name"].replace("-agent", "").lower()
+                out = res["output"]
+                if not out or not isinstance(out, dict): continue
+                
+                if name == "ranking":
+                    ranking_data = out
+                    continue
+
+                has_reqs = False
+                req_data = None
+                
+                if name == "location":
+                    if out.get("places") and len(out["places"]) > 0:
+                        has_reqs = True
+                        req_data = out["places"]
+                elif name == "property_technical":
+                    typologies = out.get("typologies", [])
+                    requisiti = out.get("requisiti", [])
+                    if typologies or requisiti:
+                        has_reqs = True
+                        req_data = {"typologies": typologies, "requisiti": requisiti}
+                elif name in ["ape", "poi", "normative"]:
+                    if out.get("found") and out.get("requisiti") and len(out["requisiti"]) > 0:
+                        has_reqs = True
+                        req_data = out["requisiti"]
+                        
+                if has_reqs:
+                    agents_with_requirements[name] = req_data
+
+            # Build Ranking Logic with redistribution evidence
+            ranking_logic = {}
+            if ranking_data:
+                initial_weights = ranking_data.get("weights", {})
+                found_agent_keys = set(agents_with_requirements.keys())
+                active_and_found = [a for a, w in initial_weights.items() if w > 0 and a in found_agent_keys]
+                
+                remaining_weight_sum = sum(initial_weights.get(a, 0) for a in active_and_found)
+                
+                effective_weights = {}
+                if remaining_weight_sum > 0:
+                    for a in initial_weights.keys():
+                        if a in active_and_found:
+                            effective_weights[a] = round(initial_weights[a] / remaining_weight_sum, 2)
+                        else:
+                            effective_weights[a] = 0.0
+                    
+                    diff = round(1.0 - sum(effective_weights.values()), 2)
+                    if diff != 0 and active_and_found:
+                        max_agent = max(active_and_found, key=lambda a: effective_weights[a])
+                        effective_weights[max_agent] = round(effective_weights[max_agent] + diff, 2)
+                else:
+                    effective_weights = initial_weights
+
+                ranking_logic = {
+                    "original_weights": initial_weights,
+                    "effective_weights": effective_weights
+                }
+
             entry["agent_results"] = agent_results
+            entry["ranking_logic"] = ranking_logic
+            entry["execution_time_ms"] = duration_ms
             for k in ["agent", "agent_name_redundant", "final_sql"]:
                 if k in entry:
                     del entry[k]

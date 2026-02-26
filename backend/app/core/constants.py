@@ -33,7 +33,6 @@ APE_SCORE_LEGEND = """LEGENDA PUNTEGGI APE (scala 1-5, dove 5=ottimo):
 SQL_FILTERABLE_COLUMNS: List[str] = [
     "superficie_di_riferimento_mq",
     "tipologia_bene_immobile",
-    "natura_del_bene",
     "epoca_costruzione",
     "zona_omi",
     "classe_energetica_ape",  # Added to allow filtering by energy class
@@ -85,7 +84,6 @@ APE_AGENT_COLUMNS: List[str] = [
 # Colonne specifiche per Property Technical Agent
 PROPERTY_TECHNICAL_AGENT_COLUMNS: List[str] = [
     "tipologia_bene_immobile",
-    "natura_del_bene",
     "epoca_costruzione",
     "id",
     "codice_comune",
@@ -100,7 +98,6 @@ PROPERTY_TECHNICAL_AGENT_COLUMNS: List[str] = [
 NORMATIVE_AGENT_COLUMNS: List[str] = [
     "superficie_di_riferimento_mq",
     "tipologia_bene_immobile",
-    "natura_del_bene",
 ]
 
 # Categorie POI

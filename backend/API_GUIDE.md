@@ -218,7 +218,7 @@ Dalla legacy in `app/callbacks/*` emergono aree funzionali non ancora esposte co
    - Legacy: `filters.py`, `stores.py`, `filter_callbacks.py`, `modal_callbacks.py`, ecc.
    - Backend: molti filtri sono già esposti via `GET /map/markers` e `GET /buildings`, la parità completa dipende dal frontend React.
 
-## Dove siamo rispetto a migration_plan.md
+## Stato della Migrazione
 - Phase 1-2 (Backend foundation + core API): ✅ Completate (auth + analysis + persistence + websocket + buildings + feedback app-level).
 - Phase 3 (Map features): ✅ Endpoint pronti (map + overlays + layers POI/OMI); servirà lavoro nel frontend React.
 - Phase 4+ (Pagine dettaglio, UX, feedback per-building): Da implementare nel frontend.

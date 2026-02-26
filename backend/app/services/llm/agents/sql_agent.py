@@ -26,9 +26,9 @@ def _clean_sql(text: str) -> str:
     # Rimuove commenti SQL inline (-- commento)
     text = re.sub(r'--.*$', '', text, flags=re.MULTILINE)
     
-    # Cerca il primo SELECT e prende tutto fino alla fine o al primo punto e virgola
+    # Cerca il primo WITH o SELECT e prende tutto fino alla fine o al primo punto e virgola
     # Questo aiuta se l'LLM aggiunge chiacchiere prima o dopo
-    match = re.search(r'(SELECT\s+.*)', text, re.IGNORECASE | re.DOTALL)
+    match = re.search(r'((?:WITH|SELECT)\s+.*)', text, re.IGNORECASE | re.DOTALL)
     if match:
         sql = match.group(1).strip()
         # Se c'è un punto e virgola, prendiamo solo fino a lì (evita comandi multipli)
@@ -37,8 +37,10 @@ def _clean_sql(text: str) -> str:
         
         # Formattazione tramite sqlglot per leggibilità e correttezza sintattica
         try:
-            formatted = sqlglot.transpile(sql, read="duckdb", pretty=True)[0]
-            return formatted
+            # transpile restituisce una lista di query, prendiamo la prima
+            transpiled = sqlglot.transpile(sql, read="duckdb", pretty=True)
+            if transpiled:
+                return transpiled[0]
         except Exception:
             # Fallback alla stringa pulita ma non formattata in caso di errore di parsing
             return sql

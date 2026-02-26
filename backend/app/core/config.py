@@ -77,14 +77,13 @@ class Settings(BaseSettings):
     USE_MOCK_NORMATIVE_AGENT: bool = False
 
     def set_llm_model(self, model_type: str):
-        """Sets the LLM model to either 'open-weights' or 'gpt-5-nano'."""
+        """Sets the LLM model to either 'open-weights' or 'gpt-5-nano'/'fast-api'."""
         if model_type == "open-weights":
             self.OPENAI_MODEL_FAST = "gpt-oss-120b"
             self.OPENAI_MODEL_SMART = "gpt-oss-120b"
-        elif model_type == "gpt-5-nano":
-            # Si usa gpt-4o-mini come controparte 'nano' di OpenAI o direttamente la stringa suggerita
-            self.OPENAI_MODEL_FAST = "gpt-4o-mini"
-            self.OPENAI_MODEL_SMART = "gpt-4o-mini"
+        elif model_type in ["gpt-5-nano", "fast-api"]:
+            self.OPENAI_MODEL_FAST = "gpt-5-nano-2025-08-07"
+            self.OPENAI_MODEL_SMART = "gpt-5-mini-2025-08-07"
 
     # Agent Temperature - 0.0 for fully deterministic outputs (consistency)
     # Set to 0.0 to eliminate non-determinism, higher values allow creativity
@@ -198,7 +197,30 @@ class Settings(BaseSettings):
 settings = Settings()
 
 # Export agent-specific settings
-AGENT_MODELS = settings.agent_models
+class DynamicAgentModels(dict):
+    """Proxy dictionary that always returns current values from settings.agent_models."""
+    def get(self, key, default=None):
+        return settings.agent_models.get(key, default)
+    def __getitem__(self, key):
+        return settings.agent_models[key]
+    def __contains__(self, key):
+        return key in settings.agent_models
+    def __iter__(self):
+        return iter(settings.agent_models)
+    def __len__(self):
+        return len(settings.agent_models)
+    def __repr__(self):
+        return repr(settings.agent_models)
+    def __str__(self):
+        return str(settings.agent_models)
+    def items(self):
+        return settings.agent_models.items()
+    def keys(self):
+        return settings.agent_models.keys()
+    def values(self):
+        return settings.agent_models.values()
+
+AGENT_MODELS = DynamicAgentModels()
 USE_MOCK_NORMATIVE_AGENT = settings.USE_MOCK_NORMATIVE_AGENT
 
 # Legacy constants for backward compatibility

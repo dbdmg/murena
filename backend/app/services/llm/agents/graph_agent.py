@@ -74,6 +74,7 @@ class OrchestratorResult:
     match_count: int = 0
     broker_summary: Optional[str] = None
     agent_trace: Optional[List[Dict[str, Any]]] = None
+    relaxation_applied: bool = False
 
 
 class GraphState(TypedDict):
@@ -109,6 +110,7 @@ class GraphState(TypedDict):
 
     match_count: int
     agent_trace: List[Dict[str, Any]]
+    relaxation_applied: bool  # Whether relaxation was applied
     
     # Config
     llm_limit: Optional[int]
@@ -318,6 +320,7 @@ class GraphOrchestratorAgent(BaseAgent):
                 for s in step_definitions
             ],
             "relax_constraints": False,
+            "relaxation_applied": False,
             "last_retry_reason": None,
             "sql_history": [],
         }
@@ -380,6 +383,7 @@ class GraphOrchestratorAgent(BaseAgent):
             match_count=final_state["match_count"],
             broker_summary=final_state.get("broker_summary", ""),
             agent_trace=final_state.get("agent_trace", []),
+            relaxation_applied=final_state.get("relaxation_applied", False) or final_state.get("relax_constraints", False),
         )
 
     def _log_execution(self, state: GraphState, agent_name: str, result: Any, duration_ms: float, mode: str = "filtering", global_stats: Dict[str, Any] = None):
@@ -585,11 +589,14 @@ class GraphOrchestratorAgent(BaseAgent):
                 input_data = result.raw_text
                 output_data = "Nessuna proposta applicata"
         elif agent_name == "ranking-agent":
-            # For ranking agent, prefer the ordered ranking if present, otherwise weights
+            # For ranking agent, include both ranking and weights for transparency
+            output_data = {}
             if hasattr(result, 'ranking') and result.ranking:
-                output_data = {"ranking": result.ranking.ranking}
-            elif hasattr(result, 'weights'):
-                output_data = result.weights.model_dump()
+                output_data["ranking"] = [r.model_dump() for r in result.ranking.ranking] if hasattr(result.ranking.ranking[0], 'model_dump') else result.ranking.ranking
+            if hasattr(result, 'weights'):
+                output_data["weights"] = result.weights.model_dump()
+            if hasattr(result, 'reasoning'):
+                output_data["reasoning"] = result.reasoning
         elif agent_name == "poi-agent":
             # For POI agent (filtering), show requirements
             if hasattr(result, 'requisiti'):
@@ -711,7 +718,18 @@ class GraphOrchestratorAgent(BaseAgent):
                             },
                         }
                 else:
-                    # Categorie - Semplificato: mostra direttamente il count per ogni valore
+                    # Categorie - Gestione smart per evitare prompt troppo grandi
+                    unique_count = df[col].nunique()
+                    
+                    if unique_count > 100:
+                        # Troppi valori unici (es. IDs, particelle), mostriamo solo statistiche aggregate
+                        stats[col] = {
+                            "unique_values_count": int(unique_count),
+                            "top_10_values": df[col].value_counts().head(10).to_dict(),
+                            "note": f"Colonna con alta cardinalità ({unique_count} valori). Mostrati solo i primi 10 per brevità."
+                        }
+                        continue
+
                     counts = df[col].value_counts().to_dict()
                     
                     real_values = []
@@ -726,7 +744,11 @@ class GraphOrchestratorAgent(BaseAgent):
                             if str(val) not in stats[col]:
                                 stats[col][str(val)] = int(count)
                     else:
-                        stats[col] = {str(k): int(v) for k, v in counts.items()}
+                        # Limita a primi 50 valori se non ci sono metadati
+                        top_items = sorted(counts.items(), key=lambda x: x[1], reverse=True)[:50]
+                        stats[col] = {str(k): int(v) for k, v in top_items}
+                        if len(counts) > 50:
+                            stats[col]["_other_count"] = int(sum(v for k, v in list(counts.items())[50:]))
 
             return stats
         except Exception as e:
@@ -754,7 +776,6 @@ class GraphOrchestratorAgent(BaseAgent):
             "classe_energetica_ape",
             "tipologia_bene_immobile",
             "epoca_costruzione",
-            "natura_del_bene",
             "finalita",
         ]
 
@@ -1697,6 +1718,7 @@ class GraphOrchestratorAgent(BaseAgent):
         return {
             "retry_count": state["retry_count"] + 1, 
             "relax_constraints": relax,
+            "relaxation_applied": relax,
             "last_retry_reason": reason
         }
 
@@ -1938,25 +1960,25 @@ class GraphOrchestratorAgent(BaseAgent):
         # 2. Property Technical
         if state.get("property_technical_result"):
             t_data = safe_extract_json(state["property_technical_result"].raw_text, schema=PropertyTechnicalResponse)
-            if t_data and t_data.typologies:
+            if t_data and (t_data.typologies or t_data.requisiti):
                 really_found_agents.append("property_technical")
                 
         # 3. APE
         if state.get("ape_result"):
             a_data = safe_extract_json(state["ape_result"].raw_text, schema=ApeResponse)
-            if a_data and a_data.found:
+            if a_data and (a_data.found or (a_data.requisiti and len(a_data.requisiti) > 0)):
                 really_found_agents.append("ape")
                 
         # 4. POI
         if state.get("poi_result"):
             p_data = safe_extract_json(state["poi_result"].raw_text)
-            if p_data and p_data.get("found"):
+            if p_data and (p_data.get("found") or (p_data.get("requisiti") and len(p_data["requisiti"]) > 0)):
                 really_found_agents.append("poi")
                 
         # 5. Normative
         if state.get("normative_result"):
             n_data = safe_extract_json(state["normative_result"].raw_text, schema=NormativeResponse)
-            if n_data and n_data.found:
+            if n_data and (n_data.found or (n_data.requisiti and len(n_data.requisiti) > 0)):
                 really_found_agents.append("normative")
 
         logger.info(f"Agents with found requirements in filtering phase: {really_found_agents}")
@@ -2022,7 +2044,9 @@ class GraphOrchestratorAgent(BaseAgent):
             res = state.get("property_technical_result")
             if res:
                 data = safe_extract_json(res.raw_text, schema=PropertyTechnicalResponse)
-                if data and data.typologies:
+                if data and (data.typologies or data.requisiti):
+                    # For ranking, typologies is the main driver, but we run it anyway if requisiti exists 
+                    # (agent handles empty typologies by giving 100 to matches)
                     tmp = self.property_technical_agent.run(mode="ranking", df=df.copy(), ranked_typologies=data.typologies)
                     return tmp, (time.time() - start_t) * 1000
             tmp = df.copy()
@@ -2208,8 +2232,12 @@ class GraphOrchestratorAgent(BaseAgent):
             "",
         )
 
-        # Evaluation one property at a time
-        batch_size = 1
+        # Evaluation batching
+        # Increased batch size for faster models to reduce sequential overhead
+        current_model = settings.OPENAI_MODEL_FAST
+        is_heavy_local = "oss" in current_model.lower() or "120b" in current_model.lower()
+        batch_size = 1 if is_heavy_local else 5
+        
         batches = [
             eval_input_df[i : i + batch_size]
             for i in range(0, len(eval_input_df), batch_size)
@@ -2563,10 +2591,14 @@ class GraphOrchestratorAgent(BaseAgent):
                 map_df["is_evaluated"] = map_df["id"].isin(valutazioni_df["id"])
                 map_df["is_selected_by_llm"] = map_df["final_ranking_score"] >= 60
             else:
-                map_df["final_ranking_score"] = 0
+                # Caso in cui eval_results esiste ma valutazioni_df è vuoto
+                # (es. errore nel parsing dei singoli item)
+                if "final_ranking_score" not in map_df.columns:
+                    map_df["final_ranking_score"] = 0
                 map_df["is_evaluated"] = False
                 map_df["is_selected_by_llm"] = False
         else:
+            # Caso in cui NON sono state proprio effettuate valutazioni (classico fallback)
             eval_ids = (
                 enriched_data.head(llm_cap)["id"]
                 if "id" in enriched_data.columns and llm_cap > 0
@@ -2576,7 +2608,10 @@ class GraphOrchestratorAgent(BaseAgent):
                 map_df["is_evaluated"] = map_df["id"].isin(eval_ids)
             else:
                 map_df["is_evaluated"] = False
-            map_df["final_ranking_score"] = 0
+            
+            # CRITICAL: Preserve existing final_ranking_score if it exists (from ranking_agent)
+            if "final_ranking_score" not in map_df.columns:
+                map_df["final_ranking_score"] = 0
             map_df["is_selected_by_llm"] = False
 
         # Normalizza flag booleani
