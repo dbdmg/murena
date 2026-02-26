@@ -2029,10 +2029,12 @@ class GraphOrchestratorAgent(BaseAgent):
                 # This avoids running ranking mode for agents with 0 weight
                 active_agents = active_and_found
             else:
-                logger.warning("All active agents returned no requirements. Keeping original weights as fallback.")
-                # If everything is excluded, we keep original weights as fallback to avoid 0.0 scores everywhere
-                # This might happen for very vague queries where every agent is a 'maybe'
-                pass
+                logger.warning("All active agents returned no requirements. Forcing all weights to 0.0 as requested.")
+                # AZZERAMENTO TOTALE: se nessun agente produce risultati di filtro, i pesi di ranking
+                # per il calcolo devono essere portati matematicamente a 0.0
+                zero_weights_dict = {a: 0.0 for a in ["location", "property_technical", "ape", "poi", "normative"]}
+                weights = RankingWeights(**zero_weights_dict)
+                active_agents = []  # Nessun agente deve girare in modalità ranking part-2
 
         # Compute global statistics for all relevant columns for ranking
         # This allows agents to normalize scores against the entire dataset instead of the current subset.

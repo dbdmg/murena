@@ -6,13 +6,7 @@ import requests
 import re
 from typing import Optional, List
 from tqdm import tqdm
-
-# Attempt to import transformers for local execution
-try:
-    from transformers import AutoModelForCausalLM, AutoTokenizer
-    TRANSFORMERS_AVAILABLE = True
-except ImportError:
-    TRANSFORMERS_AVAILABLE = False
+import concurrent.futures
 
 # File Paths
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -24,8 +18,8 @@ OUTPUT_DIR = os.path.join(BASE_DIR, "arctic_results")
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 OUTPUT_FILE = os.path.join(OUTPUT_DIR, "arctic_sql_results.csv")
 
-MODEL_ID = "Snowflake/Arctic-Text2SQL-R1-7B"
-API_URL = f"https://api-inference.huggingface.co/models/{MODEL_ID}"
+MODEL_ID = "a-kore/Arctic-Text2SQL-R1-7B"
+OLLAMA_URL = "http://localhost:11434/api/generate"
 
 def load_metadata(path: str) -> str:
     """Loads and formats metadata into a SQL-friendly schema string."""
@@ -110,70 +104,34 @@ def extract_sql(response: str) -> str:
     return content.strip()
 
 class ArcticInference:
-    def __init__(self, mode="api", token=None):
+    def __init__(self, mode="ollama", token=None):
         self.mode = mode
-        self.token = token
-        self.model = None
-        self.tokenizer = None
-        self.device = "cpu"
-        
-        if mode == "local":
-            if not TRANSFORMERS_AVAILABLE:
-                raise ImportError("Transformers library not found. Run 'pip install transformers torch' or use mode='api'")
-            
-            print(f"Loading model {MODEL_ID} locally...")
-            if torch.backends.mps.is_available():
-                self.device = "mps"
-            elif torch.cuda.is_available():
-                self.device = "cuda"
-            
-            print(f"Using device: {self.device}")
-            self.tokenizer = AutoTokenizer.from_pretrained(MODEL_ID)
-            self.model = AutoModelForCausalLM.from_pretrained(
-                MODEL_ID,
-                torch_dtype=torch.float16 if self.device != "cpu" else torch.float32,
-                trust_remote_code=True
-            ).to(self.device)
 
     def generate(self, prompt: str) -> str:
-        if self.mode == "api":
-            headers = {"Authorization": f"Bearer {self.token}"} if self.token else {}
-            payload = {
-                "inputs": prompt,
-                "parameters": {"max_new_tokens": 512, "temperature": 0.1, "return_full_text": False}
+        payload = {
+            "model": MODEL_ID,
+            "prompt": prompt,
+            "stream": False,
+            "options": {
+                "temperature": 0.1,
+                "num_predict": 1024
             }
-            response = requests.post(API_URL, headers=headers, json=payload)
-            if response.status_code != 200:
-                return f"Error API: {response.text}"
-            
+        }
+        try:
+            response = requests.post(OLLAMA_URL, json=payload)
+            response.raise_for_status()
             result = response.json()
-            if isinstance(result, list):
-                return result[0].get("generated_text", "")
-            return str(result)
-        else:
-            inputs = self.tokenizer(prompt, return_tensors="pt").to(self.device)
-            with torch.no_grad():
-                outputs = self.model.generate(
-                    **inputs,
-                    max_new_tokens=1024,
-                    do_sample=False,
-                    eos_token_id=self.tokenizer.eos_token_id
-                )
-            decoded = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
-            # Remove the prompt prefix
-            return decoded[len(prompt)-len("<think>\n"):]
+            return result.get("response", "")
+        except requests.exceptions.RequestException as e:
+            return f"Error API: {e}"
 
 def main():
     # CONFIGURATION
-    # Set to 'api' to use Hugging Face Inference API (needs HF_TOKEN)
-    # Set to 'local' to use local resources (needs ~8-15GB VRAM/RAM)
-    MODE = os.getenv("ARCTIC_MODE", "api") 
-    HF_TOKEN = os.getenv("HF_TOKEN")
-    
-    if MODE == "api" and not HF_TOKEN:
-        print("Warning: HF_TOKEN not found. API might fail if not logged in.")
+    # Run using local Ollama model
+    MODE = "ollama"
+    HF_TOKEN = None
 
-    print(f"Running in {MODE} mode.")
+    print(f"Running in {MODE} mode using model {MODEL_ID}.")
     
     print(f"Loading metadata from {METADATA_FILE}...")
     schema = load_metadata(METADATA_FILE)
@@ -197,21 +155,28 @@ def main():
     results = []
     print(f"Processing {len(queries)} queries...")
     
-    for query in tqdm(queries):
+    def process_query(query):
         prompt = format_prompt(query, schema)
         raw_output = engine.generate(prompt)
-        
         sql = extract_sql(raw_output)
-        
-        results.append({
+        return {
             "query": query,
             "sql": sql,
             "raw_reasoning": raw_output.split("</think>")[0].replace("<think>", "").strip() if "<think>" in raw_output else "N/A"
-        })
-        
-        # Backup save
-        if len(results) % 5 == 0:
-            pd.DataFrame(results).to_csv(OUTPUT_FILE, index=False)
+        }
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+        future_to_query = {executor.submit(process_query, q): q for q in queries}
+        for i, future in enumerate(tqdm(concurrent.futures.as_completed(future_to_query), total=len(queries)), 1):
+            try:
+                res = future.result()
+                results.append(res)
+            except Exception as exc:
+                print(f"Query generated an exception: {exc}")
+                
+            # Backup save
+            if i % 5 == 0:
+                pd.DataFrame(results).to_csv(OUTPUT_FILE, index=False)
 
     pd.DataFrame(results).to_csv(OUTPUT_FILE, index=False)
     print(f"\n✅ Execution complete! Results saved to {OUTPUT_FILE}")

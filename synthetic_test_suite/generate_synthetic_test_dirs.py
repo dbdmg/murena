@@ -602,7 +602,7 @@ async def main():
 
         await preload_data()
         # limit concurrency to avoid overloading (1 for local models, 5 for cloud)
-        concurrency = 1 if args.model == "open-weights" else 5
+        concurrency = 5
         print(f"[CONFIG] Setting concurrency to: {concurrency}")
         semaphore = asyncio.Semaphore(concurrency)
         csv_lock = asyncio.Lock()
@@ -708,7 +708,7 @@ async def main():
                                 effective_weights[max_agent] = round(effective_weights[max_agent] + diff, 2)
                         else:
                             # Fallback if nothing was found or redistribution failed
-                            effective_weights = initial_weights
+                            effective_weights = {a: 0.0 for a in initial_weights.keys()}
 
                         ranking_logic = {
                             "original_weights": initial_weights,
@@ -764,7 +764,7 @@ async def main():
         
         await preload_data()
         # limit concurrency to avoid overloading (1 for local models, 5 for cloud)
-        concurrency = 1 if args.model == "open-weights" else 5
+        concurrency = 5
         semaphore = asyncio.Semaphore(concurrency)
         
         async def process_query(idx, query):
@@ -986,7 +986,7 @@ async def main():
                         max_agent = max(active_and_found, key=lambda a: effective_weights[a])
                         effective_weights[max_agent] = round(effective_weights[max_agent] + diff, 2)
                 else:
-                    effective_weights = initial_weights
+                    effective_weights = {a: 0.0 for a in initial_weights.keys()}
 
                 ranking_logic = {
                     "original_weights": initial_weights,

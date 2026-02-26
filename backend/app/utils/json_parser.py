@@ -78,14 +78,19 @@ def safe_extract_json(text: str, schema: Optional[Type[T]] = None) -> Any:
 
     # 3c. Fallback estremo: ast.literal_eval (se è un dizionario/lista Python valido)
     if not data or (not isinstance(data, (dict, list))):
-        try:
-            # literal_eval è sicuro (non esegue codice) e ottimo per {'a': 'b'}
-            data = ast.literal_eval(cleaned_text)
-        except Exception:
-            pass
+        if cleaned_text and cleaned_text[0] in ('{', '['):
+            try:
+                # literal_eval è sicuro (non esegue codice) e ottimo per {'a': 'b'}
+                data = ast.literal_eval(cleaned_text)
+            except Exception:
+                pass
             
     if not data:
-        logger.error(f"Fallimento totale nel parsing JSON di: {cleaned_text[:100]}...")
+        if cleaned_text and cleaned_text[0] in ('{', '['):
+            logger.error(f"Fallimento totale nel parsing JSON di: {cleaned_text[:100]}...")
+        else:
+            # Non è un JSON, potrebbe essere una query SQL in chiaro o un testo discorsivo
+            logger.debug(f"Testo non in formato JSON: {cleaned_text[:100]}...")
         return None
 
     # 4. Validazione Pydantic (se schema fornito)
