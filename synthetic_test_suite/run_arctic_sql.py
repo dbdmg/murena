@@ -1,9 +1,11 @@
 import os
 import json
 import pandas as pd
+import numpy as np
 import torch
 import requests
 import re
+import duckdb
 from typing import Optional, List
 from tqdm import tqdm
 import concurrent.futures
@@ -159,9 +161,32 @@ def main():
         prompt = format_prompt(query, schema)
         raw_output = engine.generate(prompt)
         sql = extract_sql(raw_output)
+        
+        num_rows = -1
+        try:
+            def haversine_km(lat1, lon1, lat2, lon2):
+                R = 6371  # Earth radius in km
+                lat1, lon1, lat2, lon2 = map(
+                    np.radians, [float(lat1), float(lon1), float(lat2), float(lon2)]
+                )
+                dlon, dlat = lon2 - lon1, lat2 - lat1
+                a = np.sin(dlat / 2) ** 2 + np.cos(lat1) * np.cos(lat2) * np.sin(dlon / 2) ** 2
+                c = 2 * np.arctan2(np.sqrt(a), np.sqrt(1 - a))
+                return R * c
+
+            dataset_path = os.path.abspath(os.path.join(BASE_DIR, "..", "backend", "data", "FOLDER_META", "immobili_with_meta_and_ape_full_cleaned.parquet"))
+            with duckdb.connect(database=":memory:") as con:
+                con.create_function("haversine_km", haversine_km, return_type="FLOAT")
+                con.execute(f"CREATE VIEW IMMOBILI AS SELECT * FROM '{dataset_path}'")
+                res = con.execute(sql).fetchdf()
+                num_rows = len(res)
+        except Exception as e:
+            num_rows = -1
+
         return {
             "query": query,
             "sql": sql,
+            "num_rows": num_rows,
             "raw_reasoning": raw_output.split("</think>")[0].replace("<think>", "").strip() if "<think>" in raw_output else "N/A"
         }
 
