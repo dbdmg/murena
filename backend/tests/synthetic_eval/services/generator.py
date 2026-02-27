@@ -221,7 +221,7 @@ class SyntheticDataGenerator:
         distances_file = self.output_dir / f"distances_synthetic_{self.use_case}_{timestamp}.csv"
         df_distances.to_csv(distances_file, index=False)
         
-        print(f"✓ Dataset generato:")
+        print(f" Dataset generato:")
         print(f"  - Immobili: {immobili_file}")
         print(f"  - POI: {poi_file}")
         print(f"  - Distanze: {distances_file}")

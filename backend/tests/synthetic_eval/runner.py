@@ -49,9 +49,9 @@ def run_all_use_cases(num_immobili: int, num_poi: int, num_runs: int) -> bool:
         success = tester.run_full_test()
         
         if success:
-            print(f"✅ Use Case {use_case} completato con successo")
+            print(f" Use Case {use_case} completato con successo")
         else:
-            print(f"❌ Use Case {use_case} FALLITO")
+            print(f" Use Case {use_case} FALLITO")
     
     return True
 

@@ -204,7 +204,7 @@ def main():
                 pd.DataFrame(results).to_csv(OUTPUT_FILE, index=False)
 
     pd.DataFrame(results).to_csv(OUTPUT_FILE, index=False)
-    print(f"\n✅ Execution complete! Results saved to {OUTPUT_FILE}")
+    print(f"\n Execution complete! Results saved to {OUTPUT_FILE}")
 
 if __name__ == "__main__":
     main()

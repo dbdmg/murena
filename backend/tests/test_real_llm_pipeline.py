@@ -1,8 +1,8 @@
 """
 Test per la pipeline agentica REALE con modelli LLM veri.
 
-⚠️ ATTENZIONE: Questi test consumano token reali!
-⚠️ NON vengono eseguiti automaticamente nella suite pytest normale.
+ ATTENZIONE: Questi test consumano token reali!
+ NON vengono eseguiti automaticamente nella suite pytest normale.
 
 Per eseguirli, usa UNA delle seguenti opzioni:
 
@@ -73,7 +73,7 @@ real_llm_test = pytest.mark.real_llm
 # Skip automatico se il flag non è attivo
 skip_if_no_real_llm = pytest.mark.skipif(
     not should_run_real_llm_tests(),
-    reason="⏭️ Test LLM reale SKIPPATO (usa RUN_REAL_LLM_TESTS=1 per abilitare)",
+    reason=" Test LLM reale SKIPPATO (usa RUN_REAL_LLM_TESTS=1 per abilitare)",
 )
 
 
@@ -82,21 +82,21 @@ skip_if_no_real_llm = pytest.mark.skipif(
 def test_api_keys_configured():
     """Verifica che le API keys siano configurate."""
     print("\n" + "=" * 60)
-    print("🔑 Verifica API Keys")
+    print(" Verifica API Keys")
     print("=" * 60)
 
     gemini_key = os.getenv("GEMINI_KEY")
     openai_key = os.getenv("OPENAI_API_KEY")
 
     assert gemini_key, "GEMINI_KEY non configurata nel .env"
-    print(f"✅ GEMINI_KEY: {gemini_key[:10]}...{gemini_key[-4:]}")
+    print(f" GEMINI_KEY: {gemini_key[:10]}...{gemini_key[-4:]}")
 
     # OpenAI è opzionale per alcuni agenti
     if openai_key:
-        print(f"✅ OPENAI_API_KEY: {openai_key[:10]}...{openai_key[-4:]}")
+        print(f" OPENAI_API_KEY: {openai_key[:10]}...{openai_key[-4:]}")
     else:
         print(
-            "⚠️ OPENAI_API_KEY non configurata (alcuni agenti potrebbero non funzionare)"
+            " OPENAI_API_KEY non configurata (alcuni agenti potrebbero non funzionare)"
         )
 
 
@@ -105,19 +105,19 @@ def test_api_keys_configured():
 def test_langchain_client_gemini():
     """Verifica che il client Gemini funzioni."""
     print("\n" + "=" * 60)
-    print("🤖 Test LangChain Client")
+    print(" Test LangChain Client")
     print("=" * 60)
 
     from app.services.llm.langchain_client import get_llm
 
     llm = get_llm()
     assert llm is not None, "LLM client è None"
-    print(f"✅ LLM client inizializzato: {type(llm).__name__}")
+    print(f" LLM client inizializzato: {type(llm).__name__}")
 
     # Test semplice invocazione
     response = llm.invoke("Rispondi solo con 'OK' senza altro testo.")
     content = response.content if hasattr(response, "content") else str(response)
-    print(f"✅ Risposta ricevuta: {content[:50]}...")
+    print(f" Risposta ricevuta: {content[:50]}...")
     assert content, "Risposta vuota dal modello"
 
 
@@ -126,7 +126,7 @@ def test_langchain_client_gemini():
 def test_graph_agent_initialization():
     """Verifica che il GraphOrchestratorAgent si inizializzi correttamente."""
     print("\n" + "=" * 60)
-    print("🧠 Test Inizializzazione GraphOrchestratorAgent")
+    print(" Test Inizializzazione GraphOrchestratorAgent")
     print("=" * 60)
 
     from app.services.llm.agents.graph_agent import GraphOrchestratorAgent
@@ -137,7 +137,7 @@ def test_graph_agent_initialization():
         execute_sql_fn=execute_sql_query,
     )
     assert agent is not None, "Agent è None"
-    print(f"✅ GraphOrchestratorAgent inizializzato")
+    print(f" GraphOrchestratorAgent inizializzato")
     print(f"   Mode: {agent.analysis_mode}")
 
 
@@ -149,7 +149,7 @@ def test_full_analysis_pipeline():
     NOTA: Questo test consuma token significativi e potrebbe richiedere 30-60 secondi.
     """
     print("\n" + "=" * 60)
-    print("🚀 Test Pipeline Completa di Analisi")
+    print(" Test Pipeline Completa di Analisi")
     print("=" * 60)
 
     from app.services.analysis_service import AnalysisService
@@ -162,9 +162,9 @@ def test_full_analysis_pipeline():
     # Query semplice per test veloce
     test_query = "Appartamenti a Torino centro con 2 camere"
 
-    print(f"📝 Query: {test_query}")
-    print(f"🆔 Run ID: {run_id}")
-    print("⏳ Esecuzione in corso (può richiedere 30-60 secondi)...")
+    print(f" Query: {test_query}")
+    print(f" Run ID: {run_id}")
+    print(" Esecuzione in corso (può richiedere 30-60 secondi)...")
 
     start_time = datetime.now()
 
@@ -182,7 +182,7 @@ def test_full_analysis_pipeline():
 
     elapsed = (datetime.now() - start_time).total_seconds()
 
-    print(f"\n✅ Analisi completata in {elapsed:.1f} secondi")
+    print(f"\n Analisi completata in {elapsed:.1f} secondi")
     print(f"   Status: {results.get('status')}")
     print(f"   Buildings trovati: {len(results.get('buildings', []))}")
     print(f"   Location: {results.get('location')}")
@@ -206,9 +206,9 @@ def test_full_analysis_pipeline():
     location = results.get("location")
     gemini_responses = results.get("gemini_responses", {})
 
-    print("\n📊 Dettagli Risultati:")
+    print("\n Dettagli Risultati:")
     print(f"   ├─ Buildings: {len(buildings)}")
-    print(f"   ├─ Location data: {'✅' if location else '❌'}")
+    print(f"   ├─ Location data: {'' if location else ''}")
     print(f"   ├─ Gemini responses: {len(gemini_responses)} steps")
     print(f"   └─ Filters applied: {results.get('filters_applied', {})}")
 
@@ -216,7 +216,7 @@ def test_full_analysis_pipeline():
     has_results = len(buildings) > 0 or location or len(gemini_responses) > 0
     assert has_results, "Nessun risultato significativo dalla pipeline"
 
-    print("\n✅ Pipeline agentica reale funzionante!")
+    print("\n Pipeline agentica reale funzionante!")
 
 
 @real_llm_test
@@ -224,7 +224,7 @@ def test_full_analysis_pipeline():
 def test_single_agent_location():
     """Test singolo del Location Agent."""
     print("\n" + "=" * 60)
-    print("📍 Test Location Agent")
+    print(" Test Location Agent")
     print("=" * 60)
 
     from app.services.llm.agents.location_agent import LocationAgent
@@ -233,7 +233,7 @@ def test_single_agent_location():
     # NOTA: run() richiede query come keyword argument (def run(self, *, query))
     result = agent.run(query="Appartamenti vicino al Politecnico di Torino")
 
-    print(f"✅ Location Agent response:")
+    print(f" Location Agent response:")
     print(
         f"   Raw: {result.raw_text[:100]}..."
         if len(result.raw_text) > 100
@@ -261,15 +261,15 @@ def test_single_agent_location():
         found_torino
     ), f"Torino/Politecnico non identificato nei places: {result.places}"
 
-    print(f"✅ Location correttamente identificata: {result.places[0]}")
+    print(f" Location correttamente identificata: {result.places[0]}")
 
 
 def run_all_tests():
     """Esegue tutti i test in sequenza quando chiamato direttamente."""
     print("\n" + "=" * 60)
-    print("🧪 TEST PIPELINE AGENTICA REALE")
+    print(" TEST PIPELINE AGENTICA REALE")
     print("=" * 60)
-    print("⚠️  ATTENZIONE: Questi test consumano token reali!")
+    print("  ATTENZIONE: Questi test consumano token reali!")
     print("=" * 60)
 
     # Forza il flag a True quando eseguito come main
@@ -290,10 +290,10 @@ def run_all_tests():
         try:
             test_fn()
             passed += 1
-            print(f"\n✅ {name}: PASSED")
+            print(f"\n {name}: PASSED")
         except Exception as e:
             failed += 1
-            print(f"\n❌ {name}: FAILED - {e}")
+            print(f"\n {name}: FAILED - {e}")
             import traceback
 
             traceback.print_exc()
@@ -303,11 +303,11 @@ def run_all_tests():
     print("=" * 60)
 
     if failed > 0:
-        print("❌ Alcuni test sono falliti!")
+        print(" Alcuni test sono falliti!")
         sys.exit(1)
     else:
-        print("✅ Tutti i test passati!")
-        print("\n🎉 La pipeline agentica reale funziona correttamente!")
+        print(" Tutti i test passati!")
+        print("\n La pipeline agentica reale funziona correttamente!")
         sys.exit(0)
 
 

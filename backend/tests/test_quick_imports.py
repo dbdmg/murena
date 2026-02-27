@@ -41,10 +41,10 @@ if __name__ == "__main__":
         print(f"\nTesting: {description}")
         try:
             __import__(module_name)
-            print(f"✓ {description}")
+            print(f" {description}")
             result = True
         except Exception as e:
-            print(f"✗ {description}")
+            print(f" {description}")
             print(f"  Error: {e}")
             traceback.print_exc()
             result = False
@@ -57,14 +57,14 @@ if __name__ == "__main__":
     total = len(results)
 
     for description, result in results:
-        status = "✓" if result else "✗"
+        status = "" if result else ""
         print(f"{status} {description}")
 
     print(f"\nPassed: {passed}/{total}")
 
     if passed == total:
-        print("\n🎉 All critical imports successful!")
+        print("\n All critical imports successful!")
         sys.exit(0)
     else:
-        print(f"\n⚠️  {total - passed} import(s) failed")
+        print(f"\n  {total - passed} import(s) failed")
         sys.exit(1)

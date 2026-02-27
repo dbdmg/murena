@@ -61,9 +61,9 @@ class RankingEvaluator:
         
         start_time = time.time()
         
-        print(f"🔍 Running query with session_id: {session_id}")
+        print(f" Running query with session_id: {session_id}")
         if self.agent_logger.current_log_file:
-            print(f"📝 Agent logs: {self.agent_logger.current_log_file}")
+            print(f" Agent logs: {self.agent_logger.current_log_file}")
         
         try:
             self._setup_agent_logging_hooks()
@@ -192,10 +192,10 @@ class RankingEvaluator:
                     self.agent_logger
                 )
             
-            print(f"✓ Agent logging hooks attivati per {len(agent_classes)} agenti")
+            print(f" Agent logging hooks attivati per {len(agent_classes)} agenti")
             
         except Exception as e:
-            print(f"⚠️ Impossibile configurare agent hooks: {e}")
+            print(f" Impossibile configurare agent hooks: {e}")
             import traceback
             traceback.print_exc()
     
@@ -204,7 +204,7 @@ class RankingEvaluator:
         if hasattr(self, '_original_run_methods'):
             for agent_class, original_run in self._original_run_methods.items():
                 agent_class.run = original_run
-            print(f"✓ Agent hooks ripristinati")
+            print(f" Agent hooks ripristinati")
     
     def calculate_ndcg(self, predicted_ids: List[str], expected_items: List[Dict]) -> float:
         """Calcola NDCG."""
@@ -276,7 +276,7 @@ class RankingEvaluator:
                 if eid in predicted_ids:
                     position_deltas[eid] = predicted_ids.index(eid) + 1 - item["rank"]
             
-            print(f"\\n📊 Metrics:")
+            print(f"\\n Metrics:")
             print(f"  Matched: {len(matched_ids)}/{len(expected_ids)}")
             print(f"  Recall@{self.k}: {recall:.2%}")
             print(f"  NDCG@{self.k}: {ndcg:.3f}")
@@ -321,7 +321,7 @@ class RankingEvaluator:
                 flush_langfuse()
                 
                 if error_msg:
-                    print(f"❌ Error")
+                    print(f" Error")
                     continue
                 
                 matched_ids = [pid for pid in predicted_ids if pid in expected_ids]
@@ -330,7 +330,7 @@ class RankingEvaluator:
                 ndcg = self.calculate_ndcg(predicted_ids, expected_items)
                 mrr = self.calculate_mrr(predicted_ids, expected_ids)
                 
-                print(f"✓ {len(matched_ids)}/{len(expected_ids)} matched ({latency_ms:.0f}ms)")
+                print(f" {len(matched_ids)}/{len(expected_ids)} matched ({latency_ms:.0f}ms)")
                 
                 all_results.append((predicted_ids, latency_ms))
                 all_metrics.append({
@@ -345,7 +345,7 @@ class RankingEvaluator:
                 })
             
             if len(all_results) < 2:
-                print(f"⚠️  Troppo pochi run successo")
+                print(f"  Troppo pochi run successo")
                 return RankingMetrics(
                     prompt_id=prompt_id, query=query, predicted_count=0, expected_count=len(expected_ids),
                     matched_count=0, recall_at_k=0.0, precision_at_k=0.0, f1_at_k=0.0, ndcg_at_k=0.0,
@@ -382,14 +382,14 @@ class RankingEvaluator:
             avg_ndcg = np.mean([m["ndcg"] for m in all_metrics])
             avg_mrr = np.mean([m["mrr"] for m in all_metrics])
             
-            print(f"\\n📊 Count Metrics:")
+            print(f"\\n Count Metrics:")
             print(f"  Avg Matched: {avg_matched:.2f} ± {std_matched:.2f}")
             print(f"  CV: {cv:.3f}", end="")
-            if cv < 0.1: print(" ✅ EXCELLENT")
-            elif cv < 0.2: print(" ✓ GOOD")
-            else: print(" ⚠️ MODERATE")
+            if cv < 0.1: print("  EXCELLENT")
+            elif cv < 0.2: print("  GOOD")
+            else: print("  MODERATE")
             
-            print(f"\\n🔗 Jaccard Similarity:")
+            print(f"\\n Jaccard Similarity:")
             print(f"  Avg: {js_avg:.3f}")
             
             consistency = ConsistencyMetrics(

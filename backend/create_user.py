@@ -60,11 +60,11 @@ def main():
             username=username, password_hash=hashed_password, email=email
         )
 
-        print(f"✅ Success! User created with ID: {user.id}")
+        print(f" Success! User created with ID: {user.id}")
         print(f"You can now log in as '{username}'.")
 
     except Exception as e:
-        print(f"❌ An error occurred: {e}")
+        print(f" An error occurred: {e}")
     finally:
         db.close()
 

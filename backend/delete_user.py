@@ -58,10 +58,10 @@ def main():
 
         # Delete user
         repo.delete(user.id)
-        print(f"\n✅ User '{username}' has been deleted.")
+        print(f"\n User '{username}' has been deleted.")
 
     except Exception as e:
-        print(f"❌ An error occurred: {e}")
+        print(f" An error occurred: {e}")
     finally:
         db.close()
 

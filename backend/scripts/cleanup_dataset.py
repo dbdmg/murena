@@ -168,30 +168,30 @@ def print_report(stats: dict):
     print("DATASET ANALYSIS REPORT")
     print("=" * 80)
 
-    print(f"\n📊 Overview:")
+    print(f"\n Overview:")
     print(f"   Total Rows: {stats['total_rows']:,}")
     print(f"   Total Columns: {stats['total_columns']}")
 
-    print(f"\n✅ USED Columns ({len(stats['used_columns'])}):")
+    print(f"\n USED Columns ({len(stats['used_columns'])}):")
     for col in sorted(stats["used_columns"]):
         print(f"   - {col}")
 
     print(
-        f"\n🗑️  UNUSED Columns (candidates for removal) ({len(stats['unused_columns'])}):"
+        f"\n  UNUSED Columns (candidates for removal) ({len(stats['unused_columns'])}):"
     )
     for col in sorted(stats["unused_columns"]):
         print(f"   - {col}")
 
     if stats["unknown_columns"]:
         print(
-            f"\n⚠️  UNKNOWN Columns (not in either list) ({len(stats['unknown_columns'])}):"
+            f"\n  UNKNOWN Columns (not in either list) ({len(stats['unknown_columns'])}):"
         )
         for col in sorted(stats["unknown_columns"]):
             print(f"   - {col}")
 
-    print(f"\n📈 Score Columns Analysis:")
+    print(f"\n Score Columns Analysis:")
     for col, info in stats["score_analysis"].items():
-        status = "✅" if info["scale_valid"] else "❌"
+        status = "" if info["scale_valid"] else ""
         print(f"   {status} {col}:")
         print(f"      Range: {info['min']} - {info['max']}")
         print(f"      Mean: {info['mean']:.2f}" if info["mean"] else "      Mean: N/A")
@@ -218,10 +218,10 @@ def main():
     args = parser.parse_args()
 
     if not os.path.exists(DATASET_PATH):
-        print(f"❌ Dataset not found: {DATASET_PATH}")
+        print(f" Dataset not found: {DATASET_PATH}")
         sys.exit(1)
 
-    print(f"📂 Loading dataset: {DATASET_PATH}")
+    print(f" Loading dataset: {DATASET_PATH}")
     df = pd.read_parquet(DATASET_PATH)
 
     # Analyze
@@ -229,16 +229,16 @@ def main():
     print_report(stats)
 
     if args.dry_run:
-        print("\n🔍 DRY RUN - No changes made")
+        print("\n DRY RUN - No changes made")
         return
 
     # Columns to remove
     columns_to_drop = list(COLUMNS_UNUSED)
     if not columns_to_drop:
-        print("\n✅ No columns to remove")
+        print("\n No columns to remove")
         return
 
-    print(f"\n🗑️  Will remove {len(columns_to_drop)} columns:")
+    print(f"\n  Will remove {len(columns_to_drop)} columns:")
     for col in columns_to_drop:
         print(f"   - {col}")
 
@@ -251,14 +251,14 @@ def main():
     # Backup
     if args.backup:
         backup_path = create_backup(DATASET_PATH, BACKUP_DIR)
-        print(f"\n💾 Backup created: {backup_path}")
+        print(f"\n Backup created: {backup_path}")
 
     # Clean
     df_clean = cleanup_dataset(df, columns_to_drop)
 
     # Save
     df_clean.to_parquet(DATASET_PATH, index=False)
-    print(f"\n✅ Dataset cleaned and saved: {DATASET_PATH}")
+    print(f"\n Dataset cleaned and saved: {DATASET_PATH}")
     print(f"   Columns removed: {len(columns_to_drop)}")
     print(f"   Final column count: {len(df_clean.columns)}")
 

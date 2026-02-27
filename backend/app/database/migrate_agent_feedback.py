@@ -41,14 +41,14 @@ def run_migration():
             conn.commit()
             
             if applied:
-                logger.info(f"✓ Migration completed! Added: {', '.join(applied)}")
+                logger.info(f" Migration completed! Added: {', '.join(applied)}")
             else:
-                logger.info("✓ No migration needed - all columns exist")
+                logger.info(" No migration needed - all columns exist")
             
             return True
             
     except Exception as e:
-        logger.error(f"✗ Migration failed: {e}")
+        logger.error(f" Migration failed: {e}")
         return False
 
 

@@ -396,7 +396,7 @@ def generate_files(root_path: Path, agent_name: str, prompt: str, tries_rankings
         with open(prompt_dir / "agent_verification.json", "w", encoding="utf-8") as f:
             json.dump(verification, f, indent=2)
         
-        status_str = "✅ MATCH" if match else "❌ MISMATCH"
+        status_str = " MATCH" if match else " MISMATCH"
         print(f"[CHECK]  Agents with results: {status_str} | Expected: {expected_agents} | Actual: {actual_agents}")
     
     # Calculate Ground Truth

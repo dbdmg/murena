@@ -255,7 +255,7 @@ def get_langfuse_client():
             flush_at=0,  # Invia immediatamente ogni evento singolo
             flush_interval=0.1  # Verifica ogni 0.1 secondi
         )
-        print(f"✓ Langfuse client initialized successfully (host: {host})")
+        print(f" Langfuse client initialized successfully (host: {host})")
         return _langfuse_client
         
     except Exception as e:
@@ -269,9 +269,9 @@ def flush_langfuse():
     client = get_langfuse_client()
     if client:
         try:
-            print("🔄 Flushing Langfuse data...")
+            print(" Flushing Langfuse data...")
             client.flush()
-            print("✓ Langfuse data flushed successfully")
+            print(" Langfuse data flushed successfully")
         except Exception as e:
             print(f"Error flushing Langfuse data: {e}")
             import traceback

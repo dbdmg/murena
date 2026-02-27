@@ -336,12 +336,12 @@ class AgentLogger:
                 try:
                     self.current_log_file.unlink()
                 except Exception as e:
-                    print(f"⚠️ Errore nell'eliminare JSONL {self.current_log_file.name}: {e}")
+                    print(f" Errore nell'eliminare JSONL {self.current_log_file.name}: {e}")
             
-            print(f"💾 JSON trace salvato: {json_file.name}")
+            print(f" JSON trace salvato: {json_file.name}")
             
         except Exception as e:
-            print(f"⚠️ Errore nel finalizzare log: {e}")
+            print(f" Errore nel finalizzare log: {e}")
             import traceback
             traceback.print_exc()
 
@@ -376,7 +376,7 @@ class AgentLogger:
                     serialized_input = self._serialize_data(input_val)
                     serialized_output = self._serialize_data(output_val)
                 except Exception as ex:
-                    print(f"⚠️ Errore durante la serializzazione dell'entry {entry.get('agent_name')}: {ex}")
+                    print(f" Errore durante la serializzazione dell'entry {entry.get('agent_name')}: {ex}")
                     serialized_input = str(input_val)
                     serialized_output = str(output_val)
                 
@@ -423,7 +423,7 @@ class AgentLogger:
                     }
                     agent_executions.append(agent_entry)
         except Exception as global_ex:
-            print(f"❌ Errore critico in _process_log_data_for_export: {global_ex}")
+            print(f" Errore critico in _process_log_data_for_export: {global_ex}")
             import traceback
             traceback.print_exc()
         

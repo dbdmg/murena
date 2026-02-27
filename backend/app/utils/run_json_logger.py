@@ -75,7 +75,7 @@ class RunJSONLogger:
             with open(filepath, "w", encoding="utf-8") as f:
                 json.dump(sanitized_data, f, indent=2, ensure_ascii=False, default=str)
 
-            logger.info(f"✅ Run exported to: {filepath}")
+            logger.info(f" Run exported to: {filepath}")
 
             # Keep only last 10 exports (cleanup)
             self._cleanup_old_exports(keep=10)

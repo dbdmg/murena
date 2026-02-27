@@ -20,9 +20,9 @@ def test_map_config():
     response = client.get("/api/v1/map/config")
     if response.status_code == 200:
         data = response.json()
-        print(f"✅ Config: Center={data['center']}, Zoom={data['zoom']}")
+        print(f" Config: Center={data['center']}, Zoom={data['zoom']}")
     else:
-        print(f"❌ Failed: {response.status_code} - {response.text}")
+        print(f" Failed: {response.status_code} - {response.text}")
 
 
 def test_map_overlays():
@@ -33,11 +33,11 @@ def test_map_overlays():
         data = response.json()
         # Check if valid GeoJSON
         if "type" in data and "features" in data:
-            print(f"✅ Municip overlay loaded: {len(data['features'])} features")
+            print(f" Municip overlay loaded: {len(data['features'])} features")
         else:
-            print("❌ Invalid GeoJSON format")
+            print(" Invalid GeoJSON format")
     else:
-        print(f"❌ Failed: {response.status_code} - {response.text}")
+        print(f" Failed: {response.status_code} - {response.text}")
 
 
 def test_map_markers():
@@ -50,11 +50,11 @@ def test_map_markers():
     response = client.get("/api/v1/map/markers?limit=10")
     if response.status_code == 200:
         data = response.json()
-        print(f"✅ Markers retrieved: {len(data)} markers")
+        print(f" Markers retrieved: {len(data)} markers")
         if len(data) > 0:
             print(f"   Sample: {data[0]}")
     else:
-        print(f"❌ Failed: {response.status_code} - {response.text}")
+        print(f" Failed: {response.status_code} - {response.text}")
 
 
 if __name__ == "__main__":
@@ -62,6 +62,6 @@ if __name__ == "__main__":
         test_map_config()
         test_map_overlays()
         test_map_markers()
-        print("\n🎉 Map API tests completed!")
+        print("\n Map API tests completed!")
     except Exception as e:
-        print(f"\n❌ Test failed: {e}")
+        print(f"\n Test failed: {e}")

@@ -35,7 +35,7 @@ class SyntheticEvaluationTest:
     
     def step1_generate_dataset(self) -> bool:
         """Step 1: Carica dataset reale (Immobili)."""
-        print("\n" + "🎯 STEP 1: CARICAMENTO DATASET REALE".center(80, "="))
+        print("\n" + " STEP 1: CARICAMENTO DATASET REALE".center(80, "="))
         
         # Costruisci path assoluto per il dataset reale
         # settings.DATASET_FULL è relativo alla root del backend
@@ -47,7 +47,7 @@ class SyntheticEvaluationTest:
             dataset_path = Path("/Users/marcodeluca/Downloads/real-estate-ai/backend") / settings.DATASET_FULL
         
         if not dataset_path.exists():
-            print(f"❌ Dataset non trovato: {dataset_path}")
+            print(f" Dataset non trovato: {dataset_path}")
             return False
             
         try:
@@ -63,16 +63,16 @@ class SyntheticEvaluationTest:
             self.poi_file = base_dir / "backend" / "data/FOLDER_STATIC_ROME/pois.json"
             self.distances_file = None
             
-            print(f"✓ Dataset reale caricato: {self.dataset_file}")
+            print(f" Dataset reale caricato: {self.dataset_file}")
             print(f"  - {len(self.df_immobili)} immobili")
             return True
         except Exception as e:
-            print(f"❌ Errore caricamento dataset: {e}")
+            print(f" Errore caricamento dataset: {e}")
             return False
     
     def step2_create_ground_truth(self) -> bool:
         """Step 2: Crea ground truth automatico."""
-        print("\\n" + "🎯 STEP 2: CREAZIONE GROUND TRUTH".center(80, "="))
+        print("\\n" + " STEP 2: CREAZIONE GROUND TRUTH".center(80, "="))
         
         ground_truth_path = self.synthetic_dir / f"ground_truth_{self.use_case}_{self.timestamp}.json"
         
@@ -129,18 +129,18 @@ class SyntheticEvaluationTest:
         
         self.ground_truth_path = ground_truth_path
         
-        print(f"✓ Ground truth creato: {ground_truth_path}")
+        print(f" Ground truth creato: {ground_truth_path}")
         print(f"  - {len(config['test_queries'])} query generate per {self.use_case}")
         return True
     
     def step3_evaluate_ranking(self) -> bool:
         """Step 3: Valuta ranking quality."""
-        print("\\n" + "🎯 STEP 3: VALUTAZIONE RANKING QUALITY".center(80, "="))
+        print("\\n" + " STEP 3: VALUTAZIONE RANKING QUALITY".center(80, "="))
         
         if self.disabled_agents:
             import os
             os.environ["DISABLED_AGENTS"] = ",".join(self.disabled_agents)
-            print(f"⚠️  Agents disabilitati: {', '.join(self.disabled_agents)}")
+            print(f"  Agents disabilitati: {', '.join(self.disabled_agents)}")
         
         evaluator = RankingEvaluator(
             ground_truth_path=str(self.ground_truth_path),
@@ -201,13 +201,13 @@ class SyntheticEvaluationTest:
         
         self.result_file = result_file
         
-        print(f"✓ Valutazione completata su {num_prompts} query")
-        print(f"📝 Log dettagliati degli agenti (input/output) salvati in: {evaluator.agent_logs_dir}")
+        print(f" Valutazione completata su {num_prompts} query")
+        print(f" Log dettagliati degli agenti (input/output) salvati in: {evaluator.agent_logs_dir}")
         return True
     
     def step4_analyze_results(self) -> bool:
         """Step 4: Analizza risultati."""
-        print("\\n" + "🎯 STEP 4: ANALISI RISULTATI".center(80, "="))
+        print("\\n" + " STEP 4: ANALISI RISULTATI".center(80, "="))
         
         print("\\n" + "="*80)
         print("RISULTATI FINALI - MEDIE SU TUTTE LE QUERY")
@@ -220,7 +220,7 @@ class SyntheticEvaluationTest:
         avg_mrr = np.mean([m.mrr for m in self.all_ranking_metrics])
         avg_latency = np.mean([m.latency_ms for m in self.all_ranking_metrics])
         
-        print(f"\\n📊 Ranking Metrics (media su {len(self.all_ranking_metrics)} query):")
+        print(f"\\n Ranking Metrics (media su {len(self.all_ranking_metrics)} query):")
         print(f"    Recall@10:    {avg_recall:.2%}")
         print(f"    Precision@10: {avg_precision:.2%}")
         print(f"    F1@10:        {avg_f1:.2%}")
@@ -234,16 +234,16 @@ class SyntheticEvaluationTest:
             avg_jaccard = np.mean([c.jaccard_similarity_avg for c in consistency_with_data])
             avg_pos_var = np.mean([c.avg_position_variance for c in consistency_with_data])
             
-            print(f"\\n    🔬 Consistency (media {self.num_runs} runs per query):")
+            print(f"\\n     Consistency (media {self.num_runs} runs per query):")
             print(f"      CV:           {avg_cv:.3f}", end="")
-            if avg_cv < 0.1: print(" ✅ EXCELLENT")
-            elif avg_cv < 0.2: print(" ✓ GOOD")
-            else: print(" ⚠️ MODERATE")
+            if avg_cv < 0.1: print("  EXCELLENT")
+            elif avg_cv < 0.2: print("  GOOD")
+            else: print("  MODERATE")
             
             print(f"      Jaccard Avg:  {avg_jaccard:.3f}", end="")
-            if avg_jaccard > 0.8: print(" ✅ STRONG")
-            elif avg_jaccard > 0.6: print(" ✓ GOOD")
-            else: print(" ⚠️ WEAK")
+            if avg_jaccard > 0.8: print("  STRONG")
+            elif avg_jaccard > 0.6: print("  GOOD")
+            else: print("  WEAK")
             
             print(f"      Pos Variance: {avg_pos_var:.2f}")
         else:
@@ -291,13 +291,13 @@ class SyntheticEvaluationTest:
         else:
             self.consistency_metrics = None
         
-        print(f"\\n✓ Risultati salvati: {self.result_file}")
+        print(f"\\n Risultati salvati: {self.result_file}")
         
         return True
     
     def run_full_test(self) -> bool:
         """Esegue test completo."""
-        print("\\n" + "🚀 SYNTHETIC EVALUATION - TEST COMPLETO".center(80, "="))
+        print("\\n" + " SYNTHETIC EVALUATION - TEST COMPLETO".center(80, "="))
         print(f"Use Case: {self.use_case}")
         print(f"Immobili: {self.num_immobili}")
         print(f"POI per categoria: {self.num_poi}")
@@ -321,23 +321,23 @@ class SyntheticEvaluationTest:
             success = step_func()
             
             if not success:
-                print(f"\\n❌ Test fallito allo step {i}: {name}")
+                print(f"\\n Test fallito allo step {i}: {name}")
                 return False
         
         print("\\n\\n" + "="*80)
-        print("✅ TEST COMPLETO COMPLETATO CON SUCCESSO!")
+        print(" TEST COMPLETO COMPLETATO CON SUCCESSO!")
         print("="*80)
         if self.ablation_mode:
-            print(f"\\n📁 Risultati salvati in: {self.ablation_dir}")
+            print(f"\\n Risultati salvati in: {self.ablation_dir}")
         else:
-            print(f"\\n📁 Risultati salvati in: {self.results_dir}")
-        print(f"📊 File risultato: {self.result_file.name}")
+            print(f"\\n Risultati salvati in: {self.results_dir}")
+        print(f" File risultato: {self.result_file.name}")
         
         return True
     
     def run_full_ablation(self) -> bool:
         """Esegue ablation study completo testando ogni agent."""
-        print("\\n" + "🔬 ABLATION STUDY - TEST TUTTI GLI AGENT".center(80, "="))
+        print("\\n" + " ABLATION STUDY - TEST TUTTI GLI AGENT".center(80, "="))
         print(f"Testing {len(AVAILABLE_AGENTS)} agents")
         print(f"Use Case: {self.use_case}")
         print(f"Runs per config: {self.num_runs}")
@@ -359,7 +359,7 @@ class SyntheticEvaluationTest:
         )
         
         if not baseline_tester.run_full_test():
-            print("❌ Baseline test fallito")
+            print(" Baseline test fallito")
             return False
         
         all_results["baseline"] = {
@@ -395,7 +395,7 @@ class SyntheticEvaluationTest:
                     "consistency_metrics": asdict(agent_tester.consistency_metrics) if agent_tester.consistency_metrics else None
                 }
             else:
-                print(f"⚠️  Test fallito per {agent}")
+                print(f"  Test fallito per {agent}")
         
         self._generate_ablation_report(all_results)
         
@@ -404,19 +404,19 @@ class SyntheticEvaluationTest:
     def _generate_ablation_report(self, all_results: Dict):
         """Genera report comparativo ablation study."""
         print("\\n\\n" + "="*80)
-        print("📊 ABLATION STUDY - REPORT COMPARATIVO")
+        print(" ABLATION STUDY - REPORT COMPARATIVO")
         print("="*80)
         
         baseline = all_results.get("baseline")
         if not baseline:
-            print("❌ Baseline non trovato")
+            print(" Baseline non trovato")
             return
         
         baseline_recall = baseline["ranking_metrics"]["recall_at_k"]
         baseline_ndcg = baseline["ranking_metrics"]["ndcg_at_k"]
         baseline_latency = baseline["ranking_metrics"]["latency_ms"]
         
-        print(f"\\n🎯 Baseline Performance:")
+        print(f"\\n Baseline Performance:")
         print(f"   Recall@10: {baseline_recall:.2%}")
         print(f"   NDCG@10:   {baseline_ndcg:.3f}")
         print(f"   Latency:   {baseline_latency:.0f}ms")
@@ -427,7 +427,7 @@ class SyntheticEvaluationTest:
             print(f"   CV:        {baseline_cv:.3f}")
             print(f"   Jaccard:   {baseline_jaccard:.3f}")
         
-        print(f"\\n🔍 Agent Impact Analysis:\\n")
+        print(f"\\n Agent Impact Analysis:\\n")
         
         impact_data = []
         
@@ -449,11 +449,11 @@ class SyntheticEvaluationTest:
             latency_delta = latency - baseline_latency
             
             if abs(recall_delta) > 0.3 or abs(ndcg_delta) > 0.3:
-                criticality = "🔴 CRITICAL"
+                criticality = " CRITICAL"
             elif abs(recall_delta) > 0.15 or abs(ndcg_delta) > 0.15:
-                criticality = "🟡 IMPORTANT"
+                criticality = " IMPORTANT"
             else:
-                criticality = "🟢 OPTIONAL"
+                criticality = " OPTIONAL"
             
             impact_data.append({
                 "agent": agent,
@@ -473,7 +473,7 @@ class SyntheticEvaluationTest:
         
         impact_data.sort(key=lambda x: abs(x["recall_delta"]) + abs(x["ndcg_delta"]), reverse=True)
         
-        print(f"\\n📈 Agent Ranking by Impact:\\n")
+        print(f"\\n Agent Ranking by Impact:\\n")
         for i, data in enumerate(impact_data, 1):
             print(f"{i}. {data['agent']}: Recall {data['recall_delta']:+.2%}, NDCG {data['ndcg_delta']:+.3f}")
         
@@ -489,4 +489,4 @@ class SyntheticEvaluationTest:
         with open(report_file, 'w', encoding='utf-8') as f:
             json.dump(report_data, f, indent=2, ensure_ascii=False)
         
-        print(f"\\n✓ Report salvato: {report_file}")
+        print(f"\\n Report salvato: {report_file}")

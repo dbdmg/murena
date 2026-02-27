@@ -365,7 +365,7 @@ class GraphOrchestratorAgent(BaseAgent):
                     gemini_responses=final_state["gemini_responses"],
                     results=results_json,
                 )
-                logger.info("✅ Run successfully exported to JSON")
+                logger.info(" Run successfully exported to JSON")
             except Exception as e:
                 logger.error(f"Failed to export run to JSON: {e}")
                 import traceback
@@ -838,116 +838,48 @@ class GraphOrchestratorAgent(BaseAgent):
 
             return state
 
-        # 1. Run Ranking Agent FIRST (Sequential)
-        logger.info("⚖️ Executing RankingAgent (Sequential)")
-        start_time = time.time()
-        ranking_result = self.ranking_agent.run(query=query, mode="filtering")
-        duration_ms = (time.time() - start_time) * 1000
-        state["ranking_result"] = ranking_result
-        self._log_execution(state, "ranking-agent", ranking_result, duration_ms)
-        self._update_progress(state, "ranking_init", "", status="done")
+        # 1. Define ALL tasks (Ranking + 5 Technicians) in Parallel
+        # We run Ranking simultaneously with the others to save the sequential delay,
+        # as all agents are usually active per system instructions.
         
-        active_agents = []
-        if ranking_result and ranking_result.ranking and ranking_result.ranking.ranking:
-            # Extract agent names from RankedAgent objects if present
-            # Handle both new RankedAgent structure and legacy string list
-            ranking_list = ranking_result.ranking.ranking
-            if ranking_list and hasattr(ranking_list[0], 'agent_name'):
-                active_agents = [agent.agent_name for agent in ranking_list]
-            else:
-                active_agents = ranking_list
-        else:
-             # Fallback to all if ranking failed
-             active_agents = ["location", "normative", "ape", "property_technical", "poi"]
-        
-        logger.info(f"Active agents from ranking: {active_agents}")
+        base_dataset = state.get("base_dataset")
+        dataset_path = state.get("dataset_path")
 
-        # 1.5 Dynamically update step_definitions to match active agents
-        labels_map = {step["key"]: step["label"] for step in state["step_definitions"]}
-        new_steps = []
-        
-        # Always include ranking_init
-        if "ranking_init" in labels_map:
-            new_steps.append({"key": "ranking_init", "label": labels_map["ranking_init"]})
-            
-        # Add active parallel agents
-        for agent_key in active_agents:
-            if agent_key in labels_map and agent_key not in ["ranking_init", "sql", "ranking", "evaluation", "broker", "finalize", "complete"]:
-                new_steps.append({"key": agent_key, "label": labels_map[agent_key]})
-        
-        # Add the remaining fixed steps
-        fixed_after = ["sql", "ranking", "evaluation", "broker"]
-        for k in fixed_after:
-            if k in labels_map:
-                new_steps.append({"key": k, "label": labels_map[k]})
-                
-        state["step_definitions"] = new_steps
-        
-        # Re-initialize steps_state
-        new_steps_state = []
-        for step in new_steps:
-            s = "done" if step["key"] == "ranking_init" else "pending"
-            new_steps_state.append({"label": step["label"], "state": s, "detail": ""})
-        
-        state["steps_state"] = new_steps_state
-        self._update_progress(state, "ranking_init", "", status="done")
+        def run_ranking():
+            start_t = time.time()
+            self._update_progress(state, "ranking_init", "Analizzo la priorità dei requisiti...")
+            logger.info("Executing RankingAgent (Parallel)")
+            result = self.ranking_agent.run(query=query, mode="filtering")
+            logger.info("RankingAgent completed")
+            return result, (time.time() - start_t) * 1000
 
-        dataset_metadata = state["dataset_metadata"]
-        db_schema = state["db_schema"]
-
-        # Prepare inputs
-        sample_columns = dataset_metadata.get("sample_columns", "")
-
-        # Define tasks
         def run_property_technical():
             start_t = time.time()
-            self._update_progress(state, "property_technical", "")
-            logger.info("🔧 Executing PropertyTechnicalAgent")
-
-            base_dataset = state.get("base_dataset")
-            dataset_path = state.get("dataset_path")
-            prop_stats = {}
-            if base_dataset is not None or dataset_path is not None:
-                prop_stats = self._get_column_statistics(
-                    columns=PROPERTY_TECHNICAL_AGENT_COLUMNS,
-                    dataset_path=dataset_path,
-                    dataset_df=base_dataset,
-                    db_metadata=state.get("db_metadata")
-                )
-
+            self._update_progress(state, "property_technical", "Analisi tecnica...")
+            prop_stats = self._get_column_statistics(
+                columns=PROPERTY_TECHNICAL_AGENT_COLUMNS,
+                dataset_path=dataset_path, dataset_df=base_dataset,
+                db_metadata=state.get("db_metadata")
+            )
             result = self.property_technical_agent.run(
-                query=query,
-                mode="filtering",
-                available_typologies=str(
-                    state["db_metadata"]
-                    .get("tipologia_bene_immobile", {})
-                    .get("values", [])
-                ),
+                query=query, mode="filtering",
+                available_typologies=str(state["db_metadata"].get("tipologia_bene_immobile", {}).get("values", [])),
                 statistics=prop_stats
             )
-            prop_data = safe_extract_json(result.raw_text, schema=PropertyTechnicalResponse)
-            typologies = prop_data.typologies if prop_data else []
-            logger.info(f"✅ PropertyTechnicalAgent completed: {typologies}")
+            logger.info("PropertyTechnicalAgent completed")
             return result, (time.time() - start_t) * 1000
 
         def run_location():
             start_t = time.time()
-            self._update_progress(state, "location", "")
-            logger.info("📍 Executing LocationAgent")
+            self._update_progress(state, "location", "Ricerca geografica...")
             result = self.location_agent.run(query=query)
-            loc_data = safe_extract_json(result.raw_text, schema=LocationResponse)
-            places = loc_data.places if loc_data else []
-            logger.info(f"✅ LocationAgent completed: {len(places)} places")
+            logger.info("LocationAgent completed")
             return result, (time.time() - start_t) * 1000
 
         def run_ape():
             start_t = time.time()
-            # Always run APE agent if data is available
-            base_dataset = state.get("base_dataset")
-            dataset_path = state.get("dataset_path")
             if base_dataset is not None or dataset_path is not None:
-                self._update_progress(state, "ape", "")
-                logger.info("⚡ Executing ApeAgent")
+                self._update_progress(state, "ape", "Valutazione energetica...")
                 ape_stats = self._get_column_statistics(
                     columns=APE_AGENT_COLUMNS, 
                     dataset_path=dataset_path, 
@@ -956,95 +888,75 @@ class GraphOrchestratorAgent(BaseAgent):
                     db_metadata=state.get("db_metadata")
                 )
                 result = self.ape_agent.run(
-                    query=query,
-                    mode="filtering",
-                    statistics=ape_stats,
-                    score_legend=APE_SCORE_LEGEND,
+                    query=query, mode="filtering",
+                    statistics=ape_stats, score_legend=APE_SCORE_LEGEND,
                 )
-                logger.info("✅ ApeAgent completed")
+                logger.info("ApeAgent completed")
                 return result, (time.time() - start_t) * 1000
-            logger.info("⚠️ ApeAgent skipped: no data")
             return None, 0
 
         def run_poi():
             start_t = time.time()
-            self._update_progress(state, "poi", "")
-            logger.info("🏪 Executing PoiAgent")
-            
-            base_dataset = state.get("base_dataset")
-            dataset_path = state.get("dataset_path")
-            poi_stats = {}
-            if base_dataset is not None or dataset_path is not None:
-                poi_stats = self._get_column_statistics(
-                    columns=POI_AGENT_COLUMNS,
-                    dataset_path=dataset_path,
-                    dataset_df=base_dataset,
-                    db_metadata=state.get("db_metadata")
-                )
-
-            result = self.poi_agent.run(
-                query=query,
-                mode="filtering",
-                statistics=poi_stats
+            self._update_progress(state, "poi", "Analisi servizi...")
+            poi_stats = self._get_column_statistics(
+                columns=POI_AGENT_COLUMNS,
+                dataset_path=dataset_path, dataset_df=base_dataset,
+                db_metadata=state.get("db_metadata")
             )
-            logger.info("✅ PoiAgent completed")
+            result = self.poi_agent.run(query=query, mode="filtering", statistics=poi_stats)
+            logger.info("PoiAgent completed")
             return result, (time.time() - start_t) * 1000
         
         def run_normative():
             start_t = time.time()
-            self._update_progress(state, "normative", "")
-            logger.info("📚 Executing NormativeAgent")
-            
-            base_dataset = state.get("base_dataset")
-            dataset_path = state.get("dataset_path")
+            self._update_progress(state, "normative", "Verifica norme...")
+            norm_stats = {}
             if base_dataset is not None or dataset_path is not None:
                 norm_stats = self._get_column_statistics(
                     columns=NORMATIVE_AGENT_COLUMNS,
-                    dataset_path=dataset_path,
-                    dataset_df=base_dataset,
+                    dataset_path=dataset_path, dataset_df=base_dataset,
                     db_metadata=state.get("db_metadata")
                 )
-
-            result = self.normative_agent.run(
-                query=query,
-                available_columns=NORMATIVE_AGENT_COLUMNS,
-                statistics=norm_stats
-            )
-            logger.info("✅ NormativeAgent completed")
+            result = self.normative_agent.run(query=query, available_columns=NORMATIVE_AGENT_COLUMNS, statistics=norm_stats)
+            logger.info("NormativeAgent completed")
             return result, (time.time() - start_t) * 1000
 
-        # 2. Build list of tasks for ACTIVE agents only
-        active_tasks = {}
-        if "property_technical" in active_agents: active_tasks["property_technical"] = run_property_technical
-        if "location" in active_agents: active_tasks["location"] = run_location
-        if "ape" in active_agents: active_tasks["ape"] = run_ape
-        if "poi" in active_agents: active_tasks["poi"] = run_poi
-        if "normative" in active_agents: active_tasks["normative"] = run_normative
+        # 2. Execute all in parallel
+        # We start EVERYTHING since prompt_config enforces all agents in ranking anyway.
+        active_tasks = {
+            "ranking": run_ranking,
+            "property_technical": run_property_technical,
+            "location": run_location,
+            "ape": run_ape,
+            "poi": run_poi,
+            "normative": run_normative
+        }
+        
+        results = {k: None for k in active_tasks.keys()}
+        logger.info(f"Executing active agents in parallel: {', '.join(active_tasks.keys())}")
+        
+        with ThreadPoolExecutor(max_workers=len(active_tasks)) as executor:
+            future_to_name = {executor.submit(task): name for name, task in active_tasks.items()}
+            for future in as_completed(future_to_name):
+                agent_name = future_to_name[future]
+                try:
+                    res, duration = future.result()
+                    results[agent_name] = res
+                    if res:
+                        # Map to correct trace name
+                        trace_name = "ranking-agent" if agent_name == "ranking" else f"{agent_name}-agent"
+                        self._log_execution(state, trace_name, res, duration)
+                        
+                    # Mark step as done
+                    ui_key = "ranking_init" if agent_name == "ranking" else agent_name
+                    self._update_progress(state, ui_key, "", status="done")
+                except Exception as e:
+                    logger.error(f"Error executing {agent_name}: {e}")
 
-        # Results dictionary
-        results = {k: None for k in ["property_technical", "location", "ape", "poi", "normative"]}
-
-        # 3. Execute in parallel ONLY active agents
-        if active_tasks:
-            logger.info(f"Executing active agents in parallel: {', '.join(active_tasks.keys())}")
-            
-            with ThreadPoolExecutor(max_workers=len(active_tasks)) as executor:
-                future_to_name = {executor.submit(task): name for name, task in active_tasks.items()}
-                for future in as_completed(future_to_name):
-                    agent_name = future_to_name[future]
-                    try:
-                        res, duration = future.result()
-                        results[agent_name] = res
-                        if res:
-                            self._log_execution(state, f"{agent_name}-agent", res, duration)
-                            
-                        # Mark step as done
-                        if agent_name in ["property_technical", "location", "ape", "normative", "poi"]:
-                             self._update_progress(state, agent_name, "", status="done")
-                            
-                    except Exception as e:
-                        logger.error(f"Error executing {agent_name}-agent: {e}")
-
+        # 3. Collect Results
+        ranking_result = results["ranking"]
+        state["ranking_result"] = ranking_result
+        
         property_technical_result = results["property_technical"]
         loc_result = results["location"]
         ape_result = results["ape"]
@@ -1092,7 +1004,7 @@ class GraphOrchestratorAgent(BaseAgent):
         
         # If no places found after execution, remove step from UI
         if loc_result and not places:
-             logger.info("📍 LocationAgent non ha trovato luoghi: rimuovo lo step dalla UI.")
+             logger.info(" LocationAgent non ha trovato luoghi: rimuovo lo step dalla UI.")
              state["step_definitions"] = [s for s in state["step_definitions"] if s["key"] != "location"]
              state["steps_state"] = [s for s in state["steps_state"] if s["label"] != "Individuo una posizione geografica di ricerca..."]
              # Force update to refresh UI
@@ -1253,7 +1165,7 @@ class GraphOrchestratorAgent(BaseAgent):
         )
 
         # 2. Call Relaxation Agent ONCE to get all proposals
-        logger.info(f"🤖 Calling RelaxationAgent for structured proposals")
+        logger.info(f" Calling RelaxationAgent for structured proposals")
         res = self.relaxation_agent.run(
             where_conditions=json.dumps(where_details, indent=2, ensure_ascii=False),
             statistics=json.dumps(stats, indent=2, ensure_ascii=False),
@@ -1327,7 +1239,7 @@ class GraphOrchestratorAgent(BaseAgent):
                     logger.info(f"Attempt {level} on cond {i}: '{match.condizione_relaxed}' -> {trial_count} rows")
 
                     if trial_count >= threshold:
-                        logger.info(f"✅ SUCCESS at level {level} (Condition {i})")
+                        logger.info(f" SUCCESS at level {level} (Condition {i})")
                         self._update_state_with_relaxation(state, trial_sql, trial_df, all_attempts)
                         
                         # Log the relaxation-agent impact
@@ -1367,7 +1279,7 @@ class GraphOrchestratorAgent(BaseAgent):
                 logger.info(f"Attempt removal of cond {i} -> {trial_count} rows")
 
                 if trial_count >= threshold:
-                    logger.info(f"✅ SUCCESS via removal of condition {i}")
+                    logger.info(f" SUCCESS via removal of condition {i}")
                     self._update_state_with_relaxation(state, trial_sql, trial_df, all_attempts)
                     
                     # Log the relaxation-agent impact
@@ -1993,7 +1905,7 @@ class GraphOrchestratorAgent(BaseAgent):
         agents_to_exclude = [a for a in active_agents if a not in really_found_agents and getattr(weights, a, 0.0) > 0]
         
         if agents_to_exclude:
-            logger.info(f"⚖️ Excluding agents from ranking due to no results in filtering: {agents_to_exclude}")
+            logger.info(f" Excluding agents from ranking due to no results in filtering: {agents_to_exclude}")
             
             # Copy weights and identify target for redistribution
             current_weights_dict = weights.model_dump()
@@ -2023,7 +1935,7 @@ class GraphOrchestratorAgent(BaseAgent):
                     new_weights_dict[max_agent] = round(new_weights_dict[max_agent] + diff, 2)
                 
                 weights = RankingWeights(**new_weights_dict)
-                logger.info(f"⚖️ Adjusted ranking weights: {new_weights_dict}")
+                logger.info(f" Adjusted ranking weights: {new_weights_dict}")
                 
                 # Update active_agents to only include those that really found something
                 # This avoids running ranking mode for agents with 0 weight

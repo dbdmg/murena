@@ -36,10 +36,10 @@ def test_imports():
     for name, import_stmt in tests:
         try:
             exec(import_stmt)
-            print(f"✓ {name}")
+            print(f" {name}")
             passed += 1
         except Exception as e:
-            print(f"✗ {name}: {e}")
+            print(f" {name}: {e}")
             failed += 1
 
     print("\n" + "=" * 60)
@@ -59,16 +59,16 @@ def test_service_init():
         from app.services.real_estate_service import RealEstateService
 
         service = RealEstateService()
-        print(f"✓ Service initialized successfully")
+        print(f" Service initialized successfully")
         print(f"  Cache: {service._dataset_cache}")
         assert service is not None
     except Exception as e:
-        print(f"✗ Service initialization failed: {e}")
+        print(f" Service initialization failed: {e}")
         raise
 
 
 if __name__ == "__main__":
-    print("\n🧪 Buildings API Test Suite\n")
+    print("\n Buildings API Test Suite\n")
 
     imports_ok = test_imports()
     service_ok = test_service_init()
@@ -78,8 +78,8 @@ if __name__ == "__main__":
     print("=" * 60)
 
     if imports_ok and service_ok:
-        print("✅ All tests passed!")
-        print("\n📝 Manual Testing:")
+        print(" All tests passed!")
+        print("\n Manual Testing:")
         print("   Start server: python -m uvicorn app.main:app --reload")
         print("   Test endpoints:")
         print("     GET http://localhost:8000/api/v1/buildings")
@@ -87,5 +87,5 @@ if __name__ == "__main__":
         print("   View docs: http://localhost:8000/docs")
         sys.exit(0)
     else:
-        print("❌ Some tests failed")
+        print(" Some tests failed")
         sys.exit(1)

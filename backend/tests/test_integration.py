@@ -235,20 +235,20 @@ if __name__ == "__main__":
     # Run with python backend/test_integration.py
     try:
         setup_module(None)
-        print("✅ Setup complete")
+        print(" Setup complete")
 
         test_1_health_check()
-        print("✅ Health check passed")
+        print(" Health check passed")
 
         test_2_auth_flow()
-        print("✅ Auth flow passed")
+        print(" Auth flow passed")
 
         test_3_register_flow()
-        print("✅ Register flow passed")
+        print(" Register flow passed")
 
-        print("\n🎉 All integration tests passed!")
+        print("\n All integration tests passed!")
     except Exception as e:
-        print(f"\n❌ Test failed: {e}")
+        print(f"\n Test failed: {e}")
         import traceback
 
         traceback.print_exc()
