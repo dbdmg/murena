@@ -12,7 +12,7 @@ import concurrent.futures
 
 # File Paths
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-QUERIES_FILE = os.path.join(BASE_DIR, "composed_queries.csv")
+QUERIES_FILE = os.path.join(BASE_DIR, "text2sql_queries.csv")
 METADATA_FILE = os.path.join(BASE_DIR, "..", "backend", "app", "data", "db_metadata_lite.json")
 
 # Output folder configuration
@@ -20,7 +20,7 @@ OUTPUT_DIR = os.path.join(BASE_DIR, "arctic_results")
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 OUTPUT_FILE = os.path.join(OUTPUT_DIR, "arctic_sql_results.csv")
 
-MODEL_ID = "a-kore/Arctic-Text2SQL-R1-7B"
+MODEL_ID = "a-kore/Arctic-Text2SQL-R1-7B:latest"
 OLLAMA_URL = "http://localhost:11434/api/generate"
 
 def load_metadata(path: str) -> str:
