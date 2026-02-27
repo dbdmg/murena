@@ -71,6 +71,8 @@ def format_prompt(query: str, schema: str) -> str:
     return f"""<|im_start|>system
 You are a Text-to-SQL expert. Generate valid DuckDB SQL based on the provided schema.
 Use only the columns present in the schema.
+Do NOT use the LIMIT clause in your SQL queries.
+Always include an ORDER BY clause. If the user query involves geographical information (like a point of interest or a specific location), order the results by distance using the haversine_km function. Otherwise, order by id.
 Always reason before providing the SQL in the <think> block.
 Return ONLY a valid JSON object after the <think> block, with the following format: {{"sql": "your SQL query here"}}. Do not include markdown formatting (like ```json), preamble, or postscript.
 <|im_end|>
