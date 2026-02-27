@@ -158,7 +158,13 @@ def main():
         return
         
     df = pd.read_csv(QUERIES_FILE)
-    queries = df["query"].tolist()
+    
+    if "status" not in df.columns:
+        df["status"] = 0
+        
+    pending_mask = df["status"] == 0
+    pending_indices = df[pending_mask].index.tolist()
+    queries_to_process = [(idx, df.at[idx, "query"]) for idx in pending_indices]
     
     # For a quicker test, you can slice the queries: queries = queries[:10]
     
@@ -169,9 +175,9 @@ def main():
         return
 
     results = []
-    print(f"Processing {len(queries)} queries...")
+    print(f"Processing {len(queries_to_process)} queries (out of {len(df)} total)...")
     
-    def process_query(query):
+    def process_query(idx, query):
         max_retries = 3
         for attempt in range(max_retries):
             try:
@@ -206,26 +212,40 @@ def main():
                 # If execution fails, continue loop to retry
 
         return {
+            "idx": idx,
             "query": query,
             "sql": sql if 'sql' in locals() else "",
             "num_rows": num_rows
         }
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
-        future_to_query = {executor.submit(process_query, q): q for q in queries}
-        for i, future in enumerate(tqdm(concurrent.futures.as_completed(future_to_query), total=len(queries)), 1):
+        future_to_query = {executor.submit(process_query, idx, q): (idx, q) for idx, q in queries_to_process}
+        for i, future in enumerate(tqdm(concurrent.futures.as_completed(future_to_query), total=len(queries_to_process)), 1):
             try:
                 res = future.result()
                 results.append(res)
+                
+                # Update status in original CSV DataFrame
+                idx_to_update = res["idx"]
+                if res["num_rows"] >= 0:
+                    df.at[idx_to_update, "status"] = 1
+                else:
+                    df.at[idx_to_update, "status"] = 2
+                    
             except Exception as exc:
-                print(f"Query generated an exception: {exc}")
+                idx, q = future_to_query[future]
+                print(f"Query {idx} generated an exception: {exc}")
+                df.at[idx, "status"] = 2
                 
             # Backup save
             if i % 5 == 0:
                 pd.DataFrame(results).to_csv(OUTPUT_FILE, index=False)
+                df.to_csv(QUERIES_FILE, index=False)
 
     pd.DataFrame(results).to_csv(OUTPUT_FILE, index=False)
+    df.to_csv(QUERIES_FILE, index=False)
     print(f"\n Execution complete! Results saved to {OUTPUT_FILE}")
+    print(f" Statuses updated in {QUERIES_FILE}")
 
 if __name__ == "__main__":
     main()
