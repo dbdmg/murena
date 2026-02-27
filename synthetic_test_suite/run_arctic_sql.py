@@ -9,6 +9,9 @@ import duckdb
 from typing import Optional, List
 from tqdm import tqdm
 import concurrent.futures
+import argparse
+import sys
+from pathlib import Path
 
 # File Paths
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -66,18 +69,20 @@ def load_metadata(path: str) -> str:
     
     return "\n".join(schema_parts) + context
 
-def format_prompt(query: str, schema: str) -> str:
-    """Formats the prompt for the R1-style Text2SQL model."""
-    return f"""<|im_start|>system
-You are a Text-to-SQL expert. Generate valid DuckDB SQL based on the provided schema.
-Use only the columns present in the schema.
+def get_system_message(schema: str) -> str:
+    """Returns the system message for API models."""
+    return f"""You are a Text-to-SQL expert. Generate valid DuckDB SQL based on the provided schema.
+Always use "SELECT *" instead of explicitly listing columns in the SELECT clause.
+Use only the columns present in the schema for filtering and ordering.
+Do NOT invent new tables or JOINs. The query must operate ONLY on the `IMMOBILI` table.
 Do NOT use the LIMIT clause in your SQL queries.
 Always include an ORDER BY clause. If the user query involves geographical information (like a point of interest or a specific location), order the results by distance using the haversine_km function. Otherwise, order by id.
 Always reason before providing the SQL in the <think> block.
-Return ONLY a valid JSON object after the <think> block, with the following format: {{"sql": "your SQL query here"}}. Do not include markdown formatting (like ```json), preamble, or postscript.
-<|im_end|>
-<|im_start|>user
-### Database Schema:
+Return ONLY a valid JSON object after the <think> block, with the following format: {{"sql": "your SQL query here"}}. Do not include markdown formatting (like ```json), preamble, or postscript."""
+
+def get_user_message(query: str, schema: str) -> str:
+    """Returns the user message for API models."""
+    return f"""### Database Schema:
 {schema}
 
 ### Question:
@@ -86,6 +91,13 @@ Return ONLY a valid JSON object after the <think> block, with the following form
 ### Response:
 <think>
 """
+
+def format_prompt(query: str, schema: str) -> str:
+    """Formats the prompt for the R1-style Text2SQL local model."""
+    sys_msg = get_system_message(schema)
+    usr_msg = get_user_message(query, schema)
+    return f"<|im_start|>system\n{sys_msg}\n<|im_end|>\n<|im_start|>user\n{usr_msg}"
+
 
 def extract_sql(response: str) -> str:
     """Extracts SQL from the model response."""
@@ -120,34 +132,79 @@ def extract_sql(response: str) -> str:
     return content.strip()
 
 class ArcticInference:
-    def __init__(self, mode="ollama", token=None):
+    def __init__(self, mode="ollama", model_name=MODEL_ID, token=None):
         self.mode = mode
+        self.model_name = model_name
 
-    def generate(self, prompt: str) -> str:
-        payload = {
-            "model": MODEL_ID,
-            "prompt": prompt,
-            "stream": False,
-            "options": {
-                "temperature": 0.1,
-                "num_predict": 1024
+    def generate(self, query: str, schema: str) -> str:
+        if self.mode == "ollama":
+            prompt = format_prompt(query, schema)
+            payload = {
+                "model": self.model_name,
+                "prompt": prompt,
+                "stream": False,
+                "options": {
+                    "temperature": 0.1,
+                    "num_predict": 1024
+                }
             }
-        }
-        try:
-            response = requests.post(OLLAMA_URL, json=payload)
-            response.raise_for_status()
-            result = response.json()
-            return result.get("response", "")
-        except requests.exceptions.RequestException as e:
-            return f"Error API: {e}"
+            try:
+                response = requests.post(OLLAMA_URL, json=payload)
+                response.raise_for_status()
+                result = response.json()
+                return result.get("response", "")
+            except requests.exceptions.RequestException as e:
+                return f"Error API: {e}"
+        else:
+            # API Mode
+            import sys
+            from pathlib import Path
+            base_dir = Path(__file__).resolve().parent.parent
+            backend_dir = base_dir / "backend"
+            if str(backend_dir) not in sys.path:
+                sys.path.append(str(backend_dir))
+                
+            from app.services.llm.langchain_client import get_llm
+            from langchain_core.messages import SystemMessage, HumanMessage
+            
+            llm = get_llm(model_name=self.model_name, temperature=0.1)
+            sys_msg = SystemMessage(content=get_system_message(schema))
+            usr_msg = HumanMessage(content=get_user_message(query, schema))
+            
+            try:
+                response = llm.invoke([sys_msg, usr_msg])
+                return response.content
+            except Exception as e:
+                return f"Error API: {e}"
 
 def main():
     # CONFIGURATION
-    # Run using local Ollama model
-    MODE = "ollama"
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--model", type=str, choices=["open-weights", "gpt-5-nano"], default="open-weights", help="LLM model flavor")
+    args, _ = parser.parse_known_args()
+
+    # Determine mode and model
+    if args.model == "gpt-5-nano":
+        MODE = "api"
+        # Patch sys.path for settings
+        import sys
+        from pathlib import Path
+        base_dir = Path(__file__).resolve().parent.parent
+        backend_dir = base_dir / "backend"
+        if str(backend_dir) not in sys.path:
+            sys.path.append(str(backend_dir))
+            
+        from app.core.config import settings
+        settings.set_llm_model(args.model)
+        active_model_id = settings.OPENAI_MODEL_FAST
+    else:
+        MODE = "ollama"
+        active_model_id = MODEL_ID
+
     HF_TOKEN = None
 
-    print(f"Running in {MODE} mode using model {MODEL_ID}.")
+    print(f"Running in {MODE} mode using model {active_model_id}.")
+
     
     print(f"Loading metadata from {METADATA_FILE}...")
     schema = load_metadata(METADATA_FILE)
@@ -169,7 +226,7 @@ def main():
     # For a quicker test, you can slice the queries: queries = queries[:10]
     
     try:
-        engine = ArcticInference(mode=MODE, token=HF_TOKEN)
+        engine = ArcticInference(mode=MODE, model_name=active_model_id, token=HF_TOKEN)
     except Exception as e:
         print(f"Initialization failed: {e}")
         return
@@ -181,8 +238,7 @@ def main():
         max_retries = 3
         for attempt in range(max_retries):
             try:
-                prompt = format_prompt(query, schema)
-                raw_output = engine.generate(prompt)
+                raw_output = engine.generate(query, schema)
                 sql = extract_sql(raw_output)
                 
                 num_rows = -1
