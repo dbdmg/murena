@@ -117,6 +117,7 @@ class GraphState(TypedDict):
     map_limit: Optional[int]
     metro_graph: Any
     analysis_mode: str
+    disabled_agents: List[str] # List of agents to skip during execution
 
     # Progress callback
     set_progress: Optional[Callable[[Any], None]]
@@ -225,6 +226,7 @@ class GraphOrchestratorAgent(BaseAgent):
         llm_limit: Optional[int] = None,
         map_limit: Optional[int] = None,
         metro_graph: Optional[Any] = None,
+        disabled_agents: Optional[List[str]] = None,
     ) -> OrchestratorResult:
 
         step_definitions = [
@@ -289,8 +291,6 @@ class GraphOrchestratorAgent(BaseAgent):
             "dataset_metadata": dataset_metadata,
             "location_payload": [],
             "use_case_str": "",
-            "use_case_str": "",
-            # metrics_plan removed
             "property_technical_result": None,
             "poi_result": None,
             "ape_result": None,
@@ -323,6 +323,7 @@ class GraphOrchestratorAgent(BaseAgent):
             "relaxation_applied": False,
             "last_retry_reason": None,
             "sql_history": [],
+            "disabled_agents": disabled_agents or [],
         }
 
         # Safe recursion limit to handle retry loops while preventing infinite loops
@@ -932,6 +933,12 @@ class GraphOrchestratorAgent(BaseAgent):
             "normative": run_normative
         }
         
+        # Filter out disabled agents for ablation study
+        disabled = state.get("disabled_agents", [])
+        if disabled:
+            logger.info(f"Ablation mode: Disabling agents: {disabled}")
+            active_tasks = {k: v for k, v in active_tasks.items() if k not in disabled}
+
         results = {k: None for k in active_tasks.keys()}
         logger.info(f"Executing active agents in parallel: {', '.join(active_tasks.keys())}")
         
@@ -954,14 +961,14 @@ class GraphOrchestratorAgent(BaseAgent):
                     logger.error(f"Error executing {agent_name}: {e}")
 
         # 3. Collect Results
-        ranking_result = results["ranking"]
+        ranking_result = results.get("ranking")
         state["ranking_result"] = ranking_result
         
-        property_technical_result = results["property_technical"]
-        loc_result = results["location"]
-        ape_result = results["ape"]
-        poi_result = results["poi"]
-        normative_result = results["normative"]
+        property_technical_result = results.get("property_technical")
+        loc_result = results.get("location")
+        ape_result = results.get("ape")
+        poi_result = results.get("poi")
+        normative_result = results.get("normative")
 
         # Process PropertyTechnical
         typologies = []

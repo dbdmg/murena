@@ -101,6 +101,7 @@ class AnalysisService:
         analysis_mode: str = "agent",
         progress_callback: Optional[Callable[[int, List[Dict]], None]] = None,
         dataset: Optional[pd.DataFrame] = None,
+        disabled_agents: Optional[List[str]] = None,
     ) -> Dict[str, Any]:
         """
         Run a complete real estate analysis.
@@ -215,6 +216,7 @@ class AnalysisService:
                 set_progress=wrapped_progress_callback,
                 llm_limit=llm_limit,
                 map_limit=map_limit,
+                disabled_agents=disabled_agents,
             )
 
             logger.info(f"Analysis {run_id} completed successfully")
