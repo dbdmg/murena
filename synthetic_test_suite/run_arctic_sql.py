@@ -170,34 +170,42 @@ def main():
     print(f"Processing {len(queries)} queries...")
     
     def process_query(query):
-        prompt = format_prompt(query, schema)
-        raw_output = engine.generate(prompt)
-        sql = extract_sql(raw_output)
-        
-        num_rows = -1
-        try:
-            def haversine_km(lat1, lon1, lat2, lon2):
-                R = 6371  # Earth radius in km
-                lat1, lon1, lat2, lon2 = map(
-                    np.radians, [float(lat1), float(lon1), float(lat2), float(lon2)]
-                )
-                dlon, dlat = lon2 - lon1, lat2 - lat1
-                a = np.sin(dlat / 2) ** 2 + np.cos(lat1) * np.cos(lat2) * np.sin(dlon / 2) ** 2
-                c = 2 * np.arctan2(np.sqrt(a), np.sqrt(1 - a))
-                return R * c
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                prompt = format_prompt(query, schema)
+                raw_output = engine.generate(prompt)
+                sql = extract_sql(raw_output)
+                
+                num_rows = -1
+                
+                def haversine_km(lat1, lon1, lat2, lon2):
+                    R = 6371  # Earth radius in km
+                    lat1, lon1, lat2, lon2 = map(
+                        np.radians, [float(lat1), float(lon1), float(lat2), float(lon2)]
+                    )
+                    dlon, dlat = lon2 - lon1, lat2 - lat1
+                    a = np.sin(dlat / 2) ** 2 + np.cos(lat1) * np.cos(lat2) * np.sin(dlon / 2) ** 2
+                    c = 2 * np.arctan2(np.sqrt(a), np.sqrt(1 - a))
+                    return R * c
 
-            dataset_path = os.path.abspath(os.path.join(BASE_DIR, "..", "backend", "data", "FOLDER_META", "immobili_with_meta_and_ape_full_cleaned.parquet"))
-            with duckdb.connect(database=":memory:") as con:
-                con.create_function("haversine_km", haversine_km, return_type="FLOAT")
-                con.execute(f"CREATE VIEW IMMOBILI AS SELECT * FROM '{dataset_path}'")
-                res = con.execute(sql).fetchdf()
-                num_rows = len(res)
-        except Exception as e:
-            num_rows = -1
+                dataset_path = os.path.abspath(os.path.join(BASE_DIR, "..", "backend", "data", "FOLDER_META", "immobili_with_meta_and_ape_full_cleaned.parquet"))
+                with duckdb.connect(database=":memory:") as con:
+                    con.create_function("haversine_km", haversine_km, return_type="FLOAT")
+                    con.execute(f"CREATE VIEW IMMOBILI AS SELECT * FROM '{dataset_path}'")
+                    res = con.execute(sql).fetchdf()
+                    num_rows = len(res)
+                
+                # If query results are successful, break loop
+                if num_rows >= 0:
+                    break
+            except Exception as e:
+                num_rows = -1
+                # If execution fails, continue loop to retry
 
         return {
             "query": query,
-            "sql": sql,
+            "sql": sql if 'sql' in locals() else "",
             "num_rows": num_rows
         }
 
