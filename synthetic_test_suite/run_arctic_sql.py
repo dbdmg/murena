@@ -72,7 +72,7 @@ def format_prompt(query: str, schema: str) -> str:
 You are a Text-to-SQL expert. Generate valid DuckDB SQL based on the provided schema.
 Use only the columns present in the schema.
 Always reason before providing the SQL in the <think> block.
-Return ONLY the raw SQL query after the <think> block. Do not include markdown formatting (like ```sql), preamble, or postscript.
+Return ONLY a valid JSON object after the <think> block, with the following format: {{"sql": "your SQL query here"}}. Do not include markdown formatting (like ```json), preamble, or postscript.
 <|im_end|>
 <|im_start|>user
 ### Database Schema:
@@ -93,10 +93,21 @@ def extract_sql(response: str) -> str:
         content = content.split("</think>")[-1].strip()
     
     # Clean markdown
-    content = re.sub(r"```sql\s*", "", content, flags=re.IGNORECASE)
+    content = re.sub(r"```json\s*", "", content, flags=re.IGNORECASE)
     content = re.sub(r"```\s*", "", content)
+    content = content.strip()
     
-    # Find first SELECT
+    try:
+        # Attempt to parse json
+        json_match = re.search(r"(\{.*\})", content, re.DOTALL)
+        if json_match:
+            parsed = json.loads(json_match.group(1))
+            if "sql" in parsed:
+                return parsed["sql"].strip()
+    except json.JSONDecodeError:
+        pass
+        
+    # Fallback to regex extraction
     match = re.search(r"(SELECT\s+.*)", content, re.IGNORECASE | re.DOTALL)
     if match:
         sql = match.group(1).strip()
