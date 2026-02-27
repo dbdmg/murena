@@ -54,12 +54,22 @@ def generate_combinations(json_file: str, output_file: str) -> int:
     # Sort by character length (ascending)
     all_compositions.sort(key=len)
 
-    # Write to CSV with status column
+    # Define status columns for each ablation setup
+    status_columns = [
+        "status_all_enabled",
+        "status_no_poi",
+        "status_no_normative",
+        "status_no_location",
+        "status_no_ape",
+        "status_no_property_technical"
+    ]
+    
+    # Write to CSV with status columns
     with open(output_file, 'w', encoding='utf-8', newline='') as f:
         writer = csv.writer(f)
-        writer.writerow(['query', 'status'])
+        writer.writerow(['query'] + status_columns)
         for comp in all_compositions:
-            writer.writerow([comp, 0])
+            writer.writerow([comp] + [0] * len(status_columns))
     
     return len(all_compositions)
 
