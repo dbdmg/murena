@@ -72,6 +72,7 @@ def format_prompt(query: str, schema: str) -> str:
 You are a Text-to-SQL expert. Generate valid DuckDB SQL based on the provided schema.
 Use only the columns present in the schema.
 Always reason before providing the SQL in the <think> block.
+Return ONLY the raw SQL query after the <think> block. Do not include markdown formatting (like ```sql), preamble, or postscript.
 <|im_end|>
 <|im_start|>user
 ### Database Schema:
@@ -186,8 +187,7 @@ def main():
         return {
             "query": query,
             "sql": sql,
-            "num_rows": num_rows,
-            "raw_reasoning": raw_output.split("</think>")[0].replace("<think>", "").strip() if "<think>" in raw_output else "N/A"
+            "num_rows": num_rows
         }
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
