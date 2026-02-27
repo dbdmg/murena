@@ -2090,7 +2090,8 @@ class GraphOrchestratorAgent(BaseAgent):
     def _evaluate_results(self, state: GraphState) -> GraphState:
         enriched_data = state["selected_data"]
 
-        llm_cap = self._resolve_llm_cap(state.get("llm_limit"))
+        # Forced to top 3 as per user request, one by one
+        llm_cap = 3
 
         if USE_MOCK_RESPONSES:
             logger.info("MOCK MODE: Simulating Evaluation...")
@@ -2154,9 +2155,8 @@ class GraphOrchestratorAgent(BaseAgent):
 
         # Evaluation batching
         # Increased batch size for faster models to reduce sequential overhead
-        current_model = settings.OPENAI_MODEL_FAST
-        is_heavy_local = "oss" in current_model.lower() or "120b" in current_model.lower()
-        batch_size = 1 if is_heavy_local else 5
+        # Process one by one (batch size 1) as per user request
+        batch_size = 1
         
         batches = [
             eval_input_df[i : i + batch_size]

@@ -23,6 +23,10 @@ class ProgressManager:
         """Initialize the progress manager."""
         # run_id → list of client queues
         self._subscribers: Dict[str, List[asyncio.Queue]] = defaultdict(list)
+        # run_id → last known progress update
+        self._last_state: Dict[str, ProgressUpdate] = {}
+        # run_id → whether the run is finished
+        self._completed: Dict[str, bool] = {}
         self._lock = asyncio.Lock()
         logger.info("ProgressManager initialized")
 
@@ -42,10 +46,22 @@ class ProgressManager:
         async with self._lock:
             self._subscribers[run_id].append(queue)
             subscriber_count = len(self._subscribers[run_id])
+            
+            # Send current state if available
+            last_update = self._last_state.get(run_id)
+            is_done = self._completed.get(run_id, False)
 
         logger.info(
             f"Client subscribed to run {run_id} ({subscriber_count} total subscribers)"
         )
+
+        # If we have a cached state, send it immediately
+        if last_update:
+            await queue.put(last_update)
+            
+        # If already completed, send finish signal immediately
+        if is_done:
+            await queue.put(None)
 
         try:
             while True:
@@ -83,9 +99,11 @@ class ProgressManager:
         """
         async with self._lock:
             queues = self._subscribers.get(run_id, [])
+            # Cache the latest state
+            self._last_state[run_id] = update
 
         if not queues:
-            logger.debug(f"No subscribers for run {run_id}, skipping update")
+            logger.debug(f"No subscribers for run {run_id}, state cached for future connections")
             return
 
         # Send update to all subscribers
@@ -108,9 +126,11 @@ class ProgressManager:
         """
         async with self._lock:
             queues = self._subscribers.get(run_id, [])
+            # Mark as completed
+            self._completed[run_id] = True
 
         if not queues:
-            logger.debug(f"No subscribers to complete for run {run_id}")
+            logger.debug(f"No subscribers to complete for run {run_id}, status cached")
             return
 
         # Send completion signal (None) to all subscribers

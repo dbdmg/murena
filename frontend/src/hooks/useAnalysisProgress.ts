@@ -118,6 +118,15 @@ export function useAnalysisProgress(
         return `${rawBase}/api/v1/ws/analysis/${id}`;
     }, []);
 
+    // Keep callbacks in refs to avoid re-triggering connect when they change (inline literals)
+    const onCompleteRef = useRef(onComplete);
+    const onErrorRef = useRef(onError);
+
+    useEffect(() => {
+        onCompleteRef.current = onComplete;
+        onErrorRef.current = onError;
+    }, [onComplete, onError]);
+
     // Connect to WebSocket
     const connect = useCallback(() => {
         if (!runId) return;
@@ -135,10 +144,7 @@ export function useAnalysisProgress(
         const ws = new WebSocket(buildWebSocketUrl(runId));
         wsRef.current = ws; // Assign immediately
 
-
-
         ws.onopen = () => {
-
             reconnectAttemptsRef.current = 0;
             setState((prev) => ({
                 ...prev,
@@ -151,14 +157,13 @@ export function useAnalysisProgress(
             try {
                 const data: WebSocketMessage = JSON.parse(event.data);
 
-
                 if (data.type === 'progress') {
                     const progressData = data as ProgressUpdate;
                     setState((prev) => ({
                         ...prev,
                         percent: progressData.progress,
                         step: progressData.step || '',
-                        steps: progressData.steps_state || prev.steps, // Use 'steps' to match AnalysisProgressState
+                        steps: progressData.steps_state || prev.steps,
                         message: progressData.detail || '',
                     }));
                 } else if (data.type === 'complete') {
@@ -170,7 +175,7 @@ export function useAnalysisProgress(
                         resultsUrl: completeData.results_url,
                     }));
 
-                    onComplete?.(completeData.results_url);
+                    onCompleteRef.current?.(completeData.results_url);
 
                     // Close connection after completion
                     ws.close(1000, 'Analysis complete'); // Normal closure
@@ -184,11 +189,10 @@ export function useAnalysisProgress(
             console.error('[WS] Error:', event);
             const errorMsg = 'WebSocket connection error';
             setState((prev) => ({ ...prev, error: errorMsg }));
-            onError?.(errorMsg);
+            onErrorRef.current?.(errorMsg);
         };
 
         ws.onclose = (event) => {
-
             setState((prev) => ({ ...prev, isConnected: false }));
             wsRef.current = null;
 
@@ -206,14 +210,12 @@ export function useAnalysisProgress(
                 const baseDelay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 30000);
                 const delay = baseDelay + (Math.random() * 1000);
 
-
-
                 reconnectTimeoutRef.current = setTimeout(() => {
                     setRetryTrigger(prev => prev + 1);
                 }, delay);
             }
         };
-    }, [runId, onComplete, onError, buildWebSocketUrl]);
+    }, [runId, buildWebSocketUrl]);
 
     // Reconnect when trigger changes
     useEffect(() => {
