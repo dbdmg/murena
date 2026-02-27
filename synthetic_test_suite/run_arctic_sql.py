@@ -62,7 +62,7 @@ def load_metadata(path: str) -> str:
     schema_parts.append(");")
     
     # Add help context for specific functions
-    context = "\n-- DuckDB Custom Functions:\n-- haversine_km(lat1, lon1, lat2, lon2): Calculates distance (km) between two points.\n"
+    context = "\n-- DuckDB Custom Functions:\n-- haversine_km(lat1, lon1, lat2, lon2): Calculates distance (km) between two points. If distance is not specified, assume a default of 3 km.\n"
     
     return "\n".join(schema_parts) + context
 
