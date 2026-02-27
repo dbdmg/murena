@@ -82,7 +82,7 @@ POI_CATEGORIES = {
             ("amenity", "clinic"),
             ("amenity", "doctors"),
         ],
-        "icon": "",
+        "icon": "🏥",
         "color": "#22c55e",
     },
     "mobilità": {
@@ -98,7 +98,7 @@ POI_CATEGORIES = {
             ("amenity", "bicycle_parking"),
             ("amenity", "bicycle_rental"),
         ],
-        "icon": "",
+        "icon": "🚇",
         "color": "#f97316",
     },
     "verde": {
@@ -110,7 +110,7 @@ POI_CATEGORIES = {
             ("landuse", "forest"),
             ("leisure", "playground"),
         ],
-        "icon": "",
+        "icon": "🌳",
         "color": "#10b981",
     },
     "sport": {
@@ -122,7 +122,7 @@ POI_CATEGORIES = {
             ("leisure", "pitch"),
             ("sport", "*"),
         ],
-        "icon": "",
+        "icon": "⚽",
         "color": "#3b82f6",
     },
     "commerciale": {
@@ -135,7 +135,7 @@ POI_CATEGORIES = {
             ("shop", "bakery"),
             ("shop", "butcher"),
         ],
-        "icon": "",
+        "icon": "🛒",
         "color": "#8b5cf6",
     },
     "educazione": {
@@ -146,7 +146,7 @@ POI_CATEGORIES = {
             ("amenity", "kindergarten"),
             ("amenity", "library"),
         ],
-        "icon": "",
+        "icon": "🎓",
         "color": "#eab308",
     },
 }
