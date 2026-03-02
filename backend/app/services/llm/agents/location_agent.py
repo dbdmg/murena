@@ -7,11 +7,10 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from pydantic import BaseModel, Field
 
-from app.core.config import settings
-
-AGENT_MODELS = settings.agent_models
+from app.core.config import settings, AGENT_MODELS
 from app.services.llm.agents.base import BaseAgent
 from app.services.llm.agents.schema import LocationAgentResult, Place, PromptRecord, LocationResponse
+
 from app.core.constants import LOCATION_AGENT_COLUMNS
 from app.services.llm.langchain_client import get_llm, invoke_with_langfuse
 from app.services.llm.prompt_loader import get_system_prompt, get_user_template
@@ -45,6 +44,9 @@ class LocationAgent(BaseAgent):
         self.parser = StrOutputParser()
         self.structured_llm = self.llm.with_structured_output(LocationResponse, method="function_calling")
         self.chain = self.prompt | self.structured_llm
+        
+        # Raw chain for fallback
+        self.raw_chain = self.prompt | self.llm | self.parser
 
     def run(
         self,
@@ -69,6 +71,8 @@ class LocationAgent(BaseAgent):
         except Exception as e:
             from app.utils.logger import logger
             logger.error(f"Error in {self.name}.run ({mode}): {e}")
+            import traceback
+            logger.error(traceback.format_exc())
             if mode == "ranking":
                 df = kwargs.get("df")
                 if df is not None:
@@ -95,16 +99,37 @@ class LocationAgent(BaseAgent):
         rendered_system_prompt = self.render_template(self.system_prompt, **prompt_inputs).strip()
         user_text = self.render_template(self.user_template, **prompt_inputs).strip()
 
-        # Invocation with structured output
-        loc_data: LocationResponse = invoke_with_langfuse(
-            self.chain,
-            {
-                "system_content": rendered_system_prompt,
-                "user_content": user_text
-            },
-        )
-        
+        # 1. First attempt: Structured output
+        loc_data: Optional[LocationResponse] = None
+        try:
+            loc_data = invoke_with_langfuse(
+                self.chain,
+                {
+                    "system_content": rendered_system_prompt,
+                    "user_content": user_text
+                },
+            )
+        except Exception as e:
+            from app.utils.logger import logger
+            logger.warning(f"Structured invocation failed for {self.name}, falling back to raw: {e}")
+
+        # 2. Second attempt / Fallback: Raw text + safe_extract_json
+        if not loc_data or not loc_data.places:
+            try:
+                raw_response = invoke_with_langfuse(
+                    self.raw_chain,
+                    {
+                        "system_content": rendered_system_prompt,
+                        "user_content": user_text
+                    },
+                )
+                loc_data = safe_extract_json(raw_response, schema=LocationResponse)
+            except Exception as e:
+                from app.utils.logger import logger
+                logger.error(f"Fallback invocation failed for {self.name}: {e}")
+
         places = loc_data.places if loc_data else []
+
 
         # Geocoding logic
         valid_places = []
