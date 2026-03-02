@@ -42,8 +42,16 @@ class ApeAgent(BaseAgent):
                 ("user", "{user_content}"),
             ]
         )
-        self.structured_llm = self.llm.with_structured_output(ApeAgentOutput, method="json_mode")
-        self.chain = self.prompt_template | self.structured_llm
+        # Detect if we should use structured output (avoid for OSS models)
+        resolved_model_lower = resolved_model.lower()
+        is_oss = "oss" in resolved_model_lower or (settings.OPENAI_API_BASE and "polito" in settings.OPENAI_API_BASE)
+        
+        if hasattr(self.llm, "with_structured_output") and not is_oss:
+            self.structured_llm = self.llm.with_structured_output(ApeAgentOutput, method="json_mode")
+            self.chain = self.prompt_template | self.structured_llm
+        else:
+            from langchain_core.output_parsers import StrOutputParser
+            self.chain = self.prompt_template | self.llm | StrOutputParser()
 
     @log_llm_usage
     def run(
@@ -105,7 +113,16 @@ class ApeAgent(BaseAgent):
                 "system_content": rendered_system_prompt,
                 "user_content": user_text
             }
-            structured_response: ApeAgentOutput = invoke_with_langfuse(self.chain, model_inputs)
+            structured_response = invoke_with_langfuse(self.chain, model_inputs)
+            
+            # If the output is a string (fallback mode), we need to extract JSON manually
+            if isinstance(structured_response, str) or hasattr(structured_response, 'content'):
+                text_to_parse = structured_response.content if hasattr(structured_response, 'content') else structured_response
+                structured_response = safe_extract_json(text_to_parse, schema=ApeAgentOutput)
+            
+            if not structured_response:
+                raise ValueError("Could not parse APE requirements from LLM response")
+                
             has_filters = structured_response.found
 
             return ApeAgentResult(

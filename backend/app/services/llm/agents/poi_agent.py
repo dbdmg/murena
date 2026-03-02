@@ -43,9 +43,17 @@ class PoiAgent(BaseAgent):
                 ("user", "{user_content}"),
             ]
         )
-        # Usiamo json_mode per garantire che il modello restituisca correttamente i nuovi campi (percentili_minimi)
-        self.structured_llm = self.llm.with_structured_output(PoiAgentOutput, method="json_mode")
-        self.chain = self.prompt_template | self.structured_llm
+        # Detect if we should use structured output (avoid for OSS models)
+        resolved_model_lower = resolved_model.lower()
+        is_oss = "oss" in resolved_model_lower or (settings.OPENAI_API_BASE and "polito" in settings.OPENAI_API_BASE)
+        
+        if hasattr(self.llm, "with_structured_output") and not is_oss:
+            # Usiamo json_mode per garantire che il modello restituisca correttamente i nuovi campi (percentili_minimi)
+            self.structured_llm = self.llm.with_structured_output(PoiAgentOutput, method="json_mode")
+            self.chain = self.prompt_template | self.structured_llm
+        else:
+            from langchain_core.output_parsers import StrOutputParser
+            self.chain = self.prompt_template | self.llm | StrOutputParser()
 
     @log_llm_usage
     def run(
@@ -114,7 +122,16 @@ class PoiAgent(BaseAgent):
                 "system_content": rendered_system_prompt,
                 "user_content": user_text
             }
-            structured_response: PoiAgentOutput = invoke_with_langfuse(self.chain, model_inputs)
+            structured_response = invoke_with_langfuse(self.chain, model_inputs)
+            
+            # If the output is a string (fallback mode), we need to extract JSON manually
+            if isinstance(structured_response, str) or hasattr(structured_response, 'content'):
+                text_to_parse = structured_response.content if hasattr(structured_response, 'content') else structured_response
+                structured_response = safe_extract_json(text_to_parse, schema=PoiAgentOutput)
+            
+            if not structured_response:
+                raise ValueError("Could not parse POI requirements from LLM response")
+                
             has_pois = structured_response.found
 
             return PoiAgentResult(

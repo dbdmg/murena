@@ -12,6 +12,7 @@ from app.services.llm.langchain_client import get_llm, invoke_with_langfuse
 from app.services.llm.prompt_loader import get_system_prompt, get_user_template
 from app.utils.decorators import handle_agent_error, log_llm_usage
 from app.utils.json_parser import safe_extract_json
+from app.services.llm.agents.schema import RankingRanking
 
 AGENT_MODELS = settings.agent_models
 
@@ -37,10 +38,16 @@ class RankingAgent(BaseAgent):
                 ("user", self.user_template),
             ]
         )
-        # Use structured output for deterministic weights
-        from app.services.llm.agents.schema import RankingRanking
-        self.structured_llm = self.llm.with_structured_output(RankingRanking, method="function_calling")
-        self.chain = self.prompt_template | self.structured_llm
+        # Detect if we should use structured output (avoid for OSS models)
+        resolved_model_lower = resolved_model.lower()
+        is_oss = "oss" in resolved_model_lower or (settings.OPENAI_API_BASE and "polito" in settings.OPENAI_API_BASE)
+        
+        if hasattr(self.llm, "with_structured_output") and not is_oss:
+            self.structured_llm = self.llm.with_structured_output(RankingRanking, method="function_calling")
+            self.chain = self.prompt_template | self.structured_llm
+        else:
+            from langchain_core.output_parsers import StrOutputParser
+            self.chain = self.prompt_template | self.llm | StrOutputParser()
 
     @log_llm_usage
     @handle_agent_error(
@@ -70,8 +77,17 @@ class RankingAgent(BaseAgent):
         full_text = f"[SYSTEM]\n{system_content}\n\n[USER]\n{user_text}"
 
         try:
-            ranking_data: RankingRanking = invoke_with_langfuse(self.chain, prompt_inputs)
+            ranking_data = invoke_with_langfuse(self.chain, prompt_inputs)
             
+            # If the output is a string (fallback mode), we need to extract JSON manually
+            if isinstance(ranking_data, str) or hasattr(ranking_data, 'content'):
+                text_to_parse = ranking_data.content if hasattr(ranking_data, 'content') else ranking_data
+                from app.services.llm.agents.schema import RankingRanking
+                ranking_data = safe_extract_json(text_to_parse, schema=RankingRanking)
+            
+            if not ranking_data:
+                raise ValueError("Could not parse ranking weights from LLM response")
+
             # Calculate weights based on ranking: 1/rank
             # This allows ex-aequo (same rank = same weight)
             ranked_agents_list = ranking_data.ranking

@@ -55,11 +55,23 @@ class EvaluationAgent(BaseAgent):
         # Store templates for PromptRecord
         self._system_with_format = system_with_format
 
-        # Se il modello supporta structured output nativo (es. Gemini/OpenAI), usiamolo
-        if hasattr(self.llm, "with_structured_output"):
-            self.chain = self.prompt | self.llm.with_structured_output(EvaluationList, method="function_calling")
+        # Detect if we should use structured output (avoid for OSS models via custom API base)
+        # Often these models claim to support it but fail at runtime or return text instead of tool calls.
+        resolved_model_lower = resolved_model.lower()
+        is_oss = "oss" in resolved_model_lower or "llama" in resolved_model_lower or "qwen" in resolved_model_lower or (settings.OPENAI_API_BASE and "polito" in settings.OPENAI_API_BASE)
+        
+        # Structured chain
+        if hasattr(self.llm, "with_structured_output") and not is_oss:
+            self.structured_chain = self.prompt | self.llm.with_structured_output(EvaluationList, method="function_calling")
         else:
-            self.chain = self.prompt | self.llm | self.parser
+            self.structured_chain = None
+
+        # raw chain (fallback or default for OSS)
+        from langchain_core.output_parsers import StrOutputParser
+        self.raw_chain = self.prompt | self.llm | StrOutputParser()
+        
+        # Default chain for legacy calls (if any)
+        self.chain = self.structured_chain or (self.prompt | self.llm | self.parser)
 
 
     @log_llm_usage
@@ -112,8 +124,11 @@ Assicurati che la tua valutazione sia allineata con i requisiti specifici sopra 
         
         for attempt in range(max_retries):
             try:
+                # Decide which chain to use (structured if available, otherwise raw)
+                active_chain = self.structured_chain if (self.structured_chain and attempt == 0) else self.raw_chain
+                
                 result = invoke_with_langfuse(
-                    self.chain,
+                    active_chain,
                     {
                         "system_content": self._system_with_format,
                         "query": query,
@@ -123,9 +138,11 @@ Assicurati che la tua valutazione sia allineata con i requisiti specifici sopra 
                     },
                 )
 
-                # Gestione differenziata in base al tipo di output
-                if hasattr(result, "model_dump"):
-                    raw_text = json.dumps(result.model_dump(), indent=2, ensure_ascii=False)
+                # Gestione dell'output grezzo per il record finale
+                if hasattr(result, "content"):
+                    raw_text = result.content
+                elif hasattr(result, "model_dump_json"):
+                    raw_text = result.model_dump_json()
                 else:
                     raw_text = str(result)
 
@@ -139,6 +156,19 @@ Assicurati che la tua valutazione sia allineata con i requisiti specifici sopra 
                         # Se è un dict con la chiave 'evaluations', prova a estrarla
                         if "evaluations" in result:
                             eval_list = EvaluationList(evaluations=result["evaluations"])
+                
+                if not eval_list:
+                    # Se non abbiamo un EvaluationList/dict, proviamo ad estrarlo dal testo grezzo
+                    # Questo è fondamentale per modelli OSS che non supportano bene function_calling
+                    from app.utils.json_parser import safe_extract_json
+                    text_to_parse = ""
+                    if hasattr(result, "content"): # Se è un messaggio (BaseMessage)
+                        text_to_parse = result.content
+                    elif isinstance(result, str):
+                        text_to_parse = result
+                    
+                    if text_to_parse:
+                        eval_list = safe_extract_json(text_to_parse, schema=EvaluationList)
                 
                 if eval_list:
                     results = eval_list.evaluations

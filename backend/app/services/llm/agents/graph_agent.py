@@ -125,6 +125,7 @@ class GraphState(TypedDict):
     steps_state: List[Dict[str, Any]]
     relax_constraints: bool  # Flag for smart relaxation
     last_retry_reason: Optional[str]  # Why we are retrying (error or few_results)
+    use_data_knowledge: bool  # Whether to pass data distribution statistics to agents
 
 class GraphOrchestratorAgent(BaseAgent):
     """
@@ -227,6 +228,7 @@ class GraphOrchestratorAgent(BaseAgent):
         map_limit: Optional[int] = None,
         metro_graph: Optional[Any] = None,
         disabled_agents: Optional[List[str]] = None,
+        use_data_knowledge: bool = True,
     ) -> OrchestratorResult:
 
         step_definitions = [
@@ -324,6 +326,7 @@ class GraphOrchestratorAgent(BaseAgent):
             "last_retry_reason": None,
             "sql_history": [],
             "disabled_agents": disabled_agents or [],
+            "use_data_knowledge": use_data_knowledge,
         }
 
         # Safe recursion limit to handle retry loops while preventing infinite loops
@@ -857,11 +860,13 @@ class GraphOrchestratorAgent(BaseAgent):
         def run_property_technical():
             start_t = time.time()
             self._update_progress(state, "property_technical", "Analisi tecnica...")
-            prop_stats = self._get_column_statistics(
-                columns=PROPERTY_TECHNICAL_AGENT_COLUMNS,
-                dataset_path=dataset_path, dataset_df=base_dataset,
-                db_metadata=state.get("db_metadata")
-            )
+            prop_stats = {}
+            if state.get("use_data_knowledge", True):
+                prop_stats = self._get_column_statistics(
+                    columns=PROPERTY_TECHNICAL_AGENT_COLUMNS,
+                    dataset_path=dataset_path, dataset_df=base_dataset,
+                    db_metadata=state.get("db_metadata")
+                )
             result = self.property_technical_agent.run(
                 query=query, mode="filtering",
                 available_typologies=str(state["db_metadata"].get("tipologia_bene_immobile", {}).get("values", [])),
@@ -881,13 +886,15 @@ class GraphOrchestratorAgent(BaseAgent):
             start_t = time.time()
             if base_dataset is not None or dataset_path is not None:
                 self._update_progress(state, "ape", "Valutazione energetica...")
-                ape_stats = self._get_column_statistics(
-                    columns=APE_AGENT_COLUMNS, 
-                    dataset_path=dataset_path, 
-                    dataset_df=base_dataset,
-                    target_not_na_col="classe_energetica_ape",
-                    db_metadata=state.get("db_metadata")
-                )
+                ape_stats = {}
+                if state.get("use_data_knowledge", True):
+                    ape_stats = self._get_column_statistics(
+                        columns=APE_AGENT_COLUMNS, 
+                        dataset_path=dataset_path, 
+                        dataset_df=base_dataset,
+                        target_not_na_col="classe_energetica_ape",
+                        db_metadata=state.get("db_metadata")
+                    )
                 result = self.ape_agent.run(
                     query=query, mode="filtering",
                     statistics=ape_stats, score_legend=APE_SCORE_LEGEND,
@@ -899,11 +906,13 @@ class GraphOrchestratorAgent(BaseAgent):
         def run_poi():
             start_t = time.time()
             self._update_progress(state, "poi", "Analisi servizi...")
-            poi_stats = self._get_column_statistics(
-                columns=POI_AGENT_COLUMNS,
-                dataset_path=dataset_path, dataset_df=base_dataset,
-                db_metadata=state.get("db_metadata")
-            )
+            poi_stats = {}
+            if state.get("use_data_knowledge", True):
+                poi_stats = self._get_column_statistics(
+                    columns=POI_AGENT_COLUMNS,
+                    dataset_path=dataset_path, dataset_df=base_dataset,
+                    db_metadata=state.get("db_metadata")
+                )
             result = self.poi_agent.run(query=query, mode="filtering", statistics=poi_stats)
             logger.info("PoiAgent completed")
             return result, (time.time() - start_t) * 1000
@@ -912,7 +921,7 @@ class GraphOrchestratorAgent(BaseAgent):
             start_t = time.time()
             self._update_progress(state, "normative", "Verifica norme...")
             norm_stats = {}
-            if base_dataset is not None or dataset_path is not None:
+            if state.get("use_data_knowledge", True) and (base_dataset is not None or dataset_path is not None):
                 norm_stats = self._get_column_statistics(
                     columns=NORMATIVE_AGENT_COLUMNS,
                     dataset_path=dataset_path, dataset_df=base_dataset,
