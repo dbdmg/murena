@@ -222,14 +222,22 @@ async def main():
         print(f"[CONFIG] Using model flavor: {args.model}")
 
     suite_dir = Path(__file__).parent
-    queries_csv = suite_dir / args.csv
-    
-    if not queries_csv.exists():
-        print(f"[ERROR] CSV not found: {queries_csv}")
+    input_csv = suite_dir / args.csv
+    if not input_csv.exists():
+        print(f"[ERROR] CSV not found: {input_csv}")
         return
 
-    output_root = suite_dir / "ablation_results"
-    output_root.mkdir(exist_ok=True)
+    output_root = suite_dir / "ablation_results" / args.model
+    output_root.mkdir(parents=True, exist_ok=True)
+    
+    # Copy CSV to result directory if it doesn't exist
+    queries_csv = output_root / args.csv
+    if not queries_csv.exists():
+        import shutil
+        shutil.copy(input_csv, queries_csv)
+        print(f"[INFO] Copied {input_csv.name} to {output_root}")
+    else:
+        print(f"[INFO] Using existing CSV in output directory: {queries_csv.name}")
     
     # Define Agents to Ablate
     # We test each parallel agent disabled

@@ -582,14 +582,23 @@ async def main():
     suite_dir = Path(__file__).parent
     
     # Check for composed_queries.csv logic first as requested
-    queries_csv = suite_dir / args.csv
-    if queries_csv.exists():
-        print(f"[LOAD] Processing queries from: {queries_csv.name}")
+    input_csv = suite_dir / args.csv
+    if input_csv.exists():
+        print(f"[LOAD] Processing queries from: {input_csv.name}")
         
         # Determine output folder dynamically based on CSV name
         output_folder_name = "composed_results" if args.csv == "composed_queries.csv" else f"{args.csv.replace('.csv', '')}_results"
-        output_dir = suite_dir / output_folder_name
-        output_dir.mkdir(exist_ok=True)
+        output_dir = suite_dir / output_folder_name / args.model
+        output_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Copy CSV to result directory if it doesn't exist
+        queries_csv = output_dir / args.csv
+        if not queries_csv.exists():
+            import shutil
+            shutil.copy(input_csv, queries_csv)
+            print(f"[INFO] Copied {input_csv.name} to {output_dir}")
+        else:
+            print(f"[INFO] Using existing CSV in output directory: {queries_csv.name}")
         
         # Load CSV with pandas
         df_queries = pd.read_csv(queries_csv)
@@ -758,8 +767,8 @@ async def main():
     queries_file = suite_dir / "composed_queries.txt"
     if queries_file.exists():
         print(f"[LOAD] Processing queries from: {queries_file.name}")
-        output_dir = suite_dir / "composed_results"
-        output_dir.mkdir(exist_ok=True)
+        output_dir = suite_dir / "composed_results" / args.model
+        output_dir.mkdir(parents=True, exist_ok=True)
         
         with open(queries_file, "r", encoding="utf-8") as f:
             queries = [line.strip() for line in f if line.strip()]

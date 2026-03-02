@@ -5,7 +5,30 @@ import numpy as np
 from scipy import stats
 from typing import Dict, List, Any
 
-def analyze_weight_correlation(results_dir: str):
+def main():
+    import argparse
+    from pathlib import Path
+    
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--model", type=str, choices=["gpt-oss-120b", "gpt-5-nano"], default="gpt-oss-120b", help="LLM model flavor")
+    args = parser.parse_args()
+
+    # Detect directories
+    script_dir = Path(__file__).parent.absolute()
+    results_root = script_dir.parent / "composed_results" / args.model
+    
+    if not results_root.exists():
+        print(f"[ERROR] Results directory not found: {results_root}")
+        return
+
+    # Create model-specific output directory
+    output_dir = script_dir / args.model
+    output_dir.mkdir(parents=True, exist_ok=True)
+    
+    print(f"[CONFIG] Analyzing model: {args.model}")
+    analyze_weight_correlation(str(results_root), str(output_dir))
+
+def analyze_weight_correlation(results_dir: str, output_dir: str):
     """
     Analyze the correlation between agent ranking (original_weights) and 
     their effectiveness (effective_weights > 0).
@@ -14,6 +37,10 @@ def analyze_weight_correlation(results_dir: str):
     
     # Load all json files in the results directory
     files = [f for f in os.listdir(results_dir) if f.endswith('.json')]
+    if not files:
+        print(f"No JSON files found in {results_dir}")
+        return
+        
     print(f"Found {len(files)} result files.")
     
     for filename in files:
@@ -62,13 +89,10 @@ def analyze_weight_correlation(results_dir: str):
     print(f"Total effective responses: {df['is_effective'].sum()} ({(df['is_effective'].mean()*100):.2f}%)")
     
     # Calculate Correlation
-    # 1. Point-biserial correlation: Weight (continuous) vs Is_Effective (binary)
+    # 1. Point-biserial correlation
     pb_corr, pb_p = stats.pointbiserialr(df['is_effective'], df['original_weight'])
     
-    # 2. Spearman correlation: Rank (ordinal) vs Is_Effective (binary/ordinal)
-    # Since Rank 1 is "highest", a negative correlation would mean higher rank (smaller number) 
-    # correlates with being effective. Let's invert rank for intuitive correlation if needed,
-    # or just report it.
+    # 2. Spearman correlation: Rank vs Is_Effective
     spearman_rank_corr, spearman_rank_p = stats.spearmanr(df['rank'], df['is_effective'])
     
     # 3. Spearman correlation: Weight vs Is_Effective
@@ -83,7 +107,6 @@ def analyze_weight_correlation(results_dir: str):
 
     print(f"\n3. Agent Rank (1=highest) vs Effectiveness (binary):")
     print(f"   Spearman Correlation: {spearman_rank_corr:.4f} (p-value: {spearman_rank_p:.4g})")
-    print("   (Negative correlation means higher rank [smaller number] tends to be more effective)")
 
     # 4. Correlation between weight and actual effective weight value
     spearman_eff_val_corr, spearman_eff_val_p = stats.spearmanr(df['original_weight'], df['effective_weight'])
@@ -107,11 +130,10 @@ def analyze_weight_correlation(results_dir: str):
     # Calculate Rank Effectiveness for summary and plots
     rank_effectiveness = df.groupby('rank')['is_effective'].mean()
     high_rank_eff = rank_effectiveness.iloc[0]
-    low_rank_eff = rank_effectiveness.iloc[-1]
+    # Handle cases where we have fewer than 5 ranks
+    low_rank_eff = rank_effectiveness.iloc[-1] if not rank_effectiveness.empty else 0.1
 
     # --- Saving Results ---
-    output_dir = os.path.dirname(os.path.abspath(__file__))
-    
     # 1. Save CSV
     csv_path = os.path.join(output_dir, "agent_effectiveness_data.csv")
     df.to_csv(csv_path, index=False)
@@ -125,17 +147,12 @@ def analyze_weight_correlation(results_dir: str):
         f.write(f"p-value: {spearman_rank_p:.4g}\n")
         f.write("(Note: Negative correlation means higher rank [smaller number 1, 2...] correlates with being effective)\n\n")
         
-        f.write("--- GLOSSARY / GLOSSARIO ---\n")
-        f.write("- Rank: Posizione dell'agente basata sul peso assegnato (1 = IMPORTANZA MASSIMA, 5 = IMPORTANZA MINIMA).\n")
-        f.write("- Is_Effective / Effectiveness: Indica se l'agente ha effettivamente contribuito con dei requisiti (True se effective_weight > 0).\n")
-        f.write("- Spearman Correlation: Misura quanto bene la relazione tra Rank ed Efficacia puo' essere descritta da una funzione monotona.\n")
-        f.write("- p-value: Significativita' statistica (valori < 0.05 indicano che la correlazione non e' casuale).\n\n")
-        
         f.write("--- Effectiveness Probability by Rank Position ---\n")
         for rank, prob in rank_effectiveness.items():
             f.write(f"Rank {rank}: {prob:.2%} probability of contributing requirements\n")
             
-        f.write(f"\n[KEY FINDING] An agent in Rank 1 is {high_rank_eff/low_rank_eff:.1f}x more likely to contribute than an agent in Rank 5.\n")
+        if low_rank_eff > 0:
+            f.write(f"\n[KEY FINDING] An agent in Rank 1 is {high_rank_eff/low_rank_eff:.1f}x more likely to contribute than an agent in the lowest Rank.\n")
         
         f.write("\n--- Effectiveness per Agent (Baseline) ---\n")
         f.write(agent_stats.to_string())
@@ -175,17 +192,13 @@ def analyze_weight_correlation(results_dir: str):
         plt.xlabel('Original Weight')
         plt.ylabel('Effective Weight')
         plt.grid(True, linestyle='--', alpha=0.5)
-        # Add diagonal line
         max_val = max(df['original_weight'].max(), df['effective_weight'].max())
         plt.plot([0, max_val], [0, max_val], 'r--', alpha=0.5)
         plt.tight_layout()
         plt.savefig(os.path.join(output_dir, "original_vs_effective_weight.png"))
         
-        print(f"[INFO] Plots saved to {output_dir}")
-        
-        # New Plot 4: Effectiveness by Rank
+        # Plot 4: Effectiveness by Rank
         plt.figure()
-        rank_effectiveness = df.groupby('rank')['is_effective'].mean()
         rank_effectiveness.plot(kind='bar', color='salmon', alpha=0.8)
         plt.title('Effectiveness Rate by Agent Rank')
         plt.xlabel('Agent Rank (1 = Highest Weight)')
@@ -194,17 +207,11 @@ def analyze_weight_correlation(results_dir: str):
         plt.tight_layout()
         plt.savefig(os.path.join(output_dir, "effectiveness_by_rank.png"))
         
+        print(f"[INFO] Plots saved to {output_dir}")
         print("\n--- Effectiveness by Rank ---")
         print(rank_effectiveness)
-        
-        print(f"\n[ANALYSIS] Rank 1 effectiveness: {high_rank_eff:.2%}")
-        print(f"[ANALYSIS] Lowest rank effectiveness: {low_rank_eff:.2%}")
-
-    except ImportError:
-        print("[WARNING] matplotlib not found, skipping plots.")
     except Exception as e:
         print(f"[ERROR] Plotting failed: {e}")
 
 if __name__ == "__main__":
-    RESULTS_DIR = "/Users/marcodeluca/Downloads/real-estate-ai/synthetic_test_suite/composed_results"
-    analyze_weight_correlation(RESULTS_DIR)
+    main()

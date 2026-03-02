@@ -18,10 +18,8 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 QUERIES_FILE = os.path.join(BASE_DIR, "text2sql_queries.csv")
 METADATA_FILE = os.path.join(BASE_DIR, "..", "backend", "app", "data", "db_metadata_lite.json")
 
-# Output folder configuration
-OUTPUT_DIR = os.path.join(BASE_DIR, "arctic_results")
-os.makedirs(OUTPUT_DIR, exist_ok=True)
-OUTPUT_FILE = os.path.join(OUTPUT_DIR, "arctic_sql_results.csv")
+# Removed model-independent global paths
+# OUTPUT_DIR and OUTPUT_FILE are now defined inside main() based on selected model
 
 # Removed MODEL_ID and OLLAMA_URL as local LLM is no longer supported
 
@@ -180,24 +178,37 @@ def main():
     settings.set_llm_model(args.model)
     active_model_id = settings.OPENAI_MODEL_FAST
 
+    # Output folder configuration (model-specific)
+    OUTPUT_DIR = os.path.join(BASE_DIR, "arctic_results", args.model)
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
+    OUTPUT_FILE = os.path.join(OUTPUT_DIR, "arctic_sql_results.csv")
+
 
     HF_TOKEN = None
 
     print(f"Running in {MODE} mode using model {active_model_id}.")
 
     
-    # Determine input file
-    QUERIES_PATH = os.path.join(BASE_DIR, args.csv)
+    input_csv_path = os.path.join(BASE_DIR, args.csv)
     
     print(f"Loading metadata from {METADATA_FILE}...")
     schema = load_metadata(METADATA_FILE)
     
-    print(f"Loading queries from {QUERIES_PATH}...")
-    if not os.path.exists(QUERIES_PATH):
-        print(f"Error: {QUERIES_PATH} not found.")
+    print(f"Loading queries from {input_csv_path}...")
+    if not os.path.exists(input_csv_path):
+        print(f"Error: {input_csv_path} not found.")
         return
         
-    df = pd.read_csv(QUERIES_PATH)
+    # Copy CSV to result directory if it doesn't exist
+    queries_csv_copy = os.path.join(OUTPUT_DIR, args.csv)
+    if not os.path.exists(queries_csv_copy):
+        import shutil
+        shutil.copy(input_csv_path, queries_csv_copy)
+        print(f"Copied {os.path.basename(input_csv_path)} to {OUTPUT_DIR}")
+    else:
+        print(f"Using existing CSV in output directory: {os.path.basename(queries_csv_copy)}")
+
+    df = pd.read_csv(queries_csv_copy)
 
     
     if "status" not in df.columns:
@@ -280,12 +291,12 @@ def main():
             # Backup save
             if i % 5 == 0:
                 pd.DataFrame(results).to_csv(OUTPUT_FILE, index=False)
-                df.to_csv(QUERIES_FILE, index=False)
+                df.to_csv(queries_csv_copy, index=False)
 
     pd.DataFrame(results).to_csv(OUTPUT_FILE, index=False)
-    df.to_csv(QUERIES_PATH, index=False)
+    df.to_csv(queries_csv_copy, index=False)
     print(f"\n Execution complete! Results saved to {OUTPUT_FILE}")
-    print(f" Statuses updated in {QUERIES_PATH}")
+    print(f" Statuses updated in {queries_csv_copy}")
 
 
 if __name__ == "__main__":

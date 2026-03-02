@@ -104,21 +104,37 @@ def plot_heatmap(matrix: np.ndarray, num_queries: int, output_path: Path):
     plt.close()
 
 def main():
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--model", type=str, choices=["gpt-oss-120b", "gpt-5-nano"], default="gpt-oss-120b", help="LLM model flavor")
+    args = parser.parse_args()
+
     # Detect the directory where the script is located
     script_dir = Path(__file__).parent.absolute()
-    # The results are in the parent directory's 'composed_results' folder
-    results_dir = script_dir.parent / "composed_results"
     
-    # Outputs in the same directory as the script
-    csv_output = script_dir / "iou_matrix.csv"
-    plot_output = script_dir / "iou_heatmap.png"
+    # The results are in the parent directory's 'composed_results' folder, now model-specific
+    results_dir = script_dir.parent / "composed_results" / args.model
+    
+    # Model-specific output directory
+    output_dir = script_dir / args.model
+    output_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Outputs in the model-specific directory
+    csv_output = output_dir / "iou_matrix.csv"
+    plot_output = output_dir / "iou_heatmap.png"
+    dist_output = output_dir / "iou_distribution.png"
     
     # 1. Load data
-    json_files = sorted(list(results_dir.glob("*.json")), key=lambda x: x.name)
-    if not json_files:
-        print("No JSON results found.")
+    if not results_dir.exists():
+        print(f"Results directory not found: {results_dir}")
         return
 
+    json_files = sorted(list(results_dir.glob("*.json")), key=lambda x: x.name)
+    if not json_files:
+        print(f"No JSON results found in {results_dir}")
+        return
+
+    print(f"[CONFIG] Analyzing model: {args.model}")
     print(f"Loading IDs from {len(json_files)} files...")
     query_ids = []
     filenames = []
@@ -141,6 +157,10 @@ def main():
             print(f"Failed to read {f.name}: {e}")
 
     num_queries = len(query_ids)
+    if num_queries == 0:
+        print("No valid queries found after filtering.")
+        return
+
     iou_matrix = np.zeros((num_queries, num_queries))
 
     print(f"Calculating {num_queries}x{num_queries} IoU matrix...")
@@ -182,10 +202,9 @@ def main():
         plot_heatmap(iou_matrix, num_queries, plot_output)
 
     # 5. Create Distribution Plot
-    dist_output = script_dir / "iou_distribution.png"
     plot_distribution(iou_matrix, dist_output)
     
-    print("Done!")
+    print(f"Done! Results available in {output_dir}")
 
 if __name__ == "__main__":
     main()
