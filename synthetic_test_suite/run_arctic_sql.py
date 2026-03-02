@@ -23,8 +23,7 @@ OUTPUT_DIR = os.path.join(BASE_DIR, "arctic_results")
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 OUTPUT_FILE = os.path.join(OUTPUT_DIR, "arctic_sql_results.csv")
 
-MODEL_ID = "a-kore/Arctic-Text2SQL-R1-7B:latest"
-OLLAMA_URL = "http://localhost:11434/api/generate"
+# Removed MODEL_ID and OLLAMA_URL as local LLM is no longer supported
 
 def load_metadata(path: str) -> str:
     """Loads and formats metadata into a SQL-friendly schema string."""
@@ -132,61 +131,12 @@ def extract_sql(response: str) -> str:
     return content.strip()
 
 class ArcticInference:
-    def __init__(self, mode="ollama", model_name=MODEL_ID, token=None):
+    def __init__(self, mode="api", model_name=None, token=None):
         self.mode = mode
         self.model_name = model_name
 
     def generate(self, query: str, schema: str) -> str:
-        if self.mode == "ollama":
-            prompt = format_prompt(query, schema)
-            payload = {
-                "model": self.model_name,
-                "prompt": prompt,
-                "stream": False,
-                "options": {
-                    "temperature": 0.1,
-                    "num_predict": 1024
-                }
-            }
-            try:
-                response = requests.post(OLLAMA_URL, json=payload)
-                response.raise_for_status()
-                result = response.json()
-                return result.get("response", "")
-            except requests.exceptions.RequestException as e:
-                return f"Error API: {e}"
-        else:
-            # API Mode
-            import sys
-            from pathlib import Path
-            base_dir = Path(__file__).resolve().parent.parent
-            backend_dir = base_dir / "backend"
-            if str(backend_dir) not in sys.path:
-                sys.path.append(str(backend_dir))
-                
-            from app.services.llm.langchain_client import get_llm
-            from langchain_core.messages import SystemMessage, HumanMessage
-            
-            llm = get_llm(model_name=self.model_name, temperature=0.1)
-            sys_msg = SystemMessage(content=get_system_message(schema))
-            usr_msg = HumanMessage(content=get_user_message(query, schema))
-            
-            try:
-                response = llm.invoke([sys_msg, usr_msg])
-                return response.content
-            except Exception as e:
-                return f"Error API: {e}"
-
-def main():
-    # CONFIGURATION
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--model", type=str, choices=["open-weights", "gpt-5-nano"], default="open-weights", help="LLM model flavor")
-    args, _ = parser.parse_known_args()
-
-    # Determine mode and model
-    if args.model == "gpt-5-nano":
-        MODE = "api"
-        # Patch sys.path for settings
+        # API Mode (strictly OpenAI-compatible)
         import sys
         from pathlib import Path
         base_dir = Path(__file__).resolve().parent.parent
@@ -194,27 +144,61 @@ def main():
         if str(backend_dir) not in sys.path:
             sys.path.append(str(backend_dir))
             
-        from app.core.config import settings
-        settings.set_llm_model(args.model)
-        active_model_id = settings.OPENAI_MODEL_FAST
-    else:
-        MODE = "ollama"
-        active_model_id = MODEL_ID
+        from app.services.llm.langchain_client import get_llm
+        from langchain_core.messages import SystemMessage, HumanMessage
+        
+        llm = get_llm(model_name=self.model_name, temperature=0.1)
+        sys_msg = SystemMessage(content=get_system_message(schema))
+        usr_msg = HumanMessage(content=get_user_message(query, schema))
+        
+        try:
+            response = llm.invoke([sys_msg, usr_msg])
+            return response.content
+        except Exception as e:
+            return f"Error API: {e}"
+
+def main():
+    # CONFIGURATION
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--model", type=str, choices=["gpt-oss-120b", "gpt-5-nano"], default="gpt-oss-120b", help="LLM model flavor")
+    parser.add_argument("--csv", type=str, default="text2sql_queries.csv", help="CSV file to process")
+    parser.add_argument("--concurrency", type=int, default=5, help="Number of parallel queries")
+    args, _ = parser.parse_known_args()
+
+
+    # Patch sys.path for settings
+    import sys
+    from pathlib import Path
+    base_dir = Path(__file__).resolve().parent.parent
+    backend_dir = base_dir / "backend"
+    if str(backend_dir) not in sys.path:
+        sys.path.append(str(backend_dir))
+        
+    from app.core.config import settings
+    
+    MODE = "api"
+    settings.set_llm_model(args.model)
+    active_model_id = settings.OPENAI_MODEL_FAST
+
 
     HF_TOKEN = None
 
     print(f"Running in {MODE} mode using model {active_model_id}.")
 
     
+    # Determine input file
+    QUERIES_PATH = os.path.join(BASE_DIR, args.csv)
+    
     print(f"Loading metadata from {METADATA_FILE}...")
     schema = load_metadata(METADATA_FILE)
     
-    print(f"Loading queries from {QUERIES_FILE}...")
-    if not os.path.exists(QUERIES_FILE):
-        print(f"Error: {QUERIES_FILE} not found.")
+    print(f"Loading queries from {QUERIES_PATH}...")
+    if not os.path.exists(QUERIES_PATH):
+        print(f"Error: {QUERIES_PATH} not found.")
         return
         
-    df = pd.read_csv(QUERIES_FILE)
+    df = pd.read_csv(QUERIES_PATH)
+
     
     if "status" not in df.columns:
         df["status"] = 0
@@ -274,7 +258,7 @@ def main():
             "num_rows": num_rows
         }
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=args.concurrency) as executor:
         future_to_query = {executor.submit(process_query, idx, q): (idx, q) for idx, q in queries_to_process}
         for i, future in enumerate(tqdm(concurrent.futures.as_completed(future_to_query), total=len(queries_to_process)), 1):
             try:
@@ -299,9 +283,10 @@ def main():
                 df.to_csv(QUERIES_FILE, index=False)
 
     pd.DataFrame(results).to_csv(OUTPUT_FILE, index=False)
-    df.to_csv(QUERIES_FILE, index=False)
+    df.to_csv(QUERIES_PATH, index=False)
     print(f"\n Execution complete! Results saved to {OUTPUT_FILE}")
-    print(f" Statuses updated in {QUERIES_FILE}")
+    print(f" Statuses updated in {QUERIES_PATH}")
+
 
 if __name__ == "__main__":
     main()

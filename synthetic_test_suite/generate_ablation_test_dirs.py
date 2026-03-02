@@ -211,9 +211,10 @@ async def process_query(idx: int, query: str, config_dir: Path, semaphore: async
 
 async def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model", type=str, choices=["open-weights", "gpt-5-nano"], help="LLM model flavor")
+    parser.add_argument("--model", type=str, choices=["gpt-oss-120b", "gpt-5-nano"], default="gpt-oss-120b", help="LLM model flavor")
     parser.add_argument("--csv", type=str, default="ablation_composed_queries.csv", help="CSV file to process")
     parser.add_argument("--concurrency", type=int, default=5, help="Number of parallel queries")
+
     args, _ = parser.parse_known_args()
 
     if args.model:

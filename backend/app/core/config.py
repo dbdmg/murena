@@ -78,13 +78,17 @@ class Settings(BaseSettings):
     USE_MOCK_NORMATIVE_AGENT: bool = False
 
     def set_llm_model(self, model_type: str):
-        """Sets the LLM model to either 'open-weights' or 'gpt-5-nano'/'fast-api'."""
-        if model_type == "open-weights":
-            self.OPENAI_MODEL_FAST = "gpt-oss:20b"
-            self.OPENAI_MODEL_SMART = "gpt-oss:20b"
-        elif model_type in ["gpt-5-nano", "fast-api"]:
+        """Sets the LLM model to either 'gpt-oss-120b' or 'gpt-5-nano'."""
+        if model_type == "gpt-oss-120b":
+            self.OPENAI_MODEL_FAST = "gpt-oss-120b"
+            self.OPENAI_MODEL_SMART = "gpt-oss-120b"
+            self.OPENAI_API_BASE = "https://llm.polito.it/v1"
+            self.OPENAI_API_KEY = "sk-WFPrsyPq1GSKSJe5VznXQQ"
+        elif model_type == "gpt-5-nano":
             self.OPENAI_MODEL_FAST = "gpt-5-nano-2025-08-07"
             self.OPENAI_MODEL_SMART = "gpt-5-mini-2025-08-07"
+            self.OPENAI_API_BASE = None # Use default OpenAI base
+
 
     # Agent Temperature - 0.0 for fully deterministic outputs (consistency)
     # Set to 0.0 to eliminate non-determinism, higher values allow creativity

@@ -22,83 +22,32 @@ def _get_llm_internal(
 ):
     """Internal cached model factory to ensure unified instances."""
     
-    # --- LOGICA DI SWITCHING MODELLO ---
-    # 1. Se il modello richiesto è uno tra quelli OSS supportati, usiamo Ollama
-    oss_models = [
-        "nvidia/Llama-3_3-Nemotron-Super-49B-v1", 
-        "openai/gpt-oss-20b", 
-        "gpt-oss:20b",
-        "microsoft/phi-4", 
-        "google/gemma-3-12b-it"
-    ]
-    if model_name in oss_models:
-        try:
-            from langchain_ollama import ChatOllama
-        except ImportError:
-            raise RuntimeError(
-                "Manca il pacchetto 'langchain-ollama'. Installalo con pip install langchain-ollama"
-            )
-            
-        # Per i modelli gpt-oss, assicuriamoci di usare il tag corretto per Ollama
-        ollama_model = "gpt-oss:20b" if "gpt-oss" in model_name else model_name
-        
-        print(f"[LLM] Utilizzo Ollama per {model_name} -> {ollama_model}")
-        # Sottoclasse per poter fare l'override in sicurezza (invece del monkey patching)
-        class CustomChatOllama(ChatOllama):
-            def with_structured_output(self, schema, **kwargs):
-                from langchain_core.runnables import RunnableLambda
-                from app.utils.json_parser import safe_extract_json
-                from pydantic import BaseModel
-                from typing import Any
-                
-                # Chiediamo al modello di rispondere in formato JSON
-                llm_with_json = self.bind(format="json")
-                
-                def parse_output(generation) -> Any:
-                    if hasattr(generation, "generations") and generation.generations:
-                        text = generation.generations[0].message.content
-                    elif hasattr(generation, "content"):
-                        text = generation.content
-                    else:
-                        text = str(generation)
-                        
-                    pydantic_schema = schema if isinstance(schema, type) and issubclass(schema, BaseModel) else None
-                    return safe_extract_json(text, schema=pydantic_schema)
-
-                return llm_with_json | RunnableLambda(parse_output)
-                
-        return CustomChatOllama(
-            model=ollama_model,
-            temperature=temperature,
-            base_url=settings.OLLAMA_BASE_URL
+    # Strictly OpenAI-compatible API (Standard OpenAI or OSS via custom base_url)
+    api_key = settings.OPENAI_API_KEY or os.getenv("OPENAI_API_KEY")
+    
+    if not api_key and not openai_api_base:
+        raise RuntimeError(
+            "OPENAI_API_KEY non configurata per utilizzare i modelli API."
         )
 
-    # 2. Se il modello inizia con "gpt-" o "o1-", usiamo OpenAI (via API o server compatibile)
-    if model_name.startswith("gpt-") or model_name.startswith("o1-"):
-        api_key = os.getenv("OPENAI_API_KEY")
-        if not api_key and not openai_api_base:
-            raise RuntimeError(
-                "OPENAI_API_KEY non configurata per utilizzare modelli OpenAI."
-            )
-
+    try:
+        from langchain_openai import ChatOpenAI
+    except ImportError:
         try:
-            from langchain_openai import ChatOpenAI
-        except ImportError:
-            try:
-                from langchain_community.chat_models import ChatOpenAI
-            except ImportError as e:
-                raise RuntimeError(
-                    "Manca il pacchetto 'langchain-openai'. Installalo con pip install langchain-openai"
-                ) from e
+            from langchain_community.chat_models import ChatOpenAI
+        except ImportError as e:
+            raise RuntimeError(
+                "Manca il pacchetto 'langchain-openai'. Installalo con pip install langchain-openai"
+            ) from e
 
-        return ChatOpenAI(
-            model=model_name, 
-            api_key=api_key or "sk-dummy", # Fallback for local servers without auth
-            temperature=temperature,
-            base_url=openai_api_base
-        )
+    print(f"[LLM] Inizializzazione modello {model_name} (Base URL: {openai_api_base or 'Default OpenAI'})")
+    return ChatOpenAI(
+        model=model_name, 
+        api_key=api_key or "sk-dummy", # Fallback for local servers without auth
+        temperature=temperature,
+        base_url=openai_api_base
+    )
 
-    raise ValueError(f"Modello non supportato o non riconosciuto: {model_name}")
 
 
 def get_llm(model_name: Optional[str] = None, temperature: Optional[float] = None):

@@ -569,9 +569,11 @@ def generate_files(root_path: Path, agent_name: str, prompt: str, tries_rankings
 async def main():
     # Parse model argument
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model", type=str, choices=["open-weights", "gpt-5-nano"], help="LLM model flavor")
+    parser.add_argument("--model", type=str, choices=["gpt-oss-120b", "gpt-5-nano"], default="gpt-oss-120b", help="LLM model flavor")
     parser.add_argument("--csv", type=str, default="composed_queries.csv", help="CSV file to process")
+    parser.add_argument("--concurrency", type=int, default=5, help="Number of parallel queries")
     args, _ = parser.parse_known_args()
+
 
     if args.model:
         settings.set_llm_model(args.model)
@@ -601,8 +603,8 @@ async def main():
             return
 
         await preload_data()
-        # limit concurrency to avoid overloading (1 for local models, 5 for cloud)
-        concurrency = 5
+        # limit concurrency to avoid overloading
+        concurrency = args.concurrency
         print(f"[CONFIG] Setting concurrency to: {concurrency}")
         semaphore = asyncio.Semaphore(concurrency)
         csv_lock = asyncio.Lock()
