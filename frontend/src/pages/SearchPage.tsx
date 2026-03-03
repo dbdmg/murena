@@ -18,6 +18,7 @@ import {
     Clock,
     CheckCircle2,
     Loader2,
+    XCircle,
     Building2,
     ToggleLeft,
     ToggleRight,
@@ -62,8 +63,8 @@ export const SearchPage: React.FC = () => {
                     analysisApi.getHistory(10),
                     analysisApi.getDemos().catch(() => []),
                 ]);
-                // Limit to 3 most recent completed runs
-                setRecentHistory(history.filter(h => h.status === 'completed').slice(0, 3));
+                // Limit to 3 most recent runs across all statuses
+                setRecentHistory(history.slice(0, 3));
                 setAvailableDemos(demos);
             } catch (err) {
                 console.error('Failed to fetch data:', err);
@@ -314,7 +315,7 @@ export const SearchPage: React.FC = () => {
                         <Clock className="w-4 h-4 text-gray-500" />
                         <h3 className="text-sm font-medium text-gray-400">Approfondimenti Recenti</h3>
                         <span className="text-xs text-gray-600">
-                            {recentHistory.length > 0 && `${recentHistory.length} completati`}
+                            {recentHistory.length > 0 && `${recentHistory.length} trovati`}
                         </span>
                     </div>
 
@@ -345,9 +346,28 @@ export const SearchPage: React.FC = () => {
                                     <div className="flex items-start justify-between gap-4">
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center gap-2 mb-1.5">
-                                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                                                    <CheckCircle2 className="w-3 h-3" />
-                                                    COMPLETATO
+                                                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium border ${item.status === 'completed'
+                                                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                                                    : item.status === 'failed'
+                                                        ? 'bg-red-500/10 text-red-500 border-red-500/20'
+                                                        : 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20'
+                                                    }`}>
+                                                    {item.status === 'completed' ? (
+                                                        <>
+                                                            <CheckCircle2 className="w-3 h-3" />
+                                                            COMPLETATO
+                                                        </>
+                                                    ) : item.status === 'failed' ? (
+                                                        <>
+                                                            <XCircle className="w-3 h-3" />
+                                                            FALLITO
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <Loader2 className="w-3 h-3 animate-spin" />
+                                                            IN CORSO
+                                                        </>
+                                                    )}
                                                 </span>
                                                 <span className="text-xs text-gray-500">
                                                     {new Date(item.created_at).toLocaleDateString('it-IT', {
@@ -360,7 +380,7 @@ export const SearchPage: React.FC = () => {
                                             </div>
                                             <QueryTooltip text={item.query}>
                                                 <p
-                                                    className="text-sm text-white font-medium group-hover:text-cyan-300 transition-colors break-words [overflow-wrap:anywhere]"
+                                                    className={`text-sm font-medium group-hover:text-cyan-300 transition-colors break-words [overflow-wrap:anywhere] ${item.status === 'failed' ? 'text-gray-400' : 'text-white'}`}
                                                     style={{
                                                         display: '-webkit-box',
                                                         WebkitLineClamp: 2,
@@ -371,10 +391,20 @@ export const SearchPage: React.FC = () => {
                                                     {item.query}
                                                 </p>
                                             </QueryTooltip>
-                                            {item.buildings_count !== undefined && (
+                                            {item.status === 'completed' && item.buildings_count !== undefined && (
                                                 <div className="flex items-center gap-1 mt-1 text-xs text-gray-500">
                                                     <Building2 className="w-3 h-3" />
                                                     <span>{item.buildings_count} immobili trovati</span>
+                                                </div>
+                                            )}
+                                            {item.status === 'failed' && (
+                                                <div className="flex items-center gap-1 mt-1 text-xs text-red-400/60 font-medium">
+                                                    <span>Errore durante l'analisi</span>
+                                                </div>
+                                            )}
+                                            {item.status === 'processing' && (
+                                                <div className="flex items-center gap-1 mt-1 text-xs text-cyan-400/60 font-medium">
+                                                    <span>Analisi in corso...</span>
                                                 </div>
                                             )}
                                         </div>
