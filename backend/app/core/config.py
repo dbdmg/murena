@@ -72,8 +72,8 @@ class Settings(BaseSettings):
     DEFAULT_LLM_PROVIDER: str = "openai"
 
     # LLM Models
-    OPENAI_MODEL_FAST: str = "gpt-4o-mini"
-    OPENAI_MODEL_SMART: str = "gpt-4o"
+    OPENAI_MODEL_FAST: str = "gpt-5-nano-2025-08-07"
+    OPENAI_MODEL_SMART: str = "gpt-5-mini-2025-08-07"
     USE_MOCK_RESPONSES: bool = False
     USE_MOCK_NORMATIVE_AGENT: bool = False
 

@@ -1,4 +1,6 @@
 import json
+import os
+from datetime import datetime
 from typing import List
 from app.utils.logger import logger
 
@@ -98,16 +100,6 @@ class EvaluationAgent(BaseAgent):
 
         logger.info(f"EvaluationAgent in esecuzione su {expected_count} immobili.")
 
-        # Add original query context to use_case if available and different
-        if original_query and query != use_case:
-            query_context = f"""
-RICORDA: La richiesta originale dell'utente era:
-"{original_query}"
-
-Assicurati che la tua valutazione sia allineata con i requisiti specifici sopra menzionati.
-"""
-            use_case = query_context + "\n\n" + use_case
-
         # Format user prompt with variables
         user_text = self.render_template(
             self.user_template,
@@ -172,12 +164,26 @@ Assicurati che la tua valutazione sia allineata con i requisiti specifici sopra 
                 
                 if eval_list:
                     results = eval_list.evaluations
-                    # Se abbiamo ricevuto almeno tanti record quanti ne abbiamo inviati, usciamo dal loop
-                    if len(results) >= expected_count:
+                    
+                    # Verifica quantitativa: abbiamo ricevuto tutti i record attesi?
+                    is_complete = len(results) >= expected_count
+                    
+                    # Verifica qualitativa: se abbiamo record, sono effettivamente compilati?
+                    # Spesso gli LLM restituiscono JSON validi ma con stringhe vuote o liste vuote in caso di errore silente.
+                    if is_complete and expected_count > 0:
+                        # Controlliamo la qualità di ogni record (l'agente di solito lavora in batch da 1)
+                        for eval_item in results:
+                            # Se mancano testo di valutazione o i punti chiave, consideriamo il record incompleto
+                            if not eval_item.evaluation_text or len(eval_item.pros) == 0 or len(eval_item.cons) == 0:
+                                is_complete = False
+                                logger.warning(f"L'EvaluationAgent ha restituito record con dati mancanti per ID {eval_item.id} (tentativo {attempt + 1}/{max_retries}).")
+                                break
+                    
+                    if is_complete:
                         result = eval_list # Assicuriamo che 'result' sia l'oggetto validato per il prosieguo
                         break
-                    else:
-                        logger.warning(f"L'EvaluationAgent ha restituito {len(results)} record su {expected_count} attesi (tentativo {attempt + 1}/{max_retries}).")
+                    elif len(results) < expected_count:
+                        logger.warning(f"L'EvaluationAgent ha restituito solo {len(results)} record su {expected_count} attesi (tentativo {attempt + 1}/{max_retries}).")
                 else:
                     if expected_count > 0:
                          logger.warning(f"L'EvaluationAgent non ha restituito una struttura valida (tentativo {attempt + 1}/{max_retries}).")
@@ -194,6 +200,9 @@ Assicurati che la tua valutazione sia allineata con i requisiti specifici sopra 
             user=user_text,
             full_text=full_text,
         )
+
+        # Monitor - JSON export is handled by the orchestrator if enabled
+
 
         return EvaluationAgentResponse(
             prompt=prompt_record, raw_text=raw_text

@@ -267,7 +267,7 @@ async def get_pois(
 
         # Category matching
         matched_category = None
-        matched_icon = ""
+        matched_icon = "📍"
         matched_color = "#6b7280"
 
         for cat in categories_to_collect:

@@ -1123,7 +1123,7 @@ class GraphOrchestratorAgent(BaseAgent):
             }
 
         # Build use_case_str from agent results (no needs_metric)
-        use_case_parts = [f"Query: {query}"]
+        use_case_parts = []
         if ape_text:
             use_case_parts.append(ape_text.strip())
         if poi_text:
@@ -2106,8 +2106,8 @@ class GraphOrchestratorAgent(BaseAgent):
     def _evaluate_results(self, state: GraphState) -> GraphState:
         enriched_data = state["selected_data"]
 
-        # Forced to top 3 as per user request, one by one
-        llm_cap = 3
+        # Restore top 10 as per user request
+        llm_cap = MAX_LLM_CAP
 
         if USE_MOCK_RESPONSES:
             logger.info("MOCK MODE: Simulating Evaluation...")
@@ -2131,7 +2131,7 @@ class GraphOrchestratorAgent(BaseAgent):
             eval_results = []
             if not enriched_data.empty:
                 mock_data = json.loads(MOCK_EVALUATION.raw_text)
-                for idx, item_id in enumerate(enriched_data.head(3)["id"].tolist()):
+                for idx, item_id in enumerate(enriched_data.head(llm_cap)["id"].tolist()):
                     if idx < len(mock_data):
                         res_dict = mock_data[idx]
                         res = EvaluationResult(**res_dict)
@@ -2363,7 +2363,7 @@ class GraphOrchestratorAgent(BaseAgent):
 
         # Create structured text for the broker
         candidates = []
-        for i, res in enumerate(eval_results[:5]):  # Analyze top 5 max
+        for i, res in enumerate(eval_results[:MAX_LLM_CAP]):  # Analyze top candidates
             if hasattr(res, "id") and hasattr(res, "final_ranking_score"):
                 # Handle as Pydantic model
                 candidates.append(
