@@ -169,17 +169,42 @@ class ApeAgent(BaseAgent):
                 
                 # Special handling for energy class (categorical)
                 if col == "classe_energetica_ape":
-                    # Definitive ranking map: Class -> (Score, Rank)
-                    # A4 is best (Rank 1), G is worst (Rank 10)
-                    # Score decays linearly from 100 to 0
+                    # Definitive ranking order: A4 is best (Rank 1), G is worst
                     classes_order = ["A4", "A3", "A2", "A1", "B", "C", "D", "E", "F", "G"]
-                    n_classes = len(classes_order)
-                    ranking_map = {}
                     
-                    for i, cls_name in enumerate(classes_order):
-                        # Linear decay: 100 at index 0, 0 at index n-1
-                        # Formula: 100 * (1 - i / (n-1))
-                        score = round(100.0 * (1 - i / (n_classes - 1)), 1)
+                    # Determine target set of classes based on operator and value
+                    target_set = []
+                    if isinstance(target_val, list):
+                        target_set = [c for c in classes_order if c in [str(v).upper() for v in target_val]]
+                    else:
+                        target_val_str = str(target_val).upper().strip()
+                        if op in [">=", ">"]:
+                            try:
+                                idx = classes_order.index(target_val_str)
+                                target_set = classes_order[:idx+1]
+                            except ValueError:
+                                target_set = [target_val_str] if target_val_str in classes_order else []
+                        elif op in ["<=", "<"]:
+                            try:
+                                idx = classes_order.index(target_val_str)
+                                target_set = classes_order[idx:]
+                            except ValueError:
+                                target_set = [target_val_str] if target_val_str in classes_order else []
+                        elif op in ["IN"]:
+                             candidates = [v.strip().upper() for v in str(target_val).split(",")]
+                             target_set = [c for c in classes_order if c in candidates]
+                        else: # ==
+                            target_set = [target_val_str] if target_val_str in classes_order else []
+
+                    # If no target set could be determined but we have a value, use it as fallback
+                    if not target_set and target_val:
+                         target_set = [str(target_val).upper().strip()]
+
+                    # Map target classes to scores (100/position)
+                    ranking_map = {}
+                    for i, cls_name in enumerate(target_set):
+                        # Score calculation: 100 / (position)
+                        score = round(100.0 / (i + 1), 1)
                         ranking_map[cls_name] = (score, i + 1)
                     
                     vals = df_ranked[col].astype(str).str.upper().str.strip()
@@ -188,7 +213,7 @@ class ApeAgent(BaseAgent):
                     def get_class_details(c_val):
                         if c_val in ranking_map:
                             return ranking_map[c_val]
-                        return (0.0, "N/A") # fallback
+                        return (0.0, "N/A") # Outside target set = 0
 
                     details = vals.apply(get_class_details)
                     
@@ -197,11 +222,9 @@ class ApeAgent(BaseAgent):
                     
                     # Save transparency metadata
                     pos_col = f"ape_rank_position_{col}"
-                    
                     df_ranked[pos_col] = rank_pos
                     
                     # Store partial score for this categorical requirement
-                    # req_score is already calculated above as details.apply(lambda x: x[0])
                     df_ranked[f"ape_partial_score_{col}"] = req_score
                     
                     transparency_cols.extend([pos_col, f"ape_partial_score_{col}"])
