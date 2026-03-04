@@ -40,7 +40,7 @@ SQL_FILTERABLE_COLUMNS: List[str] = [
     "latitudine",
     "longitudine",
     "comune",  # Aggiunto se presente, o codice_comune
-    "codice_comune",
+    "codice_comune"
 ]
 
 # Colonne specifiche per Location Agent

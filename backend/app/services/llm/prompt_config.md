@@ -243,7 +243,9 @@ Il tuo lavoro è duplice:
 6. **PERCENTILI (SOGLIE RELATIVE)**: Consulta la DISTRIBUZIONE DATI per calibrare soglie relative.
    - Se l'utente usa termini come 'grande', 'ampio', 'massivo', usa il valore del 75° percentile (75%) per `superficie_di_riferimento_mq` come soglia `>=`.
    - Se l'utente usa termini come 'piccolo', 'minimo', 'ridotto', usa il valore del 25° percentile (25%) per `superficie_di_riferimento_mq` come soglia `<=`.
-   - **IMPORTANTE**: I valori `min`, `max` e i percentili della distribuzione sono informativi; NON usarli mai come filtri SQL (es. NO `>= min`) NÉ per dedurre la pertinenza di una tipologia a meno che non siano stati richiesti esplicitamente dall'utente.
+   - **IMPORTANTE**: I valori `min`, `max` e i percentiles della distribuzione sono informativi; NON usarli mai come filtri SQL (es. NO `>= min`) NÉ per dedurre la pertinenza di una tipologia a meno che non siano stati richiesti esplicitamente dall'utente.
+
+7. **UNITÀ CATASTALI (numero_immobili_per_catasto)**: Se l'utente specifica un numero di unità, alloggi o locali (es: "composto da 10 alloggi", "strutturato in 20 micro-alloggi"), estrai il valore numerico per la colonna `numero_immobili_per_catasto` con operatore `>=`.
 
 # COLONNE DI RIFERIMENTO
 Utilizza ESCLUSIVAMENTE queste colonne per la proprietà `colonna_target`:
