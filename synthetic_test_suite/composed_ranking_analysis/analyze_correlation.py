@@ -134,84 +134,61 @@ def analyze_weight_correlation(results_dir: str, output_dir: str):
     low_rank_eff = rank_effectiveness.iloc[-1] if not rank_effectiveness.empty else 0.1
 
     # --- Saving Results ---
-    # 1. Save CSV
-    csv_path = os.path.join(output_dir, "agent_effectiveness_data.csv")
-    df.to_csv(csv_path, index=False)
-    print(f"\n[INFO] Data saved to {csv_path}")
+    # Consolidate all results into a single dictionary
+    results = {
+        "summary": {
+            "total_agent_query_pairs": int(len(df)),
+            "total_effective_responses": int(df['is_effective'].sum()),
+            "effectiveness_rate_percent": float(df['is_effective'].mean() * 100)
+        },
+        "correlation_analysis": {
+            "point_biserial_weight_vs_effectiveness": {
+                "correlation": float(pb_corr),
+                "p_value": float(pb_p)
+            },
+            "spearman_weight_vs_effectiveness": {
+                "correlation": float(spearman_weight_corr),
+                "p_value": float(spearman_weight_p)
+            },
+            "spearman_rank_vs_effectiveness": {
+                "correlation": float(spearman_rank_corr),
+                "p_value": float(spearman_rank_p)
+            },
+            "original_vs_effective_weight": {
+                "pearson": {
+                    "correlation": float(pearson_eff_val_corr),
+                    "p_value": float(pearson_eff_val_p)
+                },
+                "spearman": {
+                    "correlation": float(spearman_eff_val_corr),
+                    "p_value": float(spearman_eff_val_p)
+                }
+            }
+        },
+        "effectiveness_by_agent": agent_stats.reset_index().rename(columns={
+            "index": "agent",
+            "count": "total_queries",
+            "sum": "times_effective",
+            "mean": "effectiveness_rate"
+        }).to_dict(orient='records'),
+        "average_weight_by_effectiveness": {
+            "not_effective": float(avg_weight.get(0, 0)),
+            "effective": float(avg_weight.get(1, 0))
+        },
+        "effectiveness_by_rank": {str(k): float(v) for k, v in rank_effectiveness.items()},
+        "key_findings": {
+            "rank_1_vs_lowest_multiplier": float(high_rank_eff / low_rank_eff) if low_rank_eff > 0 else None
+        }
+    }
 
-    # 2. Save Summary Stats
-    summary_path = os.path.join(output_dir, "ranking_effectiveness_summary.txt")
-    with open(summary_path, "w") as f:
-        f.write("--- RANKING VS EFFECTIVENESS ANALYSIS ---\n")
-        f.write(f"Spearman Correlation (Rank vs Is_Effective): {spearman_rank_corr:.4f}\n")
-        f.write(f"p-value: {spearman_rank_p:.4g}\n")
-        f.write("(Note: Negative correlation means higher rank [smaller number 1, 2...] correlates with being effective)\n\n")
-        
-        f.write("--- Effectiveness Probability by Rank Position ---\n")
-        for rank, prob in rank_effectiveness.items():
-            f.write(f"Rank {rank}: {prob:.2%} probability of contributing requirements\n")
-            
-        if low_rank_eff > 0:
-            f.write(f"\n[KEY FINDING] An agent in Rank 1 is {high_rank_eff/low_rank_eff:.1f}x more likely to contribute than an agent in the lowest Rank.\n")
-        
-        f.write("\n--- Effectiveness per Agent (Baseline) ---\n")
-        f.write(agent_stats.to_string())
-    print(f"[INFO] Summary saved to {summary_path}")
+    # Save JSON
+    json_path = os.path.join(output_dir, "ranking_correlation_analysis.json")
+    with open(json_path, "w") as f:
+        json.dump(results, f, indent=4)
+    
+    print(f"\n[INFO] Analysis results saved to {json_path}")
+    print("[INFO] CSV, text, and plot generation has been disabled as requested.")
 
-    # --- Plotting ---
-    try:
-        import matplotlib.pyplot as plt
-        
-        # Set a clean style
-        plt.rcParams.update({'font.size': 10, 'figure.figsize': (10, 6)})
-        
-        # Plot 1: Effectiveness Rate per Agent
-        plt.figure()
-        agent_stats['Effectiveness Rate'].plot(kind='bar', color='skyblue', alpha=0.8)
-        plt.title('Effectiveness Rate by Agent')
-        plt.ylabel('Rate (0-1)')
-        plt.grid(axis='y', linestyle='--', alpha=0.7)
-        plt.tight_layout()
-        plt.savefig(os.path.join(output_dir, "effectiveness_per_agent.png"))
-        
-        # Plot 2: Original Weight Distribution by Effectiveness
-        plt.figure()
-        data_to_plot = [df[df['is_effective'] == 0]['original_weight'], 
-                        df[df['is_effective'] == 1]['original_weight']]
-        plt.boxplot(data_to_plot, labels=['Not Effective', 'Effective'])
-        plt.title('Original Weight Distribution by Effectiveness')
-        plt.ylabel('Original Weight')
-        plt.grid(axis='y', linestyle='--', alpha=0.3)
-        plt.tight_layout()
-        plt.savefig(os.path.join(output_dir, "weight_distribution_by_effectiveness.png"))
-        
-        # Plot 3: Scatter Plot Original vs Effective Weight
-        plt.figure()
-        plt.scatter(df['original_weight'], df['effective_weight'], alpha=0.3, color='forestgreen')
-        plt.title('Original Weight vs Effective Weight')
-        plt.xlabel('Original Weight')
-        plt.ylabel('Effective Weight')
-        plt.grid(True, linestyle='--', alpha=0.5)
-        max_val = max(df['original_weight'].max(), df['effective_weight'].max())
-        plt.plot([0, max_val], [0, max_val], 'r--', alpha=0.5)
-        plt.tight_layout()
-        plt.savefig(os.path.join(output_dir, "original_vs_effective_weight.png"))
-        
-        # Plot 4: Effectiveness by Rank
-        plt.figure()
-        rank_effectiveness.plot(kind='bar', color='salmon', alpha=0.8)
-        plt.title('Effectiveness Rate by Agent Rank')
-        plt.xlabel('Agent Rank (1 = Highest Weight)')
-        plt.ylabel('Effectiveness Rate (0-1)')
-        plt.grid(axis='y', linestyle='--', alpha=0.7)
-        plt.tight_layout()
-        plt.savefig(os.path.join(output_dir, "effectiveness_by_rank.png"))
-        
-        print(f"[INFO] Plots saved to {output_dir}")
-        print("\n--- Effectiveness by Rank ---")
-        print(rank_effectiveness)
-    except Exception as e:
-        print(f"[ERROR] Plotting failed: {e}")
 
 if __name__ == "__main__":
     main()
