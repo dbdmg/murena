@@ -89,6 +89,42 @@ def get_llm(model_name: Optional[str] = None, temperature: Optional[float] = Non
         openai_api_base=settings.OPENAI_API_BASE
     )
 
+
+def is_oss_model(model_name: Optional[str] = None) -> bool:
+    """Return True when the active model does not reliably support structured output.
+
+    Resolution order:
+    1. Look up the model by name in MODEL_OPTIONS (authoritative, explicit).
+    2. Fall back to heuristic substring matching for models not registered there.
+
+    Args:
+        model_name: Override the model name to check. If None, the current
+            settings.OPENAI_MODEL_FAST is used.
+
+    Returns:
+        True if the model should use plain text output instead of
+        function_calling / json_mode structured output.
+    """
+    try:
+        from tests.model_config import MODEL_OPTIONS
+        resolved = model_name or settings.OPENAI_MODEL_FAST
+        for cfg in MODEL_OPTIONS.values():
+            if cfg["model"] == resolved:
+                return not cfg["supports_structured_output"]
+    except ImportError:
+        pass
+
+    # Fallback: heuristic based on model name and endpoint URL.
+    resolved = (model_name or settings.OPENAI_MODEL_FAST or "").lower()
+    api_base = (settings.OPENAI_API_BASE or "").lower()
+    return (
+        "oss" in resolved
+        or "llama" in resolved
+        or "qwen" in resolved
+        or "ollama" in api_base
+        or "polito" in api_base
+    )
+
 def get_langfuse_callback(session_id: Optional[str] = None, user_id: Optional[str] = None, tags: Optional[list] = None, trace_name: Optional[str] = None):
     """Restituisce il callback handler per Langfuse se configurato.
     

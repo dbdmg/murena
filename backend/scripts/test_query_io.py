@@ -230,7 +230,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--model", 
         type=str, 
-        choices=["gpt-5-nano", "gpt-oss-120b"], 
+        choices=["gpt-5-nano", "gpt-oss-120b", "deepseek-r1-8b"], 
         default="gpt-5-nano",
         help="Model to use"
     )

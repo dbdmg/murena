@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 from app.core.config import settings
 from app.services.llm.agents.base import BaseAgent
 from app.services.llm.agents.schema import RankingAgentResult, RankingWeights, PromptRecord
-from app.services.llm.langchain_client import get_llm, invoke_with_langfuse
+from app.services.llm.langchain_client import get_llm, invoke_with_langfuse, is_oss_model
 from app.services.llm.prompt_loader import get_system_prompt, get_user_template
 from app.utils.decorators import handle_agent_error, log_llm_usage
 from app.utils.json_parser import safe_extract_json
@@ -39,10 +39,7 @@ class RankingAgent(BaseAgent):
             ]
         )
         # Detect if we should use structured output (avoid for OSS models)
-        resolved_model_lower = resolved_model.lower()
-        is_oss = "oss" in resolved_model_lower or (settings.OPENAI_API_BASE and "polito" in settings.OPENAI_API_BASE)
-        
-        if hasattr(self.llm, "with_structured_output") and not is_oss:
+        if hasattr(self.llm, "with_structured_output") and not is_oss_model(resolved_model):
             self.structured_llm = self.llm.with_structured_output(RankingRanking, method="function_calling")
             self.chain = self.prompt_template | self.structured_llm
         else:

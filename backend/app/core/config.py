@@ -67,6 +67,7 @@ class Settings(BaseSettings):
     OPENAI_API_KEY: str = ""
     HF_TOKEN: str = ""
     OPENAI_API_BASE: Optional[str] = None  # Use custom base URL for OSS models
+    LLM_POLITO_API_KEY: str = ""  # API key for llm.polito.it endpoint
 
     # LLM Provider: "openai" o "gemini" - controlla quale provider usare di default
     DEFAULT_LLM_PROVIDER: str = "openai"
@@ -78,12 +79,12 @@ class Settings(BaseSettings):
     USE_MOCK_NORMATIVE_AGENT: bool = False
 
     def set_llm_model(self, model_type: str):
-        """Sets the LLM model to either 'gpt-oss-120b' or 'gpt-5-nano'."""
-        if model_type == "gpt-oss-120b":
-            self.OPENAI_MODEL_FAST = "gpt-oss-120b"
-            self.OPENAI_MODEL_SMART = "gpt-oss-120b"
+        """Sets the LLM model to either 'gpt-oss-120b', 'deepseek-r1-8b', or 'gpt-5-nano'."""
+        if model_type in ["gpt-oss-120b", "deepseek-r1-8b"]:
+            self.OPENAI_MODEL_FAST = model_type
+            self.OPENAI_MODEL_SMART = model_type
             self.OPENAI_API_BASE = "https://llm.polito.it/v1"
-            self.OPENAI_API_KEY = "sk-WFPrsyPq1GSKSJe5VznXQQ"
+            self.OPENAI_API_KEY = self.LLM_POLITO_API_KEY
         elif model_type == "gpt-5-nano":
             self.OPENAI_MODEL_FAST = "gpt-5-nano-2025-08-07"
             self.OPENAI_MODEL_SMART = "gpt-5-mini-2025-08-07"

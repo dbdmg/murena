@@ -19,7 +19,7 @@ from app.services.llm.prompt_loader import get_system_prompt, get_user_template
 from app.utils.decorators import handle_agent_error, log_llm_usage
 from app.utils.json_parser import safe_extract_json
 
-def _load_normative_documents() -> tuple[str, list[str], List[Dict[str, Any]]]:
+def load_normative_documents() -> tuple[str, list[str], List[Dict[str, Any]]]:
     """
     Carica tutti i documenti normativi dalla cartella docs/knowledge/normativa/
     Restituisce una tupla: (testo_concatenato, lista_percorsi_file, lista_immagini_base64)
@@ -146,7 +146,7 @@ class NormativeAgent(BaseAgent):
                 prompt=PromptRecord(system="N/D", user=query),
             )
         
-        normative_docs, sources, images = _load_normative_documents()
+        normative_docs, sources, images = load_normative_documents()
         
         # Inseriamo le colonne disponibili nel prompt
         # Priority to specifically passed available_columns, fallback to constants

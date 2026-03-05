@@ -19,7 +19,7 @@ from app.services.llm.agents.schema import (
     EvaluationList,
     PromptRecord,
 )
-from app.services.llm.langchain_client import get_llm, invoke_with_langfuse
+from app.services.llm.langchain_client import get_llm, invoke_with_langfuse, is_oss_model
 from app.services.llm.prompt_loader import get_system_prompt, get_user_template
 from app.utils.decorators import log_llm_usage
 
@@ -59,11 +59,7 @@ class EvaluationAgent(BaseAgent):
 
         # Detect if we should use structured output (avoid for OSS models via custom API base)
         # Often these models claim to support it but fail at runtime or return text instead of tool calls.
-        resolved_model_lower = resolved_model.lower()
-        is_oss = "oss" in resolved_model_lower or "llama" in resolved_model_lower or "qwen" in resolved_model_lower or (settings.OPENAI_API_BASE and "polito" in settings.OPENAI_API_BASE)
-        
-        # Structured chain
-        if hasattr(self.llm, "with_structured_output") and not is_oss:
+        if hasattr(self.llm, "with_structured_output") and not is_oss_model(resolved_model):
             self.structured_chain = self.prompt | self.llm.with_structured_output(EvaluationList, method="function_calling")
         else:
             self.structured_chain = None
