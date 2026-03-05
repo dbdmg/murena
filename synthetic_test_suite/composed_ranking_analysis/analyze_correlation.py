@@ -10,7 +10,7 @@ def main():
     from pathlib import Path
     
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model", type=str, choices=["gpt-oss-120b", "gpt-5-nano"], default="gpt-oss-120b", help="LLM model flavor")
+    parser.add_argument("--model", type=str, choices=["gpt-oss-120b", "gpt-5-nano"], default="gpt-oss-120b", help="llm model flavor")
     args = parser.parse_args()
 
     # Detect directories
@@ -18,20 +18,20 @@ def main():
     results_root = script_dir.parent / "composed_results" / args.model
     
     if not results_root.exists():
-        print(f"[ERROR] Results directory not found: {results_root}")
+        print(f"[error] results directory not found: {results_root}")
         return
 
-    # Create model-specific output directory
+    # create model-specific output directory
     output_dir = script_dir / args.model
     output_dir.mkdir(parents=True, exist_ok=True)
     
-    print(f"[CONFIG] Analyzing model: {args.model}")
+    print(f"[config] analyzing model: {args.model}")
     analyze_weight_correlation(str(results_root), str(output_dir))
 
 def analyze_weight_correlation(results_dir: str, output_dir: str):
     """
-    Analyze the correlation between agent ranking (original_weights) and 
-    their effectiveness (effective_weights > 0).
+    analyze the distribution of original and effective weights, and the correlation 
+    between agent ranking and their effectiveness.
     """
     data = []
     
@@ -41,7 +41,7 @@ def analyze_weight_correlation(results_dir: str, output_dir: str):
         print(f"No JSON files found in {results_dir}")
         return
         
-    print(f"Found {len(files)} result files.")
+    print(f"found {len(files)} result files.")
     
     for filename in files:
         filepath = os.path.join(results_dir, filename)
@@ -76,7 +76,7 @@ def analyze_weight_correlation(results_dir: str, output_dir: str):
                     'effective_weight': eff_weight
                 })
         except Exception as e:
-            print(f"Error processing {filename}: {e}")
+            print(f"error processing {filename}: {e}")
 
     if not data:
         print("No data collected. Check JSON structure or directory path.")
@@ -84,62 +84,87 @@ def analyze_weight_correlation(results_dir: str, output_dir: str):
 
     df = pd.DataFrame(data)
     
-    print("\n--- Summary Statistics ---")
-    print(f"Total agent-query pairs: {len(df)}")
-    print(f"Total effective responses: {df['is_effective'].sum()} ({(df['is_effective'].mean()*100):.2f}%)")
+    print("\n--- summary statistics ---")
+    print(f"total agent-query pairs: {len(df)}")
+    print(f"total effective responses: {df['is_effective'].sum()} ({(df['is_effective'].mean()*100):.2f}%)")
     
-    # Calculate Correlation
-    # 1. Point-biserial correlation
+    # calculate correlation
+    # 1. point-biserial correlation
     pb_corr, pb_p = stats.pointbiserialr(df['is_effective'], df['original_weight'])
     
-    # 2. Spearman correlation: Rank vs Is_Effective
+    # 2. spearman correlation: rank vs is_effective
     spearman_rank_corr, spearman_rank_p = stats.spearmanr(df['rank'], df['is_effective'])
     
-    # 3. Spearman correlation: Weight vs Is_Effective
+    # 3. spearman correlation: weight vs is_effective
     spearman_weight_corr, spearman_weight_p = stats.spearmanr(df['original_weight'], df['is_effective'])
 
-    print("\n--- Correlation Analysis ---")
-    print(f"1. Weight (continuous) vs Effectiveness (binary):")
-    print(f"   Point-biserial Correlation: {pb_corr:.4f} (p-value: {pb_p:.4g})")
+    print("\n--- correlation analysis ---")
+    print(f"1. weight (continuous) vs effectiveness (binary):")
+    print(f"   point-biserial correlation: {pb_corr:.4f} (p-value: {pb_p:.4g})")
     
-    print(f"\n2. Weight (continuous) vs Effectiveness (binary):")
-    print(f"   Spearman Correlation: {spearman_weight_corr:.4f} (p-value: {spearman_weight_p:.4g})")
+    print(f"\n2. weight (continuous) vs effectiveness (binary) (spearman):")
+    print(f"   spearman correlation: {spearman_weight_corr:.4f} (p-value: {spearman_weight_p:.4g})")
 
-    print(f"\n3. Agent Rank (1=highest) vs Effectiveness (binary):")
-    print(f"   Spearman Correlation: {spearman_rank_corr:.4f} (p-value: {spearman_rank_p:.4g})")
+    print(f"\n3. agent rank (1=highest) vs effectiveness (binary):")
+    print(f"   spearman correlation: {spearman_rank_corr:.4f} (p-value: {spearman_rank_p:.4g})")
 
-    # 4. Correlation between weight and actual effective weight value
+    # 4. correlation between weight and actual effective weight value
     spearman_eff_val_corr, spearman_eff_val_p = stats.spearmanr(df['original_weight'], df['effective_weight'])
     pearson_eff_val_corr, pearson_eff_val_p = stats.pearsonr(df['original_weight'], df['effective_weight'])
 
-    print(f"\n4. Original Weight vs Effective Weight (continuous):")
-    print(f"   Pearson Correlation: {pearson_eff_val_corr:.4f} (p-value: {pearson_eff_val_p:.4g})")
-    print(f"   Spearman Correlation: {spearman_eff_val_corr:.4f} (p-value: {spearman_eff_val_p:.4g})")
+    print(f"\n4. original weight vs effective weight (continuous):")
+    print(f"   pearson correlation: {pearson_eff_val_corr:.4f} (p-value: {pearson_eff_val_p:.4g})")
+    print(f"   spearman correlation: {spearman_eff_val_corr:.4f} (p-value: {spearman_eff_val_p:.4g})")
 
-    # Analysis per agent
-    print("\n--- Effectiveness by Agent ---")
+    # analysis per agent
+    print("\n--- effectiveness by agent ---")
     agent_stats = df.groupby('agent')['is_effective'].agg(['count', 'sum', 'mean']).sort_values('mean', ascending=False)
-    agent_stats.columns = ['Total Queries', 'Times Effective', 'Effectiveness Rate']
+    agent_stats.columns = ['total queries', 'times effective', 'effectiveness rate']
     print(agent_stats)
     
-    # Average weight when effective vs not
-    print("\n--- Average Original Weight by Effectiveness ---")
+    # average weight when effective vs not
+    print("\n--- average original weight by effectiveness ---")
     avg_weight = df.groupby('is_effective')['original_weight'].mean()
     print(avg_weight)
 
-    # Calculate Rank Effectiveness for summary and plots
+    # weight distribution statistics
+    orig_dist = df['original_weight'].describe()
+    eff_dist = df['effective_weight'].describe()
+    
+    print("\n--- weight distribution statistics ---")
+    print("original weights:")
+    print(orig_dist)
+    print("\neffective weights:")
+    print(eff_dist)
+    
+    zero_eff_count = int((df['effective_weight'] == 0).sum())
+    print(f"\neffective weights zeros: {zero_eff_count} ({(zero_eff_count/len(df)*100):.2f}%)")
+    
+    non_zero_eff_df = df[df['effective_weight'] > 0]
+    if not non_zero_eff_df.empty:
+        print("\neffective weights (non-zero only):")
+        print(non_zero_eff_df['effective_weight'].describe())
+
+    # calculate rank effectiveness for summary and plots
     rank_effectiveness = df.groupby('rank')['is_effective'].mean()
     high_rank_eff = rank_effectiveness.iloc[0]
-    # Handle cases where we have fewer than 5 ranks
+    # handle cases where we have fewer than 5 ranks
     low_rank_eff = rank_effectiveness.iloc[-1] if not rank_effectiveness.empty else 0.1
 
-    # --- Saving Results ---
-    # Consolidate all results into a single dictionary
+    # --- saving results ---
+    # consolidate all results into a single dictionary
     results = {
         "summary": {
             "total_agent_query_pairs": int(len(df)),
             "total_effective_responses": int(df['is_effective'].sum()),
             "effectiveness_rate_percent": float(df['is_effective'].mean() * 100)
+        },
+        "weight_distribution": {
+            "original_weights": {k: float(v) for k, v in orig_dist.items()},
+            "effective_weights": {k: float(v) for k, v in eff_dist.items()},
+            "effective_weights_zero_count": zero_eff_count,
+            "effective_weights_zero_percent": float(zero_eff_count / len(df) * 100),
+            "non_zero_effective_weights": {k: float(v) for k, v in non_zero_eff_df['effective_weight'].describe().items()} if not non_zero_eff_df.empty else {}
         },
         "correlation_analysis": {
             "point_biserial_weight_vs_effectiveness": {
@@ -167,9 +192,9 @@ def analyze_weight_correlation(results_dir: str, output_dir: str):
         },
         "effectiveness_by_agent": agent_stats.reset_index().rename(columns={
             "index": "agent",
-            "count": "total_queries",
-            "sum": "times_effective",
-            "mean": "effectiveness_rate"
+            "total queries": "total_queries",
+            "times effective": "times_effective",
+            "effectiveness rate": "effectiveness_rate"
         }).to_dict(orient='records'),
         "average_weight_by_effectiveness": {
             "not_effective": float(avg_weight.get(0, 0)),
@@ -181,13 +206,13 @@ def analyze_weight_correlation(results_dir: str, output_dir: str):
         }
     }
 
-    # Save JSON
+    # save json
     json_path = os.path.join(output_dir, "ranking_correlation_analysis.json")
     with open(json_path, "w") as f:
         json.dump(results, f, indent=4)
     
-    print(f"\n[INFO] Analysis results saved to {json_path}")
-    print("[INFO] CSV, text, and plot generation has been disabled as requested.")
+    print(f"\n[info] analysis results saved to {json_path}")
+    print("[info] csv, text, and plot generation has been disabled as requested.")
 
 
 if __name__ == "__main__":
