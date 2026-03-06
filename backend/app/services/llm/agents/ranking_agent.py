@@ -6,6 +6,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from pydantic import BaseModel, Field
 
 from app.core.config import settings
+from app.core.config import settings, AGENT_MODELS
 from app.services.llm.agents.base import BaseAgent
 from app.services.llm.agents.schema import RankingAgentResult, RankingWeights, PromptRecord
 from app.services.llm.langchain_client import get_llm, invoke_with_langfuse, is_oss_model
@@ -14,7 +15,6 @@ from app.utils.decorators import handle_agent_error, log_llm_usage
 from app.utils.json_parser import safe_extract_json
 from app.services.llm.agents.schema import RankingRanking
 
-AGENT_MODELS = settings.agent_models
 
 class RankingAgent(BaseAgent):
     """

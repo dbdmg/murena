@@ -2,9 +2,7 @@ from typing import Any, Optional, List, Dict
 
 from langchain_core.prompts import ChatPromptTemplate
 
-from app.core.config import settings
-
-AGENT_MODELS = settings.agent_models
+from app.core.config import settings, AGENT_MODELS
 from app.services.llm.agents.base import BaseAgent
 from app.services.llm.agents.schema import PromptRecord, SQLAgentResult
 from app.services.llm.langchain_client import get_llm, invoke_with_langfuse

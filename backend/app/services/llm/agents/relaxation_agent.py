@@ -4,6 +4,7 @@ import json
 from langchain_core.prompts import ChatPromptTemplate
 
 from app.core.config import settings
+from app.core.config import settings, AGENT_MODELS
 from app.services.llm.agents.base import BaseAgent
 from app.services.llm.agents.schema import PromptRecord, RelaxationAgentResult, RelaxationProposal
 from app.services.llm.langchain_client import get_llm, invoke_with_langfuse
@@ -11,8 +12,6 @@ from app.services.llm.prompt_loader import get_system_prompt, get_user_template
 from app.utils.decorators import log_llm_usage
 from app.utils.json_parser import safe_extract_json
 from app.utils.logger import logger
-
-AGENT_MODELS = settings.agent_models
 
 class RelaxationAgent(BaseAgent):
     name = "relaxation-agent"

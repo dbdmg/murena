@@ -29,20 +29,6 @@ APE_SCORE_LEGEND = """LEGENDA PUNTEGGI APE (scala 1-5, dove 5=ottimo):
 - ape_score_total: Media complessiva dei punteggi energetici
 """
 
-# Colonne filtrabili via SQL (oggettive)
-SQL_FILTERABLE_COLUMNS: List[str] = [
-    "superficie_di_riferimento_mq",
-    "tipologia_bene_immobile",
-    "epoca_costruzione",
-    "zona_omi",
-    "classe_energetica_ape",  # Added to allow filtering by energy class
-    "epglnren_ape",           # Added to allow filtering by energy performance value
-    "latitudine",
-    "longitudine",
-    "comune",  # Aggiunto se presente, o codice_comune
-    "codice_comune"
-]
-
 # Colonne specifiche per Location Agent
 LOCATION_AGENT_COLUMNS: List[str] = [
     "indirizzo",
@@ -50,23 +36,6 @@ LOCATION_AGENT_COLUMNS: List[str] = [
     "latitudine",
     "longitudine",
     "zona_omi",
-]
-
-# Colonne da usare SOLO per ranking (soggettive/punteggi)
-RANKING_ONLY_COLUMNS: List[str] = [
-    # APE Scores
-    "ape_score_classe",
-    "ape_score_impianto",
-    "ape_score_involucro",
-    "ape_score_rinnovabili",
-    "ape_score_total",
-    # POI Scores
-    "sanita",
-    "mobilita",
-    "verde",
-    "sport",
-    "commerciale",
-    "educazione",
 ]
 
 # Colonne specifiche per APE Agent
@@ -100,15 +69,6 @@ NORMATIVE_AGENT_COLUMNS: List[str] = [
     "tipologia_bene_immobile",
 ]
 
-# Categorie POI
-POI_CATEGORIES: Dict[str, str] = {
-    "sanita": "Ospedali, farmacie, ambulatori",
-    "mobilita": "Metro, bus, stazioni",
-    "verde": "Parchi, giardini",
-    "sport": "Palestre, piscine, campi",
-    "commerciale": "Negozi, supermercati",
-    "educazione": "Scuole, università",
-}
 # Colonne specifiche per POI Agent
 POI_AGENT_COLUMNS: List[str] = [
     "sanita",
@@ -119,12 +79,26 @@ POI_AGENT_COLUMNS: List[str] = [
     "educazione",
 ]
 
-# Unione di tutte le colonne visibili agli agenti (per cross-functional intelligence)
-ALL_AGENT_COLUMNS: List[str] = sorted(list(set(
-    APE_AGENT_COLUMNS + 
-    PROPERTY_TECHNICAL_AGENT_COLUMNS + 
-    NORMATIVE_AGENT_COLUMNS + 
-    POI_AGENT_COLUMNS + 
-    SQL_FILTERABLE_COLUMNS + 
-    RANKING_ONLY_COLUMNS
-)))
+
+# Unione di tutte le colonne visibili agli agenti e quindi filtrabili via SQL
+ALL_AGENT_COLUMNS_SET = set(
+    LOCATION_AGENT_COLUMNS +
+    APE_AGENT_COLUMNS +
+    PROPERTY_TECHNICAL_AGENT_COLUMNS +
+    NORMATIVE_AGENT_COLUMNS +
+    POI_AGENT_COLUMNS
+)
+
+SQL_FILTERABLE_COLUMNS: List[str] = sorted(list(ALL_AGENT_COLUMNS_SET))
+ALL_AGENT_COLUMNS: List[str] = SQL_FILTERABLE_COLUMNS
+
+# Categorie POI per la documentazione
+POI_CATEGORIES: Dict[str, str] = {
+    "sanita": "Ospedali, farmacie, ambulatori",
+    "mobilita": "Metro, bus, stazioni",
+    "verde": "Parchi, giardini",
+    "sport": "Palestre, piscine, campi",
+    "commerciale": "Negozi, supermercati",
+    "educazione": "Scuole, università",
+}
+

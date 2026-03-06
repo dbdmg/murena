@@ -7,9 +7,7 @@ from pydantic import BaseModel, Field
 import pandas as pd
 import numpy as np
 
-from app.core.config import settings
-
-AGENT_MODELS = settings.agent_models
+from app.core.config import settings, AGENT_MODELS
 from app.services.llm.agents.base import BaseAgent
 from app.services.llm.agents.schema import PromptRecord, PropertyTechnicalAgentResult, PropertyTechnicalResponse
 from app.core.constants import PROPERTY_TECHNICAL_AGENT_COLUMNS

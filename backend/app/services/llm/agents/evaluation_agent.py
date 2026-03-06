@@ -8,9 +8,7 @@ from langchain_core.output_parsers import PydanticOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from pydantic import BaseModel, Field
 
-from app.core.config import settings
-
-AGENT_MODELS = settings.agent_models
+from app.core.config import settings, AGENT_MODELS
 from app.core.constants import SCORE_LEGEND
 from app.services.llm.agents.base import BaseAgent
 from app.services.llm.agents.schema import (
