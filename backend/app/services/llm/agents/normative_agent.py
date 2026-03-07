@@ -297,9 +297,17 @@ class NormativeAgent(BaseAgent):
                             else:
                                  req_score = ((max_diff - diff) / (max_diff - min_diff) * 100).clip(0, 100)
             
+                col_name = f"normative_partial_score_{col}"
+                # Handle duplicate names if multiple requirements exist for the same column
+                if col_name in df_ranked.columns:
+                    idx = 1
+                    while f"{col_name}_{idx}" in df_ranked.columns:
+                        idx += 1
+                    col_name = f"{col_name}_{idx}"
+                
                 # Store partial score for this numeric requirement
-                df_ranked[f"normative_partial_score_{col}"] = req_score.round(1)
-                transparency_cols.append(f"normative_partial_score_{col}")
+                df_ranked[col_name] = req_score.round(1)
+                transparency_cols.append(col_name)
             
             else:
                 # Gestione categorica / stringhe
@@ -356,16 +364,26 @@ class NormativeAgent(BaseAgent):
                     rank_pos = np.where(is_match, 1, "N/A")
                 
                 # Transparency Metadata for Categorical
-                # Match = Rank N, Multiplier calculated from position
-                # No Match = Rank N/A, Multiplier 0.0
                 
-                df_ranked[f"normative_rank_position_{col}"] = rank_pos
-                
-                transparency_cols.append(f"normative_rank_position_{col}")
+                pos_col = f"normative_rank_position_{col}"
+                if pos_col in df_ranked.columns:
+                    idx = 1
+                    while f"{pos_col}_{idx}" in df_ranked.columns:
+                        idx += 1
+                    pos_col = f"{pos_col}_{idx}"
+                df_ranked[pos_col] = rank_pos
+                transparency_cols.append(pos_col)
                 
                 # Store partial score for this categorical requirement
-                df_ranked[f"normative_partial_score_{col}"] = req_score
-                transparency_cols.append(f"normative_partial_score_{col}")
+                col_name = f"normative_partial_score_{col}"
+                if col_name in df_ranked.columns:
+                    idx = 1
+                    while f"{col_name}_{idx}" in df_ranked.columns:
+                        idx += 1
+                    col_name = f"{col_name}_{idx}"
+                
+                df_ranked[col_name] = req_score
+                transparency_cols.append(col_name)
                 
                 # Special handling for property_technical: also show the original property_technical rank if available
                 if col == "tipologia_bene_immobile" and "property_technical_rank_position" in df_ranked.columns:

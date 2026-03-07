@@ -247,6 +247,13 @@ class PoiAgent(BaseAgent):
             # Partial score (0-100) for this category
             partial_score = norm_vals * 100.0
             col_partial_name = f"poi_partial_score_{cat}"
+            # Handle duplicate names if multiple requirements exist for the same column
+            if col_partial_name in df_ranked.columns:
+                idx = 1
+                while f"{col_partial_name}_{idx}" in df_ranked.columns:
+                    idx += 1
+                col_partial_name = f"{col_partial_name}_{idx}"
+            
             df_ranked[col_partial_name] = partial_score.round(1)
             partial_score_cols.append(col_partial_name)
             
@@ -255,6 +262,12 @@ class PoiAgent(BaseAgent):
             
             # Store weight column
             col_weight_name = f"poi_weight_{cat}"
+            if col_weight_name in df_ranked.columns:
+                idx = 1
+                while f"{col_weight_name}_{idx}" in df_ranked.columns:
+                    idx += 1
+                col_weight_name = f"{col_weight_name}_{idx}"
+
             df_ranked[col_weight_name] = round(weight, 3)
             weight_cols.append(col_weight_name)
 

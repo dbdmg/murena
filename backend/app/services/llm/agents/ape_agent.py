@@ -298,9 +298,17 @@ class ApeAgent(BaseAgent):
                     # Set score to 0 for rows with missing values
                     req_score = req_score.where(~is_missing, 0)
                 
+                col_name = f"ape_partial_score_{col}"
+                # Handle duplicate names if multiple requirements exist for the same column
+                if col_name in df_ranked.columns:
+                    idx = 1
+                    while f"{col_name}_{idx}" in df_ranked.columns:
+                        idx += 1
+                    col_name = f"{col_name}_{idx}"
+
                 # Store partial score for this requirement
-                df_ranked[f"ape_partial_score_{col}"] = req_score.round(1)
-                transparency_cols.append(f"ape_partial_score_{col}")
+                df_ranked[col_name] = req_score.round(1)
+                transparency_cols.append(col_name)
                 
                 total_scores += req_score
 

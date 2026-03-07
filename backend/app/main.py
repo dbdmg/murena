@@ -80,6 +80,14 @@ async def lifespan(app: FastAPI):
                 df_indexed.set_index("id_str", inplace=True)
                 RealEstateService._dataset_indexed_cache["full"] = df_indexed
                 logger.info(f"Indexed cache ready: {len(df_indexed)} entries")
+
+            # Update database metadata dynamically
+            try:
+                from app.data.metadata_manager import MetadataManager
+                meta_manager = MetadataManager()
+                meta_manager.update_metadata(df)
+            except Exception as e:
+                logger.warning(f"Metadata update failed: {e}")
     except Exception as e:
         logger.warning(f"Dataset preloading failed (will load on first request): {e}")
 

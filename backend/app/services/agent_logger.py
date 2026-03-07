@@ -1100,6 +1100,14 @@ class AgentLogger:
         """Serializza i dati in formato JSON-compatibile con parsing intelligente e unescaping ricorsivo."""
         
         try:
+            def _strip_comments(json_str: str) -> str:
+                # Rimuove commenti // a inizio riga o dopo spazio/separatori JSON
+                s = re.sub(r'^\s*//.*$', '', json_str, flags=re.MULTILINE)
+                s = re.sub(r'([\s,\]\}])//.*$', r'\1', s, flags=re.MULTILINE)
+                # Rimuove commenti /* */
+                s = re.sub(r'/\*.*?\*/', '', s, flags=re.DOTALL)
+                return s
+
             def _unescape_string(text: str) -> str:
                 if not isinstance(text, str):
                     return text
@@ -1155,7 +1163,7 @@ class AgentLogger:
                 # Se sembra JSON, prova a parsarlo
                 if try_json and _looks_like_json(text_stripped):
                     try:
-                        parsed = json.loads(text_stripped)
+                        parsed = json.loads(_strip_comments(text_stripped), strict=False)
                         return self._serialize_data(parsed)
                     except Exception:
                         pass 
@@ -1179,14 +1187,14 @@ class AgentLogger:
                         
                         if repaired != unescaped_stripped:
                             try:
-                                parsed = json.loads(repaired)
+                                parsed = json.loads(_strip_comments(repaired), strict=False)
                                 return self._serialize_data(parsed)
                             except:
                                 pass
                         # In ogni caso proviamo un loads su quello unescaped se non riparato
                         else:
                             try:
-                                parsed = json.loads(unescaped_stripped)
+                                parsed = json.loads(_strip_comments(unescaped_stripped), strict=False)
                                 return self._serialize_data(parsed)
                             except:
                                 pass

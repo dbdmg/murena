@@ -102,3 +102,67 @@ POI_CATEGORIES: Dict[str, str] = {
     "educazione": "Scuole, università",
 }
 
+# Oggetto globale che conterrà i metadati aggiornati a runtime
+DB_METADATA = {
+    "_metadata_version": "2.0",
+    "score_legends": {
+        "ape_scores": APE_SCORE_LEGEND,
+        "poi_scores": SCORE_LEGEND
+    },
+    "filterable_columns": SQL_FILTERABLE_COLUMNS,
+    "fields": {}  # Qui verranno inserite le statistiche e i valori categorici
+}
+
+
+def update_runtime_metadata(df):
+    """
+    Popola DB_METADATA con le statistiche reali del dataframe caricato.
+    Sostituisce la necessità di file JSON esterni.
+    """
+    try:
+        from datetime import datetime
+        import pandas as pd
+        
+        DB_METADATA["_last_updated"] = datetime.now().strftime("%Y-%m-%d")
+        df_columns = set(df.columns)
+        
+        # Sincronizza colonne filtrabili
+        DB_METADATA["filterable_columns"] = [c for c in SQL_FILTERABLE_COLUMNS if c in df_columns]
+        
+        # Liste di colonne da analizzare
+        categorical = ["codice_comune", "tipologia_bene_immobile", "epoca_costruzione", "classe_energetica_ape"]
+        numerical = [
+            "superficie_di_riferimento_mq", "ape_score_total", 
+            "sanita", "mobilita", "verde", "sport", "commerciale", "educazione"
+        ]
+        
+        # Reset fields
+        DB_METADATA["fields"] = {}
+        
+        for col in categorical + numerical:
+            if col in df.columns:
+                meta = {}
+                if col in categorical:
+                    # Estrai valori unici e ordina
+                    unique_vals = sorted([str(v) for v in df[col].dropna().unique()])
+                    meta["values"] = unique_vals
+                    meta["is_truncated"] = False
+                else:
+                    # Calcola statistiche numeriche
+                    series = pd.to_numeric(df[col], errors='coerce').dropna()
+                    if not series.empty:
+                        meta.update({
+                            "min": round(float(series.min()), 2),
+                            "max": round(float(series.max()), 2),
+                            "mean": round(float(series.mean()), 2),
+                            "median": round(float(series.median()), 2),
+                            "percentiles": {
+                                "25%": round(float(series.quantile(0.25)), 2),
+                                "75%": round(float(series.quantile(0.75)), 2)
+                            }
+                        })
+                DB_METADATA["fields"][col] = meta
+                
+    except Exception as e:
+        from app.utils.logger import logger
+        logger.error(f"Failed to update runtime metadata: {e}")

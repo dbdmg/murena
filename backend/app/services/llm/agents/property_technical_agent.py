@@ -1,5 +1,5 @@
 import json
-from typing import List, Union, Optional
+from typing import List, Union, Optional, Dict, Any
 
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
@@ -50,7 +50,7 @@ class PropertyTechnicalAgent(BaseAgent):
         """
         Esegue l'agente in due modalità:
         - filtering: Identifica le tipologie pertinenti ordinate per ranking (LLM).
-        - ranking: Calcola uno score 0-100 basato sulla posizione della tipologia nel ranking.
+        - ranking: Calcola uno score 0-100 basato sulla posizione della tipologia nel ranking e i requisiti tecnici.
         """
         if mode == "filtering":
             return self._run_filtering(
@@ -59,7 +59,12 @@ class PropertyTechnicalAgent(BaseAgent):
                 statistics=kwargs.get("statistics")
             )
         elif mode == "ranking":
-            return self._run_ranking(**kwargs)
+            return self._run_ranking(
+                df=kwargs.get("df"),
+                ranked_typologies=kwargs.get("ranked_typologies"),
+                requirements=kwargs.get("requirements"),
+                global_stats=kwargs.get("global_stats")
+            )
         else:
             raise ValueError(f"Modalità '{mode}' non supportata dal PropertyTechnicalAgent.")
 
@@ -104,51 +109,102 @@ class PropertyTechnicalAgent(BaseAgent):
             ),
         )
 
-    def _run_ranking(self, *, df: pd.DataFrame, ranked_typologies: List[str]) -> pd.DataFrame:
+    def _run_ranking(self, *, df: pd.DataFrame, ranked_typologies: List[str] = None, requirements: List[Dict[str, Any]] = None, global_stats: Dict[str, Any] = None) -> pd.DataFrame:
         """
-        Modalità ranking: assegna uno score (0-100) in base alla posizione della tipologia nel ranking.
-        La prima tipologia riceve 100, l'ultima tra quelle selezionate riceve uno score base (es. 50), 
-        le altre tipologie non selezionate ricevono 0.
+        Modalità ranking: assegna uno score (0-100) combinando la tipologia e i requisiti tecnici (es. superficie).
         """
         if df is None or df.empty:
             if df is not None:
                 df["property_technical_score"] = 0
             return df
 
-        if not ranked_typologies:
-            df["property_technical_score"] = 100 # Se non ci sono filtri, tutte sono ugualmente valide
-            return df
-
         df_ranked = df.copy()
-        
-        # Mappa delle tipologie al loro punteggio
-        # Es: 3 tipologie -> [100, 75, 50]
-        n = len(ranked_typologies)
-        property_map = {} # map property_value -> (score, rank_position)
-        
-        if n == 1:
-             property_map[ranked_typologies[0]] = (100.0, 1)
+        total_scores = pd.Series(0.0, index=df_ranked.index)
+        weights_count = 0
+        transparency_cols = []
+
+        # 1. Ranking per Tipologia (se presente)
+        if ranked_typologies:
+            weights_count += 1
+            n = len(ranked_typologies)
+            property_map = {}
+            if n == 1:
+                property_map[ranked_typologies[0]] = 100.0
+            else:
+                for i, typ in enumerate(ranked_typologies):
+                    score = round(100.0 / (i + 1), 1)
+                    property_map[typ] = score
+            
+            typ_scores = df_ranked["tipologia_bene_immobile"].map(lambda x: property_map.get(str(x), 0.0))
+            df_ranked["property_technical_typology_score"] = typ_scores
+            total_scores += typ_scores
+            transparency_cols.append("property_technical_typology_score")
+
+        # 2. Ranking per Requisiti Tecnici (es. superficie_di_riferimento_mq)
+        if requirements:
+            technical_score_sum = pd.Series(0.0, index=df_ranked.index)
+            technical_req_count = 0
+            
+            for req in requirements:
+                col = req.get("colonna_target")
+                target_val = req.get("valore")
+                op = str(req.get("operatore", "==")).upper()
+                
+                if not col or col not in df_ranked.columns or col == "tipologia_bene_immobile":
+                    continue
+                
+                technical_req_count += 1
+                series = pd.to_numeric(df_ranked[col], errors="coerce").fillna(0)
+                
+                # Calcolo vicinanza/score
+                try:
+                    T = float(target_val) if target_val is not None else 1.0
+                except (ValueError, TypeError):
+                    T = 1.0
+
+                if op in [">=", ">"]:
+                    req_score = ((series / T) * 100).clip(0, 110)
+                    if op == ">": 
+                        req_score = req_score.mask(series <= T, req_score * 0.5)
+                elif op in ["<=", "<"]:
+                    safe_series = series.replace(0, 1)
+                    req_score = ((T / safe_series) * 100).clip(0, 110)
+                else: # Equality
+                    diff = np.abs(series - T)
+                    stats = global_stats.get(col) if global_stats else None
+                    if stats and "max" in stats and "min" in stats:
+                        range_val = max(1, stats["max"] - stats["min"])
+                        req_score = (100 - (diff / range_val * 100)).clip(0, 100)
+                    else:
+                        req_score = (series == T).astype(float) * 100
+                
+                col_name = f"property_technical_score_{col}"
+                # Handle duplicate names if multiple requirements exist for the same column
+                if col_name in df_ranked.columns:
+                    idx = 1
+                    while f"{col_name}_{idx}" in df_ranked.columns:
+                        idx += 1
+                    col_name = f"{col_name}_{idx}"
+                
+                df_ranked[col_name] = req_score
+                technical_score_sum += req_score
+                transparency_cols.append(col_name)
+
+            if technical_req_count > 0:
+                weights_count += 1
+                total_scores += (technical_score_sum / technical_req_count)
+
+        # Final score calculation
+        if weights_count > 0:
+            df_ranked["property_technical_score"] = (total_scores / weights_count).round(1).clip(0, 100)
         else:
-            # Distribuzione armonica: 100, 50, 33, 25...
-            for i, typ in enumerate(ranked_typologies):
-                # Score calculation: 100 / (position)
-                score = round(100.0 / (i + 1), 1)
-                property_map[typ] = (score, i + 1)
+            df_ranked["property_technical_score"] = 100.0 if not (ranked_typologies or requirements) else 0.0
 
-        def get_details(val):
-            # Returns tuple (score, rank)
-            if val in property_map:
-                score, rank = property_map[val]
-                return score, rank
-            return 0.0, "N/A"
+        # Combine all requested columns and deduplicate while preserving order
+        all_requested_cols = ["id", "property_technical_score", "tipologia_bene_immobile"] + transparency_cols
+        unique_cols = []
+        for c in all_requested_cols:
+            if c not in unique_cols and c in df_ranked.columns:
+                unique_cols.append(c)
 
-        # Apply to create temporary series
-        details = df_ranked["tipologia_bene_immobile"].apply(get_details)
-        
-        # Expand into columns
-        df_ranked["property_technical_score"] = details.apply(lambda x: x[0])
-        df_ranked["property_technical_partial_score"] = df_ranked["property_technical_score"]
-        df_ranked["property_technical_rank_position"] = details.apply(lambda x: x[1])
-        
-        # Columns Order: ID, Score, Data, Metadata(Weights/Analysis)
-        return df_ranked[["id", "property_technical_score", "tipologia_bene_immobile", "property_technical_rank_position", "property_technical_partial_score"]]
+        return df_ranked[unique_cols]

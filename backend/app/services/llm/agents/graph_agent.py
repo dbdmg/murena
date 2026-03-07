@@ -141,7 +141,7 @@ class GraphOrchestratorAgent(BaseAgent):
         self,
         *,
         analysis_mode: str = "agent",
-        architecture: str = "baseline",
+        architecture: str = "multiagent",
         execute_sql_fn: Optional[
             Callable[[str, pd.DataFrame], tuple[pd.DataFrame, Optional[str]]]
         ] = None,
@@ -249,23 +249,9 @@ class GraphOrchestratorAgent(BaseAgent):
         ]
 
         # Load metadata
-        # Load metadata (lite version for token optimization)
-        # Try multiple paths to be robust against CWD
-        metadata_paths = [
-            os.path.join("app", "data", "db_metadata_lite.json"),
-            os.path.join("backend", "app", "data", "db_metadata_lite.json"),
-            os.path.join(os.path.dirname(__file__), "../../../data/db_metadata_lite.json")
-        ]
-        
-        db_metadata = {}
-        for path in metadata_paths:
-            if os.path.exists(path):
-                try:
-                    with open(path, "r", encoding="utf-8") as f:
-                        db_metadata = json.load(f)
-                    break
-                except Exception:
-                    pass
+        # Load metadata from centralized memory (constants.py)
+        from app.core.constants import DB_METADATA
+        db_metadata = DB_METADATA
 
         # Extract lightweight metadata from base_dataset to avoid passing it in state
         dataset_metadata = {
@@ -2149,7 +2135,7 @@ class GraphOrchestratorAgent(BaseAgent):
 
         # Compute global statistics for all relevant columns for ranking
         # This allows agents to normalize scores against the entire dataset instead of the current subset.
-        all_ranking_cols = list(set(APE_AGENT_COLUMNS + NORMATIVE_AGENT_COLUMNS + POI_AGENT_COLUMNS))
+        all_ranking_cols = list(set(APE_AGENT_COLUMNS + NORMATIVE_AGENT_COLUMNS + POI_AGENT_COLUMNS + PROPERTY_TECHNICAL_AGENT_COLUMNS))
         global_stats = self._get_column_statistics(
             columns=all_ranking_cols,
             dataset_path=state.get("dataset_path"),
@@ -2164,9 +2150,14 @@ class GraphOrchestratorAgent(BaseAgent):
             if res:
                 data = safe_extract_json(res.raw_text, schema=PropertyTechnicalResponse)
                 if data and (data.typologies or data.requisiti):
-                    # For ranking, typologies is the main driver, but we run it anyway if requisiti exists 
-                    # (agent handles empty typologies by giving 100 to matches)
-                    tmp = self.property_technical_agent.run(mode="ranking", df=df.copy(), ranked_typologies=data.typologies)
+                    # For ranking, typologies is the main driver, but we pass requirements for numerical scoring
+                    tmp = self.property_technical_agent.run(
+                        mode="ranking", 
+                        df=df.copy(), 
+                        ranked_typologies=data.typologies,
+                        requirements=data.requisiti,
+                        global_stats=global_stats
+                    )
                     return tmp, (time.time() - start_t) * 1000
             tmp = df.copy()
             tmp["property_technical_score"] = 0.0

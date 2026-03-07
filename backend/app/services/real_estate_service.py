@@ -642,68 +642,80 @@ class RealEstateService:
                     sub_properties = None
 
         # Build the response
-        return BuildingResponse(
-            id=str(safe_get("id", "")),
-            address=safe_get("address", alternatives=["indirizzo", "via"]),
-            city=safe_get("city", alternatives=["comune", "codice_comune"]),
-            coordinates=coordinates,
-            surface_area=safe_get(
+        res_data = {
+            "id": str(safe_get("id", "")),
+            "address": safe_get("address", alternatives=["indirizzo", "via"]),
+            "city": safe_get("city", alternatives=["comune", "codice_comune"]),
+            "coordinates": coordinates,
+            "surface_area": safe_get(
                 "surface_area", alternatives=["superficie_di_riferimento_mq"]
             ),
-            construction_year=str(
-                safe_get("construction_year", alternatives=["epoca_costruzione"])
-            ),
-            energy_class=safe_get(
+            "energy_class": safe_get(
                 "energy_class", alternatives=["classe_energetica_ape"]
             ),
-            score=safe_get("score", alternatives=["final_ranking_score", "ape_score_total"]),
-            rooms=None,  # Not present in provided columns
-            bathrooms=None,  # Not present in provided columns
-            floor=None,  # Not present in provided columns
-            price=safe_get("price", alternatives=["canone_annuale"]),
-            description=safe_get("description"),
+            "score": safe_get("score", alternatives=["final_ranking_score", "ape_score_total"]),
+            "rooms": None,
+            "bathrooms": None,
+            "floor": None,
+            "price": safe_get("price", alternatives=["canone_annuale"]),
+            "description": safe_get("description"),
 
-            # Extended property info
-            property_type=safe_get(
+            "property_type": safe_get(
                 "property_type", alternatives=["tipologia_bene_immobile"]
             ),
-            legal_nature=safe_get(
+            "legal_nature": safe_get(
                 "legal_nature", alternatives=["natura_giuridica_del_bene"]
             ),
-            cultural_constraint=None,
-            purpose=safe_get("purpose", alternatives=["finalita"]),
-            omi_zone=safe_get("omi_zone", alternatives=["zona_omi"]),
-            cadastral_sheet=str(safe_get("cadastral_sheet", alternatives=["foglio"])),
-            cadastral_parcel=str(
-                safe_get("cadastral_parcel", alternatives=["particella"])
-            ),
-            is_evaluated=bool(safe_get("is_evaluated", default=False)),
-            is_match=bool(safe_get("is_match", default=True)),
-            meta_building=self._str_to_bool(safe_get("meta_immobile", default=False)),
-            # Map new requested fields explicitly
-            meta_immobile=self._str_to_bool(safe_get("meta_immobile", default=False)),
-            canone_annuale=safe_get("canone_annuale", default=None),
-            tipo_detenzione_a_terzi=safe_get("tipo_detenzione_a_terzi", default=None),
-            data_decorrenza=safe_get("data_decorrenza", default=None),
-            numero_immobili_per_catasto=safe_get(
+            "cultural_constraint": None,
+            "purpose": safe_get("purpose", alternatives=["finalita"]),
+            "omi_zone": safe_get("omi_zone", alternatives=["zona_omi"]),
+            "is_evaluated": bool(safe_get("is_evaluated", default=False)),
+            "is_match": bool(safe_get("is_match", default=True)),
+            "meta_building": self._str_to_bool(safe_get("meta_immobile", default=False)),
+            "meta_immobile": self._str_to_bool(safe_get("meta_immobile", default=False)),
+            "canone_annuale": safe_get("canone_annuale", default=None),
+            "tipo_detenzione_a_terzi": safe_get("tipo_detenzione_a_terzi", default=None),
+            "numero_immobili_per_catasto": safe_get(
                 "numero_immobili_per_catasto", default=None
             ),
-            id_list=(
+            "id_list": (
                 str(safe_get("id_list", default="")) if safe_get("id_list") else None
             ),
-            sub_properties=sub_properties,
-            ape_scores=ape_scores,
-            poi_scores=poi_scores,
-            ape_files=ape_files,
-            distance_km=safe_get("distance_km", alternatives=["distanza_km"]),
-            poi_reference=safe_get("poi_reference", alternatives=["poi_riferimento"]),
-            epglnren_ape=safe_get("epglnren_ape", default=None),
-            classe_energetica_ape=safe_get("classe_energetica_ape", alternatives=["energy_class"]),
-            ape_score_total=safe_get("ape_score_total", default=None),
-            tipologia_bene_immobile=safe_get("tipologia_bene_immobile", alternatives=["property_type"]),
-            superficie_di_riferimento_mq=safe_get("superficie_di_riferimento_mq", alternatives=["surface_area"]),
-            epoca_costruzione=safe_get("epoca_costruzione", alternatives=["construction_year"]),
-            verde=safe_get("verde"),
-            mobilita=safe_get("mobilita"),
-            educazione=safe_get("educazione"),
-        )
+            "sub_properties": sub_properties,
+            "ape_scores": ape_scores,
+            "poi_scores": poi_scores,
+            "ape_files": ape_files,
+            "distance_km": safe_get("distance_km", alternatives=["distanza_km"]),
+            "poi_reference": safe_get("poi_reference", alternatives=["poi_riferimento"]),
+            "epglnren_ape": safe_get("epglnren_ape", default=None),
+            "classe_energetica_ape": safe_get("classe_energetica_ape", alternatives=["energy_class"]),
+            "ape_score_total": safe_get("ape_score_total", default=None),
+            "tipologia_bene_immobile": safe_get("tipologia_bene_immobile", alternatives=["property_type"]),
+            "superficie_di_riferimento_mq": safe_get("superficie_di_riferimento_mq", alternatives=["surface_area"]),
+            "epoca_costruzione": safe_get("epoca_costruzione", alternatives=["construction_year"]),
+            "verde": safe_get("verde"),
+            "mobilita": safe_get("mobilita"),
+            "educazione": safe_get("educazione"),
+        }
+
+        # Handle fields that need explicit string conversion or might be None
+        # This prevents Pydantic validation errors when pandas returns Timestamps for string fields
+        # or when we inadvertently convert None to "None"
+        
+        # construction_year
+        val = safe_get("construction_year", alternatives=["epoca_costruzione"])
+        res_data["construction_year"] = str(val) if val is not None else None
+        
+        # cadastral_sheet
+        val = safe_get("cadastral_sheet", alternatives=["foglio"])
+        res_data["cadastral_sheet"] = str(val) if val is not None else None
+        
+        # cadastral_parcel
+        val = safe_get("cadastral_parcel", alternatives=["particella"])
+        res_data["cadastral_parcel"] = str(val) if val is not None else None
+        
+        # data_decorrenza (The specific field that caused the error)
+        val = safe_get("data_decorrenza")
+        res_data["data_decorrenza"] = str(val) if val is not None else None
+        
+        return BuildingResponse(**res_data)
