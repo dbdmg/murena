@@ -95,8 +95,8 @@ if not is_child:
 def log_output(msg):
     logging.info(msg)
 
-BASELINE_MODEL = "gpt-5.4"
-EVALUATION_MODEL = "gpt-5.4"
+BASELINE_MODEL = "gpt-oss-120b"
+EVALUATION_MODEL = "gpt-oss-120b"
 
 class DynamicFolderHandler(logging.Handler):
     """Routes logs to the specific folder of the active experiment."""
@@ -142,8 +142,8 @@ logging.root.setLevel(logging.INFO)
 # Model-specific concurrency limits to prevent quota issues (429)
 # Models not listed here will use the global --max-concurrent value.
 MODEL_CONCURRENCY_LIMITS = {
-    "gpt-5.4": 5,
-    "gpt-5-nano": 5,
+    # "gpt-5.4": 2,
+    # "gpt-5-nano": 2,
     "gpt-oss-120b": 48,
     "ollama-gemma3-27b": 48,
     "ollama-deepseek-r1-8b": 48,
@@ -827,7 +827,7 @@ async def conductor_main(max_concurrent: int, only_analysis: bool = False):
     await preload_data()
     data_stats = get_data_stats()
 
-    models = ["gpt-5-nano", "gpt-oss-120b", "ollama-gemma3-27b", "ollama-deepseek-r1-8b"]
+    models = ["gpt-oss-120b", "ollama-gemma3-27b", "ollama-deepseek-r1-8b"]
     
     # 1. PREPARE SUITES
     if not only_analysis:
