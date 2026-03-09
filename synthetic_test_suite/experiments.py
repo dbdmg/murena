@@ -39,6 +39,11 @@ results_path.mkdir(parents=True, exist_ok=True)
 # Global execution log
 execution_csv_path = results_path / "execution_log.csv"
 
+# Execution ID logic to link all logs to a single test suite execution
+is_child = "SYNTHETIC_RUN_ID" in os.environ
+RUN_ID = os.environ.get("SYNTHETIC_RUN_ID", f"RUN_{datetime.now().strftime('%Y%m%d_%H%M%S')}")
+os.environ["SYNTHETIC_RUN_ID"] = RUN_ID
+
 # CSV Logging Infrastructure
 query_ctx: ContextVar[str] = ContextVar("query_ctx", default="SYSTEM")
 experiment_ctx: ContextVar[str] = ContextVar("experiment_ctx", default="N/A")
@@ -65,7 +70,7 @@ class CsvFormatter(logging.Formatter):
         experiment_id = getattr(record, 'experiment_id', 'N/A')
         msg = record.getMessage().strip()
         timestamp = self.formatTime(record, self.datefmt)
-        return format_csv_line([timestamp, experiment_id, query_id, record.levelname, record.name, msg])
+        return format_csv_line([timestamp, RUN_ID, experiment_id, query_id, record.levelname, record.name, msg])
 
 def with_query_context(func):
     """Decorator to set query context for async functions."""
@@ -80,9 +85,10 @@ def with_query_context(func):
     return wrapper
 
 # Clear existing file and write header
-if execution_csv_path.exists(): execution_csv_path.unlink()
-with open(execution_csv_path, "w", encoding='utf-8') as f:
-    f.write(format_csv_line(["timestamp", "experiment", "query", "level", "logger", "message"]) + "\n")
+if not is_child:
+    if execution_csv_path.exists(): execution_csv_path.unlink()
+    with open(execution_csv_path, "w", encoding='utf-8') as f:
+        f.write(format_csv_line(["timestamp", "run_id", "experiment", "query", "level", "logger", "message"]) + "\n")
 
 def log_output(msg):
     logging.info(msg)
@@ -123,7 +129,7 @@ try:
         timestamp = record["time"].strftime('%Y-%m-%d %H:%M:%S')
         lvl = record["level"].name
         name = record["name"]
-        return format_csv_line([timestamp, e_id, q_id, lvl, name, msg]) + "\n"
+        return format_csv_line([timestamp, RUN_ID, e_id, q_id, lvl, name, msg]) + "\n"
     
     logger.add(str(execution_csv_path), level="INFO", format=loguru_csv_format, encoding='utf-8')
 except ImportError:
@@ -276,22 +282,25 @@ async def process_batch(indices, df, out_dir, sem, arch="multiagent", disabled=N
             filename = f"query_{i+1:03d}{suffix}.json"
             target_path = out_dir / filename
 
-            # Cache check
-            if target_path.exists():
-                if lock and col and df.at[i, col] == 0:
-                    async with lock:
-                        df.at[i, col] = 1
-                completed += 1
-                return
-
+            # Set context vars immediately so every log within this task
+            # (and any asyncio subtask created by run_analysis) inherits the
+            # correct query/experiment identifiers from the very start.
             q_token = query_ctx.set(query)
             e_token = experiment_ctx.set(batch_name)
             try:
+                # Cache check
+                if target_path.exists():
+                    if lock and col and df.at[i, col] == 0:
+                        async with lock:
+                            df.at[i, col] = 1
+                    completed += 1
+                    return
+
                 async with sem:
                     res = await run_query(query, architecture=arch, disabled=disabled, use_knowledge=use_knowledge)
                     completed += 1
                     status = "OK" if "error" not in res else "ERR"
-                    
+
                     if "error" not in res:
                         with open(target_path, "w") as f: json.dump(res, f, indent=4)
                         if lock and col:
@@ -299,11 +308,11 @@ async def process_batch(indices, df, out_dir, sem, arch="multiagent", disabled=N
                                 df.at[i, col] = 1
                     elif lock and col:
                         async with lock:
-                            df.at[i, col] = 2 # Error status
-                    
+                            df.at[i, col] = 2  # Error status
+
                     if lock and csv_path:
                         async with lock: df.to_csv(csv_path, index=False)
-                    
+
                     if total > 0:
                         log_output(f"[{batch_name}] Progress: {completed}/{total} ({status})")
             finally:
@@ -827,7 +836,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Synthetic Test Suite - Parallel Runner")
     parser.add_argument("--model", type=str, help="Run only a specific model")
     parser.add_argument("--only-analysis", action="store_true", help="Only run analysis on existing results")
-    parser.add_argument("--max-concurrent", type=int, default=5, help="Max concurrent queries per model")
+    parser.add_argument("--max-concurrent", type=int, default=48, help="Max concurrent queries per model")
     args = parser.parse_args()
 
     if args.model:
