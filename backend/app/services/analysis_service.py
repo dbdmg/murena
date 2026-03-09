@@ -103,7 +103,6 @@ class AnalysisService:
         dataset: Optional[pd.DataFrame] = None,
         disabled_agents: Optional[List[str]] = None,
         use_data_knowledge: bool = True,
-        allow_relaxation: bool = True,
     ) -> Dict[str, Any]:
         """
         Run a complete real estate analysis.
@@ -220,7 +219,6 @@ class AnalysisService:
                 map_limit=map_limit,
                 disabled_agents=disabled_agents,
                 use_data_knowledge=use_data_knowledge,
-                allow_relaxation=allow_relaxation,
             )
 
             logger.info(f"Analysis {run_id} completed successfully")
@@ -355,7 +353,6 @@ class AnalysisService:
             },
             "gemini_responses": make_json_safe(orchestrator_result.gemini_responses),
             "results_count": orchestrator_result.match_count,
-            "relaxation_applied": getattr(orchestrator_result, "relaxation_applied", False),
             "broker_summary": make_json_safe(orchestrator_result.broker_summary),
             "agent_trace": agent_executions,
             "context": (

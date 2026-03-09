@@ -8,11 +8,7 @@ from typing import Any, Callable, Dict, List, Optional, TypedDict, Union
 from langgraph.graph import END, StateGraph
 import numpy as np
 import pandas as pd
-import sqlparse
-import sqlparse.tokens
 import tabulate
-import sqlglot
-from sqlglot import exp, parse_one
 
 from app.services.analysis.ranking import calculate_ranking_score
 from app.core.config import settings
@@ -51,7 +47,6 @@ from app.services.llm.agents.schema import (
 from app.services.llm.agents.sql_agent import SQLAgent
 from app.services.llm.agents.property_technical_agent import PropertyTechnicalAgent
 from app.services.llm.agents.ranking_agent import RankingAgent
-from app.services.llm.agents.relaxation_agent import RelaxationAgent
 from app.utils.logger import logger
 from app.utils.json_parser import safe_extract_json
 from app.services.llm.mocks import (
@@ -77,7 +72,6 @@ class OrchestratorResult:
     match_count: int = 0
     broker_summary: Optional[str] = None
     agent_trace: Optional[List[Dict[str, Any]]] = None
-    relaxation_applied: bool = False
 
 
 class GraphState(TypedDict):
@@ -109,11 +103,10 @@ class GraphState(TypedDict):
     context: AgentContext
     where_clause: str
     broker_summary: str  # Executive summary from Senior Broker
-    sql_history: List[str]  # History of all SQL queries tried (initial + relaxations)
+    sql_history: List[str]  # History of all SQL queries tried (initial + retry)
 
     match_count: int
     agent_trace: List[Dict[str, Any]]
-    relaxation_applied: bool  # Whether relaxation was applied
     
     # Config
     llm_limit: Optional[int]
@@ -126,8 +119,7 @@ class GraphState(TypedDict):
     set_progress: Optional[Callable[[Any], None]]
     step_definitions: List[Dict[str, str]]
     steps_state: List[Dict[str, Any]]
-    relax_constraints: bool  # Flag for smart relaxation
-    last_retry_reason: Optional[str]  # Why we are retrying (error or few_results)
+    last_retry_reason: Optional[str]  # Why we are retrying (error)
     use_data_knowledge: bool  # Whether to pass data distribution statistics to agents
 
 class GraphOrchestratorAgent(BaseAgent):
@@ -170,7 +162,6 @@ class GraphOrchestratorAgent(BaseAgent):
         self.poi_agent = poi_agent or PoiAgent()
         self.normative_agent = normative_agent or NormativeAgent()
         self.ranking_agent = RankingAgent()
-        self.relaxation_agent = RelaxationAgent()
 
         self.workflow = self._build_graph()
 
@@ -202,7 +193,6 @@ class GraphOrchestratorAgent(BaseAgent):
             self._check_sql_execution,
             {
                 "retry": "handle_retry",
-                "retry_relax": "handle_retry",
                 "continue": "enrich_results",
                 "fallback": "fallback_results",  # NEW: route to fallback instead of empty
             },
@@ -241,7 +231,6 @@ class GraphOrchestratorAgent(BaseAgent):
         metro_graph: Optional[Any] = None,
         disabled_agents: Optional[List[str]] = None,
         use_data_knowledge: bool = True,
-        allow_relaxation: bool = True,
     ) -> OrchestratorResult:
         # Step definitions per la UI (comuni)
         step_definitions = [
@@ -320,13 +309,10 @@ class GraphOrchestratorAgent(BaseAgent):
                 {"label": s["label"], "state": "pending", "detail": ""}
                 for s in step_definitions
             ],
-            "relax_constraints": False,
-            "relaxation_applied": False,
             "last_retry_reason": None,
             "sql_history": [],
             "disabled_agents": disabled_agents or [],
             "use_data_knowledge": use_data_knowledge,
-            "allow_relaxation": allow_relaxation,
         }
 
         # Safe recursion limit to handle retry loops while preventing infinite loops
@@ -1326,233 +1312,6 @@ class GraphOrchestratorAgent(BaseAgent):
                 
         return sql
 
-    def _apply_ast_relaxation_workflow(self, state: GraphState, initial_sql: str) -> str:
-        """
-        Implements the new structured relaxation algorithm:
-        STEP 3-7: Sequential AST-only relaxation without LLM retries.
-        """
-        threshold = 10 # min_results_threshold (could be made configurable)
-        start_relaxation_time = time.time()
-        
-        # 1. Prepare data for Relaxation Agent
-        where_details, base_conditions, expression = self._prepare_relaxation_data(state, initial_sql)
-        if not expression or not base_conditions:
-            logger.warning("Could not parse SQL conditions for relaxation.")
-            return initial_sql
-
-        # Calculate involved columns stats
-        involved_columns = list(set([d["colonna"] for d in where_details if d["colonna"] != "N/D"]))
-        stats = self._get_column_statistics(
-            columns=involved_columns,
-            dataset_df=state.get("base_dataset"),
-            dataset_path=state.get("dataset_path"),
-            db_metadata=state.get("db_metadata")
-        )
-
-        # 2. Call Relaxation Agent ONCE to get all proposals
-        logger.info(f" Calling RelaxationAgent for structured proposals")
-        res = self.relaxation_agent.run(
-            where_conditions=json.dumps(where_details, indent=2, ensure_ascii=False),
-            statistics=json.dumps(stats, indent=2, ensure_ascii=False),
-            min_threshold=threshold,
-            current_results_count=len(state.get("selected_data", []))
-        )
-        # Note: We don't log here anymore, we log at the end with the impact
-        
-        if not res.proposals:
-            logger.warning("No relaxation proposals received. Proceeding to condition removal fallback.")
-            # We'll skip level loops and go to Step 7
-            proposals = []
-        else:
-            proposals = res.proposals
-
-        # Initial state for relaxation
-        current_sql = initial_sql
-        current_active_conditions = [c.copy() for c in base_conditions]
-        baseline_df = state.get("selected_data")
-        baseline_count = len(baseline_df) if baseline_df is not None else 0
-        
-        # LOGGING initial state
-        all_attempts = []
-
-        # STEP 4-6: Apply LOW, MEDIUM, HIGH Relaxations
-        levels = ["low", "medium", "high"]
-        
-        for level in levels:
-            if baseline_count >= threshold:
-                break
-                
-            logger.info(f"--- Applying level: {level.upper()} ---")
-            
-            # Iterate until no more improvements can be made at this level
-            loop_progress = True
-            used_indices_at_this_level = set()
-            
-            while loop_progress and baseline_count < threshold:
-                loop_progress = False
-                best_attempt = None # (count, sql, idx, new_node)
-                
-                # Iterate from last condition to first
-                for i in range(len(current_active_conditions) - 1, -1, -1):
-                    if i in used_indices_at_this_level:
-                        continue
-                        
-                    # Find if we have a proposal for this condition at this level
-                    orig_cond_sql = base_conditions[i].sql(dialect="duckdb")
-                    match = next((p for p in proposals if p.livello_rilassamento.lower() == level and p.condizione_iniziale.strip() == orig_cond_sql.strip()), None)
-                    
-                    if not match:
-                         continue
-                    
-                    # Try applying it
-                    temp_conditions = [c.copy() for c in current_active_conditions]
-                    try:
-                        # Fix common LLM quoting errors before parsing
-                        relaxed_cond = self._fix_sql_quotes(match.condizione_relaxed)
-                        temp_conditions[i] = parse_one(relaxed_cond, read="duckdb")
-                    except Exception as e:
-                        logger.error(f"Failed to parse relaxed condition '{match.condizione_relaxed}': {e}")
-                        continue
-                        
-                    trial_sql = self._rebuild_sql(expression, temp_conditions)
-                    trial_df, error = self.execute_sql_fn(trial_sql, state.get("base_dataset"), dataset_path=state.get("dataset_path"))
-                    trial_count = len(trial_df) if not error else 0
-                    
-                    # Log attempt for trace
-                    attempt_info = {"level": level, "target_idx": i, "sql": trial_sql, "rows": trial_count, "strategy": match.strategia}
-                    all_attempts.append(attempt_info)
-                    logger.info(f"Attempt {level} on cond {i}: '{match.condizione_relaxed}' -> {trial_count} rows")
-
-                    if trial_count >= threshold:
-                        logger.info(f" SUCCESS at level {level} (Condition {i})")
-                        self._update_state_with_relaxation(state, trial_sql, trial_df, all_attempts)
-                        
-                        # Log the relaxation-agent impact
-                        res.attempts = all_attempts
-                        res.final_sql = trial_sql
-                        duration_ms = (time.time() - start_relaxation_time) * 1000
-                        self._log_execution(state, "relaxation-agent", res, duration_ms)
-                        return trial_sql
-                        
-                    if trial_count > baseline_count:
-                        if best_attempt is None or trial_count > best_attempt[0]:
-                            best_attempt = (trial_count, trial_sql, i, temp_conditions[i])
-                            
-                if best_attempt:
-                    # Apply best improvement permanently for this level
-                    count, sql, idx, new_node = best_attempt
-                    current_active_conditions[idx] = new_node
-                    baseline_count = count
-                    used_indices_at_this_level.add(idx)
-                    loop_progress = True
-                    current_sql = sql
-                    logger.info(f"Applied best effort for level {level} on cond {idx}: {count} rows. Continuing level.")
-
-        # STEP 7: Condition Removal Fallback
-        if baseline_count < threshold:
-            logger.info("--- Applying fallback: Condition Removal ---")
-            for i in range(len(current_active_conditions) - 1, -1, -1):
-                # Try removing condition i
-                temp_conditions = [c.copy() for j, c in enumerate(current_active_conditions) if i != j]
-                
-                trial_sql = self._rebuild_sql(expression, temp_conditions, remove_where=not temp_conditions)
-                trial_df, error = self.execute_sql_fn(trial_sql, state.get("base_dataset"), dataset_path=state.get("dataset_path"))
-                trial_count = len(trial_df) if not error else 0
-                
-                attempt_info = {"level": "removal", "target_idx": i, "sql": trial_sql, "rows": trial_count}
-                all_attempts.append(attempt_info)
-                logger.info(f"Attempt removal of cond {i} -> {trial_count} rows")
-
-                if trial_count >= threshold:
-                    logger.info(f" SUCCESS via removal of condition {i}")
-                    self._update_state_with_relaxation(state, trial_sql, trial_df, all_attempts)
-                    
-                    # Log the relaxation-agent impact
-                    res.attempts = all_attempts
-                    res.final_sql = trial_sql
-                    duration_ms = (time.time() - start_relaxation_time) * 1000
-                    self._log_execution(state, "relaxation-agent", res, duration_ms)
-                    return trial_sql
-                
-                # According to algorithm: "Altrimenti ripristinare la condizione e continuare" (no greedy here)
-                
-        # If we reach here, we've exhausted all structured relaxations and removals.
-        # We return the best SQL found and set retry_count to max to stop the loop.
-        final_df, _ = self.execute_sql_fn(current_sql, state.get("base_dataset"), dataset_path=state.get("dataset_path"))
-        self._update_state_with_relaxation(state, current_sql, final_df, all_attempts)
-        
-        # Log the relaxation-agent impact
-        res.attempts = all_attempts
-        res.final_sql = current_sql
-        duration_ms = (time.time() - start_relaxation_time) * 1000
-        self._log_execution(state, "relaxation-agent", res, duration_ms)
-
-        # Max out retry count to signal we are done with relaxation attempts
-        state["retry_count"] = 5
-        logger.info(f"Structured relaxation complete. Final row count: {len(final_df)}")
-        return current_sql
-
-    def _prepare_relaxation_data(self, state: GraphState, sql_query: str):
-        try:
-            # Fix potential quoting issues in the initial SQL
-            sql_query = self._fix_sql_quotes(sql_query)
-            expression = parse_one(sql_query, read="duckdb")
-            where = expression.find(exp.Where)
-            if not where:
-                return [], [], expression
-
-            def get_conditions(node):
-                if isinstance(node, exp.And):
-                    return get_conditions(node.left) + get_conditions(node.right)
-                return [node]
-
-            conditions = get_conditions(where.this)
-            
-            where_details = []
-            for cond in conditions:
-                cols = [col.name for col in cond.find_all(exp.Column)]
-                col_type = "categorica"
-                if cols:
-                    main_col = cols[0]
-                    db_meta = state.get("db_metadata", {})
-                    if main_col in db_meta and db_meta[main_col].get("type") in ["integer", "float", "double"]:
-                        col_type = "continua"
-                
-                where_details.append({
-                    "colonna": cols[0] if cols else "N/D",
-                    "operatore": str(type(cond)),
-                    "valore": str(cond.expression) if hasattr(cond, "expression") else "N/D",
-                    "tipo": col_type,
-                    "condizione_full": cond.sql(dialect="duckdb")
-                })
-            return where_details, conditions, expression
-        except Exception as e:
-            logger.error(f"Error preparing relaxation data: {e}")
-            return [], [], None
-
-    def _rebuild_sql(self, expression, conditions, remove_where=False):
-        new_expression = expression.copy()
-        where = new_expression.find(exp.Where)
-        if not conditions or remove_where:
-            if where:
-                where.pop()
-        else:
-            new_predicate = conditions[0]
-            for next_cond in conditions[1:]:
-                new_predicate = exp.And(this=new_predicate, expression=next_cond)
-            where.set("this", new_predicate)
-        return new_expression.sql(dialect="duckdb", pretty=True)
-
-    def _update_state_with_relaxation(self, state: GraphState, sql: str, df: pd.DataFrame, attempts: List[Dict]):
-        state["sql_query"] = sql
-        state["selected_data"] = df
-        state["relaxation_attempts"] = attempts
-        # If we hit threshold, we might want to signal success. 
-        # But _check_sql_execution will handle the "continue" logic based on df length.
-        if len(df) >= 10:
-            state["retry_count"] = 5 # Avoid further retries even if we succeeded
-
-
     def _format_agent_requirements(self, agent_result: Any) -> str:
         """Formatta i requisiti di un agente (APE o Normative) in formato compatto [col] [op] [val]."""
         if not agent_result or not agent_result.raw_text or agent_result.raw_text == "N/D":
@@ -1689,33 +1448,9 @@ class GraphOrchestratorAgent(BaseAgent):
 
         # Determination of whether to use Retry Prompt
         # Prepare failed query and error message for the SQL Agent.
-        # This is used both for fixing SQL errors and for query relaxation.
         is_sql_error = bool(state.get("execution_error"))
         effective_failed_query = failed_query
         effective_error_msg = error_msg
-
-        # DETERMINISTIC RELAXATION: If we are retrying because of few results (not a SQL error)
-        # we prepare the relaxed query to be passed to the agent run for logging.
-        relaxed_sql = None
-        removed_condition = None
-        
-        # DEBUG LOGGING for relaxation
-        if retry_count > 0:
-            logger.info(f"DEBUG: retry_count={retry_count}, relax_constraints={state.get('relax_constraints')}, is_sql_error={is_sql_error}, failed_query_len={len(failed_query)}")
-
-        if state.get("relax_constraints") and not is_sql_error and failed_query:
-            logger.info("Applying STRUCTURED RELAXATION (AST-based, no LLM retry)")
-            
-            # This calls the new multi-stage sequential relaxation algorithm
-            relaxed_sql = self._apply_ast_relaxation_workflow(state, failed_query)
-            
-            # Note: _apply_ast_relaxation_workflow already updated state["selected_data"] 
-            # and state["sql_query"] with the best result found.
-            
-            # Prepare dummy relaxed_sql for SQLAgent to bypass LLM
-            # but preserve the actual result.
-            if not relaxed_sql:
-                relaxed_sql = failed_query
 
         # Prepare technical scheme (all columns and their types)
         db_schema_obj = state.get("db_schema", {})
@@ -1731,7 +1466,7 @@ class GraphOrchestratorAgent(BaseAgent):
             failed_query=effective_failed_query,
             error_msg=effective_error_msg,
             db_metadata=json.dumps(state.get("db_metadata", {}), ensure_ascii=False),
-            raw_response=relaxed_sql
+            raw_response=None
         )
         duration_ms = (time.time() - start_t) * 1000
 
@@ -1752,15 +1487,7 @@ class GraphOrchestratorAgent(BaseAgent):
             "sql_history": state["sql_history"]
         }
         
-        # Prepare log information
-        agent_name = "sql-agent"
-        # Check if we are in relaxation mode (either deterministic or LLM-based)
-        if state.get("relax_constraints") or state.get("last_retry_reason") == "few_results":
-             agent_name = f"sql-agent (relaxation n. {retry_count})"
-             
-             # We no longer log attempts here as they are in relaxation-agent
-
-        self._log_execution(state, agent_name, sql_result, duration_ms)
+        self._log_execution(state, "sql-agent", sql_result, duration_ms)
         return state
 
     def _execute_sql(self, state: GraphState) -> GraphState:
@@ -1787,30 +1514,13 @@ class GraphOrchestratorAgent(BaseAgent):
 
     def _check_sql_execution(self, state: GraphState) -> str:
         if state.get("execution_error"):
-            if state["retry_count"] < 5:
-                logger.warning(
-                    f"Retrying due to error (Attempt {state['retry_count'] + 1})"
-                )
+            if state["retry_count"] < 3:
                 return "retry"
-            logger.error("Max retries reached with error. Activating fallback.")
             return "fallback"
 
-        # Consider results sufficient only when we have more than 3 rows.
-        # Apply relaxation only for very small result sets (<= 3).
-        if len(state["selected_data"]) >= 3:
+        if state["selected_data"] is not None and not state["selected_data"].empty:
             return "continue"
 
-        # If relaxation is disabled, do not retry even if zero results
-        if not state.get("allow_relaxation", True):
-            return "continue" if not state["selected_data"].empty else "fallback"
-
-        if state["retry_count"] < 5:
-            logger.warning(
-                f"Retrying due to few results ({len(state['selected_data'])}). Attempt {state['retry_count'] + 1}"
-            )
-            return "retry_relax"
-
-        logger.warning("Max retries reached. Activating fallback.")
         return "fallback"
 
     def _should_broker_review(self, state: GraphState) -> str:
@@ -1820,23 +1530,9 @@ class GraphOrchestratorAgent(BaseAgent):
         return "skip"
 
     def _handle_retry(self, state: GraphState) -> GraphState:
-        # Determine if it's an error retry or a relaxation retry
-        error = state.get("execution_error")
-        # Treat as "few results" only when there are 3 or fewer rows.
-        few_results = not error and len(state.get("selected_data", [])) <= 3
-        
-        relax = state.get("relax_constraints", False)
-        reason = "error" if error else "few_results" if few_results else None
-
-        if few_results:
-            relax = True
-            logger.info("Relaxing constraints due to zero/few results")
-        
         return {
             "retry_count": state["retry_count"] + 1, 
-            "relax_constraints": relax,
-            "relaxation_applied": relax,
-            "last_retry_reason": reason
+            "last_retry_reason": "error"
         }
 
     def _fallback_results(self, state: GraphState) -> GraphState:

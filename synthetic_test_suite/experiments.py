@@ -1,5 +1,7 @@
 import asyncio
 import csv
+import fcntl
+import contextlib
 import json
 import itertools
 import logging
@@ -131,6 +133,41 @@ class DynamicFolderHandler(logging.Handler):
                 self._handles[target_path].flush()
         except Exception:
             self.handleError(record)
+
+# Safe cross-process CSV management
+@contextlib.contextmanager
+def file_lock(path: Path):
+    """File lock using fcntl for cross-process synchronization."""
+    lock_path = path.with_suffix(path.suffix + ".lock")
+    # Ensure the lock file exists
+    if not lock_path.exists():
+        lock_path.touch()
+    
+    with open(lock_path, "r+") as f:
+        fcntl.flock(f, fcntl.LOCK_EX)
+        try:
+            yield
+        finally:
+            fcntl.flock(f, fcntl.LOCK_UN)
+
+def safe_update_csv_column(csv_path: Path, index: int, column: str, value: Any):
+    """Safely updates a single cell in a CSV file across processes."""
+    with file_lock(csv_path):
+        df = pd.read_csv(csv_path)
+        if column not in df.columns:
+            df[column] = 0
+        df.at[index, column] = value
+        df.to_csv(csv_path, index=False)
+
+def safe_read_csv(csv_path: Path) -> pd.DataFrame:
+    """Safely reads a CSV file with a lock."""
+    with file_lock(csv_path):
+        return pd.read_csv(csv_path)
+
+def safe_save_csv(df: pd.DataFrame, csv_path: Path):
+    """Safely saves a CSV file with a lock."""
+    with file_lock(csv_path):
+        df.to_csv(csv_path, index=False)
 
 # Configure standard logging with DynamicFolderHandler
 handler = DynamicFolderHandler(fallback_path=execution_csv_path)
@@ -279,19 +316,29 @@ async def run_query(query, architecture="multiagent", disabled=None, use_knowled
             run_id=f"test_{datetime.now().strftime('%H%M%S')}",
             query=query, dataset_key="full", map_limit=15000, llm_limit=25,
             analysis_mode="agent", disabled_agents=disabled, use_data_knowledge=use_knowledge,
-            allow_relaxation=False
         )
         duration = round((time.time() - start_t) * 1000, 2)
         buildings = res.get("buildings", [])
         buildings_dicts = [b.model_dump() if hasattr(b, "model_dump") else b for b in buildings]
         ranking = [{"id": str(b.get("id")), "score": float(round(b.get("score", 0.0), 1))} for b in buildings_dicts[:10]]
         trace = res.get("agent_trace", [])
-        ranking_data = next((safe_extract_json(t.get("output")) if isinstance(t.get("output"), str) else t.get("output") for t in trace if "ranking" in t.get("agent_name", "").lower()), {})
+        # Ensure trace entries and their outputs are correctly handled as dicts
+        ranking_data = {}
+        for t in trace:
+            if not isinstance(t, dict): continue
+            name = str(t.get("agent_name", "")).lower()
+            if "ranking" in name:
+                agent_output = t.get("output")
+                ranking_data = safe_extract_json(agent_output) if isinstance(agent_output, str) else agent_output
+                if not isinstance(ranking_data, dict):
+                    ranking_data = {}
+                break
         
         # Calculate effective weights based only on agents that actually contributed (ran in ranking mode)
         eff_weights = {}
-        if ranking_data:
+        if isinstance(ranking_data, dict) and ranking_data:
             init_w = ranking_data.get("weights", {})
+            if not isinstance(init_w, dict): init_w = {}
             # A contributing agent is one that produced a ranking output in the trace
             contributing_agent_keys = {
                 t.get("agent_name", "").split("-")[0] 
@@ -305,12 +352,14 @@ async def run_query(query, architecture="multiagent", disabled=None, use_knowled
                 eff_weights = {a: round(init_w[a]/s_w, 2) for a in active_f}
         
         # Extract evaluations from gemini_responses (more reliable than trace for final results)
-        evaluations = res.get("gemini_responses", {}).get("evaluation", {}).get("results", [])
+        eval_resp = res.get("gemini_responses", {}).get("evaluation", {}) or {}
+        evaluations = eval_resp.get("results", []) if isinstance(eval_resp, dict) else []
         
         # Get full data for the first evaluated building for verification (Internal use only, not saved)
         building_info = {}
-        if evaluations and res.get("buildings"):
-            top_id = evaluations[0].get("id")
+        if evaluations and isinstance(evaluations, list) and len(evaluations) > 0:
+            first_eval = evaluations[0]
+            top_id = first_eval.get("id") if isinstance(first_eval, dict) else None
             for b_dict in buildings_dicts:
                 if str(b_dict.get("id")) == top_id:
                     building_info = b_dict
@@ -372,15 +421,12 @@ async def process_batch(indices, df, out_dir, sem, arch="multiagent", disabled=N
 
                     if "error" not in res:
                         with open(target_path, "w") as f: json.dump(res, f, indent=4)
-                        if lock and col:
-                            async with lock:
-                                df.at[i, col] = 1
-                    elif lock and col:
-                        async with lock:
-                            df.at[i, col] = 2  # Error status
-
-                    if lock and csv_path:
-                        async with lock: df.to_csv(csv_path, index=False)
+                        if csv_path and col:
+                            # Use cross-process safe update
+                            safe_update_csv_column(csv_path, i, col, 1)
+                    elif csv_path and col:
+                        # Use cross-process safe update for error status
+                        safe_update_csv_column(csv_path, i, col, 2)
 
                     if total > 0:
                         log_output(f"[{batch_name}] Progress: {completed}/{total} ({status})")
@@ -730,8 +776,8 @@ async def run_single_model_suite(model: str, max_concurrent: int):
     if not bench_csv.exists(): generate_compositions(pos_json, bench_csv)
     if not sens_csv.exists(): generate_compositions(pos_json, sens_csv, ablation=True)
 
-    df_bench = pd.read_csv(bench_csv)
-    df_sens = pd.read_csv(sens_csv)
+    df_bench = safe_read_csv(bench_csv)
+    df_sens = safe_read_csv(sens_csv)
 
     apply_model_config(settings, model)
     out_root_bench = results_path / "outputs" / "benchmarks" / model
@@ -776,7 +822,9 @@ async def run_single_model_suite(model: str, max_concurrent: int):
     if tasks:
         await asyncio.gather(*tasks)
 
-    # --- PHASE 2: CONSENSUS & SYNC ---
+    # Re-read CSVs before Phase 2/3 to get updates from other processes
+    df_bench = safe_read_csv(bench_csv)
+
     # Determine the 'full' configuration result from the consensus of trials
     await compute_consensus_results(model, df_bench, out_root_bench)
     # Update status_full based on whether files were created
@@ -786,11 +834,12 @@ async def run_single_model_suite(model: str, max_concurrent: int):
     for i in range(len(df_bench)):
         if (full_dir / f"query_{str(i).zfill(3)}.json").exists():
             df_bench.at[i, full_col] = 1
-    df_bench.to_csv(bench_csv, index=False)
+    safe_save_csv(df_bench, bench_csv)
 
     # Sync sensitivity with benchmark counterparts
+    df_sens = safe_read_csv(sens_csv)
     await sync_sensitivity_with_benchmark(df_sens, df_bench, model)
-    df_sens.to_csv(sens_csv, index=False)
+    safe_save_csv(df_sens, sens_csv)
 
     # --- PHASE 3: SENSITIVITY ABLATIONS ---
     log_output("[*] Phase 3: Running remaining sensitivity ablations...")
@@ -812,7 +861,7 @@ async def run_single_model_suite(model: str, max_concurrent: int):
         # Retry both never run (0) and previously failed (2) queries
         pending = df_sens[df_sens[col].isin([0, 2])].index.tolist()
         if pending:
-            tasks.append(process_batch(pending, df_sens, out_dir, sem, disabled=dis, use_knowledge=kn, lock=csv_lock, csv_path=sens_csv, col=col, batch_name=f"{model}-SENS-{cid.upper()}"))
+            tasks.append(process_batch(pending, df_sens, out_dir, sem, disabled=dis, use_knowledge=kn, csv_path=sens_csv, col=col, batch_name=f"{model}-SENS-{cid.upper()}"))
 
     if tasks:
         await asyncio.gather(*tasks)
@@ -836,20 +885,10 @@ async def conductor_main(max_concurrent: int, only_analysis: bool = False):
         sens_csv = results_path / "sensitivity_queries_suite.csv"
         if not sens_csv.exists(): generate_compositions(pos_json, sens_csv, ablation=True)
 
-        # 2. RUN BASELINE FIRST (if it exists in the list)
-        if BASELINE_MODEL in models:
-            m_concurrency = get_model_concurrency(BASELINE_MODEL, max_concurrent)
-            log_output(f"[CONDUCTOR] Ensuring baseline '{BASELINE_MODEL}' is ready (max_concurrent={m_concurrency})...")
-            proc = await asyncio.create_subprocess_exec(sys.executable, __file__, "--model", BASELINE_MODEL, "--max-concurrent", str(m_concurrency))
-            await proc.wait()
-            models_to_run = [m for m in models if m != BASELINE_MODEL]
-        else:
-            models_to_run = models
-
-        # 3. RUN OTHER MODELS IN PARALLEL
-        log_output(f"[CONDUCTOR] Launching {len(models_to_run)} model benchmark processes...")
+        # 2. RUN ALL MODELS IN PARALLEL
+        log_output(f"[CONDUCTOR] Launching {len(models)} model benchmark processes in parallel...")
         processes = []
-        for m in models_to_run:
+        for m in models:
             m_concurrency = get_model_concurrency(m, max_concurrent)
             log_output(f"[CONDUCTOR] -> Starting {m} (max_concurrent={m_concurrency})")
             p = await asyncio.create_subprocess_exec(sys.executable, __file__, "--model", m, "--max-concurrent", str(m_concurrency))

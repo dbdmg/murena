@@ -11,8 +11,6 @@ from app.services.llm.agents.schema import (
     EvaluationAgentResponse,
     EvaluationResult,
     PromptRecord,
-    RelaxationAgentResult,
-    RelaxationProposal,
 )
 
 import json
@@ -64,26 +62,3 @@ L'alternativa **ID 67890** offre più spazio ma richiede investimenti significat
 
 **Raccomandazione:** Procedere con ID 12345 se il budget è vincolante.
 """
-
-# Mock Relaxation
-MOCK_RELAXATION = RelaxationAgentResult(
-    raw_text=json.dumps([
-        {
-            "condizione_iniziale": "superficie_mq >= 100",
-            "condizione_relaxed": "superficie_mq >= 80",
-            "strategia": "Allargamento intervallo superficie",
-            "motivazione": "Il dataset mostra pochi immobili sopra i 100mq, 80mq è una soglia vicina e più popolata.",
-            "livello_rilassamento": "low"
-        }
-    ], ensure_ascii=False),
-    prompt=PromptRecord(system="Mock", user="Mock"),
-    proposals=[
-        RelaxationProposal(
-            condizione_iniziale="superficie_mq >= 100",
-            condizione_relaxed="superficie_mq >= 80",
-            strategia="Allargamento intervallo superficie",
-            motivazione="Il dataset mostra pochi immobili sopra i 100mq, 80mq è una soglia vicina e più popolata.",
-            livello_rilassamento="low"
-        )
-    ]
-)

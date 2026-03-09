@@ -136,21 +136,6 @@ class PoiAgentResult(AgentResult):
     requisiti: List[Dict[str, Any]] = Field(default_factory=list)
 
 
-class RelaxationProposal(BaseModel):
-    condizione_iniziale: str = Field(..., description="La condizione SQL originale (es. 'superficie > 100')")
-    condizione_relaxed: str = Field(..., description="La NUOVA condizione SQL rilassata (es. 'superficie > 80')")
-    piani_progressivi: Optional[List[str]] = Field(default_factory=list, description="Eventuali step intermedi di rilassamento (opzionale)")
-    strategia: str = Field(..., description="Tipo di intervento (es. 'Espansione raggio', 'Cambio soglia')")
-    motivazione: str = Field(..., description="Perché questo rilassamento è sensato rispetto alla query")
-    livello_rilassamento: str = Field(..., description="Indice di deviazione: 'low', 'medium' o 'high'")
-
-
-class RelaxationAgentResult(AgentResult):
-    proposals: List[RelaxationProposal] = Field(default_factory=list)
-    attempts: List[Dict[str, Any]] = Field(default_factory=list)
-    final_sql: Optional[str] = None
-
-
 
 
 

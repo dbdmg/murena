@@ -222,38 +222,24 @@ class AgentLogger:
                 output_extracted = json.loads(output_data.to_json(orient="records"))
                 input_extracted = f"{agent_mode.capitalize()} mode: {len(output_data)} records"
         
-        elif agent_name == "relaxation-agent":
-            # Per l'agente di rilassamento, mostriamo i tentativi effettuati come input
-            # e la query finale scelta come output
-            if hasattr(output_data, 'attempts') and output_data.attempts:
-                input_extracted = output_data.attempts
-                output_extracted = getattr(output_data, 'final_sql', None) or getattr(output_data, 'raw_text', "N/A")
-            else:
-                input_extracted = getattr(output_data, 'raw_text', "N/A")
-                output_extracted = "Nessuna proposta applicata"
-        
         elif agent_name == "sql-agent":
-            # Per l'SQL agent, mostriamo la query SQL generata come output
-            # Input: può essere il prompt o un messaggio descrittivo
+            # SQL Agent: Show generated SQL as output and prompt as input
             if hasattr(output_data, 'raw_text'):
-                # raw_text contiene la query SQL generata
                 output_extracted = output_data.raw_text
             elif isinstance(output_data, str):
-                # Se è già una stringa, è probabilmente la query SQL
                 output_extracted = output_data
             else:
                 output_extracted = str(output_data)
             
-            # Input: Costruisci un messaggio descrittivo dei requisiti se disponibili
             if hasattr(output_data, 'prompt') and output_data.prompt:
                 input_extracted = output_data.prompt.model_dump()
             elif isinstance(input_data, dict) and ('query' in input_data or 'all_requirements' in input_data):
-                # Sintetizza l'input mostrando solo le info chiave
                 input_summary = {}
                 if 'query' in input_data:
                     input_summary['user_query'] = input_data['query']
                 if 'all_requirements' in input_data:
-                    input_summary['requirements'] = input_data['all_requirements']
+                    req = input_data['all_requirements']
+                    input_summary['req_count'] = len(req) if isinstance(req, list) else 1
                 input_extracted = input_summary
             else:
                 input_extracted = input_data
@@ -263,27 +249,38 @@ class AgentLogger:
                 output_extracted = {"ranking": output_data.ranking.ranking}
             elif hasattr(output_data, 'weights'):
                 output_extracted = output_data.weights.model_dump()
+            input_extracted = input_data
         
         elif agent_name == "poi-agent":
             if hasattr(output_data, 'requisiti'):
                 output_extracted = {"requisiti": output_data.requisiti}
             elif hasattr(output_data, 'raw_text'):
                 output_extracted = output_data.raw_text
+            input_extracted = input_data
         
-        elif hasattr(output_data, 'raw_text'):
-            output_extracted = output_data.raw_text
-        elif isinstance(output_data, dict) and 'raw_text' in output_data:
-            output_extracted = output_data['raw_text']
-        elif hasattr(output_data, 'model_dump'):
-            output_extracted = output_data.model_dump()
         else:
-            output_extracted = str(output_data)
+            # Fallback for standard agents
+            input_extracted = getattr(output_data, 'prompt', None) or input_data
+            if hasattr(output_data, 'raw_text'):
+                output_extracted = output_data.raw_text
+            elif isinstance(output_data, dict) and 'raw_text' in output_data:
+                output_extracted = output_data['raw_text']
+            elif hasattr(output_data, 'model_dump'):
+                output_extracted = output_data.model_dump()
+            else:
+                output_extracted = str(output_data)
         
+        # metadata extraction
+        batch_id = metadata.get('batch_id') if metadata else None
+        retry_id = metadata.get('retry_id') if metadata else 0
+
         log_entry = {
             "agent_name": agent_name,
             "agent_mode": agent_mode,
             "timestamp": datetime.now().isoformat(),
             "execution_time_ms": execution_time_ms,
+            "batch_id": batch_id,
+            "retry_id": retry_id,
             "input": self._serialize_data(input_extracted) if input_extracted is not None else None,
             "output": self._serialize_data(output_extracted) if output_extracted is not None else None
         }
@@ -840,7 +837,7 @@ class AgentLogger:
                 
                 # Calcola il nome della tab in base al tipo di agente
                 if agent_name.lower() == "sql-agent":
-                    retry_label = f"relaxation iter. {int(row['retry_id'])}"
+                    retry_label = f"retry n. {int(row['retry_id'])}"
                     display_name = f"{agent_name} ({retry_label})"
                 else:
                     display_name = f"{agent_name} ({agent_mode})"
@@ -1200,10 +1197,6 @@ class AgentLogger:
                                 pass
                     except Exception:
                         pass
-                
-                # Se la stringa è molto lunga e ha ritorni a capo, dividila (per tabella)
-                if len(unescaped) > 200 and '\n' in unescaped:
-                    return unescaped.split('\n')
                 
                 return unescaped
             
