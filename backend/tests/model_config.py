@@ -49,14 +49,6 @@ MODEL_OPTIONS: dict[str, ModelConfig] = {
         "provider": "ollama",
         "supports_structured_output": False,
     },
-    "ollama-r1-qwen-7b": {
-        "backend": "ollama host",
-        "model": "r1-distill-qwen-7b:latest",
-        "api_base": "http://localhost:11434/v1",
-        "api_key": "ollama",
-        "provider": "ollama",
-        "supports_structured_output": False,
-    },
     "ollama-gemma3-27b": {
         "backend": "ollama host",
         "model": "gemma3:27b",
