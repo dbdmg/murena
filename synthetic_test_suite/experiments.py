@@ -262,35 +262,47 @@ async def run_query(query, architecture="multiagent", disabled=None, use_knowled
         return {"error": str(e)}
 
 async def process_batch(indices, df, out_dir, sem, arch="multiagent", disabled=None, use_knowledge=True, lock=None, csv_path=None, col=None, trial=None, batch_name=""):
-    """Process a batch of queries with real-time progress updates."""
+    """Process a batch of queries with real-time progress updates and caching."""
     total = len(indices)
     completed = 0
     tasks = []
     
+    suffix = f"_tr{trial}" if trial else ""
+
     for idx in indices:
         async def task(i=idx):
+            nonlocal completed
             query = df.at[i, "query"]
+            filename = f"query_{i+1:03d}{suffix}.json"
+            target_path = out_dir / filename
+
+            # Cache check
+            if target_path.exists():
+                if lock and col and df.at[i, col] == 0:
+                    async with lock:
+                        df.at[i, col] = 1
+                completed += 1
+                return
+
             q_token = query_ctx.set(query)
             e_token = experiment_ctx.set(batch_name)
             try:
-                nonlocal completed
                 async with sem:
                     res = await run_query(query, architecture=arch, disabled=disabled, use_knowledge=use_knowledge)
                     completed += 1
                     status = "OK" if "error" not in res else "ERR"
                     
                     if "error" not in res:
-                        suffix = f"_tr{trial}" if trial else ""
-                        filename = f"query_{i+1:03d}{suffix}.json"
-                        with open(out_dir / filename, "w") as f: json.dump(res, f, indent=4)
-                        if lock:
+                        with open(target_path, "w") as f: json.dump(res, f, indent=4)
+                        if lock and col:
                             async with lock:
                                 df.at[i, col] = 1
-                                df.to_csv(csv_path, index=False)
-                    elif lock:
+                    elif lock and col:
                         async with lock:
-                            df.at[i, col] = 2
-                            df.to_csv(csv_path, index=False)
+                            df.at[i, col] = 2 # Error status
+                    
+                    if lock and csv_path:
+                        async with lock: df.to_csv(csv_path, index=False)
                     
                     if total > 0:
                         log_output(f"[{batch_name}] Progress: {completed}/{total} ({status})")
@@ -546,8 +558,80 @@ def generate_compositions(json_path, output_path, ablation=False):
             for q in queries: writer.writerow([q, 0])
 
 
+async def compute_consensus_results(model: str, df: pd.DataFrame, out_root: Path):
+    """Determine the most frequent result among trials and populate the 'full' config directory."""
+    cons_dir = out_root / "consistency"
+    full_dir = out_root / "full"
+    full_dir.mkdir(parents=True, exist_ok=True)
+    
+    log_output(f"[*] Computing consensus for {model}...")
+    
+    for i in range(len(df)):
+        results = []
+        for tr in [1, 2, 3]:
+            tr_file = cons_dir / f"query_{i+1:03d}_tr{tr}.json"
+            if tr_file.exists():
+                with open(tr_file) as f: results.append(json.load(f))
+        
+        if not results: continue
+
+        # Simple consensus: Compare ranking IDs
+        def get_rank_sig(res):
+            return tuple(r.get("id") for r in res.get("ranking", []))
+        
+        signatures = [get_rank_sig(r) for r in results]
+        # Find most frequent signature
+        most_common_sig = max(set(signatures), key=signatures.count)
+        
+        # Pick the first result that matches the most common signature
+        winner = next(r for r in results if get_rank_sig(r) == most_common_sig)
+        
+        target_file = full_dir / f"query_{i+1:03d}.json"
+        with open(target_file, "w") as f:
+            json.dump(winner, f, indent=4)
+
+async def sync_sensitivity_with_benchmark(df_sens: pd.DataFrame, df_bench: pd.DataFrame, model_key: str):
+    """Reuse benchmark results for sensitivity common configurations to avoid re-runs."""
+    # Maps query text to benchmark index
+    query_to_bench_idx = {row['query']: i for i, row in df_bench.iterrows()}
+    
+    configurations_to_sync = [
+        ("all_enabled", "full"),
+        ("no_ranking", "no_ranking"),
+        ("no_knowledge", "no_knowledge")
+    ]
+    
+    bench_root = results_path / "outputs" / "benchmarks" / model_key
+    sens_root = results_path / "outputs" / "sensitivity" / model_key
+    
+    for sens_cid, bench_cid in configurations_to_sync:
+        sens_col = f"status_{model_key.replace('-', '_')}_{sens_cid}"
+        bench_col = f"status_{model_key.replace('-', '_')}_{bench_cid}"
+        
+        if bench_col not in df_bench.columns: continue
+        if sens_col not in df_sens.columns: df_sens[sens_col] = 0
+        
+        bench_dir = bench_root / bench_cid
+        sens_dir = sens_root / sens_cid
+        sens_dir.mkdir(parents=True, exist_ok=True)
+        
+        for i, row in df_sens.iterrows():
+            query = row['query']
+            if query in query_to_bench_idx:
+                b_idx = query_to_bench_idx[query]
+                # Check if benchmark is done
+                if df_bench.at[b_idx, bench_col] == 1:
+                    bench_file = bench_dir / f"query_{b_idx+1:03d}.json"
+                    sens_file = sens_dir / f"query_{i+1:03d}.json"
+                    if bench_file.exists() and not sens_file.exists():
+                        # Symbolic link or copy. Copy is safer for portability.
+                        import shutil
+                        shutil.copy(bench_file, sens_file)
+                    if sens_file.exists():
+                        df_sens.at[i, sens_col] = 1
+
 async def run_single_model_suite(model: str, max_concurrent: int):
-    """Execution logic for a single model (typically runs in its own process)."""
+    """Execution logic for a single model with optimized non-redundant workflow."""
     # Initialize environment
     pos_json = suite_path / "query_variables_possibilities.json"
     mapping_json = suite_path / "agent_mapping.json"
@@ -562,27 +646,23 @@ async def run_single_model_suite(model: str, max_concurrent: int):
     log_output(f"=== [START] MODEL: {model} ===")
     log_output(f"="*50)
     
-    # 1. SETUP DATASETS
     bench_csv = results_path / "combinatorial_queries_suite.csv"
     sens_csv = results_path / "sensitivity_queries_suite.csv"
-    # Ensure compositions exist (should have been created by conductor, but for safety:)
     if not bench_csv.exists(): generate_compositions(pos_json, bench_csv)
     if not sens_csv.exists(): generate_compositions(pos_json, sens_csv, ablation=True)
 
     df_bench = pd.read_csv(bench_csv)
     df_sens = pd.read_csv(sens_csv)
 
-    # 2. RUN ALL QUERIES (Phase 1 & Phase 2 in parallel tasks)
+    apply_model_config(settings, model)
+    out_root_bench = results_path / "outputs" / "benchmarks" / model
+    out_root_sens = results_path / "outputs" / "sensitivity" / model
+
+    # --- PHASE 1: BENCHMARK BASICS & CONSISTENCY ---
+    log_output("[*] Phase 1: Running Baseline, Core Ablations and Consistency Trials...")
     tasks = []
 
-    # benchmark, sensitivity, consistency
-    apply_model_config(settings, model)
-
-    # Benchmark Tasks
-    out_root_bench = results_path / "outputs" / "benchmarks" / model
-    out_root_bench.mkdir(parents=True, exist_ok=True)
-    
-    # Baseline (only if it matches or it's the requested model)
+    # 1. Baseline
     if BASELINE_MODEL == model:
         col = f"status_{model.replace('-', '_')}_baseline"
         if col not in df_bench.columns: df_bench[col] = 0
@@ -590,8 +670,8 @@ async def run_single_model_suite(model: str, max_concurrent: int):
         if pending:
             tasks.append(process_batch(pending, df_bench, out_root_bench / "baseline", sem, arch="baseline", lock=csv_lock, csv_path=bench_csv, col=col, batch_name=f"{model}-BASELINE"))
 
-    # Configs (full, no_ranking, no_knowledge, consistency)
-    configs = {"full": (None, True), "no_ranking": (["ranking"], True), "no_knowledge": (None, False)}
+    # 2. Core Configs (Ablations only, 'full' will be driven by consensus)
+    configs = {"no_ranking": (["ranking"], True), "no_knowledge": (None, False)}
     for cid, (dis, kn) in configs.items():
         out_dir = out_root_bench / cid
         out_dir.mkdir(parents=True, exist_ok=True)
@@ -601,7 +681,7 @@ async def run_single_model_suite(model: str, max_concurrent: int):
         if pending:
             tasks.append(process_batch(pending, df_bench, out_dir, sem, disabled=dis, use_knowledge=kn, lock=csv_lock, csv_path=bench_csv, col=col, batch_name=f"{model}-{cid.upper()}"))
 
-    # Consistency Trials
+    # 3. Consistency Trials (Used to populate 'full')
     for tr in [1, 2, 3]:
         out_dir = out_root_bench / "consistency"
         out_dir.mkdir(parents=True, exist_ok=True)
@@ -611,23 +691,47 @@ async def run_single_model_suite(model: str, max_concurrent: int):
         if pending:
             tasks.append(process_batch(pending, df_bench, out_dir, sem, lock=csv_lock, csv_path=bench_csv, col=col, trial=tr, batch_name=f"{model}-CONS-TR{tr}"))
 
-    # Sensitivity Tasks
-    out_sens = results_path / "outputs" / "sensitivity" / model
-    out_sens.mkdir(parents=True, exist_ok=True)
-    sens_configs = [("all_enabled", None, True), ("no_ranking", ["ranking"], True), ("no_knowledge", None, False), ("no_poi", ["poi"], True), ("no_normative", ["normative"], True), ("no_location", ["location"], True), ("no_ape", ["ape"], True), ("no_property_technical", ["property_technical"], True)]
+    if tasks:
+        await asyncio.gather(*tasks)
+
+    # --- PHASE 2: CONSENSUS & SYNC ---
+    # Determine the 'full' configuration result from the consensus of trials
+    await compute_consensus_results(model, df_bench, out_root_bench)
+    # Update status_full based on whether files were created
+    full_col = f"status_{model.replace('-', '_')}_full"
+    if full_col not in df_bench.columns: df_bench[full_col] = 0
+    full_dir = out_root_bench / "full"
+    for i in range(len(df_bench)):
+        if (full_dir / f"query_{str(i).zfill(3)}.json").exists():
+            df_bench.at[i, full_col] = 1
+    df_bench.to_csv(bench_csv, index=False)
+
+    # Sync sensitivity with benchmark counterparts
+    await sync_sensitivity_with_benchmark(df_sens, df_bench, model)
+    df_sens.to_csv(sens_csv, index=False)
+
+    # --- PHASE 3: SENSITIVITY ABLATIONS ---
+    log_output("[*] Phase 3: Running remaining sensitivity ablations...")
+    tasks = []
+    # Note: all_enabled, no_ranking, no_knowledge were already synced
+    sens_configs = [
+        ("no_poi", ["poi"], True), 
+        ("no_normative", ["normative"], True), 
+        ("no_location", ["location"], True), 
+        ("no_ape", ["ape"], True), 
+        ("no_property_technical", ["property_technical"], True)
+    ]
     
     for cid, dis, kn in sens_configs:
         col = f"status_{model.replace('-', '_')}_{cid}"
         if col not in df_sens.columns: df_sens[col] = 0
-        out_dir = out_sens / cid
+        out_dir = out_root_sens / cid
         out_dir.mkdir(parents=True, exist_ok=True)
         pending = df_sens[df_sens[col] == 0].index.tolist()
         if pending:
             tasks.append(process_batch(pending, df_sens, out_dir, sem, disabled=dis, use_knowledge=kn, lock=csv_lock, csv_path=sens_csv, col=col, batch_name=f"{model}-SENS-{cid.upper()}"))
 
-    # Run everything in parallel!
     if tasks:
-        log_output(f"[*] Launching {len(tasks)} parallel configuration batches for {model}...")
         await asyncio.gather(*tasks)
     
     log_output(f"=== [COMPLETE] Queries for {model} finished. ===")

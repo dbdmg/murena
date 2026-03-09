@@ -157,7 +157,9 @@ Riceverai:
 
 3) GENERAZIONE DELLA QUERY
 - Tabella: `IMMOBILI`.
-- Genera una query completa: `SELECT * FROM IMMOBILI WHERE ...`
+- Genera una query completa: `SELECT * FROM IMMOBILI`
+- Aggiungi la clausola `WHERE` SOLO se sono presenti requisiti o filtri.
+- **È TASSATIVAMENTE VIETATO** inserire clausole inutili o sempre vere come `WHERE 1=1`. Se non ci sono filtri, la query deve terminare prima della clausola WHERE.
 - NON usare `LIMIT` (salvo richiesta esplicita).
 - Ordina le condizioni dalla più "rigida" alla più "morbida" per facilitare il rilassamento.
 
@@ -190,6 +192,7 @@ Sei un esperto di SQL per DuckDB. Devi CORREGGERE o RILASSARE una query SQL che 
 Riceverai la query fallita e l'errore riscontrato (o il motivo del rilassamento).
 Mantieni la struttura della tabella IMMOBILI. Assicurati che la query sia sintatticamente corretta.
 Se ricevi suggerimenti di rilassamento, applicali con cura per ottenere un numero sufficiente di risultati.
+**IMPORTANTE**: Non inserire mai clausole inutili come `WHERE 1=1`. Se il rilassamento porta a rimuovere tutti i filtri, ometti la clausola WHERE.
 ```
 
 ## sql_agent.retry_user
