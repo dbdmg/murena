@@ -52,7 +52,7 @@ MODEL_OPTIONS: dict[str, ModelConfig] = {
     },
     "ollama-gemma3-27b": {
         "backend": "ollama host",
-        "model": "gemma3:27b",
+        "model": "orieg/gemma3-tools:27b-it-qat",
         "api_base": "http://localhost:11434/v1",
         "api_key": "ollama",
         "provider": "ollama",
@@ -68,7 +68,7 @@ MODEL_OPTIONS: dict[str, ModelConfig] = {
     },
     "ollama-deepseek-r1-8b": {
         "backend": "ollama host",
-        "model": "deepseek-r1:8b",
+        "model": "MFDoom/deepseek-r1-tool-calling:8b",
         "api_base": "http://localhost:11434/v1",
         "api_key": "ollama",  # required placeholder for the OpenAI-compat API
         "provider": "ollama",
