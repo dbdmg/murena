@@ -214,25 +214,27 @@ async def run_query(query, architecture="multiagent", disabled=None, use_knowled
         trace = res.get("agent_trace", [])
         ranking_data = next((safe_extract_json(t.get("output")) if isinstance(t.get("output"), str) else t.get("output") for t in trace if "ranking" in t.get("agent_name", "").lower()), {})
         
+        # Calculate effective weights based only on agents that actually contributed (ran in ranking mode)
         eff_weights = {}
         if ranking_data:
             init_w = ranking_data.get("weights", {})
-            active_f = [a for a, w in init_w.items() if w > 0]
+            # A contributing agent is one that produced a ranking output in the trace
+            contributing_agent_keys = {
+                t.get("agent_name", "").split("-")[0] 
+                for t in trace 
+                if t.get("agent_mode") == "ranking" and "-" in t.get("agent_name", "")
+            }
+            # Only keep valid agent keys that had a non-zero initial weight
+            active_f = [a for a in contributing_agent_keys if a in init_w and init_w[a] > 0]
             s_w = sum(init_w.get(a, 0) for a in active_f)
             if s_w > 0:
-                eff_weights = {a: round(init_w[a]/s_w, 2) for a in init_w}
+                eff_weights = {a: round(init_w[a]/s_w, 2) for a in active_f}
         
-        # Extract evaluations and their corresponding building data
-        evaluations = []
+        # Extract evaluations from gemini_responses (more reliable than trace for final results)
+        evaluations = res.get("gemini_responses", {}).get("evaluation", {}).get("results", [])
+        
+        # Get full data for the first evaluated building for verification (Internal use only, not saved)
         building_info = {}
-        for t in trace:
-            if "evaluation" in t.get("agent_name", "").lower():
-                out = safe_extract_json(t.get("output")) if isinstance(t.get("output"), str) else t.get("output")
-                if isinstance(out, dict) and "results" in out:
-                    evaluations = out["results"]
-                break
-        
-        # Get full data for the top evaluated buildings
         if evaluations and res.get("buildings"):
             top_id = evaluations[0].get("id")
             for b_dict in buildings_dicts:
@@ -241,12 +243,13 @@ async def run_query(query, architecture="multiagent", disabled=None, use_knowled
                     break
 
         results_pack = {
-            "query": query, "results_count": res.get("results_count", 0),
-            "relaxation_applied": res.get("relaxation_applied", False),
-            "execution_time_ms": duration, "final_sql": res.get("filters_applied", {}).get("final_sql", ""),
-            "ranking": ranking, "ranking_logic": {"effective_weights": eff_weights},
-            "evaluations": evaluations,
-            "evaluated_building_data": building_info
+            "query": query, 
+            "results_count": res.get("results_count", 0),
+            "execution_time_ms": duration, 
+            "final_sql": res.get("filters_applied", {}).get("final_sql", ""),
+            "ranking": ranking, 
+            "ranking_logic": {"effective_weights": eff_weights},
+            "evaluations": evaluations
         }
         
         final_sql = res.get("filters_applied", {}).get("final_sql", "")
@@ -332,7 +335,6 @@ def analyze_iou_stats(results_dir):
         total += 1
         with open(f) as jf:
             data = json.load(jf)
-            if data.get("relaxation_applied"): continue
             ids_list.append([str(i["id"]) for i in data.get("ranking", [])])
             analyzed += 1
     if not ids_list: return {"zero_iou": "0.0%", "analyzed_rate": "0.0%"}
@@ -401,11 +403,11 @@ async def evaluate_with_judge(model_key, results_dir):
     for f in list(results_dir.glob("*.json"))[:5]: 
         with open(f) as jf:
             data = json.load(jf)
-            if data.get("evaluations") and data.get("evaluated_building_data"):
+            if data.get("evaluations"):
                 samples.append({
                     "query": data["query"], 
                     "evaluation": data["evaluations"][0],
-                    "building": data["evaluated_building_data"]
+                    "building": data.get("evaluated_building_data", {})
                 })
     
     if not samples: return {"score": 0, "samples": 0}
@@ -543,19 +545,6 @@ def generate_compositions(json_path, output_path, ablation=False):
             writer.writerow(['query', 'status'])
             for q in queries: writer.writerow([q, 0])
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Synthetic Test Suite - Parallel Runner")
-    parser.add_argument("--model", type=str, help="Run only a specific model")
-    parser.add_argument("--only-analysis", action="store_true", help="Only run analysis on existing results")
-    parser.add_argument("--max-concurrent", type=int, default=5, help="Max concurrent queries per model")
-    args = parser.parse_args()
-
-    if args.model:
-        # Run a single model suite (to be called as a subprocess)
-        asyncio.run(run_single_model_suite(args.model, args.max_concurrent))
-    else:
-        # Launch the conductor
-        asyncio.run(conductor_main(args.max_concurrent, args.only_analysis))
 
 async def run_single_model_suite(model: str, max_concurrent: int):
     """Execution logic for a single model (typically runs in its own process)."""
@@ -729,3 +718,17 @@ async def conductor_main(max_concurrent: int, only_analysis: bool = False):
     
     log_output(f"\nWorkflow complete. Final report: {results_path / 'report.md'}")
     log_output(f"Detailed execution log: {execution_csv_path}")
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Synthetic Test Suite - Parallel Runner")
+    parser.add_argument("--model", type=str, help="Run only a specific model")
+    parser.add_argument("--only-analysis", action="store_true", help="Only run analysis on existing results")
+    parser.add_argument("--max-concurrent", type=int, default=5, help="Max concurrent queries per model")
+    args = parser.parse_args()
+
+    if args.model:
+        # Run a single model suite (to be called as a subprocess)
+        asyncio.run(run_single_model_suite(args.model, args.max_concurrent))
+    else:
+        # Launch the conductor
+        asyncio.run(conductor_main(args.max_concurrent, args.only_analysis))
