@@ -26,15 +26,18 @@ except ImportError:
 # --- 1. SETTINGS & ENVIRONMENT SETUP ---
 
 logging.basicConfig(level=logging.ERROR)
-base_dir = Path("/Users/marcodeluca/Downloads/real-estate-ai")
+base_dir = Path(__file__).resolve().parent.parent
 backend_dir = base_dir / "backend"
 sys.path.append(str(backend_dir))
+BASELINE_MODEL = "gpt-5.4"
+EVALUATION_MODEL = "gpt-5.4"
 
 from app.core.config import settings
 from app.services.analysis_service import analysis_service
 from app.services.real_estate_service import RealEstateService
 from app.data.loaders import load_and_merge_data
 from app.utils.json_parser import safe_extract_json
+from tests.model_config import apply_model_config
 
 # Patch settings
 for attr in ["DATASET_FULL", "APE_DETAILED_DATA_PATH", "STATIC_DIR", "DATA_DIR", "APE_DIR", "META_DIR", "AGENT_LOGS_DIR"]:
@@ -292,10 +295,13 @@ def analyze_consistency(consistency_dir):
         avg_ious.append(np.mean([calculate_iou(rankings[i], rankings[j]) for i in range(len(rankings)) for j in range(i+1, len(rankings))]))
     return {"mean_self_iou": round(np.mean(avg_ious), 3) if avg_ious else 1.0}
 
-async def evaluate_with_judge(model_name, results_dir):
+async def evaluate_with_judge(model_key, results_dir):
     """LLM-as-a-judge to evaluate pros/cons quality."""
     from app.services.llm.langchain_client import get_llm
-    judge_llm = get_llm(model_name="gpt-5.4") # Use a strong model as judge
+    
+    # Configure settings for the judge model
+    apply_model_config(settings, EVALUATION_MODEL)
+    judge_llm = get_llm() # Uses configured EVALUATION_MODEL
     
     samples = []
     for f in list(results_dir.glob("*.json"))[:5]: 
@@ -341,6 +347,8 @@ async def evaluate_with_judge(model_name, results_dir):
                 scores.append(float(score_data["score"]))
         except: pass
         
+    # Restore original model settings
+    apply_model_config(settings, model_key)
     return {"score": round(np.mean(scores), 2) if scores else 0, "samples": len(scores)}
 
 def analyze_correlation(results_dir):
@@ -449,8 +457,7 @@ async def main():
     await preload_data()
     data_stats = get_data_stats()
 
-    models = ["gpt-5.4", "gpt-oss-120b", "ollama-gemma3-27b", "deepseek-r1-8b"]
-    BASELINE_MODEL = "gpt-5.4"
+    models = ["gpt-5-nano", "gpt-oss-120b", "ollama-gemma3-27b", "ollama-deepseek-r1-8b"]
     sem = asyncio.Semaphore(5)
 
     bench_csv = suite_path / "combinatorial_queries_suite.csv"
@@ -492,7 +499,7 @@ async def main():
         
         configs = {"full": (None, True), "no_ranking": (["ranking"], True), "no_knowledge": (None, False), "consistency": (None, True)}
         for cid, (dis, kn) in configs.items():
-            settings.set_llm_model(model)
+            apply_model_config(settings, model)
             out_dir = out_root / cid
             out_dir.mkdir(parents=True, exist_ok=True)
             progress_state[model]["current_task"] = cid.upper()

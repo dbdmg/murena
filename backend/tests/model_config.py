@@ -12,6 +12,7 @@ Fields:
     provider  : internal routing hint used by set_llm_model logic.
 """
 
+import os
 from typing import TypedDict, Optional
 
 
@@ -65,12 +66,12 @@ MODEL_OPTIONS: dict[str, ModelConfig] = {
         "provider": "openai",
         "supports_structured_output": True,
     },
-    "deepseek-r1-8b": {
-        "backend": "llm polito API",
-        "model": "deepseek-r1-8b",
-        "api_base": "https://llm.polito.it/v1",
-        "api_key": None,  # read from LLM_POLITO_API_KEY env var via settings
-        "provider": "llm_polito",
+    "ollama-deepseek-r1-8b": {
+        "backend": "ollama host",
+        "model": "deepseek-r1:8b",
+        "api_base": "http://localhost:11434/v1",
+        "api_key": "ollama",  # required placeholder for the OpenAI-compat API
+        "provider": "ollama",
         "supports_structured_output": False,
     },
 }
@@ -110,3 +111,6 @@ def apply_model_config(settings_obj: object, model_key: str) -> None:
     elif cfg["provider"] == "llm_polito":
         # Delegate to the value already loaded from LLM_POLITO_API_KEY env var.
         settings_obj.OPENAI_API_KEY = settings_obj.LLM_POLITO_API_KEY
+    else:
+        # Restore the original OpenAI API key from environment variables.
+        settings_obj.OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")

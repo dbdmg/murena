@@ -131,7 +131,7 @@ class Settings(BaseSettings):
     IMMOBILI_MAPPING_PATH: str = os.path.normpath("notebooks/02_quotazione/mapping_immobili.csv")
     QIP_VALORI_PATH: str = "notebooks/02_quotazione/QIP_1303437_1_20251_VALORI.csv"
     QIP_MAPPING_PATH: str = "notebooks/02_quotazione/mapping_qip.csv"
-    ZONE_OMI_PROVINCIA_TORINO_GEOJSON: str = "/Users/marcodeluca/Downloads/real-estate-ai/backend/data/FOLDER_STATIC_ROME/zone_omi_provincia_torino.geojson.zip"
+    ZONE_OMI_PROVINCIA_TORINO_GEOJSON: str = "data/FOLDER_STATIC_ROME/zone_omi_provincia_torino.geojson.zip"
     IMMOBILI_QUOTAZIONE_PATH: str = "notebooks/02_quotazione/quotazione_immobili.csv"
     ZONE_GRUPPO_QUOTAZIONI_PATH: str = "notebooks/02_quotazione/zone_gruppo_quotazioni.csv"
     MISSING_QUOTAZIONI_IDS_PATH: str = "notebooks/02_quotazione/missing_quotazioni_ids.csv"
