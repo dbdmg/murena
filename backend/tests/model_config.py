@@ -57,9 +57,17 @@ MODEL_OPTIONS: dict[str, ModelConfig] = {
         "provider": "ollama",
         "supports_structured_output": False,
     },
-    "gpt-5.2": {
+    "ollama-gemma3-27b": {
+        "backend": "ollama host",
+        "model": "gemma3:27b",
+        "api_base": "http://localhost:11434/v1",
+        "api_key": "ollama",
+        "provider": "ollama",
+        "supports_structured_output": False,
+    },
+    "gpt-5.4": {
         "backend": "openai API",
-        "model": "gpt-5.2-2025-12-11",
+        "model": "gpt-5.4-2026-03-05",
         "api_base": None,
         "api_key": None,  # read from OPENAI_API_KEY env var
         "provider": "openai",

@@ -103,6 +103,7 @@ class AnalysisService:
         dataset: Optional[pd.DataFrame] = None,
         disabled_agents: Optional[List[str]] = None,
         use_data_knowledge: bool = True,
+        allow_relaxation: bool = True,
     ) -> Dict[str, Any]:
         """
         Run a complete real estate analysis.
@@ -219,6 +220,7 @@ class AnalysisService:
                 map_limit=map_limit,
                 disabled_agents=disabled_agents,
                 use_data_knowledge=use_data_knowledge,
+                allow_relaxation=allow_relaxation,
             )
 
             logger.info(f"Analysis {run_id} completed successfully")

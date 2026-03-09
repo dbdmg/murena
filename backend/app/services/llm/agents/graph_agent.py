@@ -213,7 +213,14 @@ class GraphOrchestratorAgent(BaseAgent):
         workflow.add_edge("enrich_results", "calculate_ranking_weights")
         workflow.add_edge("calculate_ranking_weights", "rank_results")
         workflow.add_edge("rank_results", "evaluate_results")
-        workflow.add_edge("evaluate_results", "broker_review")
+        workflow.add_conditional_edges(
+            "evaluate_results",
+            self._should_broker_review,
+            {
+                "continue": "broker_review",
+                "skip": "finalize_results",
+            },
+        )
         workflow.add_edge("broker_review", "finalize_results")
         workflow.add_edge("finalize_results", END)
 
@@ -234,6 +241,7 @@ class GraphOrchestratorAgent(BaseAgent):
         metro_graph: Optional[Any] = None,
         disabled_agents: Optional[List[str]] = None,
         use_data_knowledge: bool = True,
+        allow_relaxation: bool = True,
     ) -> OrchestratorResult:
         # Step definitions per la UI (comuni)
         step_definitions = [
@@ -318,6 +326,7 @@ class GraphOrchestratorAgent(BaseAgent):
             "sql_history": [],
             "disabled_agents": disabled_agents or [],
             "use_data_knowledge": use_data_knowledge,
+            "allow_relaxation": allow_relaxation,
         }
 
         # Safe recursion limit to handle retry loops while preventing infinite loops
@@ -1791,6 +1800,10 @@ class GraphOrchestratorAgent(BaseAgent):
         if len(state["selected_data"]) >= 3:
             return "continue"
 
+        # If relaxation is disabled, do not retry even if zero results
+        if not state.get("allow_relaxation", True):
+            return "continue" if not state["selected_data"].empty else "fallback"
+
         if state["retry_count"] < 5:
             logger.warning(
                 f"Retrying due to few results ({len(state['selected_data'])}). Attempt {state['retry_count'] + 1}"
@@ -1799,6 +1812,12 @@ class GraphOrchestratorAgent(BaseAgent):
 
         logger.warning("Max retries reached. Activating fallback.")
         return "fallback"
+
+    def _should_broker_review(self, state: GraphState) -> str:
+        """Route to broker only if there are evaluation results."""
+        if state["context"].evaluation_results:
+            return "continue"
+        return "skip"
 
     def _handle_retry(self, state: GraphState) -> GraphState:
         # Determine if it's an error retry or a relaxation retry
@@ -2530,10 +2549,6 @@ class GraphOrchestratorAgent(BaseAgent):
             return state
 
         eval_results = state["context"].evaluation_results
-
-        if not eval_results:
-            state["broker_summary"] = "Nessun immobile analizzato in dettaglio."
-            return state
 
         # Create structured text for the broker
         candidates = []
