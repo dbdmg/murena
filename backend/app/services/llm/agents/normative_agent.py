@@ -18,6 +18,7 @@ from app.services.llm.langchain_client import get_llm, invoke_with_langfuse
 from app.services.llm.prompt_loader import get_system_prompt, get_user_template
 from app.utils.decorators import handle_agent_error, log_llm_usage
 from app.utils.json_parser import safe_extract_json
+from app.utils.scoring import calculate_continuous_score, calculate_discrete_score
 
 def load_normative_documents() -> tuple[str, list[str], List[Dict[str, Any]]]:
     """
@@ -243,59 +244,24 @@ class NormativeAgent(BaseAgent):
                 
                 # Global vs Local Normalization
                 col_stats = global_stats.get(col) if global_stats else None
-                if col_stats and isinstance(col_stats, dict) and "min" in col_stats and "max" in col_stats:
-                    min_val = float(col_stats["min"])
-                    max_val = float(col_stats["max"])
-                else:
-                    min_val = vals.min()
-                    max_val = vals.max()
                 
-                if max_val == min_val:
-                    req_score = pd.Series(100.0, index=df_ranked.index)
-                else:
+                # Usa l'utilità centralizzata per variabili continue
+                if op in [">=", ">", "<=", "<"]:
                     exclusive = req.get("exclusive", False)
-                    T = float(target_val) # Define T here, as it's used in both branches
-                    if op in [">=", ">"]:
-                        # Linear growth with threshold T and cap at 2T
-                        # Score 0 at T, Score 100 at 2T
-                        if T > 0:
-                            req_score = ((vals - T) / T * 100).clip(0, 100)
-                            
-                            if exclusive:
-                                req_score = req_score.mask(vals <= T, 0.0)
-                            
-                            # Ensure minimum 0.1 if vals >= T (but not if exclusive failure)
-                            req_score = req_score.mask((req_score == 0) & (vals >= T) & (not exclusive), 0.1)
-                        else:
-                            req_score = pd.Series(100.0, index=df_ranked.index)
-                    elif op in ["<=", "<"]:
-                        # Linear decay with threshold T and cap at T/2
-                        # Score 0 at T, Score 100 at T/2
-                        if T > 0:
-                            req_score = ((T - vals) / (T / 2) * 100).clip(0, 100)
-                            
-                            if exclusive:
-                                req_score = req_score.mask(vals >= T, 0.0)
-                            
-                            # Ensure minimum 0.1 if vals <= T
-                            req_score = req_score.mask((req_score == 0) & (vals <= T) & (not exclusive), 0.1)
-                        else:
-                            req_score = pd.Series(0.0, index=df_ranked.index)
-                    else: # ==
-                        target_num = float(target_val)
-                        diff = np.abs(vals - target_num)
+                    req_score = calculate_continuous_score(vals, T, op, exclusive)
+                else: # ==
+                    target_num = float(target_val)
+                    diff = np.abs(vals - target_num)
+                    
+                    # Normalizzazione relativa tramite range del dataset (preferibilmente globale)
+                    range_val = 0
+                    if col_stats:
+                        range_val = float(col_stats.get("max", 0)) - float(col_stats.get("min", 0))
                         
-                        # Normalizzazione relativa tramite range del dataset (preferibilmente globale)
-                        range_val = (max_val - min_val) if max_val != min_val else 0
-                        if range_val > 0:
-                            req_score = (100 - (diff / range_val * 100)).clip(0, 100)
-                        else:
-                            max_diff = diff.max()
-                            min_diff = diff.min()
-                            if max_diff == min_diff:
-                                 req_score = pd.Series(100.0, index=df_ranked.index)
-                            else:
-                                 req_score = ((max_diff - diff) / (max_diff - min_diff) * 100).clip(0, 100)
+                    if range_val > 0:
+                        req_score = (100 - (diff / range_val * 100)).clip(0, 100)
+                    else:
+                        req_score = (vals == target_num).astype(float) * 100.0
             
                 col_name = f"normative_partial_score_{col}"
                 # Handle duplicate names if multiple requirements exist for the same column
@@ -323,28 +289,15 @@ class NormativeAgent(BaseAgent):
                     else:
                         target_list = [target_str.strip("'\"")]
 
-                    def get_rank_and_score(v):
-                        v_str = str(v).lower().strip()
-                        for idx, t in enumerate(target_list):
-                            # Corrispondenza precisa o parziale
-                            if t == v_str or t in v_str or v_str in t:
-                                return round(100.0 / (idx + 1), 1), idx + 1
-                        return 0.0, "N/A"
-
-                    details = vals.apply(get_rank_and_score)
-                    req_score = details.apply(lambda x: x[0])
-                    rank_pos = details.apply(lambda x: x[1])
+                    # Usa l'utilità centralizzata per variabili discrete
+                    req_score = calculate_discrete_score(df_ranked[col], target_list)
+                    rank_pos = np.where(req_score > 0, 1, "N/A") # Placeholder per posizionalità
                 else:
                     # Determine match (boolean series)
                     if op == "==":
-                        # Strict match first
-                        strict_match = (vals == target_str)
-                        # Relaxed match: if target is contained in the value or vice-versa
-                        partial_match = vals.str.contains(target_str, na=False, regex=False) | pd.Series([target_str in v for v in vals], index=vals.index)
-                        is_match = strict_match | partial_match
-                    elif op == "LIKE":
-                        is_match = vals.str.contains(target_str, na=False, regex=False)
-                    elif op == "IN":
+                        # Usa l'utilità centralizzata come match secco (single choice = 100)
+                        req_score = calculate_discrete_score(df_ranked[col], [target_str])
+                    elif op == "LIKE" or op == "IN":
                         if isinstance(target_val, str):
                             target_list = [v.lower().strip() for v in target_val.split(",")]
                         elif isinstance(target_val, list):
@@ -352,15 +305,12 @@ class NormativeAgent(BaseAgent):
                         else:
                             target_list = [target_str]
                         
-                        # Exact matches in list OR any item in list is contained in value
-                        is_match = vals.isin(target_list)
-                        for t in target_list:
-                            is_match = is_match | vals.str.contains(t, na=False, regex=False)
+                        # Usa l'utilità centralizzata per set di valori
+                        req_score = calculate_discrete_score(df_ranked[col], target_list)
                     else:
-                        is_match = (vals == target_str)
+                        req_score = (vals == target_str).astype(float) * 100.0
                     
-                    # Calculate Score: 100 for match, 0 otherwise
-                    req_score = is_match.astype(float) * 100
+                    is_match = req_score > 0
                     rank_pos = np.where(is_match, 1, "N/A")
                 
                 # Transparency Metadata for Categorical

@@ -15,6 +15,7 @@ from app.services.llm.langchain_client import get_llm, invoke_with_langfuse
 from app.services.llm.prompt_loader import get_system_prompt, get_user_template
 from app.utils.decorators import handle_agent_error, log_llm_usage
 from app.utils.json_parser import safe_extract_json
+from app.utils.scoring import calculate_continuous_score, calculate_discrete_score
 
 
 class PropertyTechnicalAgent(BaseAgent):
@@ -126,16 +127,8 @@ class PropertyTechnicalAgent(BaseAgent):
         # 1. Ranking per Tipologia (se presente)
         if ranked_typologies:
             weights_count += 1
-            n = len(ranked_typologies)
-            property_map = {}
-            if n == 1:
-                property_map[ranked_typologies[0]] = 100.0
-            else:
-                for i, typ in enumerate(ranked_typologies):
-                    score = round(100.0 / (i + 1), 1)
-                    property_map[typ] = score
-            
-            typ_scores = df_ranked["tipologia_bene_immobile"].map(lambda x: property_map.get(str(x), 0.0))
+            # Usa l'utilità centralizzata per le tipologie
+            typ_scores = calculate_discrete_score(df_ranked["tipologia_bene_immobile"], ranked_typologies)
             df_ranked["property_technical_typology_score"] = typ_scores
             total_scores += typ_scores
             transparency_cols.append("property_technical_typology_score")
@@ -156,20 +149,16 @@ class PropertyTechnicalAgent(BaseAgent):
                 technical_req_count += 1
                 series = pd.to_numeric(df_ranked[col], errors="coerce").fillna(0)
                 
-                # Calcolo vicinanza/score
+                # Usa l'utilità centralizzata per variabili continue
                 try:
                     T = float(target_val) if target_val is not None else 1.0
                 except (ValueError, TypeError):
                     T = 1.0
 
-                if op in [">=", ">"]:
-                    req_score = ((series / T) * 100).clip(0, 110)
-                    if op == ">": 
-                        req_score = req_score.mask(series <= T, req_score * 0.5)
-                elif op in ["<=", "<"]:
-                    safe_series = series.replace(0, 1)
-                    req_score = ((T / safe_series) * 100).clip(0, 110)
-                else: # Equality
+                if op in [">=", ">", "<=", "<"]:
+                    exclusive = req.get("exclusive", False)
+                    req_score = calculate_continuous_score(series, T, op, exclusive)
+                else: # Equality (Keep existing distance logic for now)
                     diff = np.abs(series - T)
                     stats = global_stats.get(col) if global_stats else None
                     if stats and "max" in stats and "min" in stats:

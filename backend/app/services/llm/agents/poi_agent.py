@@ -15,6 +15,7 @@ from app.services.llm.langchain_client import get_llm, invoke_with_langfuse, is_
 from app.services.llm.prompt_loader import get_system_prompt, get_user_template
 from app.utils.decorators import log_llm_usage, handle_agent_error
 from app.utils.json_parser import safe_extract_json
+from app.utils.scoring import calculate_continuous_score
 
 
 class PoiAgentOutput(BaseModel):
@@ -215,25 +216,9 @@ class PoiAgent(BaseAgent):
                 target_val = req.get("valore")
                 if target_val is not None:
                     try:
-                        T = float(target_val)
                         exclusive = req.get("exclusive", False)
-                        if op in [">=", ">"]:
-                            # Linear growth with threshold T and cap at 2T
-                            # Score 0 below T, 100 at 2T
-                            req_score = ((vals - T) / T * 100).clip(0, 100)
-                            if exclusive:
-                                req_score = req_score.mask(vals <= T, 0.0)
-                            # Ensure minimum 0.1 if vals >= T (but not if NaNs or exclusive failure)
-                            req_score = req_score.mask((req_score == 0) & (vals >= T) & (~na_mask) & (~exclusive), 0.1)
-                        elif op in ["<=", "<"]:
-                            # Linear decay with threshold T and cap at T/2
-                            # Score 0 above T, 100 at T/2
-                            req_score = ((T - vals) / (T / 2) * 100).clip(0, 100)
-                            if exclusive:
-                                req_score = req_score.mask(vals >= T, 0.0)
-                            # Ensure minimum 0.1 if vals <= T (but not if NaNs or exclusive failure)
-                            req_score = req_score.mask((req_score == 0) & (vals <= T) & (~na_mask) & (~exclusive), 0.1)
-                        
+                        # Usa l'utilità centralizzata per variabili continue
+                        req_score = calculate_continuous_score(vals, target_val, op, exclusive)
                         norm_vals = req_score.to_numpy() / 100.0
                     except:
                         pass

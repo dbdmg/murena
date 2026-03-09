@@ -15,6 +15,7 @@ from app.services.llm.langchain_client import get_llm, invoke_with_langfuse, is_
 from app.services.llm.prompt_loader import get_system_prompt, get_user_template
 from app.utils.decorators import log_llm_usage
 from app.utils.json_parser import safe_extract_json
+from app.utils.scoring import calculate_continuous_score, calculate_discrete_score
 
 
 class ApeAgentOutput(ApeResponse):
@@ -195,107 +196,41 @@ class ApeAgent(BaseAgent):
                     if not target_set and target_val:
                          target_set = [str(target_val).upper().strip()]
 
-                    # Map target classes to scores (100/position)
-                    ranking_map = {}
-                    for i, cls_name in enumerate(target_set):
-                        # Score calculation: 100 / (position)
-                        score = round(100.0 / (i + 1), 1)
-                        ranking_map[cls_name] = (score, i + 1)
+                    # Usa l'utilità centralizzata per variabili discrete
+                    req_score = calculate_discrete_score(df_ranked[col], target_set)
                     
-                    vals = df_ranked[col].astype(str).str.upper().str.strip()
-                    
-                    # Helper to extract score and rank safe
-                    def get_class_details(c_val):
-                        if c_val in ranking_map:
-                            return ranking_map[c_val]
-                        return (0.0, "N/A") # Outside target set = 0
-
-                    details = vals.apply(get_class_details)
-                    
-                    req_score = details.apply(lambda x: x[0])
-                    rank_pos = details.apply(lambda x: x[1])
-                    
-                    # Save transparency metadata
-                    pos_col = f"ape_rank_position_{col}"
-                    df_ranked[pos_col] = rank_pos
-                    
-                    # Store partial score for this categorical requirement
+                    # Salva metadati trasparenza (approssimati per compatibilità)
                     df_ranked[f"ape_partial_score_{col}"] = req_score
-                    
-                    transparency_cols.extend([pos_col, f"ape_partial_score_{col}"])
+                    transparency_cols.append(f"ape_partial_score_{col}")
                     
                 else:
                     # Generic numeric handling
                     vals_raw = pd.to_numeric(df_ranked[col], errors="coerce")
                     is_missing = vals_raw.isna()
-                    vals = vals_raw.fillna(0)
                     
-                    # Global vs Local Normalization
-                    col_stats = global_stats.get(col) if global_stats else None
-                    if col_stats and isinstance(col_stats, dict) and "min" in col_stats and "max" in col_stats:
-                        min_val = float(col_stats["min"])
-                        max_val = float(col_stats["max"])
-                    else:
-                        min_val = vals.min()
-                        max_val = vals.max()
-                    
-                    if max_val == min_val:
-                         req_score = pd.Series(100.0, index=df_ranked.index)
-                    else:
-                        # Helper per gestire valori che potrebbero essere liste (es. [10] invece di 10)
-                        def safe_float(v):
-                            if isinstance(v, list):
-                                return float(v[0]) if v else 0.0
-                            try:
-                                return float(v)
-                            except (ValueError, TypeError):
-                                return 0.0
-
+                    # Usa l'utilità centralizzata per variabili continue
+                    if op in [">=", ">", "<=", "<"]:
                         exclusive = req.get("exclusive", False)
-                        if op in [">=", ">"]:
-                            # Linear growth with threshold T and cap at 2T
-                            T = safe_float(target_val)
-                            if T > 0:
-                                req_score = ((vals - T) / T * 100).clip(0, 100)
-                                if exclusive:
-                                    req_score = req_score.mask(vals <= T, 0.0)
-                                
-                                # Ensure minimum 0.1 if vals >= T (but not if missing or exclusive failure)
-                                req_score = req_score.mask((req_score == 0) & (vals >= T) & (~is_missing) & (~exclusive), 0.1)
-                            else:
-                                req_score = pd.Series(100.0, index=df_ranked.index)
-                        elif op in ["<=", "<"]:
-                            # Linear decay with threshold T and cap at T/2
-                            T = safe_float(target_val)
-                            if T > 0:
-                                req_score = ((T - vals) / (T / 2) * 100).clip(0, 100)
-                                if exclusive:
-                                    req_score = req_score.mask(vals >= T, 0.0)
-                                    
-                                # Ensure minimum 0.1 if vals <= T
-                                req_score = req_score.mask((req_score == 0) & (vals <= T) & (~is_missing) & (~exclusive), 0.1)
-                            else:
-                                req_score = pd.Series(0.0, index=df_ranked.index)
-                        else: # == or IN (fallback)
-                            # For equality, we stick to distance from target as 'relative' is ambiguous without a target
-                            target_num = safe_float(target_val)
-                            diff = np.abs(vals - target_num)
-                            
-                            # Normalizzazione relativa (la distanza massima è definita dal range del dataset)
-                            # Se usiamo global_stats, il denominatore è (max_val - min_val)
-                            # Altrimenti usiamo il diff massimo locale
-                            range_val = (max_val - min_val) if max_val != min_val else 0
-                            if range_val > 0:
-                                req_score = (100 - (diff / range_val * 100)).clip(0, 100)
-                            else:
-                                max_diff = diff.max()
-                                min_diff = diff.min()
-                                if max_diff == min_diff:
-                                    req_score = pd.Series(100.0, index=df_ranked.index)
-                                else:
-                                    req_score = ((max_diff - diff) / (max_diff - min_diff) * 100).clip(0, 100)
+                        req_score = calculate_continuous_score(vals_raw, target_val, op, exclusive)
+                    else: # == or IN (fallback) logic using distance
+                        vals = vals_raw.fillna(0)
+                        target_num = 0.0
+                        try:
+                            target_num = float(target_val[0]) if isinstance(target_val, list) else float(target_val)
+                        except: pass
+                        diff = np.abs(vals - target_num)
+                        
+                        col_stats = global_stats.get(col) if global_stats else None
+                        range_val = 0
+                        if col_stats:
+                            range_val = float(col_stats.get("max", 0)) - float(col_stats.get("min", 0))
+                        
+                        if range_val > 0:
+                            req_score = (100 - (diff / range_val * 100)).clip(0, 100)
+                        else:
+                            req_score = (vals == target_num).astype(float) * 100
                     
-                    # Set score to 0 for rows with missing values
+                    # Assicura 0 per valori mancanti
                     req_score = req_score.where(~is_missing, 0)
                 
                 col_name = f"ape_partial_score_{col}"
