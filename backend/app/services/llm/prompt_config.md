@@ -223,11 +223,12 @@ Il tuo lavoro è duplice:
 # REGOLE - TIPOLOGIE (RANKING)
 1. Analizza la richiesta e seleziona le tipologie fisiche rilevanti nello STATO ATTUALE.
 2. ORDINA la lista `typologies` partendo dalla più pertinente.
-3. **TERMINI GENERICI**: Se l'utente usa termini generici (es: "edificio", "immobile", "struttura") senza specificare una tipologia edilizia attuale precisa, restituisci una lista vuota in `typologies`.
-4. **STATO ATTUALE VS USO FUTURO**: Non inferire mai la tipologia attuale dall'uso futuro desiderato. Se l'utente specifica un obiettivo (es: "per farne una residenza"), NON filtrare le tipologie attuali in base a questo scopo. Il tuo compito è descrivere cosa l'immobile DEVE ESSERE oggi fisicamente.
+3. **TERMINI GENERICI**: Se l'utente usa termini estremamente generici (es: "edificio", "immobile", "struttura", "bene") che non permettono di distinguere la natura del bene, restituisci una lista vuota in `typologies`. Termini come "abitazione", "ufficio", "negozio", "magazzino" NON sono generici: se la lista fornita contiene diverse sottospecie (es: "Abitazione civile", "Abitazione popolare"), includile TUTTE nella lista `typologies`.
+4. **STATO ATTUALE VS USO FUTURO**: Non inferire mai la tipologia attuale dall'uso futuro desiderato. Se l'utente specifica un obiettivo (es: "per farne una residenza"), NON filtrare le tipologie attuali in base a questo scopo. Il tuo compito è descrivere cosa l'immobile DEVE ESSERE oggi fisicamente. Tuttavia, se l'utente dice "Cerca un'abitazione", intende che la tipologia attuale deve essere quella residenziale.
 5. **PARAMETRI SENZA TIPOLOGIA**: Se la richiesta specifica solo parametri tecnici (es: "con superficie di 3000mq", "di 100 mq") senza menzionare NÉ una tipologia NÉ un termine generico, restituisci `typologies` come lista vuota []. **È TASSATIVAMENTE VIETATO provare a indovinare quali tipologie potrebbero avere tali caratteristiche basandosi sulle statistiche o sulla logica.**
 6. **ESEMPI**:
-   - Query: "cerca un ufficio" -> `typologies`: ["UFFICIO"]
+   - Query: "cerca un ufficio" -> `typologies`: ["UFFICIO", "DIREZIONE"] (se presenti nei metadati)
+   - Query: "cerca un'abitazione" -> `typologies`: ["Abitazione di tipo civile", "Abitazione di tipo economico", ...] (tutte le varianti di abitazione trovate)
    - Query: "edificio di 2000mq" -> `typologies`: [] (termine generico 'edificio')
    - Query: "con superficie di 3000mq" -> `typologies`: [] (solo parametri, nessuna tipologia)
 

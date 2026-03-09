@@ -3,6 +3,7 @@ import csv
 import json
 import itertools
 import logging
+from contextvars import ContextVar
 import os
 import sys
 import time
@@ -25,12 +26,76 @@ except ImportError:
 
 # --- 1. SETTINGS & ENVIRONMENT SETUP ---
 
-logging.basicConfig(level=logging.ERROR)
-base_dir = Path(__file__).resolve().parent.parent
+current_script_path = Path(__file__).resolve()
+suite_path = current_script_path.parent
+base_dir = suite_path.parent
 backend_dir = base_dir / "backend"
 sys.path.append(str(backend_dir))
+
+# Added subfolder for results
+results_path = suite_path / "results"
+results_path.mkdir(parents=True, exist_ok=True)
+
+# Global execution log
+execution_csv_path = results_path / "execution_log.csv"
+
+# CSV Logging Infrastructure
+query_ctx: ContextVar[str] = ContextVar("query_ctx", default="SYSTEM")
+experiment_ctx: ContextVar[str] = ContextVar("experiment_ctx", default="N/A")
+
+import io
+import csv
+
+def format_csv_line(row: List[Any]) -> str:
+    """Helper to generate a properly quoted CSV line."""
+    output = io.StringIO()
+    writer = csv.writer(output, quoting=csv.QUOTE_ALL, lineterminator="")
+    writer.writerow(row)
+    return output.getvalue()
+
+class CsvLoggingFilter(logging.Filter):
+    def filter(self, record):
+        record.query_id = query_ctx.get()
+        record.experiment_id = experiment_ctx.get()
+        return True
+
+class CsvFormatter(logging.Formatter):
+    def format(self, record):
+        query_id = getattr(record, 'query_id', 'SYSTEM')
+        experiment_id = getattr(record, 'experiment_id', 'N/A')
+        msg = record.getMessage().strip()
+        timestamp = self.formatTime(record, self.datefmt)
+        return format_csv_line([timestamp, experiment_id, query_id, record.levelname, record.name, msg])
+
+def with_query_context(func):
+    """Decorator to set query context for async functions."""
+    import functools
+    @functools.wraps(func)
+    async def wrapper(query, *args, **kwargs):
+        token = query_ctx.set(query)
+        try:
+            return await func(query, *args, **kwargs)
+        finally:
+            query_ctx.reset(token)
+    return wrapper
+
+# Clear existing file and write header
+if execution_csv_path.exists(): execution_csv_path.unlink()
+with open(execution_csv_path, "w", encoding='utf-8') as f:
+    f.write(format_csv_line(["timestamp", "experiment", "query", "level", "logger", "message"]) + "\n")
+
+def log_output(msg):
+    logging.info(msg)
+
 BASELINE_MODEL = "gpt-5.4"
 EVALUATION_MODEL = "gpt-5.4"
+
+# Configure standard logging to file with CSV format
+handler = logging.FileHandler(str(execution_csv_path), encoding='utf-8')
+handler.addFilter(CsvLoggingFilter())
+handler.setFormatter(CsvFormatter(datefmt='%Y-%m-%d %H:%M:%S'))
+logging.root.addHandler(handler)
+logging.root.setLevel(logging.INFO)
 
 from app.core.config import settings
 from app.services.analysis_service import analysis_service
@@ -47,8 +112,20 @@ for attr in ["DATASET_FULL", "APE_DETAILED_DATA_PATH", "STATIC_DIR", "DATA_DIR",
 
 try:
     from loguru import logger
+    # Brute force removal of all existing handlers to prevent conflicts
     logger.remove()
-    logger.add(sys.stderr, level="ERROR")
+    
+    def loguru_csv_format(record):
+        # Escape curly braces in message to prevent Loguru's internal formatters from re-evaluating them
+        msg = record["message"].strip().replace("{", "{{").replace("}", "}}")
+        q_id = query_ctx.get()
+        e_id = experiment_ctx.get()
+        timestamp = record["time"].strftime('%Y-%m-%d %H:%M:%S')
+        lvl = record["level"].name
+        name = record["name"]
+        return format_csv_line([timestamp, e_id, q_id, lvl, name, msg]) + "\n"
+    
+    logger.add(str(execution_csv_path), level="INFO", format=loguru_csv_format, encoding='utf-8')
 except ImportError:
     pass
 
@@ -117,7 +194,9 @@ def check_sql_ood(sql, data_stats):
 
 # --- 3. EXECUTION DISPATCHERS ---
 
+@with_query_context
 async def run_query(query, architecture="multiagent", disabled=None, use_knowledge=True):
+    log_output(f"[QUERY] Searching: {query}")
     try:
         agent = analysis_service._init_graph_agent()
         agent.architecture = architecture
@@ -129,7 +208,9 @@ async def run_query(query, architecture="multiagent", disabled=None, use_knowled
             allow_relaxation=False
         )
         duration = round((time.time() - start_t) * 1000, 2)
-        ranking = [{"id": str(getattr(b, "id", b.get("id"))), "score": float(round(getattr(b, "score", b.get("score", 0.0)), 1))} for b in res.get("buildings", [])[:10]]
+        buildings = res.get("buildings", [])
+        buildings_dicts = [b.model_dump() if hasattr(b, "model_dump") else b for b in buildings]
+        ranking = [{"id": str(b.get("id")), "score": float(round(b.get("score", 0.0), 1))} for b in buildings_dicts[:10]]
         trace = res.get("agent_trace", [])
         ranking_data = next((safe_extract_json(t.get("output")) if isinstance(t.get("output"), str) else t.get("output") for t in trace if "ranking" in t.get("agent_name", "").lower()), {})
         
@@ -154,13 +235,12 @@ async def run_query(query, architecture="multiagent", disabled=None, use_knowled
         # Get full data for the top evaluated buildings
         if evaluations and res.get("buildings"):
             top_id = evaluations[0].get("id")
-            for b in res.get("buildings"):
-                b_id = str(b.id if hasattr(b, "id") else b.get("id"))
-                if b_id == top_id:
-                    building_info = b.model_dump() if hasattr(b, "model_dump") else b
+            for b_dict in buildings_dicts:
+                if str(b_dict.get("id")) == top_id:
+                    building_info = b_dict
                     break
 
-        return {
+        results_pack = {
             "query": query, "results_count": res.get("results_count", 0),
             "relaxation_applied": res.get("relaxation_applied", False),
             "execution_time_ms": duration, "final_sql": res.get("filters_applied", {}).get("final_sql", ""),
@@ -168,7 +248,15 @@ async def run_query(query, architecture="multiagent", disabled=None, use_knowled
             "evaluations": evaluations,
             "evaluated_building_data": building_info
         }
-    except Exception as e: return {"error": str(e)}
+        
+        final_sql = res.get("filters_applied", {}).get("final_sql", "")
+        log_output(f"  -> Found {res.get('results_count', 0)} buildings in {duration}ms")
+        if final_sql: log_output(f"  -> SQL: {final_sql[:100]}...")
+        
+        return results_pack
+    except Exception as e: 
+        log_output(f"  [!] Error: {str(e)}")
+        return {"error": str(e)}
 
 async def process_batch(indices, df, out_dir, sem, arch="multiagent", disabled=None, use_knowledge=True, lock=None, csv_path=None, col=None, trial=None, batch_name=""):
     """Process a batch of queries with real-time progress updates."""
@@ -178,28 +266,34 @@ async def process_batch(indices, df, out_dir, sem, arch="multiagent", disabled=N
     
     for idx in indices:
         async def task(i=idx):
-            nonlocal completed
-            async with sem:
-                res = await run_query(df.at[i, "query"], architecture=arch, disabled=disabled, use_knowledge=use_knowledge)
-                completed += 1
-                status = "OK" if "error" not in res else "ERR"
-                
-                if "error" not in res:
-                    suffix = f"_tr{trial}" if trial else ""
-                    filename = f"query_{i+1:03d}{suffix}.json"
-                    with open(out_dir / filename, "w") as f: json.dump(res, f, indent=4)
-                    if lock:
+            query = df.at[i, "query"]
+            q_token = query_ctx.set(query)
+            e_token = experiment_ctx.set(batch_name)
+            try:
+                nonlocal completed
+                async with sem:
+                    res = await run_query(query, architecture=arch, disabled=disabled, use_knowledge=use_knowledge)
+                    completed += 1
+                    status = "OK" if "error" not in res else "ERR"
+                    
+                    if "error" not in res:
+                        suffix = f"_tr{trial}" if trial else ""
+                        filename = f"query_{i+1:03d}{suffix}.json"
+                        with open(out_dir / filename, "w") as f: json.dump(res, f, indent=4)
+                        if lock:
+                            async with lock:
+                                df.at[i, col] = 1
+                                df.to_csv(csv_path, index=False)
+                    elif lock:
                         async with lock:
-                            df.at[i, col] = 1
+                            df.at[i, col] = 2
                             df.to_csv(csv_path, index=False)
-                elif lock:
-                    async with lock:
-                        df.at[i, col] = 2
-                        df.to_csv(csv_path, index=False)
-                
-                if total > 0:
-                    print(f"  [{batch_name}] Progress: {completed}/{total} ({status})", end="\r")
-                    if completed == total: print() # New line when batch ends
+                    
+                    if total > 0:
+                        log_output(f"[{batch_name}] Progress: {completed}/{total} ({status})")
+            finally:
+                query_ctx.reset(q_token)
+                experiment_ctx.reset(e_token)
 
         tasks.append(task())
     await asyncio.gather(*tasks)
@@ -449,8 +543,108 @@ def generate_compositions(json_path, output_path, ablation=False):
             writer.writerow(['query', 'status'])
             for q in queries: writer.writerow([q, 0])
 
-async def main():
-    suite_path = Path(__file__).parent.absolute()
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Synthetic Test Suite - Parallel Runner")
+    parser.add_argument("--model", type=str, help="Run only a specific model")
+    parser.add_argument("--only-analysis", action="store_true", help="Only run analysis on existing results")
+    parser.add_argument("--max-concurrent", type=int, default=5, help="Max concurrent queries per model")
+    args = parser.parse_args()
+
+    if args.model:
+        # Run a single model suite (to be called as a subprocess)
+        asyncio.run(run_single_model_suite(args.model, args.max_concurrent))
+    else:
+        # Launch the conductor
+        asyncio.run(conductor_main(args.max_concurrent, args.only_analysis))
+
+async def run_single_model_suite(model: str, max_concurrent: int):
+    """Execution logic for a single model (typically runs in its own process)."""
+    # Initialize environment
+    pos_json = suite_path / "query_variables_possibilities.json"
+    mapping_json = suite_path / "agent_mapping.json"
+    with open(mapping_json) as f: mapping = json.load(f)
+    
+    await preload_data()
+    data_stats = get_data_stats()
+    sem = asyncio.Semaphore(max_concurrent)
+    csv_lock = asyncio.Lock()
+
+    log_output(f"\n" + "="*50)
+    log_output(f"=== [START] MODEL: {model} ===")
+    log_output(f"="*50)
+    
+    # 1. SETUP DATASETS
+    bench_csv = results_path / "combinatorial_queries_suite.csv"
+    sens_csv = results_path / "sensitivity_queries_suite.csv"
+    # Ensure compositions exist (should have been created by conductor, but for safety:)
+    if not bench_csv.exists(): generate_compositions(pos_json, bench_csv)
+    if not sens_csv.exists(): generate_compositions(pos_json, sens_csv, ablation=True)
+
+    df_bench = pd.read_csv(bench_csv)
+    df_sens = pd.read_csv(sens_csv)
+
+    # 2. RUN ALL QUERIES (Phase 1 & Phase 2 in parallel tasks)
+    tasks = []
+
+    # benchmark, sensitivity, consistency
+    apply_model_config(settings, model)
+
+    # Benchmark Tasks
+    out_root_bench = results_path / "outputs" / "benchmarks" / model
+    out_root_bench.mkdir(parents=True, exist_ok=True)
+    
+    # Baseline (only if it matches or it's the requested model)
+    if BASELINE_MODEL == model:
+        col = f"status_{model.replace('-', '_')}_baseline"
+        if col not in df_bench.columns: df_bench[col] = 0
+        pending = df_bench[df_bench[col] == 0].index.tolist()
+        if pending:
+            tasks.append(process_batch(pending, df_bench, out_root_bench / "baseline", sem, arch="baseline", lock=csv_lock, csv_path=bench_csv, col=col, batch_name=f"{model}-BASELINE"))
+
+    # Configs (full, no_ranking, no_knowledge, consistency)
+    configs = {"full": (None, True), "no_ranking": (["ranking"], True), "no_knowledge": (None, False)}
+    for cid, (dis, kn) in configs.items():
+        out_dir = out_root_bench / cid
+        out_dir.mkdir(parents=True, exist_ok=True)
+        col = f"status_{model.replace('-', '_')}_{cid}"
+        if col not in df_bench.columns: df_bench[col] = 0
+        pending = df_bench[df_bench[col] == 0].index.tolist()
+        if pending:
+            tasks.append(process_batch(pending, df_bench, out_dir, sem, disabled=dis, use_knowledge=kn, lock=csv_lock, csv_path=bench_csv, col=col, batch_name=f"{model}-{cid.upper()}"))
+
+    # Consistency Trials
+    for tr in [1, 2, 3]:
+        out_dir = out_root_bench / "consistency"
+        out_dir.mkdir(parents=True, exist_ok=True)
+        col = f"status_{model.replace('-', '_')}_consistency_tr{tr}"
+        if col not in df_bench.columns: df_bench[col] = 0
+        pending = df_bench[df_bench[col] == 0].index.tolist()
+        if pending:
+            tasks.append(process_batch(pending, df_bench, out_dir, sem, lock=csv_lock, csv_path=bench_csv, col=col, trial=tr, batch_name=f"{model}-CONS-TR{tr}"))
+
+    # Sensitivity Tasks
+    out_sens = results_path / "outputs" / "sensitivity" / model
+    out_sens.mkdir(parents=True, exist_ok=True)
+    sens_configs = [("all_enabled", None, True), ("no_ranking", ["ranking"], True), ("no_knowledge", None, False), ("no_poi", ["poi"], True), ("no_normative", ["normative"], True), ("no_location", ["location"], True), ("no_ape", ["ape"], True), ("no_property_technical", ["property_technical"], True)]
+    
+    for cid, dis, kn in sens_configs:
+        col = f"status_{model.replace('-', '_')}_{cid}"
+        if col not in df_sens.columns: df_sens[col] = 0
+        out_dir = out_sens / cid
+        out_dir.mkdir(parents=True, exist_ok=True)
+        pending = df_sens[df_sens[col] == 0].index.tolist()
+        if pending:
+            tasks.append(process_batch(pending, df_sens, out_dir, sem, disabled=dis, use_knowledge=kn, lock=csv_lock, csv_path=sens_csv, col=col, batch_name=f"{model}-SENS-{cid.upper()}"))
+
+    # Run everything in parallel!
+    if tasks:
+        log_output(f"[*] Launching {len(tasks)} parallel configuration batches for {model}...")
+        await asyncio.gather(*tasks)
+    
+    log_output(f"=== [COMPLETE] Queries for {model} finished. ===")
+
+async def conductor_main(max_concurrent: int, only_analysis: bool = False):
+    """Main orchestrator that manages model processes and generates final reports."""
     pos_json = suite_path / "query_variables_possibilities.json"
     mapping_json = suite_path / "agent_mapping.json"
     with open(mapping_json) as f: mapping = json.load(f)
@@ -458,77 +652,54 @@ async def main():
     data_stats = get_data_stats()
 
     models = ["gpt-5-nano", "gpt-oss-120b", "ollama-gemma3-27b", "ollama-deepseek-r1-8b"]
-    sem = asyncio.Semaphore(5)
+    
+    # 1. PREPARE SUITES
+    if not only_analysis:
+        bench_csv = results_path / "combinatorial_queries_suite.csv"
+        if not bench_csv.exists(): generate_compositions(pos_json, bench_csv)
+        sens_csv = results_path / "sensitivity_queries_suite.csv"
+        if not sens_csv.exists(): generate_compositions(pos_json, sens_csv, ablation=True)
 
-    bench_csv = suite_path / "combinatorial_queries_suite.csv"
-    if not bench_csv.exists(): generate_compositions(pos_json, bench_csv)
-    sens_csv = suite_path / "sensitivity_queries_suite.csv"
-    if not sens_csv.exists(): generate_compositions(pos_json, sens_csv, ablation=True)
+        # 2. RUN BASELINE FIRST (if it exists in the list)
+        if BASELINE_MODEL in models:
+            log_output(f"[CONDUCTOR] Ensuring baseline '{BASELINE_MODEL}' is ready...")
+            proc = await asyncio.create_subprocess_exec(sys.executable, __file__, "--model", BASELINE_MODEL, "--max-concurrent", str(max_concurrent))
+            await proc.wait()
+            models_to_run = [m for m in models if m != BASELINE_MODEL]
+        else:
+            models_to_run = models
 
-    benchmark_results, sensitivity_results = {}, {}
-    progress_state = {m: {"benchmark": "WAITING", "sensitivity": "WAITING", "current_task": "None", "perc": 0} for m in models}
+        # 3. RUN OTHER MODELS IN PARALLEL
+        log_output(f"[CONDUCTOR] Launching {len(models_to_run)} model benchmark processes...")
+        processes = []
+        for m in models_to_run:
+            p = await asyncio.create_subprocess_exec(sys.executable, __file__, "--model", m, "--max-concurrent", str(max_concurrent))
+            processes.append(p)
+        
+        await asyncio.gather(*(p.wait() for p in processes))
 
-    async def update_report():
-        report = generate_report(benchmark_results, sensitivity_results, models, progress_state)
-        with open(suite_path / "comprehensive_analysis_report.md", "w") as f: f.write(report)
-
-    # Initial empty report
-    await update_report()
+    # 4. AGGREGATE ANALYSIS & GENERATE REPORT
+    log_output("[CONDUCTOR] All processes finished. Running final analysis...")
+    
+    benchmark_results = {}
+    sensitivity_results = {}
 
     for model in models:
-        print(f"\n=== STARTING MODEL: {model} ===")
-        progress_state[model]["current_task"] = "INITIALIZING"
-        await update_report()
+        out_root = results_path / "outputs" / "benchmarks" / model
+        out_sens = results_path / "outputs" / "sensitivity" / model
         
-        # 1. COMBINATORIAL BENCHMARK
-        out_root = suite_path / "outputs" / "benchmarks" / model
-        out_root.mkdir(parents=True, exist_ok=True)
-        df_bench = pd.read_csv(bench_csv)
-        total_bench = len(df_bench)
+        if not (out_root / "full").exists():
+            log_output(f"[!] Warning: No results found for {model}. Skipping analysis.")
+            continue
 
-        # Baseline
-        if BASELINE_MODEL == model or not BASELINE_MODEL:
-            progress_state[model]["current_task"] = "BASELINE"
-            await update_report()
-            col = f"status_{model.replace('-', '_')}_baseline"
-            if col not in df_bench.columns: df_bench[col] = 0; df_bench.to_csv(bench_csv, index=False)
-            pending = df_bench[df_bench[col] == 0].index.tolist()
-            if pending: 
-                print(f"--- [BASELINE] {model} ---")
-                await process_batch(pending, df_bench, out_root / "baseline", sem, arch="baseline", lock=asyncio.Lock(), csv_path=bench_csv, col=col, batch_name="BASELINE")
+        # Run model-specific analysis
+        log_output(f"[*] Analyzing results for {model}...")
         
-        configs = {"full": (None, True), "no_ranking": (["ranking"], True), "no_knowledge": (None, False), "consistency": (None, True)}
-        for cid, (dis, kn) in configs.items():
-            apply_model_config(settings, model)
-            out_dir = out_root / cid
-            out_dir.mkdir(parents=True, exist_ok=True)
-            progress_state[model]["current_task"] = cid.upper()
-            await update_report()
-
-            if cid == "consistency":
-                for tr in [1, 2, 3]:
-                    col = f"status_{model.replace('-', '_')}_consistency_tr{tr}"
-                    if col not in df_bench.columns: df_bench[col] = 0; df_bench.to_csv(bench_csv, index=False)
-                    pending = df_bench[df_bench[col] == 0].index.tolist()
-                    if pending: 
-                        print(f"--- [CONSISTENCY] {model} Trial {tr} ---")
-                        await process_batch(pending, df_bench, out_dir, sem, lock=asyncio.Lock(), csv_path=bench_csv, col=col, trial=tr, batch_name=f"CONS-TR{tr}")
-            else:
-                col = f"status_{model.replace('-', '_')}_{cid}"
-                if col not in df_bench.columns: df_bench[col] = 0; df_bench.to_csv(bench_csv, index=False)
-                pending = df_bench[df_bench[col] == 0].index.tolist()
-                if pending: 
-                    print(f"--- [{cid.upper()}] {model} ---")
-                    await process_batch(pending, df_bench, out_dir, sem, disabled=dis, use_knowledge=kn, lock=asyncio.Lock(), csv_path=bench_csv, col=col, batch_name=cid.upper())
-        # Analyze Phase 1
-        progress_state[model]["benchmark"] = "COMPLETED"
-        progress_state[model]["current_task"] = "ANALYZING PHASE 1"
-        await update_report()
-
+        # Benchmark Analysis
         benchmark_results[model] = {
             "activation": analyze_activation(out_root / "full", mapping, model),
             "iou": analyze_iou_stats(out_root / "full"),
-            "arch_comp": analyze_architecture_comparison(out_root / "full", suite_path / "outputs" / "benchmarks" / (BASELINE_MODEL or model) / "baseline"),
+            "arch_comp": analyze_architecture_comparison(out_root / "full", results_path / "outputs" / "benchmarks" / (BASELINE_MODEL or model) / "baseline"),
             "ranking_impact": analyze_ranking_impact(out_root / "full", out_root / "no_ranking"),
             "knowledge_impact": analyze_knowledge_impact(out_root / "full", out_root / "no_knowledge", data_stats),
             "consistency": analyze_consistency(out_root / "consistency"),
@@ -536,37 +707,25 @@ async def main():
         }
         benchmark_results[model]["arch_comp"]["baseline_model"] = BASELINE_MODEL or model
 
-        # 2. SENSITIVITY SUITE
-        out_sens = suite_path / "outputs" / "sensitivity" / model
-        out_sens.mkdir(parents=True, exist_ok=True)
-        df_sens = pd.read_csv(sens_csv)
-        sens_configs = [("all_enabled", None, True), ("no_ranking", ["ranking"], True), ("no_knowledge", None, False), ("no_poi", ["poi"], True), ("no_normative", ["normative"], True), ("no_location", ["location"], True), ("no_ape", ["ape"], True), ("no_property_technical", ["property_technical"], True)]
-        
+        # Sensitivity Analysis
+        sens_configs = ["no_ranking", "no_knowledge", "no_poi", "no_normative", "no_location", "no_ape", "no_property_technical"]
         sens_vals = {}
-        for cid, dis, kn in sens_configs:
-            progress_state[model]["current_task"] = f"SENS-{cid.upper()}"
-            await update_report()
-            col = f"status_{model.replace('-', '_')}_{cid}"
-            if col not in df_sens.columns: df_sens[col] = 0; df_sens.to_csv(sens_csv, index=False)
-            cfg_dir = out_sens / cid
-            cfg_dir.mkdir(parents=True, exist_ok=True)
-            pending = df_sens[df_sens[col] == 0].index.tolist()
-            if pending: 
-                print(f"--- [SENSITIVITY] {model} {cid} ---")
-                await process_batch(pending, df_sens, cfg_dir, sem, disabled=dis, use_knowledge=kn, lock=asyncio.Lock(), csv_path=sens_csv, col=col, batch_name=f"SENS-{cid.upper()}")
-            
-            if dis or not kn:
-                base_ref = {f.name: [r['id'] for r in json.load(open(f))['ranking']] for f in (out_sens / "all_enabled").glob("*.json")}
-                cfg_res = {f.name: [r['id'] for r in json.load(open(f))['ranking']] for f in cfg_dir.glob("*.json")}
-                ious = [calculate_iou(base_ref[n], cfg_res[n]) for n in cfg_res if n in base_ref]
-                sens_vals[cid] = 1.0 - np.mean(ious) if ious else 0
+        all_enabled_dir = out_sens / "all_enabled"
+        if all_enabled_dir.exists():
+            base_ref = {f.name: [r['id'] for r in json.load(open(f))['ranking']] for f in all_enabled_dir.glob("*.json")}
+            for cid in sens_configs:
+                cfg_dir = out_sens / cid
+                if cfg_dir.exists():
+                    cfg_res = {f.name: [r['id'] for r in json.load(open(f))['ranking']] for f in cfg_dir.glob("*.json")}
+                    ious = [calculate_iou(base_ref[n], cfg_res[n]) for n in cfg_res if n in base_ref]
+                    sens_vals[cid] = 1.0 - np.mean(ious) if ious else 0
         
-        progress_state[model]["sensitivity"] = "COMPLETED"
-        progress_state[model]["current_task"] = "IDLE"
         sensitivity_results[model] = {"sensitivity": sens_vals}
-        await update_report()
 
-    print(f"Workflow complete. Final report: {suite_path / 'comprehensive_analysis_report.md'}")
-
-if __name__ == "__main__":
-    asyncio.run(main())
+    # Final report
+    report = generate_report(benchmark_results, sensitivity_results, models)
+    with open(results_path / "report.md", "w") as f:
+        f.write(report)
+    
+    log_output(f"\nWorkflow complete. Final report: {results_path / 'report.md'}")
+    log_output(f"Detailed execution log: {execution_csv_path}")

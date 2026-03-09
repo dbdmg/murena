@@ -237,9 +237,14 @@ class NormativeAgent(BaseAgent):
 
             valid_req_count += 1
             used_columns.add(col)
+            # Tenta la conversione numerica per distinguere la logica (numerica vs categorica)
+            try:
+                target_num = float(target_val)
+                is_numeric = True
+            except (ValueError, TypeError):
+                is_numeric = False
             
-            # Gestione tipi numerici vs categorici
-            if op in [">=", "<=", "=="] and isinstance(target_val, (int, float)):
+            if is_numeric and op in [">=", ">", "<=", "<", "=="]:
                 vals = pd.to_numeric(df_ranked[col], errors="coerce").fillna(0)
                 
                 # Global vs Local Normalization
@@ -248,9 +253,8 @@ class NormativeAgent(BaseAgent):
                 # Usa l'utilità centralizzata per variabili continue
                 if op in [">=", ">", "<=", "<"]:
                     exclusive = req.get("exclusive", False)
-                    req_score = calculate_continuous_score(vals, T, op, exclusive)
+                    req_score = calculate_continuous_score(vals, target_num, op, exclusive)
                 else: # ==
-                    target_num = float(target_val)
                     diff = np.abs(vals - target_num)
                     
                     # Normalizzazione relativa tramite range del dataset (preferibilmente globale)

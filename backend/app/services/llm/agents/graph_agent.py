@@ -1639,13 +1639,13 @@ class GraphOrchestratorAgent(BaseAgent):
 
         # Aggregate all requirements into a single list
         all_reqs = []
-        
         # 1. Property Technical
         if property_technical_result and property_technical_result.raw_text != "N/D":
             try:
                 t_data = safe_extract_json(property_technical_result.raw_text)
                 if t_data and isinstance(t_data, dict) and t_data.get("typologies"):
-                    all_reqs.append(", ".join(t_data['typologies']))
+                    typs = t_data['typologies']
+                    all_reqs.append(f"tipologia_bene_immobile: {', '.join(typs)}")
             except: pass
             
             # PropertyTechnicalAgent now also extracts structured requirements (ID, contracts, surfaces)
@@ -2103,13 +2103,13 @@ class GraphOrchestratorAgent(BaseAgent):
             if n_data and (n_data.found or (n_data.requisiti and len(n_data.requisiti) > 0)):
                 really_found_agents.append("normative")
 
-        logger.info(f"Agents with found requirements in filtering phase: {really_found_agents}")
+        logger.info("Agents with found requirements in filtering phase: {}", really_found_agents)
 
         # Check for agents that are in active_agents (selected by query) but didn't find anything
         agents_to_exclude = [a for a in active_agents if a not in really_found_agents and getattr(weights, a, 0.0) > 0]
         
         if agents_to_exclude:
-            logger.info(f" Excluding agents from ranking due to no results in filtering: {agents_to_exclude}")
+            logger.info(" Excluding agents from ranking due to no results in filtering: {}", agents_to_exclude)
             
             # Copy weights and identify target for redistribution
             current_weights_dict = weights.model_dump()
@@ -2139,7 +2139,7 @@ class GraphOrchestratorAgent(BaseAgent):
                     new_weights_dict[max_agent] = round(new_weights_dict[max_agent] + diff, 2)
                 
                 weights = RankingWeights(**new_weights_dict)
-                logger.info(f" Adjusted ranking weights: {new_weights_dict}")
+                logger.info(" Adjusted ranking weights: {}", new_weights_dict)
                 
                 # Update active_agents to only include those that really found something
                 # This avoids running ranking mode for agents with 0 weight
