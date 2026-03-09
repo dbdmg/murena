@@ -103,6 +103,20 @@ handler.setFormatter(CsvFormatter(datefmt='%Y-%m-%d %H:%M:%S'))
 logging.root.addHandler(handler)
 logging.root.setLevel(logging.INFO)
 
+# Model-specific concurrency limits to prevent quota issues (429)
+# Models not listed here will use the global --max-concurrent value.
+MODEL_CONCURRENCY_LIMITS = {
+    "gpt-5.4": 5,
+    "gpt-5-nano": 5,
+    "gpt-oss-120b": 48,
+    "ollama-gemma3-27b": 48,
+    "ollama-deepseek-r1-8b": 48,
+}
+
+def get_model_concurrency(model_name: str, default_val: int) -> int:
+    """Returns the specific limit for a model if defined, else the global default."""
+    return MODEL_CONCURRENCY_LIMITS.get(model_name, default_val)
+
 from app.core.config import settings
 from app.services.analysis_service import analysis_service
 from app.services.real_estate_service import RealEstateService
@@ -675,7 +689,8 @@ async def run_single_model_suite(model: str, max_concurrent: int):
     if BASELINE_MODEL == model:
         col = f"status_{model.replace('-', '_')}_baseline"
         if col not in df_bench.columns: df_bench[col] = 0
-        pending = df_bench[df_bench[col] == 0].index.tolist()
+        # Retry both never run (0) and previously failed (2) queries
+        pending = df_bench[df_bench[col].isin([0, 2])].index.tolist()
         if pending:
             tasks.append(process_batch(pending, df_bench, out_root_bench / "baseline", sem, arch="baseline", lock=csv_lock, csv_path=bench_csv, col=col, batch_name=f"{model}-BASELINE"))
 
@@ -686,7 +701,8 @@ async def run_single_model_suite(model: str, max_concurrent: int):
         out_dir.mkdir(parents=True, exist_ok=True)
         col = f"status_{model.replace('-', '_')}_{cid}"
         if col not in df_bench.columns: df_bench[col] = 0
-        pending = df_bench[df_bench[col] == 0].index.tolist()
+        # Retry both never run (0) and previously failed (2) queries
+        pending = df_bench[df_bench[col].isin([0, 2])].index.tolist()
         if pending:
             tasks.append(process_batch(pending, df_bench, out_dir, sem, disabled=dis, use_knowledge=kn, lock=csv_lock, csv_path=bench_csv, col=col, batch_name=f"{model}-{cid.upper()}"))
 
@@ -696,7 +712,8 @@ async def run_single_model_suite(model: str, max_concurrent: int):
         out_dir.mkdir(parents=True, exist_ok=True)
         col = f"status_{model.replace('-', '_')}_consistency_tr{tr}"
         if col not in df_bench.columns: df_bench[col] = 0
-        pending = df_bench[df_bench[col] == 0].index.tolist()
+        # Retry both never run (0) and previously failed (2) queries
+        pending = df_bench[df_bench[col].isin([0, 2])].index.tolist()
         if pending:
             tasks.append(process_batch(pending, df_bench, out_dir, sem, lock=csv_lock, csv_path=bench_csv, col=col, trial=tr, batch_name=f"{model}-CONS-TR{tr}"))
 
@@ -736,7 +753,8 @@ async def run_single_model_suite(model: str, max_concurrent: int):
         if col not in df_sens.columns: df_sens[col] = 0
         out_dir = out_root_sens / cid
         out_dir.mkdir(parents=True, exist_ok=True)
-        pending = df_sens[df_sens[col] == 0].index.tolist()
+        # Retry both never run (0) and previously failed (2) queries
+        pending = df_sens[df_sens[col].isin([0, 2])].index.tolist()
         if pending:
             tasks.append(process_batch(pending, df_sens, out_dir, sem, disabled=dis, use_knowledge=kn, lock=csv_lock, csv_path=sens_csv, col=col, batch_name=f"{model}-SENS-{cid.upper()}"))
 
@@ -764,8 +782,9 @@ async def conductor_main(max_concurrent: int, only_analysis: bool = False):
 
         # 2. RUN BASELINE FIRST (if it exists in the list)
         if BASELINE_MODEL in models:
-            log_output(f"[CONDUCTOR] Ensuring baseline '{BASELINE_MODEL}' is ready...")
-            proc = await asyncio.create_subprocess_exec(sys.executable, __file__, "--model", BASELINE_MODEL, "--max-concurrent", str(max_concurrent))
+            m_concurrency = get_model_concurrency(BASELINE_MODEL, max_concurrent)
+            log_output(f"[CONDUCTOR] Ensuring baseline '{BASELINE_MODEL}' is ready (max_concurrent={m_concurrency})...")
+            proc = await asyncio.create_subprocess_exec(sys.executable, __file__, "--model", BASELINE_MODEL, "--max-concurrent", str(m_concurrency))
             await proc.wait()
             models_to_run = [m for m in models if m != BASELINE_MODEL]
         else:
@@ -775,7 +794,9 @@ async def conductor_main(max_concurrent: int, only_analysis: bool = False):
         log_output(f"[CONDUCTOR] Launching {len(models_to_run)} model benchmark processes...")
         processes = []
         for m in models_to_run:
-            p = await asyncio.create_subprocess_exec(sys.executable, __file__, "--model", m, "--max-concurrent", str(max_concurrent))
+            m_concurrency = get_model_concurrency(m, max_concurrent)
+            log_output(f"[CONDUCTOR] -> Starting {m} (max_concurrent={m_concurrency})")
+            p = await asyncio.create_subprocess_exec(sys.executable, __file__, "--model", m, "--max-concurrent", str(m_concurrency))
             processes.append(p)
         
         await asyncio.gather(*(p.wait() for p in processes))
@@ -840,8 +861,14 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.model:
-        # Run a single model suite (to be called as a subprocess)
-        asyncio.run(run_single_model_suite(args.model, args.max_concurrent))
+        # Use model-specific concurrency if the user didn't explicitly override it from CLI
+        # (Assuming 48 is the default to detect 'unspecified' state)
+        m_concurrency = args.max_concurrent
+        if m_concurrency == 48:
+            m_concurrency = get_model_concurrency(args.model, 48)
+            
+        # Run a single model suite (to be called as a subprocess or manually)
+        asyncio.run(run_single_model_suite(args.model, m_concurrency))
     else:
         # Launch the conductor
         asyncio.run(conductor_main(args.max_concurrent, args.only_analysis))
