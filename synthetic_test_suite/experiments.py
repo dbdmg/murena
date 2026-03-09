@@ -47,9 +47,11 @@ os.environ["SYNTHETIC_RUN_ID"] = RUN_ID
 # CSV Logging Infrastructure
 query_ctx: ContextVar[str] = ContextVar("query_ctx", default="SYSTEM")
 experiment_ctx: ContextVar[str] = ContextVar("experiment_ctx", default="N/A")
+log_dir_ctx: ContextVar[Optional[Path]] = ContextVar("log_dir_ctx", default=None)
 
 import io
 import csv
+import threading
 
 def format_csv_line(row: List[Any]) -> str:
     """Helper to generate a properly quoted CSV line."""
@@ -96,8 +98,42 @@ def log_output(msg):
 BASELINE_MODEL = "gpt-5.4"
 EVALUATION_MODEL = "gpt-5.4"
 
-# Configure standard logging to file with CSV format
-handler = logging.FileHandler(str(execution_csv_path), encoding='utf-8')
+class DynamicFolderHandler(logging.Handler):
+    """Routes logs to the specific folder of the active experiment."""
+    def __init__(self, fallback_path: Path):
+        super().__init__()
+        self.fallback_path = fallback_path
+        self._handles = {}
+        self._lock = threading.Lock()
+
+    def _get_target_path(self) -> Path:
+        current_dir = log_dir_ctx.get()
+        if current_dir:
+            return current_dir / "execution.csv"
+        return self.fallback_path
+
+    def emit(self, record):
+        try:
+            target_path = self._get_target_path()
+            msg = self.format(record)
+            
+            with self._lock:
+                if target_path not in self._handles:
+                    target_path.parent.mkdir(parents=True, exist_ok=True)
+                    # Don't truncate, just append
+                    is_new = not target_path.exists()
+                    f = open(target_path, "a", encoding='utf-8')
+                    if is_new:
+                        f.write(format_csv_line(["timestamp", "run_id", "experiment", "query", "level", "logger", "message"]) + "\n")
+                    self._handles[target_path] = f
+                
+                self._handles[target_path].write(msg + "\n")
+                self._handles[target_path].flush()
+        except Exception:
+            self.handleError(record)
+
+# Configure standard logging with DynamicFolderHandler
+handler = DynamicFolderHandler(fallback_path=execution_csv_path)
 handler.addFilter(CsvLoggingFilter())
 handler.setFormatter(CsvFormatter(datefmt='%Y-%m-%d %H:%M:%S'))
 logging.root.addHandler(handler)
@@ -145,7 +181,25 @@ try:
         name = record["name"]
         return format_csv_line([timestamp, RUN_ID, e_id, q_id, lvl, name, msg]) + "\n"
     
-    logger.add(str(execution_csv_path), level="INFO", format=loguru_csv_format, encoding='utf-8')
+    class LoguruDynamicSink:
+        def __init__(self, handler):
+            self.handler = handler
+        def write(self, message):
+            # Loguru messages come as strings from the format function
+            # We bypass standard emit because we already have the formatted string
+            target_path = self.handler._get_target_path()
+            with self.handler._lock:
+                if target_path not in self.handler._handles:
+                    target_path.parent.mkdir(parents=True, exist_ok=True)
+                    is_new = not target_path.exists()
+                    f = open(target_path, "a", encoding='utf-8')
+                    if is_new:
+                        f.write(format_csv_line(["timestamp", "run_id", "experiment", "query", "level", "logger", "message"]) + "\n")
+                    self.handler._handles[target_path] = f
+                self.handler._handles[target_path].write(message)
+                self.handler._handles[target_path].flush()
+
+    logger.add(LoguruDynamicSink(handler), level="INFO", format=loguru_csv_format)
 except ImportError:
     pass
 
@@ -301,6 +355,7 @@ async def process_batch(indices, df, out_dir, sem, arch="multiagent", disabled=N
             # correct query/experiment identifiers from the very start.
             q_token = query_ctx.set(query)
             e_token = experiment_ctx.set(batch_name)
+            l_token = log_dir_ctx.set(out_dir)
             try:
                 # Cache check
                 if target_path.exists():
@@ -332,6 +387,7 @@ async def process_batch(indices, df, out_dir, sem, arch="multiagent", disabled=N
             finally:
                 query_ctx.reset(q_token)
                 experiment_ctx.reset(e_token)
+                log_dir_ctx.reset(l_token)
 
         tasks.append(task())
     await asyncio.gather(*tasks)
