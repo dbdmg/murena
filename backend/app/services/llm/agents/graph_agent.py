@@ -373,7 +373,6 @@ class GraphOrchestratorAgent(BaseAgent):
             match_count=final_state["match_count"],
             broker_summary=final_state.get("broker_summary", ""),
             agent_trace=final_state.get("agent_trace", []),
-            relaxation_applied=final_state.get("relaxation_applied", False) or final_state.get("relax_constraints", False),
         )
 
     def _unified_analysis(self, state: GraphState) -> GraphState:
@@ -733,15 +732,6 @@ class GraphOrchestratorAgent(BaseAgent):
                 # Comportamento standard per DataFrame (es. filtraggio)
                 output_data = json.loads(result.to_json(orient="records"))
                 input_data = f"{mode.capitalize()} mode: {len(result)} records"
-        elif agent_name == "relaxation-agent":
-            # Per l'agente di rilassamento, mostriamo i tentativi effettuati come input
-            # e la query finale scelta come output
-            if hasattr(result, 'attempts') and result.attempts:
-                input_data = result.attempts
-                output_data = result.final_sql or result.raw_text
-            else:
-                input_data = result.raw_text
-                output_data = "Nessuna proposta applicata"
         elif agent_name == "ranking-agent":
             # For ranking agent, include both ranking and weights for transparency
             output_data = {}

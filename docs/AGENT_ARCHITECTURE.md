@@ -13,7 +13,7 @@ Il sistema implementa una **pipeline multi-agente orchestrata tramite LangGraph*
 **Componenti Principali:**
 - **1 Orchestratore** (GraphOrchestratorAgent) basato su LangGraph
 - **8 Agenti Specializzati** con responsabilità distinte
-- **Pattern di Retry** con rilassamento automatico dei vincoli
+- **Pattern di Retry** per la correzione di errori SQL
 - **Fallback robusto** per garantire sempre risultati
 
 ---
@@ -47,11 +47,9 @@ graph TD
 
     subgraph "🔁 Retry Loop"
         SQL_EXEC --> CHECK{_check_sql_execution}
-        CHECK -->|error & retry < 5| RETRY[handle_retry]
-        CHECK -->|empty & retry < 5| RETRY_RELAX[handle_retry<br/>+ relax_constraints]
+        CHECK -->|error & retry < 3| RETRY[handle_retry]
         RETRY --> SQL_GEN
-        RETRY_RELAX --> SQL_GEN
-        CHECK -->|max retries| FALLBACK[fallback_results]
+        CHECK -->|max retries / empty| FALLBACK[fallback_results]
     end
 
     subgraph "📈 Fase 3: Post-Processing & Ranking"
@@ -111,31 +109,19 @@ sequenceDiagram
     NO-->>O: NormativeAgentResult
 ```
 
-### 1.3 Retry Flow con Smart Relaxation
-
-```mermaid
 stateDiagram-v2
     [*] --> execute_sql
     execute_sql --> check_result
     
     check_result --> enrich_results: success (rows > 0)
-    check_result --> handle_retry: error AND retry < 5
-    check_result --> handle_retry_relax: empty AND retry < 5
-    check_result --> fallback_results: retry >= 5
+    check_result --> handle_retry: error AND retry < 3
+    check_result --> fallback_results: (empty) OR (retry >= 3)
     
     handle_retry --> generate_sql: retry_count++
-    handle_retry_relax --> generate_sql: retry_count++, relax_constraints=true
     
     fallback_results --> enrich_results: load top 500 from dataset
     
     enrich_results --> [*]
-
-    note right of handle_retry_relax
-        SMART RELAXATION:
-        - Espande range prezzo
-        - Rimuove filtri secondari
-        - Allarga raggio geografico
-    end note
 ```
 
 ### 1.4 Diagramma di Flusso (Semplificato)
@@ -185,10 +171,9 @@ flowchart TB
     NO --> G
     G --> E --> C
     C -->|"✅ Risultati trovati"| ENR
-    C -->|"⚠️ Errore"| R
-    C -->|"⚠️ 0 risultati"| R
-    R -->|"rigenera SQL (vincoli relax se empty)"| G
-    C -->|"❌ Max retry"| FB
+    C -->|"⚠️ Errore / 0 risultati"| R
+    R -->|"rigenera SQL"| G
+    C -->|"❌ Max retry / 0 risultati persistenti"| FB
     FB --> ENR
     ENR --> CW --> RK --> EV --> BR --> F --> OUT
 ```
@@ -226,14 +211,11 @@ graph TD
   FIN --> OUT([OrchestratorResult])
 
   %% --- Retry paths (loop) ---
-  D -->|retry: execution_error & retry_count < 5| HR1[handle_retry\n(relax_constraints = false)]
+  D -->|retry: execution_error & retry_count < 3| HR1[handle_retry]
   HR1 --> GS
 
-  D -->|retry_relax: 0 risultati & retry_count < 5| HR2[handle_retry\n(relax_constraints = true)]
-  HR2 --> GS
-
   %% --- Fallback path ---
-  D -->|fallback: max retry| FB[fallback_results\n(top 500 alternative)]
+  D -->|fallback: (0 risultati) OR (max retry)| FB[fallback_results\n(top 500 alternative)]
   FB --> ENR
 
   %% --- Styling ---
@@ -613,7 +595,7 @@ graph TD
 | Aspetto | Valutazione | Note |
 |---------|-------------|------|
 | **Parallelizzazione** | ⭐⭐⭐⭐⭐ | ThreadPoolExecutor(5) per analisi iniziale riduce latenza ~60% |
-| **Retry con Relaxation** | ⭐⭐⭐⭐ | Smart relaxation evita risultati vuoti |
+| **Retry Logic** | ⭐⭐⭐⭐ | Corregge errori sintattici SQL |
 | **Fallback Robusto** | ⭐⭐⭐⭐ | Sempre restituisce qualcosa (top 500 per distance/APE) |
 | **Separazione Responsabilità** | ⭐⭐⭐⭐ | Ogni agente ha un compito ben definito |
 | **Tracciabilità** | ⭐⭐⭐⭐⭐ | PromptRecord su ogni agente + gemini_responses completo |

@@ -289,7 +289,6 @@ def run_pipeline(query: str, df: pd.DataFrame, dataset_path: Path, metadata: dic
             for ev in getattr(result.context, "evaluation_results", [])
         ],
         "sql": result.sql_query,
-        "relaxation_applied": result.relaxation_applied
     }
 
 

@@ -35,7 +35,7 @@ backend_dir = base_dir / "backend"
 sys.path.append(str(backend_dir))
 
 # Added subfolder for results
-results_path = suite_path / "results"
+results_path = Path(os.environ.get("EXPERIMENT_RESULTS_DIR", str(suite_path / "results")))
 results_path.mkdir(parents=True, exist_ok=True)
 
 # Global execution log

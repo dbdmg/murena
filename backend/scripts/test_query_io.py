@@ -188,7 +188,6 @@ async def test_specific_query(model_choice: str, query: str) -> None:
             "model": model_choice,
             "run_id": run_id,
             "results_count": result.get("results_count", 0),
-            "relaxation_applied": result.get("relaxation_applied", False),
             "execution_time_ms": duration_ms,
             "ranking_logic": ranking_logic,
             "final_sql": result.get("filters_applied", {}).get("final_sql", ""),
