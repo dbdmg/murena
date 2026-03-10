@@ -27,6 +27,7 @@ from app.models.responses import (
     SubProperty,
 )
 from app.utils.logger import logger
+logger = logger.opt(colors=False)
 
 
 class RealEstateService:

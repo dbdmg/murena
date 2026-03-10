@@ -45,4 +45,7 @@ def configure_logger():
 # Initialize logger
 configure_logger()
 
+# Globally disable markup parsing to avoid breaking with LLM output tags like <think>
+logger = logger.opt(colors=False)
+
 __all__ = ["logger", "LLM_LOG_DIR"]

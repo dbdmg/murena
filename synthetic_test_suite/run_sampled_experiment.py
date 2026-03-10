@@ -29,13 +29,13 @@ for i, q in enumerate(queries, 1):
 df_bench = pd.DataFrame({"query": queries, "status": [0]*len(queries)})
 df_bench.to_csv(results_path / "combinatorial_queries_suite.csv", index=False)
 
-# Create sensitivity CSV (mimicking experiments.py generate_compositions with ablation=True)
+# Create sensitivity CSV (only for the query with all variables)
 sens_cols = [
     'query', 'status_all_enabled', 'status_no_ranking', 'status_no_knowledge', 
     'status_no_poi', 'status_no_normative', 'status_no_location', 
     'status_no_ape', 'status_no_property_technical'
 ]
-df_sens = pd.DataFrame({"query": queries})
+df_sens = pd.DataFrame({"query": [queries[-1]]})
 for col in sens_cols[1:]:
     df_sens[col] = 0
 df_sens.to_csv(results_path / "sensitivity_queries_suite.csv", index=False)

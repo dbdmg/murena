@@ -40,6 +40,7 @@ results_path.mkdir(parents=True, exist_ok=True)
 
 # Global execution log
 execution_csv_path = results_path / "execution_log.csv"
+pending_jobs_path = results_path / "pending_jobs.txt"
 
 # Execution ID logic to link all logs to a single test suite execution
 is_child = "SYNTHETIC_RUN_ID" in os.environ
@@ -91,6 +92,7 @@ def with_query_context(func):
 # Clear existing file and write header
 if not is_child:
     if execution_csv_path.exists(): execution_csv_path.unlink()
+    if pending_jobs_path.exists(): pending_jobs_path.unlink()
     with open(execution_csv_path, "w", encoding='utf-8') as f:
         f.write(format_csv_line(["timestamp", "run_id", "experiment", "query", "level", "logger", "message"]) + "\n")
 
@@ -169,6 +171,25 @@ def safe_save_csv(df: pd.DataFrame, csv_path: Path):
     with file_lock(csv_path):
         df.to_csv(csv_path, index=False)
 
+def update_pending_job(job_id: str, action: str):
+    """Adds or removes a job from the pending jobs list with file locking."""
+    with file_lock(pending_jobs_path):
+        jobs = []
+        if pending_jobs_path.exists():
+            with open(pending_jobs_path, "r", encoding="utf-8") as f:
+                jobs = [line.strip() for line in f if line.strip()]
+        
+        if action == "add":
+            if job_id not in jobs:
+                jobs.append(job_id)
+        elif action == "remove":
+            if job_id in jobs:
+                jobs.remove(job_id)
+        
+        with open(pending_jobs_path, "w", encoding="utf-8") as f:
+            for job in sorted(jobs):
+                f.write(f"{job}\n")
+
 # Configure standard logging with DynamicFolderHandler
 handler = DynamicFolderHandler(fallback_path=execution_csv_path)
 handler.addFilter(CsvLoggingFilter())
@@ -182,8 +203,8 @@ MODEL_CONCURRENCY_LIMITS = {
     # "gpt-5.4": 2,
     # "gpt-5-nano": 2,
     "gpt-oss-120b": 48,
-    "ollama-gemma3-27b": 48,
-    "ollama-deepseek-r1-8b": 48,
+    "ollama-gemma3-27b": 2,
+    "ollama-deepseek-r1-8b": 2,
 }
 
 def get_model_concurrency(model_name: str, default_val: int) -> int:
@@ -405,31 +426,39 @@ async def process_batch(indices, df, out_dir, sem, arch="multiagent", disabled=N
             q_token = query_ctx.set(query)
             e_token = experiment_ctx.set(batch_name)
             l_token = log_dir_ctx.set(out_dir)
+            
+            job_id = f"[{batch_name}] query_{i+1:03d}{suffix}"
+            
             try:
                 # Cache check
                 if target_path.exists():
-                    if lock and col and df.at[i, col] == 0:
-                        async with lock:
-                            df.at[i, col] = 1
+                    if csv_path and col and df.at[i, col] == 0:
+                        # Sync status back to CSV if file exists but status is 0 (resumption)
+                        safe_update_csv_column(csv_path, i, col, 1)
                     completed += 1
                     return
 
-                async with sem:
-                    res = await run_query(query, architecture=arch, disabled=disabled, use_knowledge=use_knowledge)
-                    completed += 1
-                    status = "OK" if "error" not in res else "ERR"
+                # Record as pending/in-progress
+                update_pending_job(job_id, "add")
+                try:
+                    async with sem:
+                        res = await run_query(query, architecture=arch, disabled=disabled, use_knowledge=use_knowledge)
+                        completed += 1
+                        status = "OK" if "error" not in res else "ERR"
 
-                    if "error" not in res:
-                        with open(target_path, "w") as f: json.dump(res, f, indent=4)
-                        if csv_path and col:
-                            # Use cross-process safe update
-                            safe_update_csv_column(csv_path, i, col, 1)
-                    elif csv_path and col:
-                        # Use cross-process safe update for error status
-                        safe_update_csv_column(csv_path, i, col, 2)
+                        if "error" not in res:
+                            with open(target_path, "w") as f: json.dump(res, f, indent=4)
+                            if csv_path and col:
+                                # Use cross-process safe update
+                                safe_update_csv_column(csv_path, i, col, 1)
+                        elif csv_path and col:
+                            # Use cross-process safe update for error status
+                            safe_update_csv_column(csv_path, i, col, 2)
 
-                    if total > 0:
-                        log_output(f"[{batch_name}] Progress: {completed}/{total} ({status})")
+                        if total > 0:
+                            log_output(f"[{batch_name}] Progress: {completed}/{total} ({status})")
+                finally:
+                    update_pending_job(job_id, "remove")
             finally:
                 query_ctx.reset(q_token)
                 experiment_ctx.reset(e_token)
@@ -876,7 +905,7 @@ async def conductor_main(max_concurrent: int, only_analysis: bool = False):
     await preload_data()
     data_stats = get_data_stats()
 
-    models = ["gpt-oss-120b", "ollama-gemma3-27b", "ollama-deepseek-r1-8b"]
+    models = ["gpt-oss-120b"]
     
     # 1. PREPARE SUITES
     if not only_analysis:

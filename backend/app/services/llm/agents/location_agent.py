@@ -16,7 +16,7 @@ from app.services.llm.langchain_client import get_llm, invoke_with_langfuse
 from app.services.llm.prompt_loader import get_system_prompt, get_user_template
 from app.utils.decorators import handle_agent_error, log_llm_usage
 from app.utils.json_parser import safe_extract_json
-from app.data.processors import calculate_travel_times_df
+from app.utils.logger import logger
 
 
 class LocationAgent(BaseAgent):
@@ -69,7 +69,6 @@ class LocationAgent(BaseAgent):
             else:
                 raise ValueError(f"Modalità '{mode}' non supportata dal LocationAgent.")
         except Exception as e:
-            from app.utils.logger import logger
             logger.error(f"Error in {self.name}.run ({mode}): {e}")
             import traceback
             logger.error(traceback.format_exc())
@@ -110,7 +109,6 @@ class LocationAgent(BaseAgent):
                 },
             )
         except Exception as e:
-            from app.utils.logger import logger
             logger.warning(f"Structured invocation failed for {self.name}, falling back to raw: {e}")
 
         # 2. Second attempt / Fallback: Raw text + safe_extract_json
@@ -125,8 +123,7 @@ class LocationAgent(BaseAgent):
                 )
                 loc_data = safe_extract_json(raw_response, schema=LocationResponse)
             except Exception as e:
-                from app.utils.logger import logger
-                logger.error(f"Fallback invocation failed for {self.name}: {e}")
+                    logger.error(f"Fallback invocation failed for {self.name}: {e}")
 
         places = loc_data.places if loc_data else []
 
