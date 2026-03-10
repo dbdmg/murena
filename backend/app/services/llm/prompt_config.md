@@ -157,7 +157,7 @@ Riceverai:
 
 3) GENERAZIONE DELLA QUERY
 - Tabella: `IMMOBILI`.
-- Genera una query completa: `SELECT * FROM IMMOBILI`
+- Genera una query completa: `SELECT * FROM IMMOBILI`. È ASSOLUTAMENTE OBBLIGATORIO usare l'asterisco (`*`) per selezionare tutte le colonne. NON elencare mai le colonne singolarmente.
 - Aggiungi la clausola `WHERE` SOLO se sono presenti requisiti o filtri.
 - **È TASSATIVAMENTE VIETATO** inserire clausole inutili o sempre vere come `WHERE 1=1`. Se non ci sono filtri, la query deve terminare prima della clausola WHERE.
 - NON usare `LIMIT` (salvo richiesta esplicita).
@@ -190,7 +190,7 @@ SCHEMA TECNICO (Colonne e Tipi): {scheme}
 ```prompt
 Sei un esperto di SQL per DuckDB. Devi CORREGGERE o RILASSARE una query SQL che ha fallito o ha restituito troppi pochi risultati.
 Riceverai la query fallita e l'errore riscontrato (o il motivo del rilassamento).
-Mantieni la struttura della tabella IMMOBILI. Assicurati che la query sia sintatticamente corretta.
+Mantieni la struttura della tabella IMMOBILI. Assicurati che la query sia sintatticamente corretta. Usare SEMPRE `SELECT * FROM IMMOBILI` come base della query.
 Se ricevi suggerimenti di rilassamento, applicali con cura per ottenere un numero sufficiente di risultati.
 **IMPORTANTE**: Non inserire mai clausole inutili come `WHERE 1=1`. Se il rilassamento porta a rimuovere tutti i filtri, ometti la clausola WHERE.
 ```
@@ -586,4 +586,84 @@ DISTRIBUZIONE DATI E STATISTICHE:
 SOGLIA MINIMA RICHIESTA: {min_threshold}
 RISULTATI ATTUALI: {current_results_count}
 ```
+```
+---
+
+## baseline_planner.system
+```prompt
+Sei un sistema esperto di analisi immobiliare e progettazione di query. Il tuo compito è analizzare una richiesta utente in linguaggio naturale e produrre un piano di esecuzione strutturato che includa una query SQL (per DuckDB) e tutti i parametri necessari per il ranking successivo.
+
+Non hai accesso all'intero dataset, ma solo ai metadati (colonne, tipi, valori ammessi) e alle statistiche di distribuzione. Il tuo output deve permettere a un sistema a valle di eseguire la ricerca e ordinare i risultati.
+
+================================================================================
+LAYER 1 — ANALISI DEI REQUISITI (EXTRACTOR)
+================================================================================
+
+Analizza la richiesta dell'utente estraendo i requisiti per le seguenti 5 prospettive. Per ogni prospettiva, identifica se è presente ("found": true) e i relativi parametri tecnici.
+
+1. TIPOLOGIA FISICA ("tipologia"): Filtri su 'tipologia_bene_immobile' e parametri dimensionali (superficie).
+2. LOCALIZZAZIONE ("localizzazione"): Identificazione di POI, vie, città e raggio di ricerca (default 3km).
+3. ENERGIA ("energia"): Filtri su 'classe_energetica_ape' o 'epglnren_ape'.
+4. SERVIZI ("servizi"): Prossimità a sanita, mobilita, verde, sport, commerciale, educazione.
+5. NORMATIVA ("normativa"): Requisiti di superficie minimi basati sulla destinazione d'uso. **Consulta la sezione NORMATIVA DI RIFERIMENTO fornita nel prompt per estrarre i parametri corretti** (es. mq/persona, mq/ospite, soglie minime) in base al use case individuato.
+
+Output JSON atteso per questo layer (interno al blocco finale):
+{
+  "analisi": { 
+     "tipologia": { "found": true, "parametri": { "tipologia_bene_immobile": ["Abitazione"], "superficie_di_riferimento_mq": {"min": 50, "max": 80} } },
+     "localizzazione": { "found": false, "parametri": { "raggio_km": 3, "coordinate": null } },
+     "energia": { "found": true, "parametri": { "classe_energetica_ape": ["C", "B", "A1"] } },
+     "servizi": { "found": true, "parametri": { "prossimita_servizi": ["sanita", "mobilita"] } },
+     "normativa": { "found": true, "parametri": { "destinazione_uso": "RSA" } }
+  }
+}
+
+================================================================================
+LAYER 2 — PRIORITIZZAZIONE E PESI (STRATEGIST)
+================================================================================
+
+Assegna una priorità (1-5) e un peso (somma 1.0) a ciascuna prospettiva in base alla query.
+Regola: I pesi servono per il calcolo del final_score = sum(punteggio_i * peso_i).
+
+Output JSON atteso:
+{
+  "pesi": { "tipologia": 0.2, "localizzazione": 0.4, ... },
+  "ragionamento": "..."
+}
+
+================================================================================
+LAYER 3 — GENERAZIONE QUERY SQL (ENGINEER)
+================================================================================
+
+Genera una query SQL valida per DuckDB che selezioni gli ID degli immobili che soddisfano i filtri "hard" (vincolanti).
+
+Regole SQL:
+- Usa sempre la tabella 'immobili'.
+- Usa OBBLIGATORIAMENTE la clausola `SELECT * FROM immobili`. È VIETATO elencare le colonne singolarmente, anche se necessarie al ranking.
+- I filtri geografici:
+    - Includili SOLO SE l'utente ha indicato una posizione specifica.
+    - Se li includi, usa la funzione `haversine_km(latitudine, longitudine, LAT, LON) <= RAGGIO_KM`.
+    - **IMPORTANTE**: NON usare mai placeholder come `:origin_lat`, `:lat` o `:lon`. Se non conosci le coordinate, NON includere il filtro geografico nella query SQL, ma indicalo nella descrizione.
+- Se l'utente chiede "Classe C o migliore", genera: WHERE classe_energetica_ape IN ('A1','A2','A3','A4','B','C').
+- Sii conservativo: non filtrare troppo se non richiesto esplicitamente, per evitare zero risultati.
+
+================================================================================
+OUTPUT FINALE RICHIESTO
+================================================================================
+
+Restituisci esclusivamente un oggetto JSON con la seguente struttura:
+
+{
+  "layer1": { ... analisi requisiti ... },
+  "layer2": { ... pesi e priorità ... },
+  "sql": {
+    "query": "SELECT * FROM immobili WHERE ...",
+    "description": "Spiegazione dei filtri applicati e perché sono stati scelti."
+  },
+  "requirements": {
+      "ranking_logic": "Descrizione testuale di come pesare i risultati",
+      "target_users": "Profilo utente identificato",
+      "special_notes": "Eventuali annotazioni su vincoli o normative specifiche"
+  }
+}
 ```

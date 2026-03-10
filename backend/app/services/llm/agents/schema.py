@@ -97,6 +97,7 @@ class AgentResult(BaseModel):
 # Alias o classi specifiche che ora seguono lo stesso schema per retrocompatibilità di tipo
 class LocationAgentResult(AgentResult): 
     has_locations: bool = False
+    places: List[Place] = Field(default_factory=list)
 
 class PropertyTechnicalAgentResult(AgentResult): pass
 class SQLAgentResult(AgentResult): pass

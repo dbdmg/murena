@@ -29,6 +29,8 @@ class LocationAgent(BaseAgent):
             or AGENT_MODELS.get("location_agent")
             or AGENT_MODELS.get("default")
         )
+        from app.services.llm.langchain_client import is_oss_model
+        self.is_oss = is_oss_model(resolved_model)
         self.llm = get_llm(model_name=resolved_model)
 
         # Load system and user prompts separately
@@ -43,10 +45,16 @@ class LocationAgent(BaseAgent):
             ]
         )
         self.parser = StrOutputParser()
-        self.structured_llm = self.llm.with_structured_output(LocationResponse, method="function_calling")
-        self.chain = self.prompt | self.structured_llm
         
-        # Raw chain for fallback
+        # Avoid structured output for OSS models as they might not support function calling
+        if hasattr(self.llm, "with_structured_output") and not self.is_oss:
+            self.structured_llm = self.llm.with_structured_output(LocationResponse, method="function_calling")
+            self.chain = self.prompt | self.structured_llm
+        else:
+            self.structured_llm = None
+            self.chain = None
+        
+        # Raw chain for fallback and OSS models
         self.raw_chain = self.prompt | self.llm | self.parser
 
     def run(
@@ -122,9 +130,38 @@ class LocationAgent(BaseAgent):
                         "user_content": user_text
                     },
                 )
+                
+                # 1. Try with schema validation
                 loc_data = safe_extract_json(raw_response, schema=LocationResponse)
+                
+                # 2. If schema fails but we have a raw dict, try manual recovery
+                if not loc_data:
+                    raw_dict = safe_extract_json(raw_response)
+                    if isinstance(raw_dict, dict):
+                        found_flag = raw_dict.get("found", False)
+                        raw_places = raw_dict.get("places") or raw_dict.get("luoghi") or []
+                        
+                        extracted_places = []
+                        if isinstance(raw_places, list):
+                            for p in raw_places:
+                                if isinstance(p, dict) and (p.get("name") or p.get("nome")):
+                                    try:
+                                         # Default radius if missing
+                                        r_val = p.get("radius_km") or p.get("raggio_km")
+                                        radius = float(r_val) if r_val is not None else 3.0
+                                        
+                                        extracted_places.append(Place(
+                                            name=p.get("name") or p.get("nome"),
+                                            city=p.get("city") or p.get("citta") or p.get("città"),
+                                            radius_km=radius
+                                        ))
+                                    except Exception:
+                                        continue
+                        
+                        if extracted_places:
+                            loc_data = LocationResponse(places=extracted_places, found=len(extracted_places) > 0)
             except Exception as e:
-                    logger.error(f"Fallback invocation failed for {self.name}: {e}")
+                logger.error(f"Fallback invocation failed for {self.name}: {e}")
 
         places = loc_data.places if loc_data else []
 
@@ -172,7 +209,8 @@ class LocationAgent(BaseAgent):
         return LocationAgentResult(
             raw_text=raw, 
             prompt=prompt_record, 
-            has_locations=has_locations
+            has_locations=has_locations,
+            places=valid_places
         )
 
 

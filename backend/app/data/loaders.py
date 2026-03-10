@@ -36,6 +36,45 @@ if os.path.exists(GEOCODE_CACHE_FILE):
     except Exception as e:
         logger.warning(f"Failed to load geocode cache: {e}")
 
+TORINO_LANDMARKS = {
+    "palazzo nuovo": (45.068846, 7.691295),
+    "porta susa": (45.0732, 7.6663),
+    "porta nuova": (45.0622, 7.6785),
+    "politecnico": (45.0624, 7.6607),
+    "università degli studi di torino": (45.0688, 7.6912),
+    "mole antonelliana": (45.0677, 7.6930),
+    "piazza castello": (45.0710, 7.6856),
+    "campus einaudi": (45.0768, 7.7013),
+    "parco valentino": (45.0544, 7.6852),
+    "biblioteca civica": (45.0664, 7.6781),
+    "ospedale molinette": (45.0415, 7.6755),
+    "san salvario": (45.057, 7.681),
+    "crocetta": (45.060, 7.665),
+    "centro": (45.070, 7.686),
+}
+
+def _clean_place_name(name: str) -> str:
+    """Pre-processes place name for better geocoding results."""
+    if not name: return ""
+    
+    # Remove common prefixes from LLM extraction
+    junk = [
+        "vicino a", "vicino", "presso", "nei pressi di", "in zona", 
+        "area di", "distretto di", "intorno a", "davanti a", "fronte"
+    ]
+    
+    clean = name.lower().strip()
+    for j in junk:
+        if clean.startswith(j):
+            clean = clean[len(j):].strip()
+            # Handle Italian articles: "vicino al", "vicino alla" ...
+            for article in [" l'", " lo ", " la ", " il ", " a ", " di "]:
+                if clean.startswith(article.strip()):
+                    clean = clean[len(article.strip()):].strip()
+            break
+            
+    return clean.strip()
+
 
 def load_and_merge_data(file_path):
     """
@@ -140,50 +179,67 @@ def get_coordinates(place_name):
     Returns:
         tuple: (latitude, longitude) or (None, None) if not found
     """
-    # Check global cache first
+    # 1. Cleaning
+    place_name = _clean_place_name(place_name)
+    if not place_name: return None, None
+
+    # 2. Local landmarks registry (Turin focused)
+    clean_name = place_name.lower().strip()
+    for landmark, coords in TORINO_LANDMARKS.items():
+        if landmark in clean_name or (len(clean_name) > 3 and clean_name in landmark):
+            # logger.info(f"Geocoding match: '{place_name}' -> Landmark '{landmark}'")
+            return coords
+
+    # 3. Global file-based cache
     if place_name in GEOCODE_CACHE:
         return GEOCODE_CACHE[place_name]
 
-    # Add context to query if missing
-    search_query = place_name
-    if "torino" not in search_query.lower() and "piemonte" not in search_query.lower():
-        search_query += ", Torino, Piemonte, Italia"
-    elif "italia" not in search_query.lower():
-        search_query += ", Italia"
-
+    # Geocoding attempts hierarchy
     url = "https://nominatim.openstreetmap.org/search"
-    params = {
-        "q": search_query,
-        "format": "json",
-        "limit": 1,
-        "viewbox": "7.5,45.2,7.8,44.9",  # Bounding box for Turin area approx
-        "bounded": 1,
-    }
     headers = {"User-Agent": "DashApp/1.0"}
+    
+    # Config descriptions
+    # 1. Bounded search (strict)
+    # 2. Unbounded search with Torino context
+    queries = [
+        { "q": f"{place_name}, Torino, Piemonte, Italia", "bounded": 1 },
+        { "q": f"{place_name}, Torino, Italia", "bounded": 0 },
+        { "q": f"{place_name}, Piemonte, Italia", "bounded": 0 }
+    ]
 
-    try:
-        response = requests.get(url, params=params, headers=headers)
-        response.raise_for_status()
-        data = response.json()
-        if data:
-            lat = float(data[0]["lat"])
-            lon = float(data[0]["lon"])
+    for config in queries:
+        params = {
+            "q": config["q"],
+            "format": "json",
+            "limit": 1,
+            "viewbox": "7.5,45.2,7.8,44.9",
+            "bounded": config["bounded"],
+        }
+        
+        try:
+            response = requests.get(url, params=params, headers=headers, timeout=5)
+            response.raise_for_status()
+            data = response.json()
+            if data:
+                lat = float(data[0]["lat"])
+                lon = float(data[0]["lon"])
+                
+                # Success! Update cache and return
+                with CACHE_LOCK:
+                    GEOCODE_CACHE[place_name] = (lat, lon)
+                    try:
+                        os.makedirs(os.path.dirname(GEOCODE_CACHE_FILE), exist_ok=True)
+                        with open(GEOCODE_CACHE_FILE, "w", encoding="utf-8") as f:
+                            json.dump(GEOCODE_CACHE, f, indent=2)
+                    except Exception as e:
+                        logger.warning(f"Failed to write geocode cache: {e}")
+                return lat, lon
+        except Exception as e:
+            logger.debug(f"Geocode attempt failed for {config['q']}: {e}")
+            continue
 
-            # Update global cache and file safely
-            with CACHE_LOCK:
-                GEOCODE_CACHE[place_name] = (lat, lon)
-                try:
-                    # Ensure directory exists
-                    os.makedirs(os.path.dirname(GEOCODE_CACHE_FILE), exist_ok=True)
-                    with open(GEOCODE_CACHE_FILE, "w", encoding="utf-8") as f:
-                        json.dump(GEOCODE_CACHE, f, indent=2)
-                except Exception as e:
-                    logger.warning(f"Failed to write geocode cache: {e}")
-
-            return lat, lon
-    except Exception as e:
-        logger.warning(f"Nominatim Error for '{place_name}': {e}")
     return None, None
+
 
 
 def load_geojson_data(path):

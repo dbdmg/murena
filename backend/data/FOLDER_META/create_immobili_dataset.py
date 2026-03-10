@@ -4,10 +4,12 @@ import glob
 import pandas as pd
 import numpy as np
 from lxml import etree
-from typing import Dict, List
+from typing import Dict, List, Optional, Any
 from tqdm.auto import tqdm
 import warnings
 import json
+import duckdb
+import re
 try:
     from sklearn.neighbors import BallTree
 except ImportError:
@@ -70,6 +72,143 @@ MAPPING_IMPIANTI = {
     '35': 'Scalda-acqua a pompa di calore',
     '36': 'Boiler elettrico'
 }
+
+# --- GEODATABASE LOCALE (OSM) ---
+
+class OSMGeocodingService:
+    """
+    Servizio di geocodifica locale basato su file OSM PBF.
+    """
+    def __init__(self, pbf_path: str):
+        self.pbf_path = os.path.expanduser(pbf_path)
+        if not os.path.exists(self.pbf_path):
+            raise FileNotFoundError(f"OSM PBF file not found at: {self.pbf_path}")
+        self.conn = duckdb.connect(database=':memory:')
+        self._setup_database()
+
+    def _setup_database(self) -> None:
+        self.conn.execute("INSTALL spatial; LOAD spatial;")
+        self.conn.execute(f"""
+            CREATE TABLE addresses AS 
+            SELECT 
+                lower(tags['addr:street']) as street,
+                lower(tags['addr:housenumber']) as house_number,
+                lower(tags['addr:city']) as city,
+                lon,
+                lat
+            FROM ST_ReadOSM('{self.pbf_path}')
+            WHERE tags['addr:street'] IS NOT NULL
+        """)
+        self.conn.execute("CREATE INDEX idx_street ON addresses (street)")
+
+    def _clean_address(self, street: str, number: Optional[str], city: Optional[str]) -> tuple:
+        """
+        Pulisce l'indirizzo in modo aggressivo per estrarre via e civico.
+        """
+        raw = str(street).strip().upper()
+        
+        # 1. Rimuove prefissi spazzatura (es. ": ", "10128 TORINO - ", "374 ")
+        # Rimuove CAP a inizio stringa (5 cifre)
+        raw = re.sub(r'^\d{5}\s+', '', raw)
+        # Rimuove "TORINO" o "TO" all'inizio o fine se presenti
+        raw = re.sub(r'^(TORINO|TO)\s*-?\s*', '', raw)
+        raw = re.sub(r'\s*-?\s*(TORINO|TO)$', '', raw)
+        # Rimuove numeri casuali a inizio stringa (spesso spazzatura da export)
+        raw = re.sub(r'^\d+\s+', '', raw)
+        # Rimuove punteggiatura all'inizio
+        raw = raw.lstrip(':-,. ')
+
+        # 2. Normalizzazione tipi di via comuni
+        # Corso
+        raw = re.sub(r'^(C\.?SO|C/S|C\s+SO|CORS|COROS)\b', 'CORSO', raw)
+        # Via
+        raw = re.sub(r'^(V\.?IA|V/A|V\s+IA)\b', 'VIA', raw)
+        # Piazza
+        raw = re.sub(r'^(P\.?ZZA|P/Z)\b', 'PIAZZA', raw)
+
+        # 3. Estrazione civico se non fornito o se incorporato
+        final_num = str(number).strip().lower() if number and str(number).lower() != 'snc' else None
+        
+        # Se il civico è nella stringa (es. "CORSO TRAPANI, 133" o "VIA ROMA 10")
+        match = re.search(r'(?:[ ,]|CIVICO|N\.?)\s*(\d+[A-Z\s/-]*)$', raw, re.IGNORECASE)
+        if match:
+            if not final_num:
+                final_num = match.group(1).strip().lower()
+            street_clean = raw[:match.start()].strip(', ')
+        else:
+            street_clean = raw
+
+        # Rimuove eventuali città residue dalla via
+        if city:
+            street_clean = re.sub(rf'\b{re.escape(city.upper())}\b', '', street_clean).strip(' ,-')
+
+        return street_clean.lower(), final_num
+
+    def geocode(self, street: str, number: Optional[str] = None, city: Optional[str] = None) -> Optional[Dict[str, Any]]:
+        """
+        Converte un indirizzo sporco in coordinate lat/lon.
+        """
+        if not street: return None
+        
+        street_clean, final_number = self._clean_address(street, number, city)
+        city_clean = city.strip().lower() if city else "torino"
+
+        if len(street_clean) < 3: # Troppo corto per essere una via valida
+            return None
+
+        # 2. Query candidati su DuckDB
+        # Cerchiamo sia con LIKE (più lento ma flessibile) che con uguaglianza
+        query = "SELECT lat, lon, street, house_number, city FROM addresses WHERE street LIKE ?"
+        params = [f"%{street_clean}%"]
+        
+        if city_clean:
+            query += " AND city LIKE ?"
+            params.append(f"%{city_clean}%")
+        
+        query += " LIMIT 60"
+        
+        candidates = self.conn.execute(query, params).fetchall()
+        if not candidates:
+            # Riprova senza tipo di via (es. da "CORSO TRAPANI" a "TRAPANI")
+            parts = street_clean.split(' ', 1)
+            if len(parts) > 1:
+                query = "SELECT lat, lon, street, house_number, city FROM addresses WHERE street LIKE ?"
+                params = [f"%{parts[1]}%"]
+                if city_clean:
+                    query += " AND city LIKE ?"
+                    params.append(f"%{city_clean}%")
+                query += " LIMIT 40"
+                candidates = self.conn.execute(query, params).fetchall()
+
+        if not candidates: return None
+            
+        results = []
+        for c in candidates:
+            res = {"lat": c[0], "lon": c[1], "street": c[2], "house_number": c[3], "city": c[4], "score": 0}
+            
+            # SCORING
+            # Città (100)
+            if city_clean == res['city']: res['score'] += 100
+            
+            # Via (Max 150)
+            target_street = res['street'] or ""
+            if street_clean == target_street: res['score'] += 150
+            elif street_clean in target_street or target_street in street_clean: res['score'] += 50
+            
+            # Civico (Max 300)
+            if final_number:
+                target_num = (res['house_number'] or "").lower()
+                input_num = final_number.lower().replace(' ', '')
+                if input_num == target_num.replace(' ', ''):
+                    res['score'] += 300
+                elif target_num and re.match(rf"^{re.escape(input_num)}(\D|$)", target_num):
+                    res['score'] += 150
+                elif target_num:
+                    res['score'] -= 100 
+            
+            results.append(res)
+            
+        return max(results, key=lambda x: x['score'])
 
 # --- FUNZIONI DI SCORING ---
 
@@ -192,6 +331,19 @@ POOL_POI_TREE = None
 POOL_POI_META = None # Lista di (category_idx, amenity_idx, threshold_S)
 POOL_CATEGORIES = [] # Lista di nomi categorie ['commerciale', ...]
 POOL_CAT_AMENITIES = [] # Liste di amenity names per categoria
+POOL_GEOCODER = None
+
+def init_geocoder_globals():
+    global POOL_GEOCODER
+    if POOL_GEOCODER is not None: return
+    # Path del file OSM (aggiornare se necessario)
+    pbf_path = "/home/mdeluca/nord-ovest-latest.osm.pbf"
+    if os.path.exists(pbf_path):
+        try:
+            POOL_GEOCODER = OSMGeocodingService(pbf_path)
+        except Exception as e:
+            # Silenzioso nei worker, ma logghiamo l'errore se critico
+            pass
 
 def init_amenity_globals():
     global POOL_POI_TREE, POOL_POI_META, POOL_CATEGORIES, POOL_CAT_AMENITIES
@@ -479,15 +631,35 @@ def parse_ape_xml(xml_text: str) -> dict:
 
 def process_single_xml(fname: str) -> dict:
     """Funzione worker per il parsing di un singolo file XML."""
-    # Assicura caricamento POI e OMI nel processo worker
+    # Assicura caricamento POI, OMI e Geocoder nel processo worker
     init_amenity_globals()
     init_omi_globals()
+    init_geocoder_globals()
     
     try:
         xml_text = _decode_xml(_load_bytes(fname))
         if not xml_text:
             return None
         p = parse_ape_xml(xml_text)
+        
+        # Coordinate originali dall'XML
+        lat_xml = _to_float(p.get("lat"))
+        lon_xml = _to_float(p.get("lon"))
+        
+        res_lat, res_lon = lat_xml, lon_xml
+        
+        # Miglioramento coordinate tramite OSM Geocoder
+        if POOL_GEOCODER:
+            indirizzo = p.get("indirizzo")
+            civico = p.get("civico")
+            # Cerchiamo di geocodificare se abbiamo un indirizzo
+            if indirizzo:
+                geo_res = POOL_GEOCODER.geocode(street=indirizzo, number=civico, city="Torino")
+                # Se troviamo un match di alta qualità o se l'XML non ha coordinate, usiamo OSM
+                if geo_res and (geo_res['score'] >= 450 or lat_xml is None or lat_xml == 0):
+                    res_lat = geo_res['lat']
+                    res_lon = geo_res['lon']
+
         unita = p.get("subalterno") or os.path.splitext(os.path.basename(fname))[0]
         res = {
             "lista_file_ape": os.path.basename(fname),
@@ -498,9 +670,9 @@ def process_single_xml(fname: str) -> dict:
             "superficie_di_riferimento_mq": _to_float(p.get("superficie")),
             "indirizzo": p.get("indirizzo"),
             "numero_civico": p.get("civico"),
-            "latitudine": _to_float(p.get("lat")),
-            "longitudine": _to_float(p.get("lon")),
-            "zona_omi": get_omi_zone(_to_float(p.get("lat")), _to_float(p.get("lon"))),
+            "latitudine": res_lat,
+            "longitudine": res_lon,
+            "zona_omi": get_omi_zone(res_lat, res_lon),
             "tipologia_bene_immobile": p.get("tipologia_bene_immobile"),
             "epoca_costruzione": p.get("anno_costruzione"),
             "data_decorrenza": _parse_date(p.get("data_emissione")),
@@ -566,6 +738,84 @@ def _load_ape_df(file_list: List[str]) -> pd.DataFrame:
 
     return pd.DataFrame(all_rows)
 
+def improve_df_coordinates(df: pd.DataFrame) -> pd.DataFrame:
+    """Migliora le coordinate del DataFrame tramite geocoding locale OSM."""
+    if df.empty or 'indirizzo' not in df.columns:
+        return df
+    
+    print("Avvio miglioramento coordinate (post-processing)...")
+    init_geocoder_globals()
+    if not POOL_GEOCODER:
+        print("Salto geocoding: file OSM non trovato.")
+        return df
+
+    # Identifica indirizzi unici per ridurre il carico
+    unique_addr = df[['indirizzo', 'numero_civico']].drop_duplicates()
+    
+    # Geocodifica seriale per stabilità
+    def _geo_worker(row):
+        ind = row['indirizzo']
+        civ = row['numero_civico']
+        if not ind: return None
+        res = POOL_GEOCODER.geocode(street=ind, number=civ, city="Torino")
+        if res:
+            # Pre-calcoliamo OMI e Amenity per l'indirizzo unico (ottimizzazione)
+            new_lat, new_lon = res['lat'], res['lon']
+            return {
+                'indirizzo': ind, 'numero_civico': civ, 
+                'lat_osm': new_lat, 'lon_osm': new_lon, 'score': res['score'],
+                'zona_omi': get_omi_zone(new_lat, new_lon),
+                'amenities': get_amenity_scores(new_lat, new_lon)
+            }
+        return None
+
+    print(f"Geocodifica di {len(unique_addr)} indirizzi unici...")
+    geo_results = []
+    for _, row in tqdm(unique_addr.iterrows(), total=len(unique_addr), desc="Geocoding"):
+        geo_results.append(_geo_worker(row))
+    
+    # Mappatura risultati
+    geo_map = {}
+    for r in geo_results:
+        if r:
+            geo_map[(r['indirizzo'], r['numero_civico'])] = r
+    
+    # Aggiornamento DataFrame con statistiche
+    stats = {"updated": 0, "missing_filled": 0}
+
+    def _update_row(row):
+        key = (row['indirizzo'], row['numero_civico'])
+        lat_xml = row.get('latitudine')
+        lon_xml = row.get('longitudine')
+        
+        if key in geo_map:
+            match = geo_map[key]
+            is_missing = lat_xml is None or lat_xml == 0 or (isinstance(lat_xml, float) and np.isnan(lat_xml))
+            
+            if match['score'] >= 450 or is_missing:
+                if is_missing or (abs(lat_xml - match['lat_osm']) > 1e-6 or abs(lon_xml - match['lon_osm']) > 1e-6):
+                    row['latitudine'] = match['lat_osm']
+                    row['longitudine'] = match['lon_osm']
+                    row['zona_omi'] = match['zona_omi']
+                    row.update(match['amenities'])
+                    
+                    stats["updated"] += 1
+                    if is_missing:
+                        stats["missing_filled"] += 1
+        return row
+
+    # Applica l'aggiornamento
+    print("Applicazione nuove coordinate al DataFrame...")
+    df = df.apply(_update_row, axis=1)
+
+    print(f"\n--- STATISTICHE GEOCODING ---")
+    print(f"Righe processate: {len(df)}")
+    print(f"Righe aggiornate (OSM): {stats['updated']} ({stats['updated']/len(df)*100:.1f}%)")
+    print(f"Coordinate mancanti recuperate: {stats['missing_filled']}")
+    print(f"-----------------------------\n")
+    
+    return df
+
 if __name__ == "__main__":
     output_file = "backend/data/FOLDER_META/immobili_with_meta_and_ape_full_cleaned.parquet"
     
@@ -574,6 +824,12 @@ if __name__ == "__main__":
         print(f"File {output_file} trovato. Caricamento in corso...")
         df = pd.read_parquet(output_file)
     else:
+        # Pre-installazione estensione spatial di DuckDB per evitare race condition nei worker
+        try:
+            duckdb.connect().execute("INSTALL spatial;")
+        except Exception:
+            pass
+            
         files = [os.path.basename(f) for f in glob.glob(os.path.join(PATH_XML, "*.xml"))]
         if files:
             df = _load_ape_df(files)
@@ -581,6 +837,10 @@ if __name__ == "__main__":
         else:
             print("Nessun file XML trovato.")
             df = pd.DataFrame()
+
+    # Step di miglioramento coordinate (post-processing richiesto)
+    if not df.empty:
+        df = improve_df_coordinates(df)
 
     if not df.empty:
         # Ordinamento globale finale (il filtro L219 è già stato applicato nel parsing)

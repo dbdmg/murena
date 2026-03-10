@@ -65,15 +65,21 @@ class AnalysisService:
 
         return self._base_dataset_cache[dataset_key]
 
-    def _init_graph_agent(self):
+    def _init_graph_agent(self, force: bool = False):
         """
         Initialize the graph orchestrator agent.
+
+        Args:
+            force: If True, re-initialize even if already exists.
 
         Returns:
             Configured GraphOrchestratorAgent
         """
-        if self.graph_agent is None:
-            logger.info("Initializing GraphOrchestratorAgent...")
+        if self.graph_agent is None or force:
+            if force:
+                logger.info("Re-initializing GraphOrchestratorAgent (forced)...")
+            else:
+                logger.info("Initializing GraphOrchestratorAgent...")
 
             # Lazy import: avoids pulling langchain/transformers unless actually needed.
             from app.services.llm.agents.graph_agent import GraphOrchestratorAgent
@@ -104,6 +110,7 @@ class AnalysisService:
         disabled_agents: Optional[List[str]] = None,
         use_data_knowledge: bool = True,
         use_relaxation: bool = True,
+        architecture: str = "multiagent",
     ) -> Dict[str, Any]:
         """
         Run a complete real estate analysis.
@@ -149,7 +156,6 @@ class AnalysisService:
 
             # Initialize agent
             agent = self._init_graph_agent()
-            agent.analysis_mode = analysis_mode
 
             # Prepare database schema (simplified for now)
             db_schema = {
@@ -221,6 +227,8 @@ class AnalysisService:
                 disabled_agents=disabled_agents,
                 use_data_knowledge=use_data_knowledge,
                 use_relaxation=use_relaxation,
+                analysis_mode=analysis_mode,
+                architecture=architecture,
             )
 
             logger.info(f"Analysis {run_id} completed successfully")

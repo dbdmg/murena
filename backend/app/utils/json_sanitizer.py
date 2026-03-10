@@ -73,6 +73,8 @@ def make_json_safe(value: Any) -> Any:
                 return make_json_safe(value.to_dict(orient="records"))
             except Exception:
                 return []
+        if "Timestamp" in name or "DatetimeIndex" in name or "Period" in name:
+            return str(value)
 
     if isinstance(value, dict):
         out: dict[str, Any] = {}
