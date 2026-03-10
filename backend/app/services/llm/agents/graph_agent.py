@@ -318,6 +318,10 @@ class GraphOrchestratorAgent(BaseAgent):
         # Safe recursion limit to handle retry loops while preventing infinite loops
         final_state = self.workflow.invoke(initial_state, {"recursion_limit": 30})
 
+        # Explicitly release the large base_dataset reference from state so the
+        # full parquet DataFrame can be GC'd before the rest of this method runs.
+        final_state.pop("base_dataset", None)
+
         # Get results - finalize_results should have added is_evaluated
         result_df = final_state["selected_data"]
 
@@ -374,6 +378,7 @@ class GraphOrchestratorAgent(BaseAgent):
             broker_summary=final_state.get("broker_summary", ""),
             agent_trace=final_state.get("agent_trace", []),
         )
+
 
     def _unified_analysis(self, state: GraphState) -> GraphState:
         """Esegue l'analisi tramite un singolo prompt unificato (Baseline Planner)."""

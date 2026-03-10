@@ -103,25 +103,34 @@ export const ProcessingPage: React.FC = () => {
     useEffect(() => {
         if (!runId || isComplete) return;
 
+        let isCancelled = false;
+
         const pollInterval = setInterval(async () => {
+            if (isCancelled) return;
             try {
                 const resultsData = await analysisApi.getResults(runId);
+                if (isCancelled) return;
                 if (resultsData.status === 'completed') {
+                    clearInterval(pollInterval);
                     setResults(resultsData);
                     setBuildingsFound(resultsData.buildings?.length || 0);
                     setBrokerSummary(resultsData.broker_summary || null);
                     setIsComplete(true);
-                    clearInterval(pollInterval);
                 } else if (resultsData.status === 'failed') {
-                    setIsComplete(true);
                     clearInterval(pollInterval);
+                    setIsComplete(true);
                 }
             } catch (err) {
-                console.error('Polling error:', err);
+                if (!isCancelled) {
+                    console.error('Polling error:', err);
+                }
             }
         }, 3000);
 
-        return () => clearInterval(pollInterval);
+        return () => {
+            isCancelled = true;
+            clearInterval(pollInterval);
+        };
     }, [runId, isComplete]);
 
     // Auto-scroll to bottom of step list

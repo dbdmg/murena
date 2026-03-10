@@ -15,18 +15,24 @@ from collections import defaultdict
 from app.models.responses import ProgressUpdate
 from app.utils.logger import logger
 
+# Maximum number of completed run states to keep in memory before purging.
+# Prevents unbounded growth when many queries are executed sequentially.
+_MAX_COMPLETED_CACHE = 50
+
 
 class ProgressManager:
     """Manages progress updates for analysis runs using AsyncIO queues."""
 
     def __init__(self):
         """Initialize the progress manager."""
-        # run_id → list of client queues
+        # run_id -> list of client queues
         self._subscribers: Dict[str, List[asyncio.Queue]] = defaultdict(list)
-        # run_id → last known progress update
+        # run_id -> last known progress update (bounded by _MAX_COMPLETED_CACHE)
         self._last_state: Dict[str, ProgressUpdate] = {}
-        # run_id → whether the run is finished
+        # run_id -> whether the run is finished (bounded by _MAX_COMPLETED_CACHE)
         self._completed: Dict[str, bool] = {}
+        # Insertion-ordered list of completed run IDs for LRU-style eviction
+        self._completed_order: List[str] = []
         self._lock = asyncio.Lock()
         logger.info("ProgressManager initialized")
 
@@ -42,12 +48,10 @@ class ProgressManager:
         """
         queue: asyncio.Queue = asyncio.Queue()
 
-        # Register subscriber
         async with self._lock:
             self._subscribers[run_id].append(queue)
             subscriber_count = len(self._subscribers[run_id])
-            
-            # Send current state if available
+
             last_update = self._last_state.get(run_id)
             is_done = self._completed.get(run_id, False)
 
@@ -55,11 +59,9 @@ class ProgressManager:
             f"Client subscribed to run {run_id} ({subscriber_count} total subscribers)"
         )
 
-        # If we have a cached state, send it immediately
         if last_update:
             await queue.put(last_update)
-            
-        # If already completed, send finish signal immediately
+
         if is_done:
             await queue.put(None)
 
@@ -67,7 +69,6 @@ class ProgressManager:
             while True:
                 update = await queue.get()
 
-                # None signals completion
                 if update is None:
                     logger.debug(f"Completion signal received for run {run_id}")
                     break
@@ -75,7 +76,6 @@ class ProgressManager:
                 yield update
 
         finally:
-            # Cleanup: remove this queue from subscribers
             async with self._lock:
                 if queue in self._subscribers[run_id]:
                     self._subscribers[run_id].remove(queue)
@@ -84,10 +84,14 @@ class ProgressManager:
                         f"Client unsubscribed from run {run_id} ({remaining} remaining)"
                     )
 
-                # If no more subscribers, cleanup the key
                 if run_id in self._subscribers and not self._subscribers[run_id]:
                     del self._subscribers[run_id]
                     logger.debug(f"Removed run {run_id} from subscribers (no clients)")
+
+                # If the run is also completed and no subscribers remain, drop cached state
+                # immediately to reclaim memory rather than waiting for LRU eviction.
+                if self._completed.get(run_id) and run_id not in self._subscribers:
+                    self._purge_run(run_id)
 
     async def publish(self, run_id: str, update: ProgressUpdate) -> None:
         """
@@ -98,15 +102,13 @@ class ProgressManager:
             update: Progress update to send
         """
         async with self._lock:
-            queues = self._subscribers.get(run_id, [])
-            # Cache the latest state
+            queues = list(self._subscribers.get(run_id, []))
             self._last_state[run_id] = update
 
         if not queues:
             logger.debug(f"No subscribers for run {run_id}, state cached for future connections")
             return
 
-        # Send update to all subscribers
         for queue in queues:
             try:
                 await queue.put(update)
@@ -119,21 +121,24 @@ class ProgressManager:
 
     async def complete(self, run_id: str) -> None:
         """
-        Signal completion to all subscribers and cleanup.
+        Signal completion to all subscribers and schedule cleanup.
 
         Args:
             run_id: Analysis run identifier
         """
         async with self._lock:
-            queues = self._subscribers.get(run_id, [])
-            # Mark as completed
+            queues = list(self._subscribers.get(run_id, []))
             self._completed[run_id] = True
+            # Track insertion order for bounded eviction
+            if run_id not in self._completed_order:
+                self._completed_order.append(run_id)
+            # Evict oldest entries when the cache exceeds the limit
+            self._evict_if_needed()
 
         if not queues:
             logger.debug(f"No subscribers to complete for run {run_id}, status cached")
             return
 
-        # Send completion signal (None) to all subscribers
         for queue in queues:
             try:
                 await queue.put(None)
@@ -144,7 +149,34 @@ class ProgressManager:
             f"Sent completion signal to {len(queues)} subscriber(s) for run {run_id}"
         )
 
-        # Cleanup will happen automatically when clients disconnect
+    def _purge_run(self, run_id: str) -> None:
+        """
+        Remove all cached state for a run.
+
+        Must be called while holding self._lock, or from a context where
+        concurrent access is not a concern (e.g. initial startup).
+        """
+        self._last_state.pop(run_id, None)
+        self._completed.pop(run_id, None)
+        try:
+            self._completed_order.remove(run_id)
+        except ValueError:
+            pass
+        logger.debug(f"Purged state for completed run {run_id}")
+
+    def _evict_if_needed(self) -> None:
+        """
+        Evict the oldest completed run states if the cache exceeds the limit.
+
+        Called inside publish/complete while holding self._lock.
+        Only evicts runs that have no active subscribers.
+        """
+        while len(self._completed_order) > _MAX_COMPLETED_CACHE:
+            oldest = self._completed_order[0]
+            # Do not evict if subscribers are still connected
+            if oldest in self._subscribers and self._subscribers[oldest]:
+                break
+            self._purge_run(oldest)
 
     def get_subscriber_count(self, run_id: str) -> int:
         """
