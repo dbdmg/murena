@@ -71,6 +71,13 @@ export function useAnalysisProgress(
     const isCompleteRef = useRef(false);
     const maxReconnectAttempts = 5;
 
+    // Keep a ref to the current runId so that closures inside WS callbacks
+    // always read the latest value without capturing a stale snapshot.
+    const runIdRef = useRef<string | null>(runId);
+    useEffect(() => {
+        runIdRef.current = runId;
+    }, [runId]);
+
     useEffect(() => {
         isCompleteRef.current = state.isComplete;
     }, [state.isComplete]);
@@ -129,22 +136,32 @@ export function useAnalysisProgress(
 
     // Connect to WebSocket
     const connect = useCallback(() => {
-        if (!runId) return;
+        if (!runIdRef.current) return;
 
         // Clear any pending reconnect
         if (reconnectTimeoutRef.current) {
             clearTimeout(reconnectTimeoutRef.current);
+            reconnectTimeoutRef.current = null;
         }
 
-        // Cleanup existing
-        if (wsRef.current) {
-            wsRef.current.close();
+        // Close and discard old WebSocket before opening a new one.
+        // We set wsRef.current to null BEFORE calling close() so that the
+        // old socket's onclose handler can detect that it has been superseded
+        // and must not schedule a reconnect or mutate shared state.
+        const prevWs = wsRef.current;
+        wsRef.current = null;
+        if (prevWs && prevWs.readyState !== WebSocket.CLOSED) {
+            prevWs.close(1000, 'Superseded by new connection');
         }
 
-        const ws = new WebSocket(buildWebSocketUrl(runId));
-        wsRef.current = ws; // Assign immediately
+        const idForThisSocket = runIdRef.current;
+        const ws = new WebSocket(buildWebSocketUrl(idForThisSocket));
+        wsRef.current = ws;
 
         ws.onopen = () => {
+            // Guard: make sure this socket is still the active one
+            if (wsRef.current !== ws) return;
+
             reconnectAttemptsRef.current = 0;
             setState((prev) => ({
                 ...prev,
@@ -154,6 +171,9 @@ export function useAnalysisProgress(
         };
 
         ws.onmessage = (event) => {
+            // Guard: make sure this socket is still the active one
+            if (wsRef.current !== ws) return;
+
             try {
                 const data: WebSocketMessage = JSON.parse(event.data);
 
@@ -177,8 +197,8 @@ export function useAnalysisProgress(
 
                     onCompleteRef.current?.(completeData.results_url);
 
-                    // Close connection after completion
-                    ws.close(1000, 'Analysis complete'); // Normal closure
+                    // Close connection after completion (normal closure)
+                    ws.close(1000, 'Analysis complete');
                 }
             } catch (err) {
                 console.error('[WS] Failed to parse message:', err);
@@ -186,6 +206,9 @@ export function useAnalysisProgress(
         };
 
         ws.onerror = (event) => {
+            // Guard: make sure this socket is still the active one
+            if (wsRef.current !== ws) return;
+
             console.error('[WS] Error:', event);
             const errorMsg = 'WebSocket connection error';
             setState((prev) => ({ ...prev, error: errorMsg }));
@@ -193,17 +216,21 @@ export function useAnalysisProgress(
         };
 
         ws.onclose = (event) => {
-            setState((prev) => ({ ...prev, isConnected: false }));
-            wsRef.current = null;
+            // If this socket has been superseded (wsRef no longer points to it),
+            // do not touch shared state or schedule reconnects.
+            if (wsRef.current !== ws) return;
 
-            // Attempt reconnect if not completed and not max attempts (5)
-            // Stop if code is 4xxx (client error) or normal closure
+            wsRef.current = null;
+            setState((prev) => ({ ...prev, isConnected: false }));
+
+            // Attempt reconnect if not completed and not max attempts.
+            // Stop on normal closure or 4xxx / fatal server codes.
             if (
-                !isCompleteRef.current && // Use ref for closure scope
+                !isCompleteRef.current &&
                 reconnectAttemptsRef.current < maxReconnectAttempts &&
                 event.code !== 1000 && // Normal closure
-                event.code !== 1008 && // Policy violation/Generic error (often used for Auth fail)
-                event.code !== 1011    // Internal server error (sometimes fatal)
+                event.code !== 1008 && // Policy violation / auth fail
+                event.code !== 1011    // Internal server error (fatal)
             ) {
                 reconnectAttemptsRef.current += 1;
                 // Exponential backoff with jitter
@@ -215,7 +242,7 @@ export function useAnalysisProgress(
                 }, delay);
             }
         };
-    }, [runId, buildWebSocketUrl]);
+    }, [buildWebSocketUrl]);
 
     // Reconnect when trigger changes
     useEffect(() => {
@@ -224,35 +251,56 @@ export function useAnalysisProgress(
         }
     }, [retryTrigger, connect]);
 
-    // Disconnect
+    // Disconnect and fully discard the current socket
     const disconnect = useCallback(() => {
         if (reconnectTimeoutRef.current) {
             clearTimeout(reconnectTimeoutRef.current);
             reconnectTimeoutRef.current = null;
         }
-        if (wsRef.current) {
-            wsRef.current.close(1000, 'User requested disconnect');
-            wsRef.current = null;
+
+        const prevWs = wsRef.current;
+        wsRef.current = null; // Nullify BEFORE close to suppress the onclose handler
+        if (prevWs && prevWs.readyState !== WebSocket.CLOSED) {
+            prevWs.close(1000, 'User requested disconnect');
         }
+
         setState(initialState);
     }, []);
 
-    // Reset state when runId changes
+    // Reset state synchronously when runId changes, then connect if needed.
+    // Using a synchronous reset (no setTimeout) avoids a race where the new
+    // socket's events arrive before the deferred reset clears the old state.
     useEffect(() => {
-        setTimeout(() => setState(initialState), 0);
+        setState(initialState);
+        isCompleteRef.current = false;
         reconnectAttemptsRef.current = 0;
-    }, [runId]);
+        setRetryTrigger(0);
 
-    // Auto-connect on mount or when runId changes
-    useEffect(() => {
         if (autoConnect && runId) {
             connect();
+        } else {
+            // No new runId — close any open socket
+            const prevWs = wsRef.current;
+            wsRef.current = null;
+            if (prevWs && prevWs.readyState !== WebSocket.CLOSED) {
+                prevWs.close(1000, 'Run ID cleared');
+            }
         }
 
         return () => {
-            disconnect();
+            // Cleanup: supersede the current socket so its handlers are inert
+            const prevWs = wsRef.current;
+            wsRef.current = null;
+            if (prevWs && prevWs.readyState !== WebSocket.CLOSED) {
+                prevWs.close(1000, 'Component unmounted');
+            }
+            if (reconnectTimeoutRef.current) {
+                clearTimeout(reconnectTimeoutRef.current);
+                reconnectTimeoutRef.current = null;
+            }
         };
-    }, [runId, autoConnect, connect, disconnect]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [runId, autoConnect]);
 
     return {
         ...state,

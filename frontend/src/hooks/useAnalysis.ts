@@ -20,7 +20,7 @@
  *   // Access results when status === 'completed'
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { analysisApi } from '../api/endpoints/analysis';
 import { useAnalysisProgress, type AnalysisProgressState } from './useAnalysisProgress';
 import type {
@@ -74,14 +74,21 @@ export function useAnalysis(): UseAnalysisReturn {
     const [results, setResults] = useState<AnalysisResults | null>(null);
     const [error, setError] = useState<string | null>(null);
 
+    // Keep a stable ref to the latest runId so that the onComplete callback
+    // never closes over a stale state snapshot.
+    const runIdRef = useRef<string | null>(runId);
+    useEffect(() => {
+        runIdRef.current = runId;
+    }, [runId]);
+
     // Connect to WebSocket for progress when we have a runId
     const progressState = useAnalysisProgress(runId, {
         autoConnect: true,
         onComplete: async () => {
-
+            const currentRunId = runIdRef.current;
             try {
-                if (runId) {
-                    const analysisResults = await analysisApi.getResults(runId);
+                if (currentRunId) {
+                    const analysisResults = await analysisApi.getResults(currentRunId);
                     setResults(analysisResults);
                     setStatus('completed');
                 }

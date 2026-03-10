@@ -18,7 +18,9 @@ queries = [
     "Cerca un abitazione vicino a Palazzo Nuovo con superficie tra 50 e 80 mq",
     "Cerca un abitazione vicino a Palazzo Nuovo con superficie tra 50 e 80 mq in classe C o più efficiente",
     "Cerca un abitazione vicino a Palazzo Nuovo con superficie tra 50 e 80 mq in classe C o più efficiente, finalizzato a co-housing",
-    "Cerca un abitazione vicino a Palazzo Nuovo con superficie tra 50 e 80 mq in classe C o più efficiente, finalizzato a co-housing e situato vicino a palestre e centri sportivi"
+    "Cerca un abitazione vicino a Palazzo Nuovo con superficie tra 50 e 80 mq in classe C o più efficiente, finalizzato a co-housing e situato vicino a palestre e centri sportivi",
+    "Cerca un immobile vicino a Porta Susa con superficie tra 50 e 80 mq in classe F o G, finalizzato a co-housing e situato vicino a mezzi di trasporto",
+    "Cerca un abitazione vicino a Palazzo Nuovo con superficie tra 50 e 80 mq in classe C o più efficiente, finalizzato a centro per anziani e situato vicino a mezzi di trasporto"
 ]
 
 print(f"[*] Prepared 6 incremental queries:")
@@ -29,13 +31,13 @@ for i, q in enumerate(queries, 1):
 df_bench = pd.DataFrame({"query": queries, "status": [0]*len(queries)})
 df_bench.to_csv(results_path / "combinatorial_queries_suite.csv", index=False)
 
-# Create sensitivity CSV (only for the query with all variables)
+# Create sensitivity CSV (all queries x all ablation variables)
 sens_cols = [
-    'query', 'status_all_enabled', 'status_no_ranking', 'status_no_knowledge', 
-    'status_no_poi', 'status_no_normative', 'status_no_location', 
+    'query', 'status_all_enabled', 'status_no_ranking', 'status_no_knowledge',
+    'status_no_poi', 'status_no_normative', 'status_no_location',
     'status_no_ape', 'status_no_property_technical'
 ]
-df_sens = pd.DataFrame({"query": [queries[-1]]})
+df_sens = pd.DataFrame({"query": queries})
 for col in sens_cols[1:]:
     df_sens[col] = 0
 df_sens.to_csv(results_path / "sensitivity_queries_suite.csv", index=False)
