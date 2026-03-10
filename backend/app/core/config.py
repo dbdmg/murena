@@ -66,15 +66,16 @@ class Settings(BaseSettings):
     GEMINI_API_KEY: str = ""
     OPENAI_API_KEY: str = ""
     HF_TOKEN: str = ""
-    OPENAI_API_BASE: Optional[str] = None  # Use custom base URL for OSS models
+
     LLM_POLITO_API_KEY: str = ""  # API key for llm.polito.it endpoint
 
     # LLM Provider: "openai" o "gemini" - controlla quale provider usare di default
     DEFAULT_LLM_PROVIDER: str = "openai"
 
     # LLM Models
-    OPENAI_MODEL_FAST: str = "gpt-5-nano-2025-08-07"
-    OPENAI_MODEL_SMART: str = "gpt-5-mini-2025-08-07"
+    OPENAI_MODEL_FAST: str = "gpt-oss-120b"
+    OPENAI_MODEL_SMART: str = "gpt-oss-120b"
+    OPENAI_API_BASE: Optional[str] = "https://llm.polito.it/v1"
     USE_MOCK_RESPONSES: bool = False
     USE_MOCK_NORMATIVE_AGENT: bool = False
 
