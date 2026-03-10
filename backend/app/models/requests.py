@@ -28,6 +28,9 @@ class AnalysisRequest(BaseModel):
     analysis_mode: str = Field(
         default="agent", description="Analysis mode: 'classic' or 'agent'"
     )
+    use_relaxation: bool = Field(
+        default=True, description="Whether to use query relaxation if 0 results found"
+    )
 
     model_config = ConfigDict(
         json_schema_extra={

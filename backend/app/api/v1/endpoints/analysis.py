@@ -719,6 +719,7 @@ async def start_analysis(
                 map_limit=request.map_limit,
                 llm_limit=request.llm_limit,
                 analysis_mode=request.analysis_mode,
+                use_relaxation=request.use_relaxation,
             )
 
             # Defensive: ensure we don't persist unserializable scientific types.

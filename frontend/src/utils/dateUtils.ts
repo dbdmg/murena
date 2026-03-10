@@ -15,6 +15,8 @@ export const formatRunDate = (dateStr: string): string => {
     if (!dateStr) return 'N/D';
 
     const date = new Date(ensureUtc(dateStr));
+    if (isNaN(date.getTime())) return 'N/D';
+
     const now = new Date();
 
     // Check if it's today
@@ -65,6 +67,7 @@ export const formatRunDate = (dateStr: string): string => {
 export const formatFullDate = (dateStr: string): string => {
     if (!dateStr) return 'N/D';
     const date = new Date(ensureUtc(dateStr));
+    if (isNaN(date.getTime())) return 'N/D';
 
     return new Intl.DateTimeFormat('it-IT', {
         day: '2-digit',

@@ -26,7 +26,20 @@ export const LoginPage: React.FC = () => {
         } catch (err: any) {
             console.error(err);
             const apiUrl = import.meta.env.VITE_API_URL;
-            const msg = err.response?.data?.detail || err.message || 'Login failed';
+            
+            // Handle FastAPI validation errors or standard messages
+            const detail = err.response?.data?.detail;
+            let msg = 'Login failed';
+            
+            if (Array.isArray(detail)) {
+                // Formatting for validation error list: "field: error message"
+                msg = detail.map((d: any) => `${d.loc.at(-1) || 'error'}: ${d.msg}`).join(', ');
+            } else if (typeof detail === 'string') {
+                msg = detail;
+            } else {
+                msg = err.message || 'Login failed';
+            }
+            
             setError(`Error: ${msg} (API: ${apiUrl})`);
         } finally {
             setIsLoading(false);

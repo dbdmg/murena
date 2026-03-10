@@ -327,7 +327,7 @@ def check_sql_ood(sql, data_stats):
 # --- 3. EXECUTION DISPATCHERS ---
 
 @with_query_context
-async def run_query(query, architecture="multiagent", disabled=None, use_knowledge=True):
+async def run_query(query, architecture="multiagent", disabled=None, use_knowledge=True, use_relaxation=False):
     log_output(f"[QUERY] Searching: {query}")
     try:
         agent = analysis_service._init_graph_agent()
@@ -337,6 +337,7 @@ async def run_query(query, architecture="multiagent", disabled=None, use_knowled
             run_id=f"test_{datetime.now().strftime('%H%M%S')}",
             query=query, dataset_key="full", map_limit=15000, llm_limit=25,
             analysis_mode="agent", disabled_agents=disabled, use_data_knowledge=use_knowledge,
+            use_relaxation=use_relaxation,
         )
         duration = round((time.time() - start_t) * 1000, 2)
         buildings = res.get("buildings", [])
@@ -405,7 +406,7 @@ async def run_query(query, architecture="multiagent", disabled=None, use_knowled
         log_output(f"  [!] Error: {str(e)}")
         return {"error": str(e)}
 
-async def process_batch(indices, df, out_dir, sem, arch="multiagent", disabled=None, use_knowledge=True, lock=None, csv_path=None, col=None, trial=None, batch_name=""):
+async def process_batch(indices, df, out_dir, sem, arch="multiagent", disabled=None, use_knowledge=True, use_relaxation=False, lock=None, csv_path=None, col=None, trial=None, batch_name=""):
     """Process a batch of queries with real-time progress updates and caching."""
     total = len(indices)
     completed = 0
@@ -442,7 +443,7 @@ async def process_batch(indices, df, out_dir, sem, arch="multiagent", disabled=N
                 update_pending_job(job_id, "add")
                 try:
                     async with sem:
-                        res = await run_query(query, architecture=arch, disabled=disabled, use_knowledge=use_knowledge)
+                        res = await run_query(query, architecture=arch, disabled=disabled, use_knowledge=use_knowledge, use_relaxation=use_relaxation)
                         completed += 1
                         status = "OK" if "error" not in res else "ERR"
 

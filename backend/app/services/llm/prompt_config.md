@@ -553,30 +553,23 @@ Per ciascuna condizione della WHERE:
 4. Non modificare condizioni che non sono rilassabili in modo sensato.
 
 # OUTPUT (FORMATO MANDATORIO)
-Restituisci ESCLUSIVAMENTE un array JSON di oggetti. Ogni oggetto deve rappresentare una proposta di rilassamento specifica per una condizione.
+Restituisci ESCLUSIVAMENTE un array JSON di oggetti. Ogni oggetto deve rappresentare una proposta di rilassamento specifica per una colonna SQL.
 
-Se per una stessa condizione vuoi proporre più livelli (low, medium, high), crea un oggetto distinto per ogni livello.
-
-SCHEMA JSON RESTRITTIVO:
+SCHEMA JSON RICHIESTO:
 [
   {
-    "condizione_iniziale": "string (la parte di WHERE originale)",
-    "condizione_relaxed": "string (la nuova condizione SQL pronta all'uso)",
-    "piani_progressivi": ["string"], (opzionale: lista di valori testuali che mostrano il percorso di rilassamento)
-    "strategia": "string (breve descrizione tecnica)",
-    "motivazione": "string (ragionamento logico per l'accettabilità)",
-    "livello_rilassamento": "string (uno tra: 'low', 'medium', 'high')"
+    "field": "string (nome della colonna SQL)",
+    "original_value": "any (valore originale)",
+    "proposed_value": "any (nuovo valore suggerito)",
+    "reason": "string (perché rilassare questo campo)",
+    "strategy_type": "string (una tra: 'radius_expansion', 'category_widening', 'range_increase', 'removal')"
   }
 ]
 
 IMPORTANTE: 
-- **QUALITÀ SQL**: Assicurati che 'condizione_relaxed' sia codice SQL valido (DuckDB).
-- **QUOTING**: Usa esclusivamente apici SINGOLI per le stringhe (es: `'valore'`). 
-- **ZERO HALLUCINATION**: Non raddoppiare mai gli apici alla fine della stringa (es: NO `'valore''`). Se un valore contiene un apice (es: L'Aquila), usa il raddoppio standard SQL: `'L''Aquila'`.
-- **CHIUSURA**: Verifica sempre che ogni apice aperto sia correttamente chiuso.
-- NON usare escape eccessivi (\"). Scrivi SQL pulito dentro le stringhe JSON.
-- NON includere commenti nel JSON.
+- Sii specifico nelle ragioni del rilassamento.
 - Se una condizione non va rilassata, non includerla nell'array.
+- Segui strettamente i tipi di strategia indicati.
 ```
 
 ## relaxation_agent.user

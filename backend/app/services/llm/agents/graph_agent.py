@@ -47,6 +47,7 @@ from app.services.llm.agents.schema import (
 from app.services.llm.agents.sql_agent import SQLAgent
 from app.services.llm.agents.property_technical_agent import PropertyTechnicalAgent
 from app.services.llm.agents.ranking_agent import RankingAgent
+from app.services.llm.agents.relaxation_agent import RelaxationAgent
 from app.utils.logger import logger
 from app.utils.json_parser import safe_extract_json
 from app.services.llm.mocks import (
@@ -57,7 +58,7 @@ from app.services.llm.mocks import (
     MOCK_BROKER_SUMMARY,
 )
 from app.utils.run_json_logger import get_run_logger
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import sqlparse
 
 @dataclass
@@ -71,7 +72,9 @@ class OrchestratorResult:
     context: AgentContext
     match_count: int = 0
     broker_summary: Optional[str] = None
-    agent_trace: Optional[List[Dict[str, Any]]] = None
+    agent_trace: Optional[List[Dict[str, Any]]] = field(default_factory=list)
+    relaxation_applied: bool = False
+    relaxation_proposals: List[Any] = field(default_factory=list)
 
 
 class GraphState(TypedDict):
@@ -121,6 +124,10 @@ class GraphState(TypedDict):
     steps_state: List[Dict[str, Any]]
     last_retry_reason: Optional[str]  # Why we are retrying (error)
     use_data_knowledge: bool  # Whether to pass data distribution statistics to agents
+    use_relaxation: bool  # Whether to use query relaxation if 0 results found
+    relax_constraints: bool  # Flag indicating we are in relaxation mode
+    relaxation_applied: bool # Flag indicating if relaxation was successful
+    relaxation_proposals: List[Any] # Proposals for UI
 
 class GraphOrchestratorAgent(BaseAgent):
     """
@@ -162,6 +169,7 @@ class GraphOrchestratorAgent(BaseAgent):
         self.poi_agent = poi_agent or PoiAgent()
         self.normative_agent = normative_agent or NormativeAgent()
         self.ranking_agent = RankingAgent()
+        self.relaxation_agent = RelaxationAgent()
 
         self.workflow = self._build_graph()
 
@@ -173,6 +181,7 @@ class GraphOrchestratorAgent(BaseAgent):
         workflow.add_node("generate_sql", self._generate_sql)
         workflow.add_node("execute_sql", self._execute_sql)
         workflow.add_node("handle_retry", self._handle_retry)
+        workflow.add_node("relax_query", self._relax_query)
         workflow.add_node("fallback_results", self._fallback_results)  # NEW
         workflow.add_node("enrich_results", self._enrich_results)
         workflow.add_node("calculate_ranking_weights", self._calculate_ranking_weights)
@@ -186,6 +195,7 @@ class GraphOrchestratorAgent(BaseAgent):
         workflow.add_edge("analyze_request", "generate_sql")
         workflow.add_edge("generate_sql", "execute_sql")
         workflow.add_edge("handle_retry", "generate_sql")
+        workflow.add_edge("relax_query", "generate_sql")
 
         # Conditional edge for retry loop
         workflow.add_conditional_edges(
@@ -193,6 +203,7 @@ class GraphOrchestratorAgent(BaseAgent):
             self._check_sql_execution,
             {
                 "retry": "handle_retry",
+                "relax": "relax_query",
                 "continue": "enrich_results",
                 "fallback": "fallback_results",  # NEW: route to fallback instead of empty
             },
@@ -231,6 +242,7 @@ class GraphOrchestratorAgent(BaseAgent):
         metro_graph: Optional[Any] = None,
         disabled_agents: Optional[List[str]] = None,
         use_data_knowledge: bool = True,
+        use_relaxation: bool = True,
     ) -> OrchestratorResult:
         # Step definitions per la UI (comuni)
         step_definitions = [
@@ -313,6 +325,10 @@ class GraphOrchestratorAgent(BaseAgent):
             "sql_history": [],
             "disabled_agents": disabled_agents or [],
             "use_data_knowledge": use_data_knowledge,
+            "use_relaxation": use_relaxation,
+            "relax_constraints": False,
+            "relaxation_applied": False,
+            "relaxation_proposals": [],
         }
 
         # Safe recursion limit to handle retry loops while preventing infinite loops
@@ -377,6 +393,8 @@ class GraphOrchestratorAgent(BaseAgent):
             match_count=final_state["match_count"],
             broker_summary=final_state.get("broker_summary", ""),
             agent_trace=final_state.get("agent_trace", []),
+            relaxation_applied=final_state.get("relaxation_applied", False),
+            relaxation_proposals=final_state.get("relaxation_proposals", []),
         )
 
 
@@ -1429,6 +1447,11 @@ class GraphOrchestratorAgent(BaseAgent):
         if poi_fmt != "N/D" and "Nessun requisito" not in poi_fmt:
             all_reqs.append(poi_fmt)
 
+        # 4. Relaxation Proposals (if active)
+        if state.get("relax_constraints") and state.get("relaxation_proposals"):
+            for p in state["relaxation_proposals"]:
+                all_reqs.append(f"RELAXATION SUGGESTION for field '{p['field']}': expand from '{p['original_value']}' to '{p['proposed_value']}' because: {p['reason']}")
+
         all_requirements_str = "\n".join([f"- {r}" for r in all_reqs]) if all_reqs else "N/D"
 
         if USE_MOCK_RESPONSES:
@@ -1516,6 +1539,10 @@ class GraphOrchestratorAgent(BaseAgent):
         if state["selected_data"] is not None and not state["selected_data"].empty:
             return "continue"
 
+        # Se i risultati sono vuoti e il rilassamento è abilitato e non ancora provato
+        if state.get("use_relaxation", True) and not state.get("relax_constraints", False):
+            return "relax"
+
         return "fallback"
 
     def _should_broker_review(self, state: GraphState) -> str:
@@ -1528,6 +1555,52 @@ class GraphOrchestratorAgent(BaseAgent):
         return {
             "retry_count": state["retry_count"] + 1, 
             "last_retry_reason": "error"
+        }
+
+    def _relax_query(self, state: GraphState) -> GraphState:
+        """Propone rilassamenti ai criteri di ricerca se i risultati sono vuoti."""
+        self._update_progress(state, "sql", "Analizzo possibili rilassamenti dei criteri...")
+        
+        where_clause = state.get("where_clause", "")
+        
+        # Estrazione colonne dalla clausola WHERE per recuperare statistiche
+        import re
+        # Pattern semplice per trovare nomi di colonne seguiti da operatori SQL
+        cols = re.findall(r'([a-z0-9_]+)\s*[<>=!]+', where_clause.lower())
+        unique_cols = list(set(cols))
+        
+        stats = self._get_column_statistics(
+            columns=unique_cols,
+            dataset_path=state.get("dataset_path"),
+            dataset_df=state.get("base_dataset"),
+            db_metadata=state.get("db_metadata")
+        )
+        
+        start_t = time.time()
+        # Calcoliamo rilassamenti basati sui criteri attuali
+        result = self.relaxation_agent.run(
+            where_conditions=where_clause,
+            statistics=json.dumps(stats, ensure_ascii=False),
+            current_results_count=0
+        )
+        duration_ms = (time.time() - start_t) * 1000
+        
+        # Salviamo le proposte nello stato
+        proposals = [p.model_dump() if hasattr(p, "model_dump") else p for p in result.proposals]
+        
+        self._log_execution(state, "relaxation-agent", result, duration_ms)
+        
+        applied = len(proposals) > 0
+        if applied:
+            self._update_progress(state, "sql", f"Trovati {len(proposals)} suggerimenti di rilassamento.")
+        else:
+            self._update_progress(state, "sql", "Nessun rilassamento applicabile suggerito.")
+
+        return {
+            "relaxation_proposals": proposals,
+            "relax_constraints": True,
+            "relaxation_applied": applied,
+            "status_msg": "Rilassamento criteri attivato per mancanza di risultati."
         }
 
     def _fallback_results(self, state: GraphState) -> GraphState:

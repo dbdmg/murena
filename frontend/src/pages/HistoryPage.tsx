@@ -110,9 +110,11 @@ export const HistoryPage: React.FC = () => {
             setError(null);
             const history = await analysisApi.getHistory(500, 0);
             setAllRuns(history);
-        } catch (err) {
+        } catch (err: any) {
             console.error('Failed to fetch history:', err);
-            setError('Impossibile caricare la cronologia');
+            const status = err.response?.status;
+            const detail = err.response?.data?.detail;
+            setError(`Impossibile caricare la cronologia${status ? ` (${status})` : ''}${detail ? `: ${detail}` : ''}`);
         } finally {
             setIsLoading(false);
         }

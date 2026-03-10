@@ -338,6 +338,7 @@ export interface AnalysisHistoryItem {
     created_at: string;
     completed_at?: string;
     buildings_count?: number;
+    analysis_mode?: string;
 }
 
 // WebSocket Progress Types

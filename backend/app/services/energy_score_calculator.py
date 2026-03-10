@@ -79,6 +79,7 @@ class EnergyScoreCalculator:
         if self._loaded and self._scores_df is not None and df is None:
             return self._scores_df
 
+        is_from_file = False
         if df is None:
             logger.info(f"Loading APE data from {self.ape_data_path}")
             try:
@@ -88,6 +89,7 @@ class EnergyScoreCalculator:
                     self._loaded = True
                     return self._scores_df
                 df = pd.read_parquet(self.ape_data_path)
+                is_from_file = True
             except Exception as e:
                 logger.error(f"Failed to load APE data: {e}")
                 self._scores_df = pd.DataFrame()
@@ -140,7 +142,7 @@ class EnergyScoreCalculator:
             # Calculate cost per sqm (€/m²/year)
             df["cost_per_sqm_year"] = df["kwh_per_sqm"] * DEFAULT_KWH_COST
 
-            if df is None: # Only cache if we loaded from file
+            if is_from_file: # Only cache if we loaded from file
                 self._scores_df = df
                 self._loaded = True
 

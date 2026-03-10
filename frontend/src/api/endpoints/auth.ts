@@ -7,14 +7,16 @@ export const authApi = {
      * NOTE: Backend expects FormData (OAuth2 spec) for /login, NOT JSON
      */
     login: async (credentials: LoginRequest): Promise<AccessToken> => {
-        // Convert JSON to FormData for OAuth2PasswordRequestForm compatibility
-        const formData = new FormData();
-        formData.append('username', credentials.username);
-        formData.append('password', credentials.password);
+        // Use URLSearchParams for application/x-www-form-urlencoded, standard for OAuth2 password grant
+        const params = new URLSearchParams();
+        params.append('username', credentials.username);
+        params.append('password', credentials.password);
+        params.append('grant_type', 'password');
 
-        const response = await apiClient.post<AccessToken>('/auth/login', formData, {
+        const response = await apiClient.post<AccessToken>('/auth/login', params, {
             headers: {
-                'Content-Type': 'multipart/form-data',
+                // Ensure we override the default application/json
+                'Content-Type': 'application/x-www-form-urlencoded',
             },
         });
         return response.data;
