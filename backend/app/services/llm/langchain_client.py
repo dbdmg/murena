@@ -22,9 +22,19 @@ def _get_llm_internal(
 ):
     """Internal cached model factory to ensure unified instances."""
     
-    # Strictly OpenAI-compatible API (Standard OpenAI or OSS via custom base_url)
-    api_key = settings.OPENAI_API_KEY or os.getenv("OPENAI_API_KEY")
-    
+    # Select the correct API key based on the active endpoint.
+    # If the base URL points to the Polito instance, prefer LLM_POLITO_API_KEY.
+    is_polito = openai_api_base and "polito.it" in openai_api_base
+    if is_polito:
+        api_key = (
+            settings.LLM_POLITO_API_KEY
+            or os.getenv("LLM_POLITO_API_KEY")
+            or settings.OPENAI_API_KEY
+            or os.getenv("OPENAI_API_KEY")
+        )
+    else:
+        api_key = settings.OPENAI_API_KEY or os.getenv("OPENAI_API_KEY")
+
     if not api_key and not openai_api_base:
         raise RuntimeError(
             "OPENAI_API_KEY non configurata per utilizzare i modelli API."

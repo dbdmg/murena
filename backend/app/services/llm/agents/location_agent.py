@@ -12,6 +12,7 @@ from app.services.llm.agents.base import BaseAgent
 from app.services.llm.agents.schema import LocationAgentResult, Place, PromptRecord, LocationResponse
 
 from app.core.constants import LOCATION_AGENT_COLUMNS
+from app.data.processors import calculate_travel_times_df
 from app.services.llm.langchain_client import get_llm, invoke_with_langfuse
 from app.services.llm.prompt_loader import get_system_prompt, get_user_template
 from app.utils.decorators import handle_agent_error, log_llm_usage
