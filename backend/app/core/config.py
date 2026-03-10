@@ -73,9 +73,9 @@ class Settings(BaseSettings):
     DEFAULT_LLM_PROVIDER: str = "openai"
 
     # LLM Models
-    OPENAI_MODEL_FAST: str = "gpt-oss-120b"
-    OPENAI_MODEL_SMART: str = "gpt-oss-120b"
-    OPENAI_API_BASE: Optional[str] = "https://llm.polito.it/v1"
+    OPENAI_MODEL_FAST: str = "gpt-5-nano-2025-08-07"
+    OPENAI_MODEL_SMART: str = "gpt-5-nano-2025-08-07"
+    OPENAI_API_BASE: Optional[str] = None
     USE_MOCK_RESPONSES: bool = False
     USE_MOCK_NORMATIVE_AGENT: bool = False
 
