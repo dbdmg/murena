@@ -161,7 +161,7 @@ Riceverai:
 - Aggiungi la clausola `WHERE` SOLO se sono presenti requisiti o filtri.
 - **È TASSATIVAMENTE VIETATO** inserire clausole inutili o sempre vere come `WHERE 1=1`. Se non ci sono filtri, la query deve terminare prima della clausola WHERE.
 - NON usare `LIMIT` (salvo richiesta esplicita).
-- Ordina le condizioni dalla più "rigida" alla più "morbida" per facilitare il rilassamento.
+- Ordina le condizioni dalla più "rigida" (in alto) alla più "morbida" (in basso) per facilitare il rilassamento.
 
 4) REGOLE DI TRADUZIONE
 - **Distanza**: Se ricevi [lat, lon, radius_km] → `haversine_km(latitudine, longitudine, {lat}, {lon}) <= {radius_km}`.
@@ -559,17 +559,20 @@ SCHEMA JSON RICHIESTO:
 [
   {
     "field": "string (nome della colonna SQL)",
-    "original_value": "any (valore originale)",
-    "proposed_value": "any (nuovo valore suggerito)",
+    "condizione_iniziale": "string (la condizione SQL originale, es: 'superficie > 100')",
+    "condizione_relaxed": "string (la nuova condizione, es: 'superficie > 80')",
     "reason": "string (perché rilassare questo campo)",
-    "strategy_type": "string (una tra: 'radius_expansion', 'category_widening', 'range_increase', 'removal')"
+    "strategy_type": "string (una tra: 'radius_expansion', 'category_widening', 'range_increase', 'removal')",
+    "livello_rilassamento": "string (uno tra: 'low', 'medium', 'high')"
   }
 ]
 
 IMPORTANTE: 
+- Fornisci la stringa SQL esatta per 'condizione_relaxed' pronta per essere inserita nella WHERE.
 - Sii specifico nelle ragioni del rilassamento.
 - Se una condizione non va rilassata, non includerla nell'array.
 - Segui strettamente i tipi di strategia indicati.
+- Proponi rilassamenti con diversi livelli di impatto (low/medium/high) per la stessa colonna se possibile.
 ```
 
 ## relaxation_agent.user

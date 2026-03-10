@@ -141,10 +141,11 @@ class PoiAgentResult(AgentResult):
 
 class RelaxationProposal(BaseModel):
     field: str = Field(..., description="Nome della colonna SQL da rilassare")
-    original_value: Any = Field(..., description="Valore originale restrittivo")
-    proposed_value: Any = Field(..., description="Nuovo valore più ampio")
+    condizione_iniziale: str = Field(..., description="La stringa esatta della condizione SQL originale da sostituire")
+    condizione_relaxed: str = Field(..., description="La nuova stringa SQL rilassata da inserire al posto dell'originale")
     reason: str = Field(..., description="Spiegazione del perché rilassare questo campo")
     strategy_type: str = Field(..., description="Tipo di strategia: 'radius_expansion', 'category_widening', 'range_increase', 'removal'")
+    livello_rilassamento: str = Field(default="low", description="Livello di impatto: 'low', 'medium', 'high'")
 
 class RelaxationAgentResult(AgentResult):
     proposals: List[RelaxationProposal] = Field(default_factory=list)
