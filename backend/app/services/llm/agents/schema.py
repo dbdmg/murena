@@ -65,6 +65,11 @@ class LocationResponse(BaseModel):
     found: bool = Field(default=False, description="True se sono stati trovati riferimenti geografici")
 
 
+class SQLResponse(BaseModel):
+    sql: str = Field(..., description="Query SQL DuckDB valida (SELECT)")
+    explanation: Optional[str] = Field(None, description="Spiegazione sintetica della logica della query")
+
+
 
 
 
@@ -100,7 +105,9 @@ class LocationAgentResult(AgentResult):
     places: List[Place] = Field(default_factory=list)
 
 class PropertyTechnicalAgentResult(AgentResult): pass
-class SQLAgentResult(AgentResult): pass
+class SQLAgentResult(AgentResult):
+    sql: str = ""
+    explanation: str = ""
 class EvaluationAgentResponse(AgentResult): pass
 class RankingWeights(BaseModel):
     location: float = Field(default=0.2)

@@ -206,7 +206,7 @@ MODEL_CONCURRENCY_LIMITS = {
     "gpt-5-nano": 2,
     "gpt-oss-120b": 48,
     "vllm-gemma3-27b": 48,
-    "vllm-deepseek": 48,
+    "vllm-qwen": 48,
 }
 
 def get_model_concurrency(model_name: str, default_val: int) -> int:
@@ -1256,6 +1256,15 @@ async def run_single_model_suite(model: str, max_concurrent: int):
     prune_obsolete_results(df_bench, out_root_bench)
     prune_obsolete_results(df_sens, out_root_sens)
 
+    # Clear old execution logs to start fresh in each run
+    for d in [out_root_bench, out_root_sens]:
+        if d.exists():
+            for csv_file in d.rglob("execution.csv"):
+                try:
+                    csv_file.unlink(missing_ok=True)
+                except Exception:
+                    pass
+
     # Sync shared baselines from Master Model before starting execution wave
     await sync_shared_baselines(model, df_sens, sens_csv)
     # Reload df_sens as it might have been updated by sync_shared_baselines
@@ -1342,7 +1351,7 @@ async def conductor_main(max_concurrent: int, only_analysis: bool = False):
     await preload_data()
     data_stats = get_data_stats()
 
-    models = ["gpt-oss-120b", "vllm-gemma3-27b", "vllm-deepseek"]
+    models = ["gpt-oss-120b", "vllm-gemma3-27b", "vllm-qwen"]
     
     # 1. PREPARE SUITES (Only if not in analysis-only mode)
     bench_csv = results_path / "combinatorial_queries_suite.csv"

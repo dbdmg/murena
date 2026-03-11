@@ -1159,7 +1159,8 @@ class GraphOrchestratorAgent(BaseAgent):
                     ui_key = "ranking_init" if agent_name == "ranking" else agent_name
                     self._update_progress(state, ui_key, "", status="done")
                 except Exception as e:
-                    logger.error(f"Error executing {agent_name}: {e}")
+                    import traceback
+                    logger.error(f"Error executing {agent_name}: {e}\n{traceback.format_exc()}")
 
         # 3. Collect Results
         ranking_result = results.get("ranking")
@@ -1526,8 +1527,8 @@ class GraphOrchestratorAgent(BaseAgent):
         # Append to history
         state["sql_history"].append(sql_result.raw_text)
 
-        # sql_result.raw_text now contains the cleaned SQL
-        state["sql_query"] = sql_result.raw_text
+        # sql_result.sql now contains the cleaned SQL
+        state["sql_query"] = sql_result.sql
         key = (
             "sql_generation"
             if retry_count == 0
@@ -1536,7 +1537,7 @@ class GraphOrchestratorAgent(BaseAgent):
         state["gemini_responses"][key] = {
             "prompt": sql_result.prompt.model_dump() if sql_result.prompt else None,
             "response": sql_result.raw_text,
-            "sql_query": sql_result.raw_text,
+            "sql_query": sql_result.sql,
             "sql_history": state["sql_history"]
         }
         

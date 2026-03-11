@@ -152,20 +152,28 @@ class PropertyTechnicalAgent(BaseAgent):
                 # Usa l'utilità centralizzata per variabili continue
                 try:
                     T = float(target_val) if target_val is not None else 1.0
+                    is_numeric_req = True
                 except (ValueError, TypeError):
-                    T = 1.0
+                    # Se non è convertibile in float (es. codice_comune 'L219'), 
+                    # lo trattiamo come confronto discreto
+                    T = target_val
+                    is_numeric_req = False
 
-                if op in [">=", ">", "<=", "<"]:
+                if is_numeric_req and op in [">=", ">", "<=", "<"]:
                     exclusive = req.get("exclusive", False)
                     req_score = calculate_continuous_score(series, T, op, exclusive)
-                else: # Equality (Keep existing distance logic for now)
-                    diff = np.abs(series - T)
-                    stats = global_stats.get(col) if global_stats else None
-                    if stats and "max" in stats and "min" in stats:
-                        range_val = max(1, stats["max"] - stats["min"])
-                        req_score = (100 - (diff / range_val * 100)).clip(0, 100)
+                else: # Equality or Non-numeric
+                    if is_numeric_req:
+                        diff = np.abs(series - T)
+                        stats = global_stats.get(col) if global_stats else None
+                        if stats and "max" in stats and "min" in stats:
+                            range_val = max(1, stats["max"] - stats["min"])
+                            req_score = (100 - (diff / range_val * 100)).clip(0, 100)
+                        else:
+                            req_score = (series == T).astype(float) * 100
                     else:
-                        req_score = (series == T).astype(float) * 100
+                        # Confronto discreto per stringhe (es: codice_comune)
+                        req_score = (df_ranked[col].astype(str) == str(T)).astype(float) * 100
                 
                 col_name = f"property_technical_score_{col}"
                 # Handle duplicate names if multiple requirements exist for the same column

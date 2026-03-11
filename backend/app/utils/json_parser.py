@@ -27,6 +27,9 @@ def safe_extract_json(text: str, schema: Optional[Type[T]] = None) -> Any:
 
     cleaned_text = text.strip()
 
+    # 0. Rimuovi blocchi di ragionamento <think>...</think> (DeepSeek-R1)
+    cleaned_text = re.sub(r"<think>.*?</think>", "", cleaned_text, flags=re.DOTALL).strip()
+
     # 1. Rimuovi blocchi markdown ```json ... ```
     if "```" in cleaned_text:
         # Cerca pattern ```json ... ``` o solo ``` ... ```

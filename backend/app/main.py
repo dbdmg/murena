@@ -138,7 +138,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=f"Avvia il server {settings.APP_NAME}")
     parser.add_argument(
         "--model", 
-        choices=["gpt-oss-120b", "deepseek-r1-8b", "vllm-gemma3-27b", "vllm-deepseek", "gpt-5-nano"], 
+        choices=["gpt-oss-120b", "deepseek-r1-8b", "vllm-gemma3-27b", "vllm-qwen", "gpt-5-nano"], 
         help="Scegli il sapore del modello LLM da utilizzare"
     )
     

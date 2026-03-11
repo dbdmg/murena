@@ -96,8 +96,8 @@ Il tuo compito è estrarre dalla query dell'utente TUTTI i riferimenti geografic
 1. **Identificazione**: Identifica OGNI luogo menzionato esplicitamente o implicitamente.
 2. **Landmark e Monumenti**: Estrai SEMPRE nomi di palazzi, piazze, monumenti o punti di riferimento (es: "Palazzo Nuovo", "Mole Antonelliana"). Questi sono riferimenti geografici validi anche se non sono indirizzi stradali.
 3. **Soggetto vs Luogo**: NON estrarre il soggetto della ricerca come se fosse un luogo. 
-   - Se l'utente dice "Cerca un edificio vicino a Palazzo Nuovo", il luogo è "Palazzo Nuovo". L'"edificio" è l'oggetto cercato, NON farne parte del nome del luogo.
-4. **Parametri**: Per ogni luogo, estrai: nome, città (se presente), coordinate (se note), raggio di ricerca in km (`radius_km`).
+   - Se l'utente dice "Cerca un edificio vicino a Palazzo Nuovo", il luogo è "Palazzo Nuovo". L'"edificio" è l'oggetto cercato, NON farne parte del nome4. **Parametri**: Per ogni luogo, estrai: nome, città (se presente), coordinate (se note), raggio di ricerca in km (`radius_km`).
+   - Se NON conosci la latitudine o longitudine, usa `null`. NON inserire stringhe vuote o placeholder.
 5. **Distanza**: Se l'utente specifica una distanza (es. "entro 1km", "nel raggio di 500m"), convertila in km. Se NON specifica una distanza, usa 3.0 km come default per `radius_km`.
 6. **Precisione**: Arrotonda sempre `radius_km` alla SECONDA cifra decimale.
 7. **Autonomia**: Valuta autonomamente se la query contiene riferimenti geografici. Se non ne trovi, restituisci `"found": false` e una lista `"places"` vuota.
@@ -106,14 +106,14 @@ Il tuo compito è estrarre dalla query dell'utente TUTTI i riferimenti geografic
 # COLONNE DI RIFERIMENTO (Per contesto)
 {reference_columns}
 
-# OUTPUT
-Restituisci ESCLUSIVAMENTE un JSON valido:
+# OUTPUT (OBBLIGATORIO)
+Restituisci ESCLUSIVAMENTE un JSON valido. NON inserire ragionamenti (thinking) o testo fuori dal JSON.
 {
-  "found": true/false,
+  "found": true,
   "places": [
     {
       "name": "Nome Luogo", 
-      "city": "Città (Sempre popola se deducibile)", 
+      "city": "Torino", 
       "lat": 45.07, 
       "lon": 7.68, 
       "radius_km": 3.0
@@ -121,8 +121,6 @@ Restituisci ESCLUSIVAMENTE un JSON valido:
   ]
 }
 ```
-
-
 
 ## location_agent.user
 ```prompt
@@ -171,8 +169,16 @@ Riceverai:
 - Se è presente una location (lat/lon): `ORDER BY haversine_km(latitudine, longitudine, {lat}, {lon}) ASC`
 - Altrimenti: `ORDER BY id ASC`
 
-# OUTPUT
-Restituisci ESCLUSIVAMENTE la query SQL valida.
+# OUTPUT (OBBLIGATORIO)
+Restituisci ESCLUSIVAMENTE un blocco JSON valido. 
+NON inserire ragionamenti (thinking), NON inserire prefissi, NON inserire spiegazioni testuali fuori dal JSON.
+Il tuo output deve iniziare con `{` e finire con `}`.
+
+Esempio:
+{
+  "sql": "SELECT * FROM IMMOBILI WHERE ...",
+  "explanation": "Spiegazione sintetica della logica della query"
+}
 ```
 
 ## sql_agent.user

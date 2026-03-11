@@ -1,13 +1,16 @@
 from typing import Any, Optional, List, Dict
+import json
 
 from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.output_parsers import StrOutputParser
 
 from app.core.config import settings, AGENT_MODELS
 from app.services.llm.agents.base import BaseAgent
-from app.services.llm.agents.schema import PromptRecord, SQLAgentResult
-from app.services.llm.langchain_client import get_llm, invoke_with_langfuse
+from app.services.llm.agents.schema import PromptRecord, SQLAgentResult, SQLResponse
+from app.services.llm.langchain_client import get_llm, invoke_with_langfuse, is_oss_model
 from app.services.llm.prompt_loader import get_system_prompt, get_user_template
 from app.utils.decorators import log_llm_usage
+from app.utils.json_parser import safe_extract_json
 
 import re
 import sqlglot
@@ -17,6 +20,9 @@ def _clean_sql(text: str) -> str:
     Pulisce la stringa SQL da markdown, commenti e testo addizionale.
     Estrae solo la prima query SELECT valida se presente.
     """
+    # Rimuove blocchi di ragionamento <think> (DeepSeek-R1)
+    text = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL).strip()
+    
     # Rimuove blocchi di codice markdown
     text = re.sub(r'```sql\s*', '', text, flags=re.IGNORECASE)
     text = re.sub(r'```\s*', '', text)
@@ -87,9 +93,17 @@ class SQLAgent(BaseAgent):
             "sql_agent", key="retry_user"
         )
 
+        self.is_oss = is_oss_model(resolved_model)
+        
+        # Detect if we should use structured output
+        if hasattr(self.llm, "with_structured_output") and not self.is_oss:
+            self.structured_llm = self.llm.with_structured_output(SQLResponse, method="function_calling")
+        else:
+            self.structured_llm = None
+
     def _invoke(
         self, system: str, user_template: str, variables: dict, is_retry: bool = False
-    ) -> tuple[str, PromptRecord]:
+    ) -> tuple[str, str, str, PromptRecord]:
         user_text = self.render_template(user_template, **variables).strip()
         full_text = f"[SYSTEM]\n{system}\n\n[USER]\n{user_text}"
 
@@ -99,18 +113,67 @@ class SQLAgent(BaseAgent):
                 ("user", "{user_content}"),
             ]
         )
-        chain = prompt | self.llm
-        response = invoke_with_langfuse(
-            chain, {"system_content": system, "user_content": user_text}
-        )
-        raw_text = getattr(response, "content", str(response))
+        
+        # Initial values
+        final_sql = ""
+        explanation = ""
+        raw_text = ""
+        
+        # Try structured output first if enabled
+        if self.structured_llm:
+            try:
+                chain = prompt | self.structured_llm
+                response = invoke_with_langfuse(
+                    chain, {"system_content": system, "user_content": user_text}
+                )
+                if isinstance(response, SQLResponse):
+                    prompt_record = PromptRecord(
+                        system=system.strip(),
+                        user=user_text,
+                        full_text=full_text,
+                    )
+                    return response.sql, response.explanation or "", response.model_dump_json(), prompt_record
+                raw_text = str(response)
+            except Exception:
+                # Fallback to raw chain
+                chain = prompt | self.llm | StrOutputParser()
+                raw_text = invoke_with_langfuse(
+                    chain, {"system_content": system, "user_content": user_text}
+                )
+        else:
+            chain = prompt | self.llm | StrOutputParser()
+            raw_text = invoke_with_langfuse(
+                chain, {"system_content": system, "user_content": user_text}
+            )
+
+        # Post-process for JSON if it's a string (forced extraction)
+        # We try to extract JSON before cleaning SQL via regex
+        extracted = safe_extract_json(raw_text, schema=SQLResponse)
+        if extracted and isinstance(extracted, SQLResponse):
+            final_sql = extracted.sql
+            explanation = extracted.explanation or ""
+        elif isinstance(extracted, dict) and "sql" in extracted:
+            final_sql = extracted["sql"]
+            explanation = extracted.get("explanation", "")
+        else:
+            # Last resort: existing regex cleaning if JSON extraction failed
+            final_sql = _clean_sql(raw_text)
+            # If we used regex cleaning, we might be able to extract explanation too
+            if not explanation and "spiegazione" in raw_text.lower():
+                 expl_match = re.search(r"(?:spiegazione|explanation):\s*(.*)", raw_text, re.IGNORECASE | re.DOTALL)
+                 if expl_match:
+                     explanation = expl_match.group(1).strip()
+
+        # Reconstruct clean JSON for raw_text if we have structured data
+        if final_sql:
+            raw_text = json.dumps({"sql": final_sql, "explanation": explanation}, ensure_ascii=False, indent=2)
 
         prompt_record = PromptRecord(
             system=system.strip(),
             user=user_text,
             full_text=full_text,
         )
-        return raw_text, prompt_record
+        return final_sql, explanation, raw_text, prompt_record
 
     @log_llm_usage
     def run(
@@ -174,10 +237,9 @@ class SQLAgent(BaseAgent):
                 )
             )
 
-        raw_text, prompt_record = self._invoke(
+        sql, explanation, raw_text, prompt_record = self._invoke(
             system, user_template, variables, is_retry
         )
-        sql = _clean_sql(raw_text)
 
         # Fix common SQL syntax errors from LLM
         # 1. Fix single quote escaping: replace \' with ''
@@ -190,6 +252,8 @@ class SQLAgent(BaseAgent):
             pass
 
         return SQLAgentResult(
-            raw_text=sql,
+            raw_text=raw_text,
+            sql=sql,
+            explanation=explanation,
             prompt=prompt_record,
         )

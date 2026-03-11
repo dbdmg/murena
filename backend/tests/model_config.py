@@ -82,9 +82,9 @@ MODEL_OPTIONS: dict[str, ModelConfig] = {
         "provider": "vllm",
         "supports_structured_output": False,
     },
-    "vllm-deepseek": {
+    "vllm-qwen": {
         "backend": "vllm host",
-        "model": "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B",
+        "model": "Qwen/Qwen3-8B",
         "api_base": "http://localhost:8001/v1",
         "api_key": "vllm",
         "provider": "vllm",

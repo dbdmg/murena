@@ -109,16 +109,21 @@ class LocationAgent(BaseAgent):
 
         # 1. First attempt: Structured output
         loc_data: Optional[LocationResponse] = None
-        try:
-            loc_data = invoke_with_langfuse(
-                self.chain,
-                {
-                    "system_content": rendered_system_prompt,
-                    "user_content": user_text
-                },
-            )
-        except Exception as e:
-            logger.warning(f"Structured invocation failed for {self.name}, falling back to raw: {e}")
+        raw_response = ""
+        
+        if self.chain:
+            try:
+                loc_data = invoke_with_langfuse(
+                    self.chain,
+                    {
+                        "system_content": rendered_system_prompt,
+                        "user_content": user_text
+                    },
+                )
+                if isinstance(loc_data, LocationResponse):
+                    raw_response = loc_data.model_dump_json()
+            except Exception as e:
+                logger.warning(f"Structured invocation failed for {self.name}, falling back to raw: {e}")
 
         # 2. Second attempt / Fallback: Raw text + safe_extract_json
         if not loc_data or not loc_data.places:
@@ -131,35 +136,45 @@ class LocationAgent(BaseAgent):
                     },
                 )
                 
-                # 1. Try with schema validation
+                # Try with schema validation
                 loc_data = safe_extract_json(raw_response, schema=LocationResponse)
                 
-                # 2. If schema fails but we have a raw dict, try manual recovery
+                # If schema fails but we have a raw dict, try manual recovery
                 if not loc_data:
                     raw_dict = safe_extract_json(raw_response)
                     if isinstance(raw_dict, dict):
-                        found_flag = raw_dict.get("found", False)
                         raw_places = raw_dict.get("places") or raw_dict.get("luoghi") or []
                         
                         extracted_places = []
                         if isinstance(raw_places, list):
                             for p in raw_places:
-                                if isinstance(p, dict) and (p.get("name") or p.get("nome")):
+                                if not isinstance(p, dict): continue
+                                name = p.get("name") or p.get("nome")
+                                if name:
                                     try:
-                                         # Default radius if missing
+                                        # Radius
                                         r_val = p.get("radius_km") or p.get("raggio_km")
-                                        radius = float(r_val) if r_val is not None else 3.0
+                                        radius = float(r_val) if r_val is not None and str(r_val).strip() != "" else 3.0
+                                        
+                                        # Lat/Lon - Ensure they are numeric or None
+                                        lat_val = p.get("lat") or p.get("latitudine")
+                                        lon_val = p.get("lon") or p.get("longitudine")
+                                        
+                                        lat = float(lat_val) if lat_val is not None and str(lat_val).strip() != "" else None
+                                        lon = float(lon_val) if lon_val is not None and str(lon_val).strip() != "" else None
                                         
                                         extracted_places.append(Place(
-                                            name=p.get("name") or p.get("nome"),
-                                            city=p.get("city") or p.get("citta") or p.get("città"),
+                                            name=name,
+                                            city=p.get("city") or p.get("citta") or p.get("città") or "",
+                                            lat=lat,
+                                            lon=lon,
                                             radius_km=radius
                                         ))
                                     except Exception:
                                         continue
                         
                         if extracted_places:
-                            loc_data = LocationResponse(places=extracted_places, found=len(extracted_places) > 0)
+                            loc_data = LocationResponse(places=extracted_places, found=True)
             except Exception as e:
                 logger.error(f"Fallback invocation failed for {self.name}: {e}")
 
