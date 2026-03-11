@@ -18,22 +18,26 @@ def _get_llm_internal(
     temperature: float, 
     oss_device: str, 
     oss_max_tokens: int,
-    openai_api_base: Optional[str]
+    openai_api_base: Optional[str],
+    openai_api_key: Optional[str] = None
 ):
     """Internal cached model factory to ensure unified instances."""
     
-    # Select the correct API key based on the active endpoint.
-    # If the base URL points to the Polito instance, prefer LLM_POLITO_API_KEY.
-    is_polito = openai_api_base and "polito.it" in openai_api_base
-    if is_polito:
-        api_key = (
-            settings.LLM_POLITO_API_KEY
-            or os.getenv("LLM_POLITO_API_KEY")
-            or settings.OPENAI_API_KEY
-            or os.getenv("OPENAI_API_KEY")
-        )
+    # Select the correct API key based on override or active endpoint.
+    if openai_api_key:
+        api_key = openai_api_key
     else:
-        api_key = settings.OPENAI_API_KEY or os.getenv("OPENAI_API_KEY")
+        # If the base URL points to the Polito instance, prefer LLM_POLITO_API_KEY.
+        is_polito = openai_api_base and "polito.it" in openai_api_base
+        if is_polito:
+            api_key = (
+                settings.LLM_POLITO_API_KEY
+                or os.getenv("LLM_POLITO_API_KEY")
+                or settings.OPENAI_API_KEY
+                or os.getenv("OPENAI_API_KEY")
+            )
+        else:
+            api_key = settings.OPENAI_API_KEY or os.getenv("OPENAI_API_KEY")
 
     if not api_key and not openai_api_base:
         raise RuntimeError(
@@ -60,13 +64,20 @@ def _get_llm_internal(
 
 
 
-def get_llm(model_name: Optional[str] = None, temperature: Optional[float] = None):
+def get_llm(
+    model_name: Optional[str] = None, 
+    temperature: Optional[float] = None,
+    api_base: Optional[str] = None,
+    api_key: Optional[str] = None
+):
     """Restituisce un'istanza Chat LLM tramite LangChain.
     Usa una cache interna per evitare di caricare lo stesso modello più volte.
 
     Args:
         model_name: override esplicito del modello da usare (es. 'gpt-4o', 'nvidia/Llama-3_3-Nemotron-Super-49B-v1').
         temperature: override della temperatura del modello (default: settings.AGENT_TEMPERATURE).
+        api_base: override dell'URL base dell'API (es. per vLLM).
+        api_key: override della chiave API.
     """
     # Determina il modello di default dinamicamente dalle impostazioni globali
     if not model_name:
@@ -88,15 +99,14 @@ def get_llm(model_name: Optional[str] = None, temperature: Optional[float] = Non
         except ValueError:
             resolved_temperature = 0.0
 
-    # Deleghiamo alla funzione cacheata internamente passando parametri normalizzati.
-    # Questo evita il ricaricamento del modello se un agente passa temperature=None
-    # e un altro passa temperature=0.0 (che risolvono allo stesso valore).
+    # Pass along overrides to the internal factory.
     return _get_llm_internal(
         model_name=resolved_model,
         temperature=resolved_temperature,
         oss_device=settings.OSS_DEVICE,
         oss_max_tokens=settings.OSS_MAX_TOKENS,
-        openai_api_base=settings.OPENAI_API_BASE
+        openai_api_base=api_base or settings.OPENAI_API_BASE,
+        openai_api_key=api_key
     )
 
 

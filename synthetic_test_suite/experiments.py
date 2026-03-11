@@ -204,8 +204,8 @@ MODEL_CONCURRENCY_LIMITS = {
     "gpt-5.4": 2,
     "gpt-5-nano": 2,
     "gpt-oss-120b": 48,
-    "ollama-gemma3-27b": 2,
-    "ollama-deepseek-r1-8b": 2,
+    "vllm-gemma3-27b": 48,
+    "vllm-deepseek": 48,
 }
 
 def get_model_concurrency(model_name: str, default_val: int) -> int:
@@ -1271,7 +1271,7 @@ async def conductor_main(max_concurrent: int, only_analysis: bool = False):
     await preload_data()
     data_stats = get_data_stats()
 
-    models = ["gpt-oss-120b", "ollama-gemma3-27b", "ollama-deepseek-r1-8b"]
+    models = ["gpt-oss-120b", "vllm-gemma3-27b", "vllm-deepseek"]
     
     # 1. PREPARE SUITES (Only if not in analysis-only mode)
     bench_csv = results_path / "combinatorial_queries_suite.csv"

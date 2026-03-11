@@ -19,10 +19,11 @@ import {
     History,
     Settings,
     Info,
-    Zap,
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { AboutModal } from '../AboutModal';
+
+import murenaLogo40 from '../../assets/brand/MURENA_40x40px.svg';
 
 interface AppLayoutProps {
     children: ReactNode;
@@ -61,8 +62,8 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
                 {/* Logo Section */}
                 <div className="p-4 border-b border-white/5">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-linear-to-br from-blue-500 to-cyan-400 flex items-center justify-center shadow-lg shadow-blue-500/30 shrink-0">
-                            <Zap className="w-5 h-5 text-white" />
+                        <div className="w-10 h-10 flex items-center justify-center shrink-0">
+                            <img src={murenaLogo40} alt="Murena" className="w-10 h-10" />
                         </div>
                         <AnimatePresence>
                             {isExpanded && (

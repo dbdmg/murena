@@ -21,7 +21,7 @@ class ModelConfig(TypedDict):
     model: str
     api_base: Optional[str]
     api_key: Optional[str]
-    provider: str  # "openai" | "llm_polito" | "ollama"
+    provider: str  # "openai" | "llm_polito" | "ollama" | "vllm"
     supports_structured_output: bool  # whether the model reliably handles function_calling / json_mode
 
 
@@ -73,6 +73,22 @@ MODEL_OPTIONS: dict[str, ModelConfig] = {
         "api_key": "ollama",  # required placeholder for the OpenAI-compat API
         "provider": "ollama",
         "supports_structured_output": False,
+    },
+    "vllm-gemma3-27b": {
+        "backend": "vllm host",
+        "model": "google/gemma-3-27b-it",
+        "api_base": "http://localhost:8000/v1",
+        "api_key": "vllm",
+        "provider": "vllm",
+        "supports_structured_output": True,
+    },
+    "vllm-deepseek": {
+        "backend": "vllm host",
+        "model": "deepseek-ai/DeepSeek-R1-Distill-Llama-70B",
+        "api_base": "http://localhost:8001/v1",
+        "api_key": "vllm",
+        "provider": "vllm",
+        "supports_structured_output": True,
     },
 }
 

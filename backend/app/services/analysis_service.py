@@ -111,6 +111,7 @@ class AnalysisService:
         use_data_knowledge: bool = True,
         use_relaxation: bool = True,
         architecture: str = "multiagent",
+        model_type: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Run a complete real estate analysis.
@@ -154,8 +155,8 @@ class AnalysisService:
                 )
                 dataset_path = settings.dataset_options.get(dataset_key)
 
-            # Initialize agent
-            agent = self._init_graph_agent()
+            # Initialize agent (force re-init if model_type is explicitly provided)
+            agent = self._init_graph_agent(force=(model_type is not None))
 
             # Prepare database schema (simplified for now)
             db_schema = {

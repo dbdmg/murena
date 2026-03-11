@@ -80,12 +80,22 @@ class Settings(BaseSettings):
     USE_MOCK_NORMATIVE_AGENT: bool = False
 
     def set_llm_model(self, model_type: str):
-        """Sets the LLM model to either 'gpt-oss-120b', 'deepseek-r1-8b', or 'gpt-5-nano'."""
+        """Sets the LLM model configuration."""
         if model_type in ["gpt-oss-120b", "deepseek-r1-8b"]:
             self.OPENAI_MODEL_FAST = model_type
             self.OPENAI_MODEL_SMART = model_type
             self.OPENAI_API_BASE = "https://llm.polito.it/v1"
             self.OPENAI_API_KEY = self.LLM_POLITO_API_KEY
+        elif model_type == "vllm-gemma3-27b":
+            self.OPENAI_MODEL_FAST = "google/gemma-3-27b-it"
+            self.OPENAI_MODEL_SMART = "google/gemma-3-27b-it"
+            self.OPENAI_API_BASE = "http://localhost:8000/v1"
+            self.OPENAI_API_KEY = "vllm"
+        elif model_type == "vllm-deepseek":
+            self.OPENAI_MODEL_FAST = "deepseek-ai/DeepSeek-R1-Distill-Llama-70B"
+            self.OPENAI_MODEL_SMART = "deepseek-ai/DeepSeek-R1-Distill-Llama-70B"
+            self.OPENAI_API_BASE = "http://localhost:8001/v1"
+            self.OPENAI_API_KEY = "vllm"
         elif model_type == "gpt-5-nano":
             self.OPENAI_MODEL_FAST = "gpt-5-nano-2025-08-07"
             self.OPENAI_MODEL_SMART = "gpt-5-mini-2025-08-07"

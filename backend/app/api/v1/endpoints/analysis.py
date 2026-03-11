@@ -690,6 +690,11 @@ async def start_analysis(
             detail=f"Invalid dataset_key. Must be one of: {valid_datasets}",
         )
 
+    # Apply model configuration if specified
+    if request.model_type:
+        settings.set_llm_model(request.model_type)
+        logger.info(f"Using model configuration: {request.model_type}")
+
     # Create run record (status=processing)
     RunRepository(db).create_run(
         run_id=run_id,
@@ -720,6 +725,7 @@ async def start_analysis(
                 llm_limit=request.llm_limit,
                 analysis_mode=request.analysis_mode,
                 use_relaxation=request.use_relaxation,
+                model_type=request.model_type,
             )
 
             # Defensive: ensure we don't persist unserializable scientific types.

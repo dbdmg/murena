@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { CheckSquare, Lock, User as UserIcon, AlertCircle, ArrowRight } from 'lucide-react';
+import { Lock, User as UserIcon, AlertCircle, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 import googleIcon from '../assets/icons/icons8-google-48.png';
 import microsoftIcon from '../assets/icons/icons8-microsoft-48.png';
+import murenaLogo from '../assets/brand/MURENA_56x56px.svg';
 
 export const LoginPage: React.FC = () => {
     const { login } = useAuth();
@@ -62,9 +63,9 @@ export const LoginPage: React.FC = () => {
 
                     {/* Header */}
                     <div className="text-center mb-10">
-                        {/* Icon - CheckSquare like in the image */}
-                        <div className="inline-flex items-center justify-center w-14 h-14 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 mb-5 shadow-lg shadow-cyan-900/30">
-                            <CheckSquare className="w-7 h-7" />
+                        {/* Logo */}
+                        <div className="flex justify-center mb-5">
+                            <img src={murenaLogo} alt="Murena" className="w-14 h-14" />
                         </div>
                         <h1 className="text-3xl font-bold text-white tracking-tight">
                             Bentornato

@@ -31,6 +31,9 @@ class AnalysisRequest(BaseModel):
     use_relaxation: bool = Field(
         default=True, description="Whether to use query relaxation if 0 results found"
     )
+    model_type: Optional[str] = Field(
+        default=None, description="LLM model type to use (e.g. 'vllm-gemma3-27b', 'vllm-deepseek')"
+    )
 
     model_config = ConfigDict(
         json_schema_extra={

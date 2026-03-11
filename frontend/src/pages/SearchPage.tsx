@@ -35,6 +35,8 @@ const SUGGESTED_QUERIES = [
     'Negozi in centro città adatti a ristorante',
 ];
 
+import murenaLogo217 from '../assets/brand/MURENA_217x34px.svg';
+
 export const SearchPage: React.FC = () => {
     const navigate = useNavigate();
     const { demoMode, setDemoMode, llmLimit, markersLimit } = useSettings();
@@ -141,19 +143,14 @@ export const SearchPage: React.FC = () => {
 
             {/* Main Content */}
             <div className="w-full max-w-3xl mx-auto relative z-10">
-                {/* Neural Engine Badge */}
+                
+                {/* Logo Murena */}
                 <motion.div
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1 }}
-                    className="flex justify-center mb-8"
+                    className="flex justify-center mb-6"
                 >
-                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/20">
-                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                        <span className="text-xs font-medium text-emerald-400 tracking-wider uppercase">
-                            Motore Neurale Pronto
-                        </span>
-                    </div>
+                    <img src={murenaLogo217} alt="Murena" className="w-[217px] h-[34px]" />
                 </motion.div>
 
                 {/* Main Heading */}
