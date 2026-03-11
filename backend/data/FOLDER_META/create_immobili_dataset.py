@@ -945,12 +945,6 @@ if __name__ == "__main__":
                             continue
                     all_xml_files = sorted(list(set(all_xml_files)))
                     
-                    # Ranking classi energetiche per trovare la migliore (più alta)
-                    classe_rank = {'A4':10, 'A3':9, 'A2':8, 'A1':7, 'A':6, 'B':5, 'C':4, 'D':3, 'E':2, 'F':1, 'G':0}
-                    def get_best_classe(series):
-                        valid = [c for c in series if isinstance(c, str) and c.upper() in classe_rank]
-                        if not valid: return series.mode().iloc[0] if not series.mode().empty else None
-                        return max(valid, key=lambda x: classe_rank[x.upper()])
 
                     meta_row = {
                         'foglio': foglio,
@@ -972,14 +966,20 @@ if __name__ == "__main__":
                     m_epoca = group['epoca_costruzione'].mode()
                     meta_row['epoca_costruzione'] = m_epoca.iloc[0] if not m_epoca.empty else None
 
-                    # 2. Classe energetica migliore (più alta)
-                    if 'classe_energetica_ape' in group.columns:
-                        meta_row['classe_energetica_ape'] = get_best_classe(group['classe_energetica_ape'])
+                    # 2. Classe energetica più rappresentata per somma superfici
+                    surf_by_classe = group.groupby('classe_energetica_ape')['superficie_di_riferimento_mq'].sum()
+                    if not surf_by_classe.empty:
+                        meta_row['classe_energetica_ape'] = surf_by_classe.idxmax()
+                    else:
+                        meta_row['classe_energetica_ape'] = None
 
-                    # 3. Score energetici: i massimi nel gruppo (escluso il totale)
-                    score_cols = [c for c in group.columns if 'score' in c and c != 'ape_score_total']
+                    # 3. Score energetici: i massimi nel gruppo (escluso il totale e la classe che ricalcoliamo)
+                    score_cols = [c for c in group.columns if 'score' in c and c not in ['ape_score_total', 'ape_score_classe']]
                     for col in score_cols:
                         meta_row[col] = group[col].max()
+                    
+                    # Ricalcolo score classe basato sulla classe scelta
+                    meta_row['ape_score_classe'] = map_classe_score(meta_row['classe_energetica_ape'])
                     
                     # Recalculate total as sum of individual scores
                     meta_row['ape_score_total'] = (

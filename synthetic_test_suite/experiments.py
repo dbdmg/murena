@@ -326,20 +326,51 @@ def calculate_sql_iou(sql_a, sql_b, file_a="N/A", file_b="N/A"):
     return iou
 
 def check_sql_ood(sql, data_stats):
+    """Detects values outside the real data distribution and calculates normalization distance."""
     if not sql or not HAS_SQLGLOT: return []
-    ood = []
+    results = []
     try:
         parsed = sqlglot.parse_one(sql)
-        for condition in parsed.find_all(exp.Binary):
-            col = condition.left.name.upper() if isinstance(condition.left, exp.Column) else None
-            try:
-                val = float(condition.right.this) if isinstance(condition.right, exp.Literal) and condition.right.is_number else None
-                if col in data_stats and val is not None:
-                    if val < data_stats[col]["min"] or val > data_stats[col]["max"]:
-                        ood.append(f"{col}({val})")
-            except: pass
+        # Handle Binary (>, <, =) and Between/In
+        for condition in parsed.find_all((exp.Binary, exp.Between, exp.In)):
+            col_node = condition.left if hasattr(condition, 'left') else (condition.this if hasattr(condition, 'this') else None)
+            if not isinstance(col_node, exp.Column): continue
+            col = col_node.name.upper()
+            if col not in data_stats: continue
+            
+            stats_data = data_stats[col]
+            rng = max(stats_data["max"] - stats_data["min"], 1.0)
+            
+            # Extract values to check
+            vals = []
+            if isinstance(condition, exp.Binary):
+                if isinstance(condition.right, exp.Literal) and condition.right.is_number:
+                    vals.append(float(condition.right.this))
+            elif isinstance(condition, exp.Between):
+                if condition.args.get('low') and condition.args['low'].is_number:
+                    vals.append(float(condition.args['low'].this))
+                if condition.args.get('high') and condition.args['high'].is_number:
+                    vals.append(float(condition.args['high'].this))
+            elif isinstance(condition, exp.In):
+                for v in condition.args.get('expressions', []):
+                    if v.is_number: vals.append(float(v.this))
+
+            for v in vals:
+                dist = 0.0
+                if v < stats_data["min"]:
+                    dist = (stats_data["min"] - v) / rng
+                elif v > stats_data["max"]:
+                    dist = (v - stats_data["max"]) / rng
+                
+                # Tightness: where is the value placed in the 0-1 range of real data
+                # Can be < 0 or > 1 if OOD
+                tightness = (v - stats_data["min"]) / rng
+                
+                results.append({
+                    "col": col, "val": v, "dist": dist, "tightness": tightness, "is_ood": dist > 0
+                })
     except: pass
-    return ood
+    return results
 
 # --- 3. EXECUTION DISPATCHERS ---
 
@@ -378,7 +409,7 @@ async def run_query(query, architecture="multiagent", disabled=None, use_knowled
                     if original_weights: break
 
         # 2. Identify contributing agents (for 3a)
-        contributing_agents = []
+        discovered_agents = []
         ranking_keys = ["location", "normative", "ape", "property_technical", "poi"]
         
         # Clean up trace and identify contributors
@@ -420,13 +451,13 @@ async def run_query(query, architecture="multiagent", disabled=None, use_knowled
                         # but for now we keep the previous string-based check as fallback
                         has_found = True
                     
-                    if has_found and agent_key not in contributing_agents:
-                        contributing_agents.append(agent_key)
+                    if has_found and agent_key not in discovered_agents:
+                        discovered_agents.append(agent_key)
 
         # 3. Calculate effective weights (normalized based on active contributors)
         # A contributing agent MUST have weight > 0 AND have found something
         eff_weights = {}
-        active_f = [a for a in contributing_agents if a in original_weights and original_weights.get(a, 0) > 0]
+        active_f = [a for a in discovered_agents if a in original_weights and original_weights.get(a, 0) > 0]
         s_w = sum(original_weights.get(a, 0) for a in active_f)
         if s_w > 0:
             eff_weights = {a: round(original_weights[a]/s_w, 2) for a in active_f}
@@ -455,8 +486,10 @@ async def run_query(query, architecture="multiagent", disabled=None, use_knowled
             "ranking_logic": {
                 "original_weights": original_weights,
                 "effective_weights": eff_weights,
-                "contributing_agents": final_contributors
+                "contributing_agents": final_contributors,
+                "discovered_agents": discovered_agents
             },
+            "agent_trace": cleaned_trace,
             "evaluations": evaluations
         }
         
@@ -614,23 +647,43 @@ def analyze_ranking_impact(multiagent_dir, no_ranking_dir):
 
 def analyze_knowledge_impact(multiagent_dir, no_knowledge_dir, data_stats):
     vlog.log("KNOW_IMPACT", f"Analyzing knowledge impact: {multiagent_dir.absolute()} vs {no_knowledge_dir.absolute()}")
-    ious, ood_w, ood_wo, total = [], 0, 0, 0
+    ious, total = [], 0
+    ood_stats = {"with": [], "without": []}
+    
     ma_files = {f.name: f for f in multiagent_dir.glob("query_*.json") if "_tr" not in f.name}
     nk_files = {f.name: f for f in no_knowledge_dir.glob("query_*.json")}
-    for name, f_ma in ma_files.items():
+    
+    all_names = set(ma_files.keys()).union(nk_files.keys())
+    for name in all_names:
+        total += 1
+        d_ma, d_nk = {}, {}
+        if name in ma_files:
+            with open(ma_files[name]) as f: d_ma = json.load(f)
         if name in nk_files:
-            total += 1
-            f_nk = nk_files[name]
-            with open(f_ma) as fa, open(f_nk) as fb:
-                da, db = json.load(fa), json.load(fb)
-                iou = calculate_iou([str(r['id']) for r in da.get('ranking', [])], [str(r['id']) for r in db.get('ranking', [])])
-                ious.append(iou)
-                ood_a = check_sql_ood(da.get("final_sql", ""), data_stats)
-                ood_b = check_sql_ood(db.get("final_sql", ""), data_stats)
-                if ood_a: ood_w += 1
-                if ood_b: ood_wo += 1
-                vlog.log("KNOW_IMPACT", f"  File: {name} | Rank IoU: {iou:.3f} | OOD A: {bool(ood_a)} | OOD B: {bool(ood_b)} | Files: {f_ma.absolute()} vs {f_nk.absolute()}")
-    return {"mean_ranking_iou": round(np.mean(ious), 3) if ious else 1.0, "ood_rate_with": round(ood_w/total, 3) if total else 0, "ood_rate_without": round(ood_wo/total, 3) if total else 0}
+            with open(nk_files[name]) as f: d_nk = json.load(f)
+            
+        if d_ma and d_nk:
+            ious.append(calculate_iou([str(r['id']) for r in d_ma.get('ranking', [])], [str(r['id']) for r in d_nk.get('ranking', [])]))
+        
+        if d_ma: ood_stats["with"].extend(check_sql_ood(d_ma.get("final_sql", ""), data_stats))
+        if d_nk: ood_stats["without"].extend(check_sql_ood(d_nk.get("final_sql", ""), data_stats))
+
+    def get_metrics(entries):
+        if not entries: return {"rate": 0, "severity": 0, "tightness": 0}
+        oods = [e for e in entries if e["is_ood"]]
+        # Unique columns that had at least one OOD value across all queries
+        ood_cols = set([e['col'] for e in oods])
+        return {
+            "rate": round(len(oods) / total if total else 0, 3), # simplified: avg OOD points per query
+            "severity": round(np.mean([e["dist"] for e in oods]) if oods else 0, 3),
+            "tightness": round(np.mean([e["tightness"] for e in entries]), 3)
+        }
+
+    return {
+        "mean_ranking_iou": round(np.mean(ious), 3) if ious else 1.0,
+        "metrics_with": get_metrics(ood_stats["with"]),
+        "metrics_without": get_metrics(ood_stats["without"])
+    }
 
 def analyze_consistency(consistency_dir):
     vlog.log("CONSISTENCY", f"Analyzing consistency in {consistency_dir.absolute()}")
@@ -658,102 +711,108 @@ def analyze_consistency(consistency_dir):
     return {"mean_self_iou": res}
 
 async def evaluate_with_judge(model_key, results_dir):
-    """LLM-as-a-judge to evaluate pros/cons quality."""
+    """LLM-as-a-judge to evaluate all pros/cons quality with granular binary metrics."""
     from app.services.llm.langchain_client import get_llm
     
-    # Configure settings for the judge model
+    # Create a dedicated directory for judge evaluations
+    judge_dir = results_dir.parent / "judge_eval"
+    judge_dir.mkdir(parents=True, exist_ok=True)
+    
     apply_model_config(settings, EVALUATION_MODEL)
-    judge_llm = get_llm() # Uses configured EVALUATION_MODEL
+    judge_llm = get_llm()
     
-    # Load dataset for building lookup
     df = analysis_service._get_or_load_dataset("full")
+    all_files = list(results_dir.glob("*.json"))
     
-    samples = []
-    for f in list(results_dir.glob("*.json"))[:10]: 
-        with open(f) as jf:
+    if not all_files: return {}
+
+    # Use a semaphore to avoid hitting judge model rate limits
+    judge_sem = asyncio.Semaphore(10) 
+    
+    async def evaluate_single(f_path):
+        out_f = judge_dir / f_path.name
+        # Reuse existing evaluation if available
+        if out_f.exists():
+            with open(out_f) as jf: return json.load(jf)
+
+        with open(f_path) as jf:
             data = json.load(jf)
-            if data.get("evaluations"):
-                ev = data["evaluations"][0]
-                b_id = str(ev.get("id"))
-                
-                # Lookup building data in main dataset
-                matches = df[df['id'].astype(str) == b_id]
-                if not matches.empty:
-                    building_data = matches.iloc[0].to_dict()
-                    samples.append({
-                        "query": data["query"], 
-                        "evaluation": ev,
-                        "building": building_data
-                    })
-    
-    if not samples: return {"score": 0, "samples": 0}
-    
-    accuracy_scores = []
-    relevance_scores = []
-    for s in samples:
-        query = s["query"]
-        ev = s["evaluation"]
-        b = s["building"]
-        
+            if not data.get("evaluations"): return None
+            ev = data["evaluations"][0]
+            b_id = str(ev.get("id"))
+            matches = df[df['id'].astype(str) == b_id]
+            if matches.empty: return None
+            b = matches.iloc[0].to_dict()
+
         prompt = f"""
-        Valuta se i PRO e CONTRO generati dall'AI sono FACT-BASED (basati sui dati reali) e rilevanti per la query.
+        Sei un esperto di analisi immobiliare. Valuta la qualità dei PRO e dei CONTRO generati dall'AI.
         
-        QUERY UTENTE: {query}
-        
-        DATI ORIGINALI IMMOBILE (Verità):
-        {json.dumps(make_json_safe(b), indent=2, ensure_ascii=False)}
+        QUERY UTENTE: {data['query']}
+        DATI ORIGINALI IMMOBILE (Verità): {json.dumps(make_json_safe(b), ensure_ascii=False)}
         
         PRO GENERATI: {ev.get('pros')}
         CONTRO GENERATI: {ev.get('cons')}
-        TESTO ANALISI: {ev.get('evaluation_text')}
         
-        COMPITI:
-        1. Accuracy: I punti citati esistono davvero nei dati? (es. se dice 'vicino al verde', la colonna 'verde' ha uno score alto?)
-        2. Relevance: I punti sono importanti per quello che ha chiesto l'utente?
+        Per OGNI punto dei PRO e OGNI punto dei CONTRO, determina:
+        1. ACCURACY: Il punto è supportato dai dati reali? (Sì/No)
+        2. RELEVANCE: Il punto è utile rispetto a ciò che l'utente ha chiesto? (Sì/No)
         
-        Assegna un punteggio da 1 a 5 per ogni criterio separatamente.
-        Restituisci un JSON: {{"accuracy": float, "relevance": float, "reasoning": "spiegazione"}}
+        Rispondi ESCLUSIVAMENTE con un JSON nel seguente formato:
+        {{
+          "pros": [
+            {{"point": "testo", "accuracy": true/false, "relevance": true/false}},
+            ...
+          ],
+          "cons": [
+            {{"point": "testo", "accuracy": true/false, "relevance": true/false}},
+            ...
+          ],
+          "reasoning": "breve spiegazione"
+        }}
         """
-        
-        # Verbose Logging for Judge
-        verbose_path = results_dir / "judge_verbose.log"
-        with open(verbose_path, "a", encoding="utf-8") as vf:
-            vf.write(f"\n{'='*80}\n")
-            vf.write(f"JUDGE REQUEST - {datetime.now().isoformat()}\n")
-            vf.write(f"QUERY: {query}\n")
-            vf.write(f"PROS: {ev.get('pros')}\n")
-            vf.write(f"CONS: {ev.get('cons')}\n")
-            vf.write(f"{'-'*40}\n")
-            vf.write(f"PROMPT SENT:\n{prompt}\n")
-
         try:
-            res = await judge_llm.ainvoke(prompt)
-            raw_res = res.content if hasattr(res, 'content') else str(res)
-            
-            with open(verbose_path, "a", encoding="utf-8") as vf:
-                vf.write(f"{'-'*40}\n")
-                vf.write(f"JUDGE RESPONSE:\n{raw_res}\n")
-            
-            score_data = safe_extract_json(raw_res)
-            if score_data:
-                if "accuracy" in score_data:
-                    accuracy_scores.append(float(score_data["accuracy"]))
-                if "relevance" in score_data:
-                    relevance_scores.append(float(score_data["relevance"]))
-        except Exception as e:
-            with open(verbose_path, "a", encoding="utf-8") as vf:
-                vf.write(f"ERROR: {str(e)}\n")
-            pass
-        
+            async with judge_sem:
+                res = await judge_llm.ainvoke(prompt)
+                score_data = safe_extract_json(res.content if hasattr(res, 'content') else str(res))
+                if score_data:
+                    with open(out_f, "w") as out_jf: json.dump(score_data, out_jf, indent=2)
+                    return score_data
+        except: return None
+        return None
+
+    tasks = [evaluate_single(f) for f in all_files]
+    results = await asyncio.gather(*tasks)
+    results = [r for r in results if r]
+
+    # Aggregate metrics
+    all_metrics = {
+        "acc_pros": [], "acc_cons": [], 
+        "rel_pros": [], "rel_cons": []
+    }
+    
+    for r in results:
+        for p in r.get("pros", []):
+            all_metrics["acc_pros"].append(1 if p.get("accuracy") else 0)
+            all_metrics["rel_pros"].append(1 if p.get("relevance") else 0)
+        for c in r.get("cons", []):
+            all_metrics["acc_cons"].append(1 if c.get("accuracy") else 0)
+            all_metrics["rel_cons"].append(1 if c.get("relevance") else 0)
+
     # Restore original model settings
     apply_model_config(settings, model_key)
-    res = {
-        "accuracy": round(np.mean(accuracy_scores), 2) if accuracy_scores else 0,
-        "relevance": round(np.mean(relevance_scores), 2) if relevance_scores else 0,
-        "samples": len(accuracy_scores)
+    
+    final = {
+        "samples": len(results),
+        "accuracy_pros": round(np.mean(all_metrics["acc_pros"]), 3) if all_metrics["acc_pros"] else 0,
+        "accuracy_cons": round(np.mean(all_metrics["acc_cons"]), 3) if all_metrics["acc_cons"] else 0,
+        "relevance_pros": round(np.mean(all_metrics["rel_pros"]), 3) if all_metrics["rel_pros"] else 0,
+        "relevance_cons": round(np.mean(all_metrics["rel_cons"]), 3) if all_metrics["rel_cons"] else 0,
     }
-    vlog.log("EVAL_JUDGE", f"Judge result for {model_key}: Accuracy={res['accuracy']}, Relevance={res['relevance']} over {res['samples']} samples")
-    return res
+    final["accuracy_avg"] = round((final["accuracy_pros"] + final["accuracy_cons"]) / 2, 3)
+    final["relevance_avg"] = round((final["relevance_pros"] + final["relevance_cons"]) / 2, 3)
+    
+    vlog.log("EVAL_JUDGE", f"Judge result for {model_key}: Acc={final['accuracy_avg']}, Rel={final['relevance_avg']} over {final['samples']} samples")
+    return final
 
 def analyze_ranking_differentiation(results_dir):
     """2a: Pairwise IoU of rankings across different queries. Lower is generally better (differentiation)."""
@@ -785,25 +844,33 @@ def analyze_rank_contribution_correlation(results_dir):
     for f in results_dir.glob("*.json"):
         with open(f) as jf:
             res = json.load(jf)
-            orig = res.get('ranking_logic', {}).get('original_weights', {})
-            contribs = set(res.get('ranking_logic', {}).get('contributing_agents', []))
+            logic = res.get('ranking_logic', {})
+            orig = logic.get('original_weights', {})
+            # Use discovered_agents if available (unfiltered by weight), fallback to contributing_agents
+            contribs = set(logic.get('discovered_agents', logic.get('contributing_agents', [])))
             vlog.log("RANK_CONTRIB", f"  File: {f.absolute()} | OrigWeights: {orig} | Contribs: {contribs}")
             
-            # Rank agents based on original weights (Descending)
-            sorted_agents = sorted(orig.items(), key=lambda x: x[1], reverse=True)
+            # Rank agents across all 5 standard keys to evaluate zero-weight logic
+            ranking_keys = ["location", "normative", "ape", "property_technical", "poi"]
+            all_weights = {k: orig.get(k, 0.0) for k in ranking_keys}
+            
+            # Sort agents based on weights (Descending)
+            sorted_agents = sorted(all_weights.items(), key=lambda x: x[1], reverse=True)
             for i, (agent, weight) in enumerate(sorted_agents):
-                if weight > 0:
-                    data.append({
-                        'rank': i + 1,
-                        'contributed': 1 if agent in contribs else 0,
-                        'agent': agent
-                    })
+                data.append({
+                    'rank': i + 1,
+                    'contributed': 1 if agent in contribs else 0,
+                    'agent': agent
+                })
     
     if not data: return {}
     df = pd.DataFrame(data)
     
     # Spearman correlation: Rank vs Contribution
-    rho, pval = stats.spearmanr(df['rank'], df['contributed'])
+    if df['contributed'].nunique() > 1 and df['rank'].nunique() > 1:
+        rho, pval = stats.spearmanr(df['rank'], df['contributed'])
+    else:
+        rho, pval = 0.0, 1.0
     
     # Stats per rank and per agent
     stats_per_rank = df.groupby('rank')['contributed'].mean().to_dict()
@@ -892,11 +959,12 @@ def generate_report(bench, sens, models):
         report_md += "Analisi della qualità della generazione SQL e della 'data awareness'.\n\n"
         
         # Rank/Contribution Correlation (3a)
-        corr = analyze_rank_contribution_correlation(results_path / "outputs" / "sensitivity" / mod / "all_enabled")
+        corr = analyze_rank_contribution_correlation(results_path / "outputs" / "benchmarks" / mod / "full")
         if corr:
-            report_md += f"**A. Rank-Requirement Correlation:** Spearman ρ = `{corr['spearman']['rho']:.3f}` (p={corr['spearman']['p_value']:.4f})\n\n"
-            report_md += "Success Rate by Weight Rank:\n"
-            rank_stats = " | ".join([f"Rank {r}: {val*100:.0f}%" for r, val in sorted(corr['by_rank'].items())])
+            report_md += f"**A. Rank-Requirement Correlation:** Spearman ρ = `{corr['spearman']['rho']:.3f}` (p={corr['spearman']['p_value']:.4f})\n"
+            report_md += "> Correlazione tra il rank assegnato dal modello (basato sui pesi) e l'effettiva presenza di requisiti estratti (Discovery Rate). Un valore negativo indica che gli agenti con rank più alto (1, 2) contribuiscono più spesso di quelli con rank basso (4, 5).\n\n"
+            report_md += "**Requirement Discovery Rate by Weight Rank:**\n"
+            rank_stats = " | ".join([f"Rank {r}: **{val*100:.1f}%**" for r, val in sorted(corr['by_rank'].items())])
             report_md += f"> {rank_stats}\n\n"
         
         # Architecture SQL Sim (3b)
@@ -914,22 +982,34 @@ def generate_report(bench, sens, models):
         report_md += f"| Baseline Stats vs Baseline Columns | {sim_bs_bc:.3f} |\n\n"
         
         # Knowledge Impact (3c)
-        nk = results_path / "outputs" / "sensitivity" / mod / "no_knowledge"
-        sim_know = compare_dirs_sql_similarity(fs, nk)
         ki = bench[mod].get("knowledge_impact", {})
-        report_md += f"**C. Knowledge Impact (Multi-Agent):**\n"
-        report_md += f"- SQL Similarity (`Full` vs `No Knowledge`): `{sim_know:.3f}`\n"
-        report_md += f"- Out-of-Distribution (OOD) Rate without Stats: `{ki.get('ood_rate_without', 0)*100:.1f}%` (vs `{ki.get('ood_rate_with', 0)*100:.1f}%` with stats)\n\n"
+        mw, mwo = ki.get("metrics_with", {}), ki.get("metrics_without", {})
+        
+        report_md += f"**C. Knowledge Impact & Data Awareness:**\n"
+        report_md += f"- SQL Alignment (`Full` vs `No Knowledge`): `{ki.get('mean_ranking_iou', 1.0):.3f}` (Ranking IoU)\n\n"
+        
+        report_md += "| Metric | Multi-Agent (Full Knowledge) | Multi-Agent (No Knowledge) |\n"
+        report_md += "| :--- | :---: | :---: |\n"
+        report_md += f"| Out-of-Distribution Rate | {mw.get('rate',0)*100:.1f}% | {mwo.get('rate',0)*100:.1f}% |\n"
+        report_md += f"| OOD Mean Severity | {mw.get('severity',0):.3f} | {mwo.get('severity',0):.3f} |\n"
+        report_md += f"| Constraint Tightness | {mw.get('tightness',0):.3f} | {mwo.get('tightness',0):.3f} |\n\n"
+        
+        report_md += "> **Severity**: Distanza media normalizzata dei valori OOD dal range reale (0=nessuno, >1=estremo).  \n"
+        report_md += "> **Tightness**: Posizionamento medio dei filtri (0=min, 1=max). Più il valore è simile tra i due scenari, più il modello possiede un 'senso' innato dei dati a prescindere dalle statistiche.\n\n"
         
         # --- SECTION 4: QUALITATIVE EVALUATION ---
         report_md += "### 4. Qualitative Evaluation\n"
         report_md += "Analisi automatizzata della qualità e attendibilità dei Pro/Contro generati.\n\n"
         
         eq = bench[mod].get("eval_quality", {})
-        report_md += f"**LLM-as-a-Judge Quality Scores:** (N={eq.get('samples', 0)})\n"
-        report_md += f"- **Accuracy (Fact-based):** `{eq.get('accuracy', 0)} / 5`  \n"
-        report_md += f"- **Relevance (User Query):** `{eq.get('relevance', 0)} / 5`  \n"
-        report_md += "> Valutazione di aderenza ai dati (Fact-checking) e utilità rispetto alla query specifica dell'utente.\n\n"
+        report_md += f"**LLM-as-a-Judge Quality Scores:** (Analyzed all N={eq.get('samples', 0)} queries)\n"
+        
+        report_md += "| Metric | Pros | Cons | **Average** |\n"
+        report_md += "| :--- | :---: | :---: | :---: |\n"
+        report_md += f"| Accuracy (Fact-based) | {eq.get('accuracy_pros',0)*100:.1f}% | {eq.get('accuracy_cons',0)*100:.1f}% | **{eq.get('accuracy_avg',0)*100:.1f}%** |\n"
+        report_md += f"| Relevance (User Query) | {eq.get('relevance_pros',0)*100:.1f}% | {eq.get('relevance_cons',0)*100:.1f}% | **{eq.get('relevance_avg',0)*100:.1f}%** |\n\n"
+        
+        report_md += "> Valutazione binaria di aderenza ai dati (Fact-checking) e utilità rispetto alla query specifica dell'utente.\n\n"
         
         report_md += "---\n"
 
@@ -946,8 +1026,11 @@ def generate_compositions(json_path, output_path, ablation=False):
     opts = []
     for k in keys:
         choices = []
-        # tipologia_immobile doesn't have a None option in the original logic if not ablation
-        if k == "tipologia_immobile" and not ablation:
+        # The ablation suite (sensitivity) must only include complete queries (all variables present)
+        if ablation:
+            choices = [(val, i+1) for i, val in enumerate(data[k])]
+        # The benchmark suite includes partial queries, but 'tipologia_immobile' is always mandatory
+        elif k == "tipologia_immobile":
             choices = [(val, i+1) for i, val in enumerate(data[k])]
         else:
             choices = [(None, 0)] + [(val, i+1) for i, val in enumerate(data[k])]
@@ -959,8 +1042,8 @@ def generate_compositions(json_path, output_path, ablation=False):
         indices = "".join(str(item[1]) for item in c)
         t, p, m, cl, pr, s = [item[0] for item in c]
         
-        # Skip empty queries if everything is None (shouldn't happen with tipologia_immobile rule)
-        if not t and not ablation: continue
+        # Skip empty queries if everything is None (should not happen as tipologia_immobile is mandatory)
+        if t is None: continue
 
         q = f"Cerca un {t}" if t else "Cerca un immobile"
         if p: q += f" vicino a {p}"
@@ -974,13 +1057,6 @@ def generate_compositions(json_path, output_path, ablation=False):
 
     rows.sort(key=lambda x: len(x["query"]))
     df = pd.DataFrame(rows)
-    
-    if ablation:
-        for col in ['status_all_enabled', 'status_no_ranking', 'status_no_knowledge', 'status_no_poi', 'status_no_normative', 'status_no_location', 'status_no_ape', 'status_no_property_technical']:
-            df[col] = 0
-    else:
-        df["status"] = 0
-    
     df.to_csv(output_path, index=False)
 
 
@@ -1016,6 +1092,31 @@ async def compute_consensus_results(model: str, df: pd.DataFrame, out_root: Path
         target_file = full_dir / f"query_{query_id}.json"
         with open(target_file, "w") as f:
             json.dump(winner, f, indent=4)
+
+def prune_obsolete_results(df: pd.DataFrame, out_root: Path):
+    """Removes JSON results that no longer correspond to a query in the suite (CSV)."""
+    if not out_root.exists() or "query_id" not in df.columns:
+        return
+
+    valid_ids = set(df["query_id"].astype(str))
+    log_output(f"[*] Pruning obsolete results in {out_root.relative_to(base_dir)}")
+    
+    removed_count = 0
+    # Search in all subdirectories recursively
+    for json_file in out_root.rglob("query_*.json"):
+        # Handle formats like "query_111000.json" or "query_111000_tr1.json"
+        match = re.search(r"query_(\d+)(?:_tr\d+)?\.json", json_file.name)
+        if match:
+            qid = match.group(1)
+            if qid not in valid_ids:
+                try:
+                    json_file.unlink()
+                    removed_count += 1
+                except Exception as e:
+                    log_output(f"  [!] Failed to delete {json_file.name}: {e}")
+    
+    if removed_count > 0:
+        log_output(f"  [-] Removed {removed_count} obsolete JSON files.")
 
 async def sync_sensitivity_with_benchmark(df_sens: pd.DataFrame, df_bench: pd.DataFrame, model_key: str):
     """Reuse benchmark results for sensitivity common configurations to avoid re-runs."""
@@ -1094,6 +1195,10 @@ async def run_single_model_suite(model: str, max_concurrent: int):
     out_root_bench = results_path / "outputs" / "benchmarks" / model
     out_root_sens = results_path / "outputs" / "sensitivity" / model
 
+    # Prune obsolete results (e.g. if the suite has been restricted)
+    prune_obsolete_results(df_bench, out_root_bench)
+    prune_obsolete_results(df_sens, out_root_sens)
+
     # --- PHASE 1 & 3: PARALLEL EXECUTION (Tutto + Ablations + Baselines) ---
     log_output(f"[*] Starting unified execution wave for {model}...")
     tasks = []
@@ -1166,7 +1271,7 @@ async def conductor_main(max_concurrent: int, only_analysis: bool = False):
     await preload_data()
     data_stats = get_data_stats()
 
-    models = ["gpt-oss-120b"]
+    models = ["gpt-oss-120b", "ollama-gemma3-27b", "ollama-deepseek-r1-8b"]
     
     # 1. PREPARE SUITES (Only if not in analysis-only mode)
     bench_csv = results_path / "combinatorial_queries_suite.csv"
