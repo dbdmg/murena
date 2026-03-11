@@ -92,13 +92,13 @@ class Settings(BaseSettings):
             self.OPENAI_API_BASE = "http://localhost:8000/v1"
             self.OPENAI_API_KEY = "vllm"
         elif model_type == "vllm-deepseek":
-            self.OPENAI_MODEL_FAST = "deepseek-ai/DeepSeek-R1-Distill-Llama-70B"
-            self.OPENAI_MODEL_SMART = "deepseek-ai/DeepSeek-R1-Distill-Llama-70B"
+            self.OPENAI_MODEL_FAST = "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B"
+            self.OPENAI_MODEL_SMART = "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B"
             self.OPENAI_API_BASE = "http://localhost:8001/v1"
             self.OPENAI_API_KEY = "vllm"
         elif model_type == "gpt-5-nano":
             self.OPENAI_MODEL_FAST = "gpt-5-nano-2025-08-07"
-            self.OPENAI_MODEL_SMART = "gpt-5-mini-2025-08-07"
+            self.OPENAI_MODEL_SMART = "gpt-5-nano-2025-08-07"
             self.OPENAI_API_BASE = None # Use default OpenAI base
 
 

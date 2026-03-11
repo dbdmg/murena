@@ -80,15 +80,15 @@ MODEL_OPTIONS: dict[str, ModelConfig] = {
         "api_base": "http://localhost:8000/v1",
         "api_key": "vllm",
         "provider": "vllm",
-        "supports_structured_output": True,
+        "supports_structured_output": False,
     },
     "vllm-deepseek": {
         "backend": "vllm host",
-        "model": "deepseek-ai/DeepSeek-R1-Distill-Llama-70B",
+        "model": "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B",
         "api_base": "http://localhost:8001/v1",
         "api_key": "vllm",
         "provider": "vllm",
-        "supports_structured_output": True,
+        "supports_structured_output": False,
     },
 }
 

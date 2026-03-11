@@ -56,6 +56,7 @@ log_dir_ctx: ContextVar[Optional[Path]] = ContextVar("log_dir_ctx", default=None
 import io
 import csv
 import threading
+import shutil
 
 def format_csv_line(row: List[Any]) -> str:
     """Helper to generate a properly quoted CSV line."""
@@ -566,6 +567,62 @@ async def process_batch(indices, df, out_dir, sem, arch="multiagent", disabled=N
         tasks.append(task())
     await asyncio.gather(*tasks)
 
+async def sync_shared_baselines(model_key: str, df_sens: pd.DataFrame, sens_csv_path: Path):
+    """Reuse reference baseline results from gpt-5.4 for other models to ensure consistency and save resources."""
+    if model_key == BASELINE_MODEL:
+        return
+
+    source_root = results_path / "outputs" / "sensitivity" / BASELINE_MODEL
+    target_root = results_path / "outputs" / "sensitivity" / model_key
+    baseline_configs = ["baseline_columns", "baseline_stats"]
+    
+    copy_count = 0
+    for cid in baseline_configs:
+        source_dir = source_root / cid
+        if not source_dir.exists(): continue
+        
+        target_dir = target_root / cid
+        target_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Copy execution log if it exists
+        if (source_dir / "execution.csv").exists() and not (target_dir / "execution.csv").exists():
+            shutil.copy(source_dir / "execution.csv", target_dir / "execution.csv")
+
+        for source_file in source_dir.glob("query_*.json"):
+            target_file = target_dir / source_file.name
+            if not target_file.exists():
+                try:
+                    shutil.copy(source_file, target_file)
+                    copy_count += 1
+                except Exception: pass
+    
+    if copy_count > 0:
+        log_output(f"[*] Synced {copy_count} baseline reference results from {BASELINE_MODEL} to {model_key}")
+        
+        # Also sync to benchmark directory as it's used for main architecture comparison analysis
+        target_bench_root = results_path / "outputs" / "benchmarks" / model_key
+        for cid in baseline_configs:
+            source_dir = source_root / cid
+            if not source_dir.exists(): continue
+            target_bench_dir = target_bench_root / cid
+            target_bench_dir.mkdir(parents=True, exist_ok=True)
+            for source_file in source_dir.glob("query_*.json"):
+                shutil.copy(source_file, target_bench_dir / source_file.name)
+
+        # Update CSV status for synced items in df_sens
+        updated = False
+        for i, row in df_sens.iterrows():
+            query_id = row["query_id"] if "query_id" in row else f"{i+1:03d}"
+            for cid in baseline_configs:
+                col = f"status_{model_key.replace('-', '_')}_{cid}"
+                if col in df_sens.columns and df_sens.at[i, col] == 0:
+                    target_file = results_path / "outputs" / "sensitivity" / model_key / cid / f"query_{query_id}.json"
+                    if target_file.exists():
+                        df_sens.at[i, col] = 1
+                        updated = True
+        if updated:
+            safe_save_csv(df_sens, sens_csv_path)
+
 # --- 4. ANALYTICS ENGINES ---
 
 def analyze_activation(results_dir, mapping, model_name):
@@ -592,7 +649,7 @@ def analyze_activation(results_dir, mapping, model_name):
             u = expected.union(actual)
             j = (len(expected.intersection(actual))/len(u) if u else 1.0)
             total_j += j
-    
+            
     summary = {"model": model_name, "perfect_rate": round(perfect/len(files), 3) if files else 0, "mean_jaccard": round(total_j/len(files), 3) if files else 0, "mismatches": len(files)-perfect}
     vlog.log("ACTIVATION", f"Summary: PerfectRate={summary['perfect_rate']} | MeanJaccard={summary['mean_jaccard']}")
     agent_metrics = {a: {"precision": round(m["tp"]/(m["tp"]+m["fp"]), 3) if (m["tp"]+m["fp"])>0 else 0, "recall": round(m["tp"]/(m["tp"]+m["fn"]), 3) if (m["tp"]+m["fn"])>0 else 0} for a, m in metrics.items()}
@@ -1199,21 +1256,27 @@ async def run_single_model_suite(model: str, max_concurrent: int):
     prune_obsolete_results(df_bench, out_root_bench)
     prune_obsolete_results(df_sens, out_root_sens)
 
+    # Sync shared baselines from Master Model before starting execution wave
+    await sync_shared_baselines(model, df_sens, sens_csv)
+    # Reload df_sens as it might have been updated by sync_shared_baselines
+    df_sens = safe_read_csv(sens_csv)
+
     # --- PHASE 1 & 3: PARALLEL EXECUTION (Tutto + Ablations + Baselines) ---
     log_output(f"[*] Starting unified execution wave for {model}...")
     tasks = []
 
-    # 1. Benchmark Consistency Trials (Phase 1 Giallo)
-    for tr in [1, 2, 3]:
-        out_dir = out_root_bench / "consistency"
-        out_dir.mkdir(parents=True, exist_ok=True)
-        col = f"status_{model.replace('-', '_')}_consistency_tr{tr}"
-        if col not in df_bench.columns: df_bench[col] = 0
-        pending = df_bench[df_bench[col].isin([0, 2])].index.tolist()
-        if pending:
-            tasks.append(process_batch(pending, df_bench, out_dir, sem, lock=csv_lock, csv_path=bench_csv, col=col, trial=tr, batch_name=f"{model}-CONS-TR{tr}"))
+    # 1. Benchmark Consistency Trials (Skip for BASELINE_MODEL)
+    if model != BASELINE_MODEL:
+        for tr in [1, 2, 3]:
+            out_dir = out_root_bench / "consistency"
+            out_dir.mkdir(parents=True, exist_ok=True)
+            col = f"status_{model.replace('-', '_')}_consistency_tr{tr}"
+            if col not in df_bench.columns: df_bench[col] = 0
+            pending = df_bench[df_bench[col].isin([0, 2])].index.tolist()
+            if pending:
+                tasks.append(process_batch(pending, df_bench, out_dir, sem, lock=csv_lock, csv_path=bench_csv, col=col, trial=tr, batch_name=f"{model}-CONS-TR{tr}"))
 
-    # 2. Sensitivity Ablations & Baselines (Phase 3 Blu)
+    # 2. Sensitivity Ablations & Baselines
     sens_configs = [
         # Multi-agent ablations
         ("no_ranking", ["ranking"], True, "multiagent"),
@@ -1227,6 +1290,14 @@ async def run_single_model_suite(model: str, max_concurrent: int):
         ("baseline_columns", None, False, "baseline"),
         ("baseline_stats", None, True, "baseline")
     ]
+    
+    # If this is the master baseline run, ONLY run the baselines
+    if model == BASELINE_MODEL:
+        sens_configs = [c for c in sens_configs if c[0].startswith("baseline")]
+    else:
+        # Otherwise, skip the baselines because they will be synced
+        sens_configs = [c for c in sens_configs if not c[0].startswith("baseline")]
+
     for cid, dis, kn, arch in sens_configs:
         col = f"status_{model.replace('-', '_')}_{cid}"
         if col not in df_sens.columns: df_sens[col] = 0
@@ -1281,6 +1352,12 @@ async def conductor_main(max_concurrent: int, only_analysis: bool = False):
         if not bench_csv.exists(): generate_compositions(pos_json, bench_csv)
         if not sens_csv.exists(): generate_compositions(pos_json, sens_csv, ablation=True)
 
+        # 1. Run Master Baseline (gpt-5.4) first to ensure reference results exist
+        log_output(f"[CONDUCTOR] Ensuring Master Baseline ({BASELINE_MODEL}) is complete...")
+        m_concurrency = get_model_concurrency(BASELINE_MODEL, max_concurrent)
+        p_base = await asyncio.create_subprocess_exec(sys.executable, __file__, "--model", BASELINE_MODEL, "--max-concurrent", str(m_concurrency))
+        await p_base.wait()
+
         # 2. RUN ALL MODELS IN PARALLEL
         log_output(f"[CONDUCTOR] Launching {len(models)} model benchmark processes in parallel...")
         processes = []
@@ -1304,8 +1381,9 @@ async def conductor_main(max_concurrent: int, only_analysis: bool = False):
     
     benchmark_results = {}
     sensitivity_results = {}
+    report_models = models
 
-    for model in models:
+    for model in report_models:
         out_root = results_path / "outputs" / "benchmarks" / model
         out_sens = results_path / "outputs" / "sensitivity" / model
         
@@ -1345,7 +1423,7 @@ async def conductor_main(max_concurrent: int, only_analysis: bool = False):
         sensitivity_results[model] = {"sensitivity": sens_vals}
 
     # Final report
-    report = generate_report(benchmark_results, sensitivity_results, models)
+    report = generate_report(benchmark_results, sensitivity_results, report_models)
     with open(results_path / "report.md", "w") as f:
         f.write(report)
     

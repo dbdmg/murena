@@ -141,8 +141,12 @@ def is_oss_model(model_name: Optional[str] = None) -> bool:
         "oss" in resolved
         or "llama" in resolved
         or "qwen" in resolved
+        or "gemma" in resolved
+        or "deepseek" in resolved
+        or "mistral" in resolved
         or "ollama" in api_base
         or "polito" in api_base
+        or "localhost" in api_base
     )
 
 def get_langfuse_callback(session_id: Optional[str] = None, user_id: Optional[str] = None, tags: Optional[list] = None, trace_name: Optional[str] = None):
