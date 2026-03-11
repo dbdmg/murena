@@ -350,7 +350,7 @@ export const MapPage: React.FC = () => {
     if (isLoading) {
         return (
             <div className="h-full w-full flex items-center justify-center text-text-primary">
-                <Loader2 className="w-8 h-8 animate-spin text-cyan-500" />
+                <Loader2 className="w-8 h-8 animate-spin text-emerald-500" />
             </div>
         );
     }
@@ -377,7 +377,7 @@ export const MapPage: React.FC = () => {
                         className={`
                             flex items-center justify-center w-12.5 h-12.5 rounded-lg text-xs font-medium border backdrop-blur-xl transition-all duration-300 shadow-xl shadow-black/40
                             ${isListSidebarOpen
-                                ? 'bg-cyan-500/20 text-cyan-400 border-cyan-500/50'
+                                ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/50'
                                 : 'bg-slate-900/80 text-gray-400 border-white/10 hover:border-white/20 hover:text-white hover:bg-white/10'
                             }
                         `}

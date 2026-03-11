@@ -258,7 +258,7 @@ export const HistoryPage: React.FC = () => {
             case 'completed':
                 return { icon: CheckCircle2, color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', label: 'Completato' };
             case 'processing':
-                return { icon: Loader2, color: 'text-cyan-400', bg: 'bg-cyan-500/10', border: 'border-cyan-500/20', label: 'In corso', animate: true };
+                return { icon: Loader2, color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', label: 'In corso', animate: true };
             case 'failed':
                 return { icon: XCircle, color: 'text-red-400', bg: 'bg-red-500/10', border: 'border-red-500/20', label: 'Errore' };
             default:
@@ -274,7 +274,7 @@ export const HistoryPage: React.FC = () => {
             {/* Header */}
             <div className="mb-6">
                 <div className="flex items-center gap-3 mb-2">
-                    <div className="w-10 h-10 rounded-xl bg-linear-to-br from-purple-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-purple-500/20">
+                    <div className="w-10 h-10 rounded-xl bg-linear-to-br from-emerald-500 to-green-600 flex items-center justify-center shadow-lg shadow-emerald-500/20">
                         <Clock className="w-5 h-5 text-white" />
                     </div>
                     <div>
@@ -297,7 +297,7 @@ export const HistoryPage: React.FC = () => {
                         placeholder="Cerca per query o ID..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full bg-[#0f1218]/80 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/20 transition-all"
+                        className="w-full bg-[#0f1218]/80 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20 transition-all"
                     />
                 </div>
 
@@ -310,7 +310,7 @@ export const HistoryPage: React.FC = () => {
                             className={`
                                 px-3 py-1.5 rounded-lg text-xs font-medium transition-all
                                 ${dateFilter === value
-                                    ? 'bg-cyan-500/20 text-cyan-400'
+                                    ? 'bg-emerald-500/20 text-emerald-400'
                                     : 'text-gray-400 hover:text-white hover:bg-white/5'
                                 }
                             `}
@@ -349,7 +349,7 @@ export const HistoryPage: React.FC = () => {
                     className={`
                         flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium transition-all border
                         ${isSelectionMode
-                            ? 'bg-indigo-500/20 text-indigo-400 border-indigo-500/50'
+                            ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/50'
                             : 'bg-[#0f1218]/80 text-gray-400 border-white/10 hover:text-white hover:border-white/20'
                         }
                     `}
@@ -366,9 +366,9 @@ export const HistoryPage: React.FC = () => {
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -10 }}
-                        className="mb-4 flex items-center gap-3 bg-indigo-500/10 border border-indigo-500/30 rounded-xl px-4 py-3"
+                        className="mb-4 flex items-center gap-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl px-4 py-3"
                     >
-                        <span className="text-sm text-indigo-300">
+                        <span className="text-sm text-emerald-300">
                             {selectedIds.size} selezionati
                             {selectedIds.size > 0 && ` su ${filteredRuns.length}`}
                         </span>
@@ -377,13 +377,13 @@ export const HistoryPage: React.FC = () => {
                         {/* Select All Toggle */}
                         <button
                             onClick={allSelected ? clearSelection : selectAllFiltered}
-                            className="flex items-center gap-1.5 text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
+                            className="flex items-center gap-1.5 text-xs text-emerald-400 hover:text-emerald-300 transition-colors"
                         >
-                            <CheckSquare className={`w-3.5 h-3.5 ${allSelected ? 'fill-indigo-400' : ''}`} />
+                            <CheckSquare className={`w-3.5 h-3.5 ${allSelected ? 'fill-emerald-400' : ''}`} />
                             {allSelected ? 'Deseleziona tutto' : `Seleziona tutto (${filteredRuns.length})`}
                         </button>
 
-                        <div className="w-px h-4 bg-indigo-500/30" />
+                        <div className="w-px h-4 bg-emerald-500/30" />
 
                         <button
                             onClick={selectCurrentPage}
@@ -417,7 +417,7 @@ export const HistoryPage: React.FC = () => {
             <div className="flex-1 overflow-auto">
                 {isLoading ? (
                     <div className="flex items-center justify-center h-64">
-                        <Loader2 className="w-8 h-8 animate-spin text-cyan-500" />
+                        <Loader2 className="w-8 h-8 animate-spin text-emerald-500" />
                     </div>
                 ) : error ? (
                     <div className="flex flex-col items-center justify-center h-64 text-red-400">
@@ -441,7 +441,7 @@ export const HistoryPage: React.FC = () => {
                                     setDateFilter('all');
                                     setShowOnlyFavorites(false);
                                 }}
-                                className="mt-3 text-sm text-cyan-400 hover:text-cyan-300 transition-colors"
+                                className="mt-3 text-sm text-emerald-400 hover:text-emerald-300 transition-colors"
                             >
                                 Rimuovi filtri
                             </button>
@@ -464,9 +464,9 @@ export const HistoryPage: React.FC = () => {
                                     transition={{ delay: index * 0.03 }}
                                     className={`
                                         group relative bg-[#0f1218]/80 backdrop-blur-sm border rounded-2xl overflow-hidden
-                                        transition-all duration-200 cursor-pointer hover:shadow-lg hover:shadow-cyan-500/5
+                                        transition-all duration-200 cursor-pointer hover:shadow-lg hover:shadow-emerald-500/5
                                         ${isSelected
-                                            ? 'border-indigo-500/50 bg-indigo-500/5 ring-1 ring-indigo-500/20'
+                                            ? 'border-emerald-500/50 bg-emerald-500/5 ring-1 ring-emerald-500/20'
                                             : `border-white/5 hover:border-white/10 hover:bg-white/2`
                                         }
                                     `}
@@ -492,7 +492,7 @@ export const HistoryPage: React.FC = () => {
                                                     className={`
                                                         w-5 h-5 rounded-md border flex items-center justify-center transition-all
                                                         ${isSelected
-                                                            ? 'bg-indigo-500 border-indigo-500'
+                                                            ? 'bg-emerald-500 border-emerald-500'
                                                             : 'border-white/30 hover:border-white/50'
                                                         }
                                                     `}
@@ -660,7 +660,7 @@ export const HistoryPage: React.FC = () => {
                                         className={`
                                             w-9 h-9 rounded-lg text-sm font-medium transition-all
                                             ${page === currentPage
-                                                ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/50'
+                                                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/50'
                                                 : 'bg-white/5 text-gray-400 border border-white/10 hover:text-white hover:bg-white/10'
                                             }
                                         `}

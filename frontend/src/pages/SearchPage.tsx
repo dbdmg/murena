@@ -143,7 +143,7 @@ export const SearchPage: React.FC = () => {
 
             {/* Main Content */}
             <div className="w-full max-w-3xl mx-auto relative z-10">
-                
+
                 {/* Logo Murena */}
                 <motion.div
                     initial={{ opacity: 0, y: -20 }}
@@ -153,20 +153,7 @@ export const SearchPage: React.FC = () => {
                     <img src={murenaLogo217} alt="Murena" className="w-[217px] h-[34px]" />
                 </motion.div>
 
-                {/* Main Heading */}
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.2 }}
-                    className="text-center mb-16"
-                >
-                    <h1 className="text-4xl md:text-5xl font-bold text-white mb-3">
-                        Intelligence Immobiliare
-                    </h1>
-                    <h2 className="text-4xl md:text-5xl font-bold bg-linear-to-r from-blue-400 via-cyan-400 to-blue-500 bg-clip-text text-transparent pb-2">
-                        Potenziato da AI Agenti
-                    </h2>
-                </motion.div>
+
 
                 {/* Command Bar */}
                 <motion.form
@@ -179,7 +166,7 @@ export const SearchPage: React.FC = () => {
                     <div className={`
                         relative bg-[#0f1218]/80 backdrop-blur-xl rounded-2xl border transition-all duration-300 overflow-hidden
                         ${isFocused
-                            ? 'border-cyan-500/50 shadow-lg shadow-cyan-500/20'
+                            ? 'border-emerald-500/50 shadow-lg shadow-emerald-500/20'
                             : 'border-white/10 hover:border-white/20'
                         }
                     `}>
@@ -220,7 +207,7 @@ export const SearchPage: React.FC = () => {
                                         flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium text-sm whitespace-nowrap
                                         transition-all duration-200
                                         ${query.trim() && !isLoading
-                                            ? 'bg-linear-to-r from-blue-600 to-cyan-500 text-white shadow-lg shadow-cyan-500/25 hover:shadow-cyan-500/40'
+                                            ? 'bg-linear-to-r from-emerald-600 to-green-500 text-white shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40'
                                             : 'bg-white/5 text-gray-500 cursor-not-allowed'
                                         }
                                     `}
@@ -249,39 +236,17 @@ export const SearchPage: React.FC = () => {
                         animate={{ opacity: 1, y: 0 }}
                         className="flex items-center justify-center gap-2 mb-8"
                     >
-                        <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-cyan-900/20 border border-cyan-500/20 backdrop-blur-md shadow-lg shadow-cyan-900/10">
+                        <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-900/20 border border-emerald-500/20 backdrop-blur-md shadow-lg shadow-emerald-900/10">
                             <span className="relative flex h-2 w-2">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
-                                <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                             </span>
-                            <span className="text-xs font-medium text-cyan-300 tracking-wide">
-                                Modalità Demo Attiva <span className="text-cyan-500/70 mx-1">|</span> Utilizzo risultati pre-calcolati (nessun consumo token)
+                            <span className="text-xs font-medium text-emerald-300 tracking-wide">
+                                Modalità Demo Attiva <span className="text-emerald-500/70 mx-1">|</span> Utilizzo risultati pre-calcolati (nessun consumo token)
                             </span>
                         </div>
                     </motion.div>
                 )}
-
-
-                {/* Demo Mode Toggle - Fixed Top Right */}
-                <div className="fixed top-8 right-8 z-50">
-                    <button
-                        onClick={() => setDemoMode(!demoMode)}
-                        className={`
-                            flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-medium border backdrop-blur-md transition-all duration-300
-                            ${demoMode
-                                ? 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30 ring-1 ring-cyan-500/20 shadow-lg shadow-cyan-500/10'
-                                : 'bg-white/5 text-gray-400 border-white/5 hover:bg-white/10 hover:text-white hover:border-white/10'
-                            }
-                        `}
-                    >
-                        {demoMode ? (
-                            <ToggleRight className="w-4 h-4 text-cyan-400" />
-                        ) : (
-                            <ToggleLeft className="w-4 h-4" />
-                        )}
-                        <span>Modalità Demo</span>
-                    </button>
-                </div>
 
                 {/* Suggestions */}
                 <motion.div
@@ -295,7 +260,7 @@ export const SearchPage: React.FC = () => {
                         <button
                             key={i}
                             onClick={() => handleSuggestionClick(suggestion)}
-                            className="text-sm text-blue-400/80 hover:text-blue-300 transition-colors"
+                            className="text-sm text-emerald-400/80 hover:text-emerald-300 transition-colors"
                         >
                             {suggestion}
                         </button>
@@ -347,7 +312,7 @@ export const SearchPage: React.FC = () => {
                                                     ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
                                                     : item.status === 'failed'
                                                         ? 'bg-red-500/10 text-red-500 border-red-500/20'
-                                                        : 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20'
+                                                        : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
                                                     }`}>
                                                     {item.status === 'completed' ? (
                                                         <>
@@ -377,7 +342,7 @@ export const SearchPage: React.FC = () => {
                                             </div>
                                             <QueryTooltip text={item.query}>
                                                 <p
-                                                    className={`text-sm font-medium group-hover:text-cyan-300 transition-colors break-words [overflow-wrap:anywhere] ${item.status === 'failed' ? 'text-gray-400' : 'text-white'}`}
+                                                    className={`text-sm font-medium group-hover:text-emerald-300 transition-colors break-words [overflow-wrap:anywhere] ${item.status === 'failed' ? 'text-gray-400' : 'text-white'}`}
                                                     style={{
                                                         display: '-webkit-box',
                                                         WebkitLineClamp: 2,
@@ -400,12 +365,12 @@ export const SearchPage: React.FC = () => {
                                                 </div>
                                             )}
                                             {item.status === 'processing' && (
-                                                <div className="flex items-center gap-1 mt-1 text-xs text-cyan-400/60 font-medium">
+                                                <div className="flex items-center gap-1 mt-1 text-xs text-emerald-400/60 font-medium">
                                                     <span>Analisi in corso...</span>
                                                 </div>
                                             )}
                                         </div>
-                                        <ArrowRight className="w-4 h-4 text-gray-500 group-hover:text-cyan-400 group-hover:translate-x-1 transition-all" />
+                                        <ArrowRight className="w-4 h-4 text-gray-500 group-hover:text-emerald-400 group-hover:translate-x-1 transition-all" />
                                     </div>
                                 </motion.button>
                             ))}

@@ -125,7 +125,7 @@ const BentoCard: React.FC<BentoCardProps> = ({
 const StatBadge: React.FC<{ label: string; value: string }> = ({ label, value }) => (
     <div className="flex items-center gap-2 px-3 py-1.5 bg-white/5 border border-white/10 rounded-full">
         <span className="text-xs text-gray-500">{label}</span>
-        <span className="text-xs font-mono text-cyan-400">{value}</span>
+        <span className="text-xs font-mono text-emerald-400">{value}</span>
     </div>
 );
 
@@ -199,7 +199,7 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
                             <motion.div variants={cardVariants} className="text-center mb-8">
                                 {/* Logo */}
                                 <div className="relative inline-flex mb-4">
-                                    <div className="w-20 h-20 rounded-2xl bg-linear-to-br from-cyan-500 via-blue-500 to-violet-600 flex items-center justify-center shadow-2xl shadow-cyan-500/30">
+                                    <div className="w-20 h-20 rounded-2xl bg-linear-to-br from-emerald-500 via-green-500 to-teal-600 flex items-center justify-center shadow-2xl shadow-emerald-500/30">
                                         <Brain className="w-10 h-10 text-white" />
                                     </div>
                                     {/* Sparkle decorations */}
@@ -208,7 +208,7 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
 
                                 {/* Title */}
                                 <h1 className="text-3xl font-bold mb-2">
-                                    <span className="bg-linear-to-r from-cyan-400 via-blue-400 to-violet-400 bg-clip-text text-transparent">
+                                    <span className="bg-linear-to-r from-emerald-400 via-green-400 to-teal-400 bg-clip-text text-transparent">
                                         Sistema Analitico Immobiliare
                                     </span>
                                 </h1>
@@ -227,14 +227,14 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
                             {/* Mission Statement */}
                             <motion.div
                                 variants={cardVariants}
-                                className="p-5 bg-linear-to-br from-cyan-500/10 to-violet-500/10 border border-cyan-500/20 rounded-2xl mb-6"
+                                className="p-5 bg-linear-to-br from-emerald-500/10 to-green-500/10 border border-emerald-500/20 rounded-2xl mb-6"
                             >
                                 <div className="flex items-start gap-3">
-                                    <div className="p-2 bg-cyan-500/20 rounded-xl">
-                                        <Zap className="w-5 h-5 text-cyan-400" />
+                                    <div className="p-2 bg-emerald-500/20 rounded-xl">
+                                        <Zap className="w-5 h-5 text-emerald-400" />
                                     </div>
                                     <div>
-                                        <h2 className="text-sm font-semibold text-cyan-300 mb-1">La nostra missione</h2>
+                                        <h2 className="text-sm font-semibold text-emerald-300 mb-1">La nostra missione</h2>
                                         <p className="text-sm text-gray-400 leading-relaxed">
                                             Trasformiamo la gestione del patrimonio immobiliare pubblico attraverso
                                             l'intelligenza artificiale, rendendo l'analisi dei dati accessibile,
@@ -257,8 +257,8 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
                                     icon={<MapPin className="w-4 h-4" />}
                                     title="Geospatial"
                                     description="Visualizzazione interattiva su mappa con clustering"
-                                    iconBg="bg-cyan-500/20"
-                                    iconColor="text-cyan-400"
+                                    iconBg="bg-emerald-500/20"
+                                    iconColor="text-emerald-400"
                                 />
                                 <BentoCard
                                     icon={<Database className="w-4 h-4" />}
@@ -284,14 +284,14 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
                                 </h3>
                                 <div className="flex flex-wrap gap-2">
                                     {[
-                                        { name: 'React', color: 'text-cyan-400 bg-cyan-500/10' },
-                                        { name: 'TypeScript', color: 'text-blue-400 bg-blue-500/10' },
+                                        { name: 'React', color: 'text-emerald-400 bg-emerald-500/10' },
+                                        { name: 'TypeScript', color: 'text-emerald-400 bg-emerald-500/10' },
                                         { name: 'FastAPI', color: 'text-emerald-400 bg-emerald-500/10' },
                                         { name: 'LangChain', color: 'text-violet-400 bg-violet-500/10' },
-                                        { name: 'Gemini', color: 'text-blue-400 bg-blue-500/10' },
+                                        { name: 'Gemini', color: 'text-emerald-400 bg-emerald-500/10' },
                                         { name: 'MapLibre', color: 'text-amber-400 bg-amber-500/10' },
-                                        { name: 'Tailwind', color: 'text-cyan-400 bg-cyan-500/10' },
-                                        { name: 'PostgreSQL', color: 'text-blue-400 bg-blue-500/10' },
+                                        { name: 'Tailwind', color: 'text-emerald-400 bg-emerald-500/10' },
+                                        { name: 'PostgreSQL', color: 'text-emerald-400 bg-emerald-500/10' },
                                     ].map((tech) => (
                                         <span
                                             key={tech.name}

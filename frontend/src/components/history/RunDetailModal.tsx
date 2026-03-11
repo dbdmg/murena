@@ -53,8 +53,8 @@ interface RunDetailModalProps {
 // Agent step icons and labels
 const AGENT_STEP_CONFIG: Record<string, { icon: React.ElementType; label: string; color: string; bgColor: string }> = {
     intent_analysis: { icon: Target, label: 'Analisi Intent', color: 'text-purple-400', bgColor: 'bg-purple-500/10' },
-    location_extraction: { icon: MapPin, label: 'Estrazione Location', color: 'text-blue-400', bgColor: 'bg-blue-500/10' },
-    property_technical_extraction: { icon: Building2, label: 'Caratteristiche Tecniche', color: 'text-cyan-400', bgColor: 'bg-cyan-500/10' },
+    location_extraction: { icon: MapPin, label: 'Estrazione Location', color: 'text-emerald-400', bgColor: 'bg-emerald-500/10' },
+    property_technical_extraction: { icon: Building2, label: 'Caratteristiche Tecniche', color: 'text-emerald-400', bgColor: 'bg-emerald-500/10' },
 
     sql_generation: { icon: Database, label: 'Generazione SQL', color: 'text-emerald-400', bgColor: 'bg-emerald-500/10' },
     evaluation: { icon: Sparkles, label: 'Valutazione AI', color: 'text-yellow-400', bgColor: 'bg-yellow-500/10' },
@@ -76,7 +76,7 @@ const JsonViewer: React.FC<{ data: unknown; maxHeight?: string; expanded?: boole
                 let cls = 'text-amber-300'; // number
                 if (/^"/.test(match)) {
                     if (/:$/.test(match)) {
-                        cls = 'text-cyan-400'; // key
+                        cls = 'text-emerald-400'; // key
                         match = match.slice(0, -1) + '<span class="text-gray-500">:</span>';
                     } else {
                         cls = 'text-emerald-300'; // string
@@ -256,7 +256,7 @@ export const RunDetailModal: React.FC<RunDetailModalProps> = ({
                         <div className="flex items-start justify-between p-6 border-b border-white/5 bg-[#0a0d12]/95 backdrop-blur-xl">
                             <div className="flex-1 min-w-0 pr-4">
                                 <div className="flex items-center gap-3 mb-3">
-                                    <div className="w-10 h-10 rounded-xl bg-linear-to-br from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/20">
+                                    <div className="w-10 h-10 rounded-xl bg-linear-to-br from-emerald-500 to-green-600 flex items-center justify-center shadow-lg shadow-emerald-500/20">
                                         <Bot className="w-5 h-5 text-white" />
                                     </div>
                                     <div>
@@ -295,7 +295,7 @@ export const RunDetailModal: React.FC<RunDetailModalProps> = ({
                                 {results?.status === 'completed' && runId && (
                                     <button
                                         onClick={() => onLoadToMap(runId)}
-                                        className="flex items-center gap-2 px-4 py-2.5 bg-linear-to-r from-emerald-600 to-cyan-600 rounded-xl text-sm font-medium text-white shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30 transition-all"
+                                        className="flex items-center gap-2 px-4 py-2.5 bg-linear-to-r from-emerald-600 to-green-600 rounded-xl text-sm font-medium text-white shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30 transition-all"
                                     >
                                         <MapIcon className="w-4 h-4" />
                                         Carica sulla Mappa
@@ -314,7 +314,7 @@ export const RunDetailModal: React.FC<RunDetailModalProps> = ({
                         <div className="flex-1 overflow-auto">
                             {isLoading ? (
                                 <div className="flex items-center justify-center h-64">
-                                    <Loader2 className="w-8 h-8 animate-spin text-cyan-500" />
+                                    <Loader2 className="w-8 h-8 animate-spin text-emerald-500" />
                                 </div>
                             ) : error ? (
                                 <div className="flex flex-col items-center justify-center h-64 text-red-400">
@@ -332,7 +332,7 @@ export const RunDetailModal: React.FC<RunDetailModalProps> = ({
                                             </div>
                                             <div className="flex items-center gap-2">
                                                 <CheckCircle2 className={`w-4 h-4 ${results.status === 'completed' ? 'text-emerald-400' :
-                                                    results.status === 'failed' ? 'text-red-400' : 'text-cyan-400'
+                                                    results.status === 'failed' ? 'text-red-400' : 'text-emerald-400'
                                                     }`} />
                                                 <span className="text-sm text-white">
                                                     {results.status === 'completed' ? 'Completato' :
@@ -383,7 +383,7 @@ export const RunDetailModal: React.FC<RunDetailModalProps> = ({
                                     <div>
                                         <div className="flex items-center justify-between mb-4">
                                             <h3 className="text-sm font-semibold text-white flex items-center gap-2">
-                                                <Bot className="w-5 h-5 text-cyan-400" />
+                                                <Bot className="w-5 h-5 text-emerald-400" />
                                                 Passaggi Agenti AI
                                                 <span className="text-xs text-gray-500 font-normal px-2 py-1 bg-white/5 rounded-lg">
                                                     {agentSteps.length} steps
@@ -492,7 +492,7 @@ export const RunDetailModal: React.FC<RunDetailModalProps> = ({
                                                                                     {step.prompt.user && step.prompt.user !== 'N/D' && (
                                                                                         <div>
                                                                                             <div className="flex items-center justify-between mb-2">
-                                                                                                <span className="text-xs text-cyan-400/70 uppercase tracking-wider font-medium flex items-center gap-1.5">
+                                                                                                <span className="text-xs text-emerald-400/70 uppercase tracking-wider font-medium flex items-center gap-1.5">
                                                                                                     <MessageSquare className="w-3 h-3" />
                                                                                                     User Prompt
                                                                                                 </span>
@@ -513,8 +513,8 @@ export const RunDetailModal: React.FC<RunDetailModalProps> = ({
                                                                                                     )}
                                                                                                 </button>
                                                                                             </div>
-                                                                                            <div className="bg-cyan-500/5 border border-cyan-500/10 rounded-xl p-4">
-                                                                                                <pre className="text-sm text-cyan-200/80 whitespace-pre-wrap leading-relaxed font-mono">
+                                                                                            <div className="bg-emerald-500/5 border border-emerald-500/10 rounded-xl p-4">
+                                                                                                <pre className="text-sm text-emerald-200/80 whitespace-pre-wrap leading-relaxed font-mono">
                                                                                                     {step.prompt.user}
                                                                                                 </pre>
                                                                                             </div>
@@ -566,7 +566,7 @@ export const RunDetailModal: React.FC<RunDetailModalProps> = ({
                                                                             {step.data != null && Object.keys(step.data).length > 0 && (
                                                                                 <div>
                                                                                     <div className="flex items-center justify-between mb-2">
-                                                                                        <span className="text-xs text-cyan-400/70 uppercase tracking-wider font-medium">Dati Estratti</span>
+                                                                                        <span className="text-xs text-emerald-400/70 uppercase tracking-wider font-medium">Dati Estratti</span>
                                                                                         <button
                                                                                             onClick={() => copyToClipboard(formatJson(step.data as Record<string, unknown>), `data-${step.key}`)}
                                                                                             className="text-xs text-gray-500 hover:text-white flex items-center gap-1.5 transition-colors px-2.5 py-1 rounded-md hover:bg-white/5"

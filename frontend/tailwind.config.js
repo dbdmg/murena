@@ -14,13 +14,13 @@ export default {
                     elevated: "#22262e" // Modals/Popovers
                 },
                 primary: {
-                    DEFAULT: "#3b82f6", // Royal Blue
-                    hover: "#2563eb",
-                    light: "#60a5fa"
+                    DEFAULT: "#4fb589", // Murena Green
+                    hover: "#3da177",
+                    light: "#70c39f"
                 },
                 accent: {
-                    DEFAULT: "#10b981", // Emerald
-                    hover: "#059669"
+                    DEFAULT: "#34d399", // Emerald 400
+                    hover: "#10b981"    // Emerald 500
                 },
                 text: {
                     primary: "#f3f4f6", // Cool white

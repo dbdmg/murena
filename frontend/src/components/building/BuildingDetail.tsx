@@ -168,14 +168,14 @@ const ApeFilesList: React.FC<{ files: string[]; onFileClick: (file: string) => v
                         <button
                             key={index}
                             onClick={() => onFileClick(file)}
-                            className="w-full flex items-center gap-2 px-2 py-2 rounded bg-white/5 hover:bg-cyan-500/10 text-xs text-gray-400 hover:text-cyan-400 transition-colors text-left group"
+                            className="w-full flex items-center gap-2 px-2 py-2 rounded bg-white/5 hover:bg-emerald-500/10 text-xs text-gray-400 hover:text-emerald-400 transition-colors text-left group"
                         >
-                            <FileText className="w-3 h-3 text-gray-500 group-hover:text-cyan-400 shrink-0" />
+                            <FileText className="w-3 h-3 text-gray-500 group-hover:text-emerald-400 shrink-0" />
                             <span className="truncate flex-1 min-w-0">{fileName}</span>
                             {/* Badges for Classe Energetica and Costo */}
                             <div className="flex items-center gap-1.5 shrink-0">
                                 {info?.loading ? (
-                                    <span className="w-3 h-3 border border-gray-500/50 border-t-cyan-400 rounded-full animate-spin" />
+                                    <span className="w-3 h-3 border border-gray-500/50 border-t-emerald-400 rounded-full animate-spin" />
                                 ) : (
                                     <>
                                         {info?.classe && (
@@ -198,7 +198,7 @@ const ApeFilesList: React.FC<{ files: string[]; onFileClick: (file: string) => v
             {hasMore && (
                 <button
                     onClick={() => setIsExpanded(!isExpanded)}
-                    className="mt-2 flex items-center gap-1 text-[10px] text-cyan-400 hover:text-cyan-300 transition-colors"
+                    className="mt-2 flex items-center gap-1 text-[10px] text-emerald-400 hover:text-emerald-300 transition-colors"
                 >
                     <ChevronDown className={`w - 3 h - 3 transition - transform ${isExpanded ? 'rotate-180' : ''} `} />
                     {isExpanded ? 'Mostra meno' : `Mostra altri ${files.length - 2} `}
@@ -269,7 +269,7 @@ export const BuildingDetail: React.FC<BuildingDetailProps> = ({ data, runId, onF
                 <text {...rest} x={x} y={y} fill="#9ca3af" fontSize={9} textAnchor={x > cx ? 'start' : x < cx ? 'end' : 'middle'}>
                     {payload.value}
                 </text>
-                <text {...rest} x={x} y={y + 10} fill="#06b6d4" fontSize={8} fontWeight="bold" textAnchor={x > cx ? 'start' : x < cx ? 'end' : 'middle'}>
+                <text {...rest} x={x} y={y + 10} fill="#10b981" fontSize={8} fontWeight="bold" textAnchor={x > cx ? 'start' : x < cx ? 'end' : 'middle'}>
                     {Math.round(value)}
                 </text>
             </g>
@@ -322,7 +322,7 @@ export const BuildingDetail: React.FC<BuildingDetailProps> = ({ data, runId, onF
             return {
                 label: 'Risultato',
                 icon: null,
-                className: 'bg-cyan-500/20 text-cyan-400 border border-cyan-400/30',
+                className: 'bg-emerald-500/20 text-emerald-400 border border-emerald-400/30',
             };
         }
         return null;
@@ -352,8 +352,8 @@ export const BuildingDetail: React.FC<BuildingDetailProps> = ({ data, runId, onF
                 {(details.meta_immobile === true || String(details.meta_immobile) === 'true') && (
                     <div className="absolute top-2 right-2 flex flex-col items-end gap-1">
                         {details.omi_zone && (
-                            <div className="bg-cyan-900/90 backdrop-blur-md px-2 py-0.5 rounded border border-cyan-400/50 shadow-lg">
-                                <p className="text-[10px] font-semibold text-cyan-200">Zona OMI: {details.omi_zone}</p>
+                            <div className="bg-emerald-900/90 backdrop-blur-md px-2 py-0.5 rounded border border-emerald-400/50 shadow-lg">
+                                <p className="text-[10px] font-semibold text-emerald-200">Zona OMI: {details.omi_zone}</p>
                             </div>
                         )}
                         <div className="bg-purple-900/90 backdrop-blur-md px-2 py-0.5 rounded border border-purple-400/50 shadow-lg">
@@ -362,8 +362,8 @@ export const BuildingDetail: React.FC<BuildingDetailProps> = ({ data, runId, onF
                     </div>
                 )}
                 {!((details.meta_immobile === true || String(details.meta_immobile) === 'true')) && details.omi_zone && (
-                    <div className="absolute top-2 right-2 bg-cyan-900/90 backdrop-blur-md px-2 py-0.5 rounded border border-cyan-400/50 shadow-lg">
-                        <p className="text-[10px] font-semibold text-cyan-200">Zona OMI: {details.omi_zone}</p>
+                    <div className="absolute top-2 right-2 bg-emerald-900/90 backdrop-blur-md px-2 py-0.5 rounded border border-emerald-400/50 shadow-lg">
+                        <p className="text-[10px] font-semibold text-emerald-200">Zona OMI: {details.omi_zone}</p>
                     </div>
                 )}
             </div>
@@ -375,11 +375,11 @@ export const BuildingDetail: React.FC<BuildingDetailProps> = ({ data, runId, onF
                 </h2>
                 {details.city && <p className="text-gray-400 text-xs mt-0.5">{details.city}</p>}
                 {details.price && details.price > 0 ? (
-                    <p className="text-lg font-bold text-cyan-400 mt-1">
+                    <p className="text-lg font-bold text-emerald-400 mt-1">
                         € {details.price.toLocaleString('it-IT')} <span className="text-xs font-normal text-gray-400">/anno</span>
                     </p>
                 ) : details.canone_annuale && details.canone_annuale > 0 && (
-                    <p className="text-lg font-bold text-cyan-400 mt-1">
+                    <p className="text-lg font-bold text-emerald-400 mt-1">
                         € {details.canone_annuale.toLocaleString('it-IT')} <span className="text-xs font-normal text-gray-400">/anno (Canone)</span>
                     </p>
                 )}
@@ -391,7 +391,7 @@ export const BuildingDetail: React.FC<BuildingDetailProps> = ({ data, runId, onF
                     href={`https://www.google.com/maps?q=${details.lat},${details.lng}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="w-full flex items-center justify-center gap-2 bg-linear-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 rounded-lg py-2.5 px-4 text-sm font-medium text-white shadow-lg shadow-blue-500/20 transition-all"
+                    className="w-full flex items-center justify-center gap-2 bg-linear-to-r from-emerald-600 to-green-500 hover:from-emerald-500 hover:to-green-400 rounded-lg py-2.5 px-4 text-sm font-medium text-white shadow-lg shadow-emerald-500/20 transition-all"
                 >
                     <MapPin className="w-4 h-4" />
                     Apri in Google Maps
@@ -568,7 +568,7 @@ export const BuildingDetail: React.FC<BuildingDetailProps> = ({ data, runId, onF
                                                     <p className="text-gray-400">Pompa calore/Teleriscald.: 5 • Condensazione: 4 • Altro: 2</p>
                                                 </div>
                                                 <div>
-                                                    <p className="text-cyan-400 font-medium">Involucro</p>
+                                                    <p className="text-emerald-400 font-medium">Involucro</p>
                                                     <p className="text-gray-400">Alta qualità: 5 • Media: 3 • Bassa: 1</p>
                                                 </div>
                                                 <div>
@@ -638,7 +638,7 @@ export const BuildingDetail: React.FC<BuildingDetailProps> = ({ data, runId, onF
                                     {prop.surface_area != null && (
                                         <div className="flex items-center gap-1">
                                             <span className="text-gray-500">MQ:</span>
-                                            <span className="text-cyan-400">{prop.surface_area}</span>
+                                            <span className="text-emerald-400">{prop.surface_area}</span>
                                         </div>
                                     )}
                                     {prop.property_type && (
@@ -659,21 +659,21 @@ export const BuildingDetail: React.FC<BuildingDetailProps> = ({ data, runId, onF
                 hasPoiData && (
                     <div className="bg-[#1a1d24]/60 p-3 rounded-lg border border-white/5">
                         <div className="flex items-center gap-1.5 mb-1">
-                            <MapPin className="w-3.5 h-3.5 text-cyan-400" />
+                            <MapPin className="w-3.5 h-3.5 text-emerald-400" />
                             <span className="text-[10px] uppercase text-gray-500 font-medium">Score Localizzazione (POI)</span>
                         </div>
                         <div className="flex items-center justify-between mb-1">
                             <span className="text-[10px] text-gray-500">Punteggio Dettagliato</span>
                             <div className="relative group">
                                 <button className="p-1 rounded-full hover:bg-white/10 transition-colors" aria-label="Info punteggio POI">
-                                    <Info className="w-3.5 h-3.5 text-cyan-400" />
+                                    <Info className="w-3.5 h-3.5 text-emerald-400" />
                                 </button>
                                 <div className="absolute right-0 bottom-full mb-1 w-64 p-3 bg-[#1a1d24] border border-white/20 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
                                     <p className="text-xs font-semibold text-white mb-2">Scala POI (1-5) • raggio 1km</p>
                                     <div className="space-y-1.5 text-[10px] text-gray-400">
-                                        <p><span className="text-cyan-300 font-medium">5</span> = eccellente copertura servizi</p>
-                                        <p><span className="text-cyan-300 font-medium">3</span> = buona copertura</p>
-                                        <p><span className="text-cyan-300 font-medium">1</span> = copertura scarsa</p>
+                                        <p><span className="text-emerald-300 font-medium">5</span> = eccellente copertura servizi</p>
+                                        <p><span className="text-emerald-300 font-medium">3</span> = buona copertura</p>
+                                        <p><span className="text-emerald-300 font-medium">1</span> = copertura scarsa</p>
                                     </div>
                                 </div>
                             </div>
@@ -681,7 +681,7 @@ export const BuildingDetail: React.FC<BuildingDetailProps> = ({ data, runId, onF
 
                         <div className="bg-white/5 rounded-xl p-4 border border-white/10 relative h-[300px]">
                             <h4 className="text-xs font-semibold text-gray-300 mb-2 flex items-center gap-1.5 absolute top-4 left-4 z-10">
-                                <MapPin className="w-3.5 h-3.5 text-cyan-400" />
+                                <MapPin className="w-3.5 h-3.5 text-emerald-400" />
                                 Servizi di Prossimità
                             </h4>
                             <div className="w-full h-full">
@@ -693,9 +693,9 @@ export const BuildingDetail: React.FC<BuildingDetailProps> = ({ data, runId, onF
                                         <Radar
                                             name="POI"
                                             dataKey="A"
-                                            stroke="#06b6d4"
+                                            stroke="#10b981"
                                             strokeWidth={2}
-                                            fill="#06b6d4"
+                                            fill="#10b981"
                                             fillOpacity={0.5}
                                         />
                                     </RadarChart>

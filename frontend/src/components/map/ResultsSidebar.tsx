@@ -171,8 +171,8 @@ export const ResultsSidebar: React.FC<ResultsSidebarProps> = ({
                     {/* Header */}
                     <div className="flex items-center justify-between p-4 border-b border-white/10">
                         <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-lg bg-cyan-500/20 flex items-center justify-center">
-                                <Layers className="w-4 h-4 text-cyan-400" />
+                            <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center">
+                                <Layers className="w-4 h-4 text-emerald-400" />
                             </div>
                             <div>
                                 <h3 className="text-sm font-semibold text-white">Risultati</h3>
@@ -200,7 +200,7 @@ export const ResultsSidebar: React.FC<ResultsSidebarProps> = ({
                                     setSearchQuery(e.target.value);
                                     setCurrentPage(1);
                                 }}
-                                className="w-full pl-9 pr-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/20 transition-all"
+                                className="w-full pl-9 pr-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20 transition-all"
                             />
                             {searchQuery && (
                                 <button
@@ -238,7 +238,7 @@ export const ResultsSidebar: React.FC<ResultsSidebarProps> = ({
                                             className={`
                                                 flex items-center gap-2 w-full px-3 py-2 text-sm text-left transition-colors
                                                 ${sortBy === option.value
-                                                    ? 'bg-cyan-500/20 text-cyan-400'
+                                                    ? 'bg-emerald-500/20 text-emerald-400'
                                                     : 'text-gray-300 hover:bg-white/5'
                                                 }
                                                 ${option.value === 'score' && !hasActiveRun ? 'opacity-40 cursor-not-allowed' : ''}
@@ -278,7 +278,7 @@ export const ResultsSidebar: React.FC<ResultsSidebarProps> = ({
                                             className={`
                                                 w-full p-3 rounded-xl text-left transition-all duration-200
                                                 ${isSelected
-                                                    ? 'bg-cyan-500/20 border border-cyan-500/40 ring-1 ring-cyan-500/20'
+                                                    ? 'bg-emerald-500/20 border border-emerald-500/40 ring-1 ring-emerald-500/20'
                                                     : 'bg-white/5 border border-transparent hover:bg-white/10 hover:border-white/10'
                                                 }
                                             `}
@@ -286,7 +286,7 @@ export const ResultsSidebar: React.FC<ResultsSidebarProps> = ({
                                             {/* Header row */}
                                             <div className="flex items-start justify-between gap-2 mb-2">
                                                 <div className="flex-1 min-w-0">
-                                                    <p className={`text-sm font-medium truncate ${isSelected ? 'text-cyan-300' : 'text-white'}`}>
+                                                    <p className={`text-sm font-medium truncate ${isSelected ? 'text-emerald-300' : 'text-white'}`}>
                                                         {marker.address || `ID: ${marker.id}`}
                                                     </p>
                                                     {marker.meta_immobile && (
@@ -342,7 +342,7 @@ export const ResultsSidebar: React.FC<ResultsSidebarProps> = ({
                                                 )}
 
                                                 {marker.omi_zone && (
-                                                    <span className="px-1.5 py-0.5 rounded text-[10px] bg-cyan-500/20 text-cyan-400">
+                                                    <span className="px-1.5 py-0.5 rounded text-[10px] bg-emerald-500/20 text-emerald-400">
                                                         {marker.omi_zone}
                                                     </span>
                                                 )}

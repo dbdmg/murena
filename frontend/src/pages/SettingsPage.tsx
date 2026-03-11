@@ -47,7 +47,7 @@ const SectionCard: React.FC<{
     title: string;
     iconColor?: string;
     children: React.ReactNode;
-}> = ({ icon, title, iconColor = 'text-cyan-400', children }) => (
+}> = ({ icon, title, iconColor = 'text-emerald-400', children }) => (
     <div className="bg-[#1a1d24]/60 border border-white/10 rounded-xl p-5 backdrop-blur-sm">
         <div className="flex items-center gap-2 mb-4">
             <span className={iconColor}>{icon}</span>
@@ -72,7 +72,7 @@ const SliderField: React.FC<{
     <div className="mb-5">
         <div className="flex items-center justify-between mb-2">
             <label className="text-sm text-gray-300">{label}</label>
-            <span className="text-xs text-cyan-400 font-mono bg-cyan-500/10 px-2 py-0.5 rounded">
+            <span className="text-xs text-emerald-400 font-mono bg-emerald-500/10 px-2 py-0.5 rounded">
                 {displayValue || value}
             </span>
         </div>
@@ -90,9 +90,9 @@ const SliderField: React.FC<{
                     [&::-webkit-slider-thumb]:w-4
                     [&::-webkit-slider-thumb]:h-4
                     [&::-webkit-slider-thumb]:rounded-full
-                    [&::-webkit-slider-thumb]:bg-cyan-400
+                    [&::-webkit-slider-thumb]:bg-emerald-400
                     [&::-webkit-slider-thumb]:shadow-lg
-                    [&::-webkit-slider-thumb]:shadow-cyan-500/30
+                    [&::-webkit-slider-thumb]:shadow-emerald-500/30
                     [&::-webkit-slider-thumb]:cursor-pointer
                     [&::-webkit-slider-thumb]:transition-transform
                     [&::-webkit-slider-thumb]:hover:scale-110"
@@ -169,7 +169,7 @@ export const SettingsPage: React.FC = () => {
         <div className="p-6 max-w-4xl mx-auto">
             {/* Header */}
             <div className="flex items-center gap-3 mb-8">
-                <div className="w-12 h-12 rounded-xl bg-linear-to-br from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/20">
+                <div className="w-12 h-12 rounded-xl bg-linear-to-br from-emerald-500 to-green-600 flex items-center justify-center shadow-lg shadow-emerald-500/20">
                     <Settings className="w-6 h-6 text-white" />
                 </div>
                 <div>
@@ -364,7 +364,7 @@ export const SettingsPage: React.FC = () => {
                     <SectionCard
                         icon={<Map className="w-4 h-4" />}
                         title="Visualizzazione"
-                        iconColor="text-cyan-400"
+                        iconColor="text-emerald-400"
                     >
                         {/* Viewport Object Limit */}
                         <div className="mb-4">
@@ -373,7 +373,7 @@ export const SettingsPage: React.FC = () => {
                                     <Layers className="w-3.5 h-3.5 text-gray-500" />
                                     <label className="text-sm text-gray-300">Limite Oggetti Visualizzati</label>
                                 </div>
-                                <span className="text-xs text-cyan-400 font-mono bg-cyan-500/10 px-2 py-0.5 rounded">
+                                <span className="text-xs text-emerald-400 font-mono bg-emerald-500/10 px-2 py-0.5 rounded">
                                     {markersLimit.toLocaleString()}
                                 </span>
                             </div>
@@ -388,7 +388,7 @@ export const SettingsPage: React.FC = () => {
                                         className={`
                                             px-4 py-2 rounded-xl text-sm font-medium transition-all
                                             ${markersLimit === option.value
-                                                ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/50'
+                                                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/50'
                                                 : 'bg-white/5 text-gray-400 border border-white/10 hover:bg-white/10'
                                             }
                                         `}
@@ -466,20 +466,20 @@ export const SettingsPage: React.FC = () => {
                     <SectionCard
                         icon={<User className="w-4 h-4" />}
                         title="Account"
-                        iconColor="text-blue-400"
+                        iconColor="text-emerald-400"
                     >
                         {user ? (
                             <>
                                 {/* Profile Card */}
                                 <div className="flex items-center gap-4 p-4 bg-linear-to-r from-white/2 to-transparent border border-white/10 rounded-xl mb-4">
-                                    <div className="w-14 h-14 rounded-full bg-linear-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-blue-500/20">
+                                    <div className="w-14 h-14 rounded-full bg-linear-to-br from-emerald-500 to-green-500 flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-emerald-500/20">
                                         {user.username?.charAt(0).toUpperCase() || 'U'}
                                     </div>
                                     <div className="flex-1">
                                         <div className="text-lg font-semibold text-white">{user.username}</div>
                                         <div className="text-sm text-gray-400">{user.email}</div>
-                                        <div className="mt-1 inline-flex items-center gap-1 px-2 py-0.5 bg-blue-500/20 border border-blue-500/30 rounded-full">
-                                            <span className="text-xs text-blue-400 font-medium">Analista</span>
+                                        <div className="mt-1 inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-500/20 border border-emerald-500/30 rounded-full">
+                                            <span className="text-xs text-emerald-400 font-medium">Analista</span>
                                         </div>
                                     </div>
                                 </div>

@@ -162,13 +162,13 @@ export const ProcessingPage: React.FC = () => {
     if (!runId) return null;
 
     return (
-        <div className="min-h-screen bg-[#0a0d12] text-gray-200 font-sans selection:bg-blue-500/30">
+        <div className="min-h-screen bg-[#0a0d12] text-gray-200 font-sans selection:bg-emerald-500/30">
             <div className="max-w-3xl mx-auto p-6 md:p-12 pb-32">
 
                 {/* Header */}
                 <header className="mb-12 flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
-                        <div className="flex items-center gap-2 text-sm text-blue-400 font-medium mb-2">
+                        <div className="flex items-center gap-2 text-sm text-emerald-400 font-medium mb-2">
                             <Zap className="w-4 h-4" />
                             <span>Sessione di ricerca AI</span>
                         </div>
@@ -178,7 +178,7 @@ export const ProcessingPage: React.FC = () => {
                             ) : (
                                 <>
                                     <span>Elaborazione richiesta...</span>
-                                    <Loader2 className="w-6 h-6 animate-spin text-blue-500/80" />
+                                    <Loader2 className="w-6 h-6 animate-spin text-emerald-500/80" />
                                 </>
                             )}
                         </h1>
@@ -194,7 +194,7 @@ export const ProcessingPage: React.FC = () => {
                 {/* Main Process Flow */}
                 <div className="relative pl-4 md:pl-0">
                     {/* Vertical Line */}
-                    <div className="absolute left-[19px] md:left-[23px] top-4 bottom-4 w-px bg-gradient-to-b from-blue-500/50 via-gray-700/30 to-transparent" />
+                    <div className="absolute left-[19px] md:left-[23px] top-4 bottom-4 w-px bg-gradient-to-b from-emerald-500/50 via-gray-700/30 to-transparent" />
 
                     <div className="space-y-8">
                         <AnimatePresence mode="popLayout">
@@ -218,7 +218,7 @@ export const ProcessingPage: React.FC = () => {
                                             ${isDone
                                                 ? 'bg-emerald-500/10 border-emerald-500 text-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.2)]'
                                                 : isCurrent
-                                                    ? 'bg-blue-500/10 border-blue-500 text-blue-400 shadow-[0_0_20px_rgba(59,130,246,0.2)]'
+                                                    ? 'bg-emerald-500/10 border-emerald-500 text-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.2)]'
                                                     : 'bg-[#12141a] border-gray-800 text-gray-700'
                                             }
                                         `}>
@@ -232,14 +232,14 @@ export const ProcessingPage: React.FC = () => {
 
                                             {/* Glow effect for current step */}
                                             {isCurrent && (
-                                                <div className="absolute inset-0 rounded-full bg-blue-400/20 animate-ping" />
+                                                <div className="absolute inset-0 rounded-full bg-emerald-400/20 animate-ping" />
                                             )}
                                         </div>
 
                                         {/* Text Content */}
                                         <div className="pt-2 flex flex-col gap-2 w-full">
                                             <div className="flex items-center justify-between">
-                                                <span className={`font-semibold text-xl tracking-tight ${isCurrent ? 'text-blue-400' : isDone ? 'text-gray-200' : 'text-gray-500'}`}>
+                                                <span className={`font-semibold text-xl tracking-tight ${isCurrent ? 'text-emerald-400' : isDone ? 'text-gray-200' : 'text-gray-500'}`}>
                                                     {step.label}
                                                 </span>
                                             </div>
@@ -272,7 +272,7 @@ export const ProcessingPage: React.FC = () => {
                             transition={{ delay: 0.3, type: "spring" }}
                             className="mt-16 p-8 rounded-3xl bg-linear-to-br from-[#12141a] to-[#0a0d12] border border-white/10 shadow-2xl relative overflow-hidden"
                         >
-                            <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+                            <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
 
                             <div className="flex items-center gap-4 mb-6 relative z-10">
                                 <div className="p-3 bg-emerald-500/10 rounded-2xl border border-emerald-500/20">
@@ -315,7 +315,7 @@ export const ProcessingPage: React.FC = () => {
                             </button>
                             <button
                                 onClick={handleViewResults}
-                                className="px-8 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 transition-all font-medium flex items-center gap-2"
+                                className="px-8 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 transition-all font-medium flex items-center gap-2"
                             >
                                 <span>Visualizza mappa interattiva</span>
                                 <ArrowRight className="w-4 h-4" />

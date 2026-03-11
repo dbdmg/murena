@@ -75,7 +75,7 @@ export const BuildingSidebar: React.FC<BuildingSidebarProps> = ({
                                             setSelectedIndex(index);
                                             setIsDropdownOpen(false);
                                         }}
-                                        className={`w-full text-left px-3 py-2 text-sm hover:bg-white/10 transition-colors ${index === selectedIndex ? 'bg-cyan-500/20 text-cyan-400' : 'text-gray-300'
+                                        className={`w-full text-left px-3 py-2 text-sm hover:bg-white/10 transition-colors ${index === selectedIndex ? 'bg-emerald-500/20 text-emerald-400' : 'text-gray-300'
                                             }`}
                                     >
                                         <div className="font-medium truncate">

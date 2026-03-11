@@ -46,8 +46,8 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
     return (
         <div className="min-h-screen w-full relative bg-[#0a0c10] text-gray-200 overflow-hidden">
             {/* Ambient Background Effects */}
-            <div className="fixed top-[-20%] left-[-10%] w-[600px] h-[600px] bg-blue-600/8 rounded-full blur-[150px] pointer-events-none z-0" />
-            <div className="fixed bottom-[-20%] right-[-10%] w-[500px] h-[500px] bg-cyan-500/5 rounded-full blur-[120px] pointer-events-none z-0" />
+            <div className="fixed top-[-20%] left-[-10%] w-[600px] h-[600px] bg-emerald-600/10 rounded-full blur-[150px] pointer-events-none z-0" />
+            <div className="fixed bottom-[-20%] right-[-10%] w-[500px] h-[500px] bg-green-500/5 rounded-full blur-[120px] pointer-events-none z-0" />
             <div className="fixed top-[40%] right-[20%] w-[300px] h-[300px] bg-purple-500/5 rounded-full blur-[100px] pointer-events-none z-0" />
 
             {/* Sidebar Navigation - Fixed position */}
@@ -74,11 +74,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
                                     transition={{ duration: 0.15 }}
                                     className="overflow-hidden"
                                 >
-                                    <h1 className="font-bold text-sm text-white whitespace-nowrap">Centro di Comando</h1>
-                                    <div className="flex items-center gap-1.5">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                                        <span className="text-[10px] text-gray-500 whitespace-nowrap">Sistema Online</span>
-                                    </div>
+                                    <h1 className="font-bold text-sm text-white whitespace-nowrap">MURENA</h1>
                                 </motion.div>
                             )}
                         </AnimatePresence>
@@ -99,20 +95,20 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
                                     flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group relative
                                     ${isExpanded ? '' : 'justify-center'}
                                     ${isActive
-                                        ? 'bg-linear-to-r from-blue-600/20 to-cyan-500/10 text-white shadow-lg shadow-blue-900/10 border border-white/5'
+                                        ? 'bg-linear-to-r from-emerald-600/20 to-green-500/10 text-white shadow-lg shadow-emerald-900/10 border border-white/5'
                                         : 'text-gray-400 hover:text-white hover:bg-white/5 border border-transparent'
                                     }
                                 `}
                             >
                                 {/* Active indicator - REMOVED for cleaner look per user request */}
                                 {isActive && (
-                                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-12 bg-cyan-400/50 blur-sm rounded-r-full" />
+                                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-12 bg-emerald-400/50 blur-sm rounded-r-full" />
                                 )}
 
                                 <div className={`
                                     w-8 h-8 rounded-lg flex items-center justify-center shrink-0
                                     ${isActive
-                                        ? 'bg-blue-500/20 text-cyan-400'
+                                        ? 'bg-emerald-500/20 text-emerald-400'
                                         : 'bg-white/5 text-gray-500 group-hover:text-gray-300 group-hover:bg-white/10'
                                     }
                                 `}>

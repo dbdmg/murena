@@ -50,16 +50,16 @@ export const LoginPage: React.FC = () => {
     return (
         <div className="min-h-screen w-full flex items-center justify-center relative overflow-hidden bg-[#0a0d12]">
             {/* Ambient Background Effects - subtle blue glow */}
-            <div className="absolute top-[-30%] left-[-15%] w-[700px] h-[700px] bg-blue-900/30 rounded-full blur-[150px] pointer-events-none" />
-            <div className="absolute bottom-[-25%] right-[-15%] w-[600px] h-[600px] bg-cyan-900/20 rounded-full blur-[130px] pointer-events-none" />
-            <div className="absolute top-[40%] left-[60%] w-[300px] h-[300px] bg-blue-800/15 rounded-full blur-[100px] pointer-events-none" />
+            <div className="absolute top-[-30%] left-[-15%] w-[700px] h-[700px] bg-emerald-900/30 rounded-full blur-[150px] pointer-events-none" />
+            <div className="absolute bottom-[-25%] right-[-15%] w-[600px] h-[600px] bg-green-900/20 rounded-full blur-[130px] pointer-events-none" />
+            <div className="absolute top-[40%] left-[60%] w-[300px] h-[300px] bg-emerald-800/15 rounded-full blur-[100px] pointer-events-none" />
 
             {/* Glassmorphism Card */}
             <div className="w-full max-w-[440px] mx-4 relative z-10">
                 {/* Subtle border glow */}
-                <div className="absolute -inset-px bg-linear-to-b from-cyan-500/20 via-transparent to-blue-500/10 rounded-2xl"></div>
+                <div className="absolute -inset-px bg-linear-to-b from-emerald-500/20 via-transparent to-green-500/10 rounded-2xl"></div>
 
-                <div className="relative bg-[#0f1318]/90 backdrop-blur-2xl border border-cyan-500/10 rounded-2xl p-8 shadow-2xl shadow-black/50">
+                <div className="relative bg-[#0f1318]/90 backdrop-blur-2xl border border-emerald-500/10 rounded-2xl p-8 shadow-2xl shadow-black/50">
 
                     {/* Header */}
                     <div className="text-center mb-10">
@@ -88,12 +88,12 @@ export const LoginPage: React.FC = () => {
                         <div className="space-y-2">
                             <label className="text-xs font-medium text-gray-400 ml-1">Nome utente</label>
                             <div className="relative group">
-                                <UserIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 group-focus-within:text-cyan-400 transition-colors" />
+                                <UserIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 group-focus-within:text-emerald-400 transition-colors" />
                                 <input
                                     type="text"
                                     value={username}
                                     onChange={(e) => setUsername(e.target.value)}
-                                    className="w-full bg-[#0a0d12]/80 border border-cyan-500/10 rounded-xl py-3.5 pl-11 pr-4 text-gray-200 placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-cyan-500/50 focus:border-cyan-500/30 transition-all"
+                                    className="w-full bg-[#0a0d12]/80 border border-emerald-500/10 rounded-xl py-3.5 pl-11 pr-4 text-gray-200 placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-emerald-500/50 focus:border-emerald-500/30 transition-all"
                                     placeholder="Inserisci il tuo nome utente"
                                     required
                                 />
@@ -103,26 +103,26 @@ export const LoginPage: React.FC = () => {
                         <div className="space-y-2">
                             <label className="text-xs font-medium text-gray-400 ml-1">Password</label>
                             <div className="relative group">
-                                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 group-focus-within:text-cyan-400 transition-colors" />
+                                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 group-focus-within:text-emerald-400 transition-colors" />
                                 <input
                                     type="password"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
-                                    className="w-full bg-[#0a0d12]/80 border border-cyan-500/10 rounded-xl py-3.5 pl-11 pr-4 text-gray-200 placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-cyan-500/50 focus:border-cyan-500/30 transition-all"
+                                    className="w-full bg-[#0a0d12]/80 border border-emerald-500/10 rounded-xl py-3.5 pl-11 pr-4 text-gray-200 placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-emerald-500/50 focus:border-emerald-500/30 transition-all"
                                     placeholder="••••••••"
                                     required
                                 />
                             </div>
                             <div className="flex justify-end">
-                                <a href="#" className="text-xs text-cyan-400 hover:text-cyan-300 transition-colors">Password dimenticata?</a>
+                                <a href="#" className="text-xs text-emerald-400 hover:text-emerald-300 transition-colors">Password dimenticata?</a>
                             </div>
                         </div>
 
-                        <button
-                            type="submit"
-                            disabled={isLoading}
-                            className="w-full bg-linear-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-semibold py-3.5 rounded-xl shadow-lg shadow-cyan-900/30 active:scale-[0.98] transition-all flex items-center justify-center gap-2 mt-6"
-                        >
+                            <button
+                                type="submit"
+                                disabled={isLoading}
+                                className="w-full bg-linear-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-white font-semibold py-3.5 rounded-xl shadow-lg shadow-emerald-900/30 active:scale-[0.98] transition-all flex items-center justify-center gap-2 mt-6"
+                            >
                             {isLoading ? (
                                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                             ) : (
@@ -159,7 +159,7 @@ export const LoginPage: React.FC = () => {
                     {/* Integrated Footer with blurred background */}
                     <div className="absolute bottom-0 left-0 w-full bg-[#0a0d12]/50 backdrop-blur-md border-t border-white/5 p-4 rounded-b-2xl">
                         <p className="text-center text-gray-500 text-sm">
-                            Non hai un account? <span className="text-cyan-400 hover:text-cyan-300 cursor-pointer transition-colors">Contatta l'amministratore</span>
+                            Non hai un account? <span className="text-emerald-400 hover:text-emerald-300 cursor-pointer transition-colors">Contatta l'amministratore</span>
                         </p>
                     </div>
 

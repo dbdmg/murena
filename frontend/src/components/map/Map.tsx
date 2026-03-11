@@ -29,9 +29,9 @@ const clusterIcon = (count: number) => {
         html: `
             <div class="relative" style="width: ${size}px; height: ${size}px;">
                 <div class="absolute inset-0 bg-linear-to-br from-slate-600/80 to-slate-800/80 rounded-full backdrop-blur-sm"></div>
-                <div class="absolute inset-[2px] bg-linear-to-br from-cyan-500/90 to-blue-600/90 rounded-full"></div>
+                <div class="absolute inset-[2px] bg-linear-to-br from-emerald-500/90 to-green-600/90 rounded-full"></div>
                 <div class="absolute inset-0 flex items-center justify-center text-white font-semibold ${fontSize} drop-shadow-md">${count}</div>
-                <div class="absolute inset-0 rounded-full border border-white/30 shadow-lg shadow-cyan-500/30"></div>
+                <div class="absolute inset-0 rounded-full border border-white/30 shadow-lg shadow-emerald-500/30"></div>
             </div>
         `,
         className: 'custom-cluster-icon',
@@ -242,11 +242,11 @@ const getPoiClusterIcon = (count: number) => {
     return L.divIcon({
         html: `
             <div class="relative w-full h-full flex items-center justify-center transform hover:scale-105 transition-transform duration-200">
-                <div class="absolute inset-0 bg-indigo-600/90 rounded-full blur-sm opacity-50"></div>
-                <div class="relative w-[90%] h-[90%] bg-[#0f1218] rounded-full border border-indigo-500/50 flex items-center justify-center shadow-lg">
-                    <span class="text-indigo-100 font-bold text-xs">${count}</span>
+                <div class="absolute inset-0 bg-emerald-600/90 rounded-full blur-sm opacity-50"></div>
+                <div class="relative w-[90%] h-[90%] bg-[#0f1218] rounded-full border border-emerald-500/50 flex items-center justify-center shadow-lg">
+                    <span class="text-emerald-100 font-bold text-xs">${count}</span>
                 </div>
-                <div class="absolute -top-1 -right-1 w-3 h-3 bg-indigo-500 rounded-full animate-pulse"></div>
+                <div class="absolute -top-1 -right-1 w-3 h-3 bg-emerald-500 rounded-full animate-pulse"></div>
             </div>
         `,
         className: 'custom-poi-cluster',
@@ -640,7 +640,7 @@ export const Map: React.FC<MapProps> = ({
                         key="municipi-overlay"
                         data={overlays.municipi}
                         style={{
-                            color: '#3b82f6', // Primary Blue
+                            color: '#4fb589', // Murena Green
                             weight: 2,
                             opacity: 0.6,
                             fillOpacity: 0.1,
