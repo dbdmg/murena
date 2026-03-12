@@ -504,68 +504,75 @@ async def run_query(query, architecture="multiagent", disabled=None, use_knowled
         log_output(f"  [!] Error: {str(e)}")
         return {"error": str(e)}
 
-async def process_batch(indices, df, out_dir, sem, arch="multiagent", disabled=None, use_knowledge=True, use_relaxation=False, lock=None, csv_path=None, col=None, trial=None, batch_name=""):
-    """Process a batch of queries with real-time progress updates and caching."""
-    total = len(indices)
-    completed = 0
-    tasks = []
-    
+class BatchTracker:
+    """Tracks progress for a specific batch of jobs."""
+    def __init__(self, name: str, total: int):
+        self.name = name
+        self.total = total
+        self.completed = 0
+        self._lock = threading.Lock()
+
+    def update(self, status: str):
+        with self._lock:
+            self.completed += 1
+            log_output(f"[{self.name}] Progress: {self.completed}/{self.total} ({status})")
+
+async def run_individual_job(
+    idx: int, 
+    df: pd.DataFrame, 
+    out_dir: Path, 
+    sem: asyncio.Semaphore, 
+    arch: str = "multiagent", 
+    disabled: Optional[List[str]] = None, 
+    use_knowledge: bool = True, 
+    use_relaxation: bool = False, 
+    csv_path: Optional[Path] = None, 
+    col: Optional[str] = None, 
+    trial: Optional[int] = None, 
+    batch_name: str = "",
+    tracker: Optional[BatchTracker] = None
+):
+    """Processes a single query variation with full context management."""
+    query = df.at[idx, "query"]
+    query_id = df.at[idx, "query_id"] if "query_id" in df.columns else f"{idx+1:03d}"
     suffix = f"_tr{trial}" if trial else ""
+    filename = f"query_{query_id}{suffix}.json"
+    target_path = out_dir / filename
 
-    for idx in indices:
-        async def task(i=idx):
-            nonlocal completed
-            query = df.at[i, "query"]
-            query_id = df.at[i, "query_id"] if "query_id" in df.columns else f"{i+1:03d}"
-            filename = f"query_{query_id}{suffix}.json"
-            target_path = out_dir / filename
+    # Set context variables for logging
+    q_token = query_ctx.set(query)
+    e_token = experiment_ctx.set(batch_name)
+    l_token = log_dir_ctx.set(out_dir)
+    job_id = f"[{batch_name}] query_{query_id}{suffix}"
 
-            # Set context vars immediately so every log within this task
-            # (and any asyncio subtask created by run_analysis) inherits the
-            # correct query/experiment identifiers from the very start.
-            q_token = query_ctx.set(query)
-            e_token = experiment_ctx.set(batch_name)
-            l_token = log_dir_ctx.set(out_dir)
-            
-            job_id = f"[{batch_name}] query_{query_id}{suffix}"
-            
-            try:
-                # Cache check
-                if target_path.exists():
-                    if csv_path and col and df.at[i, col] == 0:
-                        # Sync status back to CSV if file exists but status is 0 (resumption)
-                        safe_update_csv_column(csv_path, i, col, 1)
-                    completed += 1
-                    return
+    try:
+        # Cache check
+        if target_path.exists():
+            if csv_path and col and df.at[idx, col] == 0:
+                safe_update_csv_column(csv_path, idx, col, 1)
+            if tracker: tracker.update("OK (cached)")
+            return
 
-                # Record as pending/in-progress
-                update_pending_job(job_id, "add")
-                try:
-                    async with sem:
-                        res = await run_query(query, architecture=arch, disabled=disabled, use_knowledge=use_knowledge, use_relaxation=use_relaxation)
-                        completed += 1
-                        status = "OK" if "error" not in res else "ERR"
+        update_pending_job(job_id, "add")
+        try:
+            async with sem:
+                res = await run_query(query, architecture=arch, disabled=disabled, use_knowledge=use_knowledge, use_relaxation=use_relaxation)
+                status = "OK" if "error" not in res else "ERR"
 
-                        if "error" not in res:
-                            with open(target_path, "w") as f: json.dump(res, f, indent=4)
-                            if csv_path and col:
-                                # Use cross-process safe update
-                                safe_update_csv_column(csv_path, i, col, 1)
-                        elif csv_path and col:
-                            # Use cross-process safe update for error status
-                            safe_update_csv_column(csv_path, i, col, 2)
+                if "error" not in res:
+                    with open(target_path, "w") as f: json.dump(res, f, indent=4)
+                    if csv_path and col:
+                        safe_update_csv_column(csv_path, idx, col, 1)
+                elif csv_path and col:
+                    safe_update_csv_column(csv_path, idx, col, 2)
 
-                        if total > 0:
-                            log_output(f"[{batch_name}] Progress: {completed}/{total} ({status})")
-                finally:
-                    update_pending_job(job_id, "remove")
-            finally:
-                query_ctx.reset(q_token)
-                experiment_ctx.reset(e_token)
-                log_dir_ctx.reset(l_token)
-
-        tasks.append(task())
-    await asyncio.gather(*tasks)
+                if tracker: tracker.update(status)
+        finally:
+            update_pending_job(job_id, "remove")
+    finally:
+        query_ctx.reset(q_token)
+        experiment_ctx.reset(e_token)
+        log_dir_ctx.reset(l_token)
 
 async def sync_shared_baselines(model_key: str, df_sens: pd.DataFrame, sens_csv_path: Path):
     """Reuse reference baseline results from gpt-5.4 for other models to ensure consistency and save resources."""
@@ -655,6 +662,24 @@ def analyze_activation(results_dir, mapping, model_name):
     agent_metrics = {a: {"precision": round(m["tp"]/(m["tp"]+m["fp"]), 3) if (m["tp"]+m["fp"])>0 else 0, "recall": round(m["tp"]/(m["tp"]+m["fn"]), 3) if (m["tp"]+m["fn"])>0 else 0} for a, m in metrics.items()}
     for a in agent_metrics: agent_metrics[a]["f1"] = round(2*agent_metrics[a]["precision"]*agent_metrics[a]["recall"]/(agent_metrics[a]["precision"]+agent_metrics[a]["recall"]) if (agent_metrics[a]["precision"]+agent_metrics[a]["recall"])>0 else 0, 3)
     return {"summary": summary, "agent_metrics": agent_metrics}
+
+def analyze_performance(results_dir):
+    """Calculates execution time statistics for queries in a directory."""
+    durations = []
+    for f in results_dir.glob("*.json"):
+        with open(f) as jf:
+            data = json.load(jf)
+            if "execution_time_ms" in data:
+                durations.append(data["execution_time_ms"])
+    
+    if not durations:
+        return {"mean_ms": 0, "median_ms": 0, "sample_size": 0}
+        
+    return {
+        "mean_ms": round(np.mean(durations), 2),
+        "median_ms": round(np.median(durations), 2),
+        "sample_size": len(durations)
+    }
 
 def analyze_iou_stats(results_dir):
     ids_list = []
@@ -848,10 +873,13 @@ async def evaluate_with_judge(model_key, results_dir):
     }
     
     for r in results:
+        if not isinstance(r, dict): continue
         for p in r.get("pros", []):
+            if not isinstance(p, dict): continue
             all_metrics["acc_pros"].append(1 if p.get("accuracy") else 0)
             all_metrics["rel_pros"].append(1 if p.get("relevance") else 0)
         for c in r.get("cons", []):
+            if not isinstance(c, dict): continue
             all_metrics["acc_cons"].append(1 if c.get("accuracy") else 0)
             all_metrics["rel_cons"].append(1 if c.get("relevance") else 0)
 
@@ -1068,6 +1096,16 @@ def generate_report(bench, sens, models):
         
         report_md += "> Valutazione binaria di aderenza ai dati (Fact-checking) e utilità rispetto alla query specifica dell'utente.\n\n"
         
+        # --- SECTION 5: PERFORMANCE ---
+        report_md += "### 5. Performance Analysis\n"
+        report_md += "Analisi delle latenze medie ed effettiva velocità di risposta.\n\n"
+        
+        p = bench[mod].get("performance", {})
+        report_md += f"| Metric | Value |\n| :--- | :---: |\n"
+        report_md += f"| Average Latency | **{p.get('mean_ms', 0)/1000:.2f}s** ({p.get('mean_ms', 0):.0f}ms) |\n"
+        report_md += f"| Median Latency | {p.get('median_ms', 0)/1000:.2f}s ({p.get('median_ms', 0):.0f}ms) |\n"
+        report_md += f"| Samples Analyzed | {p.get('sample_size', 0)} |\n\n"
+
         report_md += "---\n"
 
     return report_md
@@ -1270,24 +1308,12 @@ async def run_single_model_suite(model: str, max_concurrent: int):
     # Reload df_sens as it might have been updated by sync_shared_baselines
     df_sens = safe_read_csv(sens_csv)
 
-    # --- PHASE 1 & 3: PARALLEL EXECUTION (Tutto + Ablations + Baselines) ---
-    log_output(f"[*] Starting unified execution wave for {model}...")
-    tasks = []
-
-    # 1. Benchmark Consistency Trials (Skip for BASELINE_MODEL)
-    if model != BASELINE_MODEL:
-        for tr in [1, 2, 3]:
-            out_dir = out_root_bench / "consistency"
-            out_dir.mkdir(parents=True, exist_ok=True)
-            col = f"status_{model.replace('-', '_')}_consistency_tr{tr}"
-            if col not in df_bench.columns: df_bench[col] = 0
-            pending = df_bench[df_bench[col].isin([0, 2])].index.tolist()
-            if pending:
-                tasks.append(process_batch(pending, df_bench, out_dir, sem, lock=csv_lock, csv_path=bench_csv, col=col, trial=tr, batch_name=f"{model}-CONS-TR{tr}"))
-
-    # 2. Sensitivity Ablations & Baselines
+    # --- PHASE 1 & 3: GROUPED PER-QUERY EXECUTION ---
+    log_output(f"[*] Starting unified grouped execution wave (Per-Query) for {model}...")
+    
+    # Define configurations to run
     sens_configs = [
-        # Multi-agent ablations
+        # (id, disabled_agents, use_knowledge, architecture)
         ("no_ranking", ["ranking"], True, "multiagent"),
         ("no_knowledge", None, False, "multiagent"),
         ("no_poi", ["poi"], True, "multiagent"), 
@@ -1295,29 +1321,67 @@ async def run_single_model_suite(model: str, max_concurrent: int):
         ("no_location", ["location"], True, "multiagent"), 
         ("no_ape", ["ape"], True, "multiagent"), 
         ("no_property_technical", ["property_technical"], True, "multiagent"),
-        # Baselines
         ("baseline_columns", None, False, "baseline"),
         ("baseline_stats", None, True, "baseline")
     ]
     
-    # If this is the master baseline run, ONLY run the baselines
     if model == BASELINE_MODEL:
         sens_configs = [c for c in sens_configs if c[0].startswith("baseline")]
     else:
-        # Otherwise, skip the baselines because they will be synced
         sens_configs = [c for c in sens_configs if not c[0].startswith("baseline")]
 
+    from collections import defaultdict
+    jobs_by_query = defaultdict(list)
+    trackers = {}
+
+    # 1. Collect Sensitivity Jobs
     for cid, dis, kn, arch in sens_configs:
         col = f"status_{model.replace('-', '_')}_{cid}"
         if col not in df_sens.columns: df_sens[col] = 0
         out_dir = out_root_sens / cid
         out_dir.mkdir(parents=True, exist_ok=True)
         pending = df_sens[df_sens[col].isin([0, 2])].index.tolist()
-        if pending:
-            tasks.append(process_batch(pending, df_sens, out_dir, sem, arch=arch, disabled=dis, use_knowledge=kn, csv_path=sens_csv, col=col, batch_name=f"{model}-SENS-{cid.upper()}"))
+        
+        batch_name = f"{model}-SENS-{cid.upper()}"
+        trackers[batch_name] = BatchTracker(batch_name, len(pending))
+        
+        for idx in pending:
+            query_text = df_sens.at[idx, 'query']
+            jobs_by_query[query_text].append({
+                'idx': idx, 'df': df_sens, 'out_dir': out_dir, 'arch': arch, 'disabled': dis, 
+                'use_knowledge': kn, 'csv_path': sens_csv, 'col': col, 'batch_name': batch_name, 'trial': None
+            })
 
-    if tasks:
-        await asyncio.gather(*tasks)
+    # 2. Collect Benchmark Consistency Jobs
+    if model != BASELINE_MODEL:
+        for tr in [1, 2, 3]:
+            out_dir = out_root_bench / "consistency"
+            out_dir.mkdir(parents=True, exist_ok=True)
+            col = f"status_{model.replace('-', '_')}_consistency_tr{tr}"
+            if col not in df_bench.columns: df_bench[col] = 0
+            pending = df_bench[df_bench[col].isin([0, 2])].index.tolist()
+            
+            batch_name = f"{model}-CONS-TR{tr}"
+            trackers[batch_name] = BatchTracker(batch_name, len(pending))
+            
+            for idx in pending:
+                query_text = df_bench.at[idx, 'query']
+                jobs_by_query[query_text].append({
+                    'idx': idx, 'df': df_bench, 'out_dir': out_dir, 'arch': 'multiagent', 'disabled': None, 
+                    'use_knowledge': True, 'csv_path': bench_csv, 'col': col, 'batch_name': batch_name, 'trial': tr
+                })
+
+    # Flatten jobs grouped by query to preserve temporal/data locality
+    all_tasks = []
+    for query_text in jobs_by_query:
+        for job_params in jobs_by_query[query_text]:
+            tracker = trackers.get(job_params['batch_name'])
+            all_tasks.append(run_individual_job(
+                **job_params, sem=sem, tracker=tracker
+            ))
+
+    if all_tasks:
+        await asyncio.gather(*all_tasks)
 
     # --- FINALIZATION: CONSENSUS & SYNC ---
     log_output("[*] Finalizing results (Consensus & Sync)...")
@@ -1351,7 +1415,7 @@ async def conductor_main(max_concurrent: int, only_analysis: bool = False):
     await preload_data()
     data_stats = get_data_stats()
 
-    models = ["gpt-oss-120b", "vllm-gemma3-27b", "vllm-qwen"]
+    models = ["gpt-5-nano", "gpt-oss-120b", "vllm-gemma3-27b", "vllm-qwen"]
     
     # 1. PREPARE SUITES (Only if not in analysis-only mode)
     bench_csv = results_path / "combinatorial_queries_suite.csv"
@@ -1405,6 +1469,7 @@ async def conductor_main(max_concurrent: int, only_analysis: bool = False):
         
         # Benchmark Analysis
         benchmark_results[model] = {
+            "performance": analyze_performance(out_root / "full"),
             "activation": analyze_activation(out_root / "full", mapping, model),
             "iou": analyze_iou_stats(out_root / "full"),
             "arch_comp": analyze_architecture_comparison(out_root / "full", out_root / "baseline_stats"),
