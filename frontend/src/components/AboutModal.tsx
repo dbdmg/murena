@@ -14,6 +14,8 @@ import {
     Github,
     Code2,
 } from 'lucide-react';
+import murenaSymbol from '../assets/brand/MURENA_no-casetta_56x56px.svg';
+import murenaWordmark from '../assets/brand/MURENA_217x34px.svg';
 
 // ============================================================================
 // Types
@@ -198,10 +200,11 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
                             {/* Header */}
                             <motion.div variants={cardVariants} className="text-center mb-8">
                                 {/* Logo */}
-                                <div className="relative inline-flex mb-4">
-                                    <div className="w-20 h-20 rounded-2xl bg-linear-to-br from-emerald-500 via-green-500 to-teal-600 flex items-center justify-center shadow-2xl shadow-emerald-500/30">
-                                        <Brain className="w-10 h-10 text-white" />
+                                <div className="relative inline-flex flex-col items-center gap-4 mb-4">
+                                    <div className="w-20 h-20 rounded-2xl bg-linear-to-br from-emerald-500/20 via-green-500/15 to-teal-600/20 border border-emerald-400/20 flex items-center justify-center shadow-2xl shadow-emerald-500/20 backdrop-blur-sm">
+                                        <img src={murenaSymbol} alt="Murena" className="w-14 h-14" />
                                     </div>
+                                    <img src={murenaWordmark} alt="Murena" className="w-[217px] h-[34px] max-w-full" />
                                     {/* Sparkle decorations */}
                                     <Sparkles className="absolute -top-2 -right-2 w-5 h-5 text-amber-400" />
                                 </div>

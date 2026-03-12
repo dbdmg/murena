@@ -148,9 +148,9 @@ export const SearchPage: React.FC = () => {
                 <motion.div
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="flex justify-center mb-6"
+                    className="flex justify-center mb-8"
                 >
-                    <img src={murenaLogo217} alt="Murena" className="w-[217px] h-[34px]" />
+                    <img src={murenaLogo217} alt="Murena" className="w-[290px] sm:w-[340px] h-auto max-w-[84vw]" />
                 </motion.div>
 
 

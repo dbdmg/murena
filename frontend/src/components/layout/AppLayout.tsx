@@ -22,8 +22,8 @@ import {
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { AboutModal } from '../AboutModal';
-
 import murenaLogo40 from '../../assets/brand/MURENA_40x40px.svg';
+import murenaWordmark from '../../assets/brand/MURENA_217x34px.svg';
 
 interface AppLayoutProps {
     children: ReactNode;
@@ -61,20 +61,29 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
             >
                 {/* Logo Section */}
                 <div className="p-4 border-b border-white/5">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 flex items-center justify-center shrink-0">
-                            <img src={murenaLogo40} alt="Murena" className="w-10 h-10" />
-                        </div>
+                    <div className="flex items-center justify-center min-h-[40px]">
                         <AnimatePresence>
-                            {isExpanded && (
+                            {isExpanded ? (
                                 <motion.div
+                                    key="wordmark"
                                     initial={{ opacity: 0, x: -10 }}
                                     animate={{ opacity: 1, x: 0 }}
                                     exit={{ opacity: 0, x: -10 }}
                                     transition={{ duration: 0.15 }}
                                     className="overflow-hidden"
                                 >
-                                    <h1 className="font-bold text-sm text-white whitespace-nowrap">MURENA</h1>
+                                    <img src={murenaWordmark} alt="Murena" className="w-[138px] h-auto max-w-none" />
+                                </motion.div>
+                            ) : (
+                                <motion.div
+                                    key="symbol"
+                                    initial={{ opacity: 0, scale: 0.9 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    exit={{ opacity: 0, scale: 0.9 }}
+                                    transition={{ duration: 0.15 }}
+                                    className="w-10 h-10 flex items-center justify-center"
+                                >
+                                    <img src={murenaLogo40} alt="Murena" className="w-10 h-10" />
                                 </motion.div>
                             )}
                         </AnimatePresence>

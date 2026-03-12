@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 
 import googleIcon from '../assets/icons/icons8-google-48.png';
 import microsoftIcon from '../assets/icons/icons8-microsoft-48.png';
-import murenaLogo from '../assets/brand/MURENA_56x56px.svg';
+import murenaLogo from '../assets/brand/MURENA_no-casetta_56x56px.svg';
 
 export const LoginPage: React.FC = () => {
     const { login } = useAuth();
