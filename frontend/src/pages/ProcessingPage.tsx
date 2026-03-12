@@ -20,6 +20,8 @@ import {
     Sparkles
 } from 'lucide-react';
 import { useAnalysisProgress } from '../hooks/useAnalysisProgress';
+import { useSettings } from '../contexts/SettingsContext';
+import { translations } from '../utils/translations';
 import { analysisApi } from '../api/endpoints/analysis';
 import type { AnalysisResults, ProgressStep } from '../api/types';
 
@@ -34,6 +36,7 @@ interface LogEntry {
 export const ProcessingPage: React.FC = () => {
     const { runId } = useParams<{ runId: string }>();
     const navigate = useNavigate();
+    const { language } = useSettings();
 
     const [results, setResults] = useState<AnalysisResults | null>(null);
     const [isComplete, setIsComplete] = useState(false);
@@ -42,6 +45,8 @@ export const ProcessingPage: React.FC = () => {
 
     // Use specific progress hook linked to this runId
     const progress = useAnalysisProgress(runId ?? null, { autoConnect: true });
+
+    const t = translations[language];
 
     // Logs for fallback if structured steps aren't provided
     const [logs, setLogs] = useState<LogEntry[]>([]);
@@ -170,14 +175,14 @@ export const ProcessingPage: React.FC = () => {
                     <div>
                         <div className="flex items-center gap-2 text-sm text-emerald-400 font-medium mb-2">
                             <Zap className="w-4 h-4" />
-                            <span>Sessione di ricerca AI</span>
+                            <span>{t.processing.sessionTitle}</span>
                         </div>
                         <h1 className="text-3xl font-semibold text-white tracking-tight flex items-center gap-3">
                             {isComplete ? (
-                                'Analisi completata'
+                                t.processing.complete
                             ) : (
                                 <>
-                                    <span>Elaborazione richiesta...</span>
+                                    <span>{t.processing.processing}</span>
                                     <Loader2 className="w-6 h-6 animate-spin text-emerald-500/80" />
                                 </>
                             )}
@@ -296,7 +301,7 @@ export const ProcessingPage: React.FC = () => {
                         transition={{ delay: 0.5 }}
                         className="mt-8 text-center text-gray-500 text-sm"
                     >
-                        Trovati {buildingsFound} immobili corrispondenti ai criteri
+                        {t.processing.foundStats.replace('{count}', buildingsFound.toString())}
                     </motion.div>
                 )}
             </div>
@@ -311,13 +316,13 @@ export const ProcessingPage: React.FC = () => {
                                 className="px-6 py-3 rounded-xl hover:bg-white/5 text-gray-400 hover:text-white transition-all font-medium flex items-center gap-2"
                             >
                                 <FileText className="w-4 h-4" />
-                                <span>Nuova ricerca</span>
+                                <span>{t.processing.newSearch}</span>
                             </button>
                             <button
                                 onClick={handleViewResults}
                                 className="px-8 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 transition-all font-medium flex items-center gap-2"
                             >
-                                <span>Visualizza mappa interattiva</span>
+                                <span>{t.processing.viewMap}</span>
                                 <ArrowRight className="w-4 h-4" />
                             </button>
                         </>
@@ -327,7 +332,7 @@ export const ProcessingPage: React.FC = () => {
                             className="px-6 py-3 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 transition-colors font-medium flex items-center gap-2"
                         >
                             <StopCircle className="w-4 h-4" />
-                            <span>Interrompi analisi</span>
+                            <span>{t.processing.stopAnalysis}</span>
                         </button>
                     )}
                 </div>

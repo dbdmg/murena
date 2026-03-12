@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, type ReactNode } from 'reac
 
 export type LLMProvider = 'anthropic' | 'google' | 'openai';
 export type DataSource = 'live' | 'sandbox';
+export type Language = 'it' | 'en';
 
 interface SettingsContextType {
     // Visualization
@@ -19,6 +20,9 @@ interface SettingsContextType {
     setDataSource: (source: DataSource) => void;
     demoMode: boolean;
     setDemoMode: (enabled: boolean) => void;
+    // Localization
+    language: Language;
+    setLanguage: (lang: Language) => void;
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
@@ -32,6 +36,7 @@ interface StoredSettings {
     agentTemperature: number;
     dataSource: DataSource;
     demoMode: boolean;
+    language: Language;
 }
 
 const DEFAULT_SETTINGS: StoredSettings = {
@@ -41,6 +46,7 @@ const DEFAULT_SETTINGS: StoredSettings = {
     agentTemperature: 0.3,
     dataSource: 'live',
     demoMode: false,
+    language: 'it',
 };
 
 const getStoredSettings = (): StoredSettings => {
@@ -66,7 +72,8 @@ export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }
         llmLimit,
         agentTemperature,
         dataSource,
-        demoMode
+        demoMode,
+        language
     } = settings;
 
     // Helper to update specific setting and save to local storage
@@ -86,8 +93,7 @@ export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }
     const setAgentTemperature = (temp: number) => updateSetting('agentTemperature', temp);
     const setDataSource = (source: DataSource) => updateSetting('dataSource', source);
     const setDemoMode = (enabled: boolean) => updateSetting('demoMode', enabled);
-
-
+    const setLanguage = (lang: Language) => updateSetting('language', lang);
 
     return (
         <SettingsContext.Provider value={{
@@ -103,6 +109,8 @@ export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }
             setDataSource,
             demoMode,
             setDemoMode,
+            language,
+            setLanguage,
         }}>
             {children}
         </SettingsContext.Provider>

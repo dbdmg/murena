@@ -12,6 +12,8 @@
 import React, { useState, type ReactNode } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
+import { useSettings } from '../../contexts/SettingsContext';
+import { translations } from '../../utils/translations';
 import {
     LogOut,
     Home,
@@ -19,6 +21,7 @@ import {
     History,
     Settings,
     Info,
+    Languages,
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { AboutModal } from '../AboutModal';
@@ -29,19 +32,26 @@ interface AppLayoutProps {
     children: ReactNode;
 }
 
-// Navigation items - About is handled separately as it opens a modal
-const navItems = [
-    { label: 'Home', path: '/', icon: Home, description: 'Centro di Ricerca e Comando' },
-    { label: 'Mappa', path: '/map', icon: MapIcon, description: 'Intelligence Immobiliare' },
-    { label: 'Cronologia', path: '/history', icon: History, description: 'Analisi Passate' },
-    { label: 'Impostazioni', path: '/settings', icon: Settings, description: 'Configurazione' },
-];
-
 export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
     const { logout, user } = useAuth();
+    const { language, setLanguage } = useSettings();
     const location = useLocation();
     const [isExpanded, setIsExpanded] = useState(false);
     const [isAboutOpen, setIsAboutOpen] = useState(false);
+
+    const t = translations[language];
+
+    // Navigation items
+    const navItems = [
+        { label: t.nav.home, path: '/', icon: Home },
+        { label: t.nav.map, path: '/map', icon: MapIcon },
+        { label: t.nav.history, path: '/history', icon: History },
+        { label: t.nav.settings, path: '/settings', icon: Settings },
+    ];
+
+    const toggleLanguage = () => {
+        setLanguage(language === 'it' ? 'en' : 'it');
+    };
 
     return (
         <div className="min-h-screen w-full relative bg-[#0a0c10] text-gray-200 overflow-hidden">
@@ -62,7 +72,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
                 {/* Logo Section */}
                 <div className="p-4 border-b border-white/5">
                     <div className="flex items-center justify-center min-h-[40px]">
-                        <AnimatePresence>
+                        <AnimatePresence mode="wait">
                             {isExpanded ? (
                                 <motion.div
                                     key="wordmark"
@@ -109,7 +119,6 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
                                     }
                                 `}
                             >
-                                {/* Active indicator - REMOVED for cleaner look per user request */}
                                 {isActive && (
                                     <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-12 bg-emerald-400/50 blur-sm rounded-r-full" />
                                 )}
@@ -138,7 +147,6 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
                                     )}
                                 </AnimatePresence>
 
-                                {/* Hover tooltip when collapsed */}
                                 {!isExpanded && (
                                     <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-xs text-white rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50">
                                         {item.label}
@@ -149,7 +157,45 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
                     })}
                 </nav>
 
-                {/* About Button - Opens Modal */}
+                {/* Language Switcher */}
+                <div className="px-3 pb-2">
+                    <button
+                        onClick={toggleLanguage}
+                        className={`
+                            w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group relative text-gray-400 hover:text-white hover:bg-white/5
+                            ${isExpanded ? '' : 'justify-center'}
+                        `}
+                        title={language === 'it' ? 'Switch to English' : 'Passa all\'Italiano'}
+                    >
+                        <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 bg-white/5 text-emerald-500/80 group-hover:text-emerald-400 group-hover:bg-emerald-500/10 transition-colors">
+                            <Languages className="w-4 h-4" />
+                        </div>
+
+                        <AnimatePresence>
+                            {isExpanded && (
+                                <motion.div
+                                    initial={{ opacity: 0, x: -10 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    exit={{ opacity: 0, x: -10 }}
+                                    transition={{ duration: 0.15 }}
+                                    className="flex-1 overflow-hidden text-left"
+                                >
+                                    <span className="text-sm font-medium block whitespace-nowrap">
+                                        {language === 'it' ? 'English (EN)' : 'Italiano (IT)'}
+                                    </span>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+
+                        {!isExpanded && (
+                            <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-xs text-white rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50">
+                                {language === 'it' ? 'English' : 'Italiano'}
+                            </div>
+                        )}
+                    </button>
+                </div>
+
+                {/* About Button */}
                 <div className="px-3 pb-2">
                     <button
                         onClick={() => setIsAboutOpen(true)}
@@ -171,15 +217,14 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
                                     transition={{ duration: 0.15 }}
                                     className="flex-1 overflow-hidden text-left"
                                 >
-                                    <span className="text-sm font-medium block whitespace-nowrap">Informazioni</span>
+                                    <span className="text-sm font-medium block whitespace-nowrap">{t.nav.about}</span>
                                 </motion.div>
                             )}
                         </AnimatePresence>
 
-                        {/* Hover tooltip when collapsed */}
                         {!isExpanded && (
                             <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-xs text-white rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50">
-                                Informazioni
+                                {t.nav.about}
                             </div>
                         )}
                     </button>
@@ -205,7 +250,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
                                     className="flex-1 min-w-0 overflow-hidden"
                                 >
                                     <p className="text-sm font-medium text-white truncate">{user?.username}</p>
-                                    <p className="text-[10px] text-gray-500">Amministratore</p>
+                                    <p className="text-[10px] text-gray-500">{t.nav.admin}</p>
                                 </motion.div>
                             )}
                         </AnimatePresence>
@@ -219,7 +264,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
                                     transition={{ duration: 0.15 }}
                                     onClick={logout}
                                     className="p-1.5 rounded-lg hover:bg-red-500/20 hover:text-red-400 text-gray-500 transition-colors"
-                                    title="Disconnetti"
+                                    title={t.nav.logout}
                                 >
                                     <LogOut className="w-4 h-4" />
                                 </motion.button>
@@ -229,11 +274,11 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
                 </div>
             </motion.aside>
 
-            {/* Main Content Area - with left margin for fixed sidebar */}
+            {/* Main Content Area */}
             <main className="ml-[72px] relative z-10 overflow-auto h-screen">
                 <AnimatePresence mode="wait">
                     <motion.div
-                        key={location.pathname}
+                        key={location.pathname + language} // Add language to key to force re-render on switch
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -10 }}

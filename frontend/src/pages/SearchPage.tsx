@@ -20,26 +20,31 @@ import {
     Loader2,
     XCircle,
     Building2,
-    ToggleLeft,
-    ToggleRight,
 } from 'lucide-react';
 import { useAnalysis } from '../hooks/useAnalysis';
 import { useSettings } from '../contexts/SettingsContext';
+import { translations } from '../utils/translations';
 import { analysisApi } from '../api/endpoints/analysis';
 import type { AnalysisHistoryItem } from '../api/types';
 import { QueryTooltip } from '../components/common/QueryTooltip';
 
-const SUGGESTED_QUERIES = [
+const SUGGESTED_QUERIES_IT = [
     'Uffici vicino a Porta Nuova con classe energetica A',
     'Immobili di 200mq vicino al Politecnico',
     'Negozi in centro città adatti a ristorante',
+];
+
+const SUGGESTED_QUERIES_EN = [
+    'Offices near Porta Nuova with energy class A',
+    'Properties of 200sqm near Polytechnic',
+    'Shops in city center suitable for restaurant',
 ];
 
 import murenaLogo217 from '../assets/brand/MURENA_217x34px.svg';
 
 export const SearchPage: React.FC = () => {
     const navigate = useNavigate();
-    const { demoMode, setDemoMode, llmLimit, markersLimit } = useSettings();
+    const { demoMode, language, llmLimit, markersLimit } = useSettings();
     const [query, setQuery] = useState('');
     const [isFocused, setIsFocused] = useState(false);
     const [recentHistory, setRecentHistory] = useState<AnalysisHistoryItem[]>([]);
@@ -48,6 +53,9 @@ export const SearchPage: React.FC = () => {
     const textareaRef = useRef<HTMLTextAreaElement>(null);
 
     const { startAnalysis, loadDemo, status, runId, isLoading } = useAnalysis();
+
+    const t = translations[language];
+    const suggestions = language === 'it' ? SUGGESTED_QUERIES_IT : SUGGESTED_QUERIES_EN;
 
     // Auto-resize textarea
     useEffect(() => {
@@ -184,7 +192,7 @@ export const SearchPage: React.FC = () => {
                                 onFocus={() => setIsFocused(true)}
                                 onBlur={() => setIsFocused(false)}
                                 onKeyDown={handleKeyDown}
-                                placeholder="Descrivi cosa stai cercando..."
+                                placeholder={t.search.placeholder}
                                 rows={1}
                                 className="
                                     flex-1 bg-transparent text-white placeholder-gray-500
@@ -215,11 +223,11 @@ export const SearchPage: React.FC = () => {
                                     {isLoading ? (
                                         <>
                                             <Loader2 className="w-4 h-4 animate-spin" />
-                                            <span>Avvio...</span>
+                                            <span>{t.search.loading}</span>
                                         </>
                                     ) : (
                                         <>
-                                            <span>Inizializza</span>
+                                            <span>{t.search.submit}</span>
                                             <ArrowRight className="w-4 h-4" />
                                         </>
                                     )}
@@ -242,7 +250,7 @@ export const SearchPage: React.FC = () => {
                                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                             </span>
                             <span className="text-xs font-medium text-emerald-300 tracking-wide">
-                                Modalità Demo Attiva <span className="text-emerald-500/70 mx-1">|</span> Utilizzo risultati pre-calcolati (nessun consumo token)
+                                {t.search.demoMode} <span className="text-emerald-500/70 mx-1">|</span> {t.search.demoModeDesc}
                             </span>
                         </div>
                     </motion.div>
@@ -255,8 +263,8 @@ export const SearchPage: React.FC = () => {
                     transition={{ delay: 0.4 }}
                     className="flex flex-wrap items-center justify-center gap-3 mb-16"
                 >
-                    <span className="text-sm text-gray-500">Suggeriti:</span>
-                    {SUGGESTED_QUERIES.map((suggestion, i) => (
+                    <span className="text-sm text-gray-500">{t.search.suggested}</span>
+                    {suggestions.map((suggestion, i) => (
                         <button
                             key={i}
                             onClick={() => handleSuggestionClick(suggestion)}
@@ -275,9 +283,9 @@ export const SearchPage: React.FC = () => {
                 >
                     <div className="flex items-center gap-2 mb-4">
                         <Clock className="w-4 h-4 text-gray-500" />
-                        <h3 className="text-sm font-medium text-gray-400">Approfondimenti Recenti</h3>
+                        <h3 className="text-sm font-medium text-gray-400">{t.search.recentHistory}</h3>
                         <span className="text-xs text-gray-600">
-                            {recentHistory.length > 0 && `${recentHistory.length} trovati`}
+                            {recentHistory.length > 0 && `${recentHistory.length} ${t.search.found}`}
                         </span>
                     </div>
 
@@ -287,7 +295,7 @@ export const SearchPage: React.FC = () => {
                         </div>
                     ) : recentHistory.length === 0 ? (
                         <div className="text-center py-8 text-gray-500 text-sm">
-                            Nessuna analisi completata. Inizia la tua prima ricerca sopra!
+                            {t.search.noHistory}
                         </div>
                     ) : (
                         <div className="grid gap-3">
@@ -317,22 +325,22 @@ export const SearchPage: React.FC = () => {
                                                     {item.status === 'completed' ? (
                                                         <>
                                                             <CheckCircle2 className="w-3 h-3" />
-                                                            COMPLETATO
+                                                            {t.search.status.completed}
                                                         </>
                                                     ) : item.status === 'failed' ? (
                                                         <>
                                                             <XCircle className="w-3 h-3" />
-                                                            FALLITO
+                                                            {t.search.status.failed}
                                                         </>
                                                     ) : (
                                                         <>
                                                             <Loader2 className="w-3 h-3 animate-spin" />
-                                                            IN CORSO
+                                                            {t.search.status.processing}
                                                         </>
                                                     )}
                                                 </span>
                                                 <span className="text-xs text-gray-500">
-                                                    {new Date(item.created_at).toLocaleDateString('it-IT', {
+                                                    {new Date(item.created_at).toLocaleDateString(language === 'it' ? 'it-IT' : 'en-US', {
                                                         day: 'numeric',
                                                         month: 'short',
                                                         hour: '2-digit',
@@ -356,17 +364,17 @@ export const SearchPage: React.FC = () => {
                                             {item.status === 'completed' && item.buildings_count !== undefined && (
                                                 <div className="flex items-center gap-1 mt-1 text-xs text-gray-500">
                                                     <Building2 className="w-3 h-3" />
-                                                    <span>{item.buildings_count} immobili trovati</span>
+                                                    <span>{item.buildings_count} {t.search.propertyFound}</span>
                                                 </div>
                                             )}
                                             {item.status === 'failed' && (
                                                 <div className="flex items-center gap-1 mt-1 text-xs text-red-400/60 font-medium">
-                                                    <span>Errore durante l'analisi</span>
+                                                    <span>{t.search.error}</span>
                                                 </div>
                                             )}
                                             {item.status === 'processing' && (
                                                 <div className="flex items-center gap-1 mt-1 text-xs text-emerald-400/60 font-medium">
-                                                    <span>Analisi in corso...</span>
+                                                    <span>{t.search.processingDesc}</span>
                                                 </div>
                                             )}
                                         </div>

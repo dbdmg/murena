@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { Lock, User as UserIcon, AlertCircle, ArrowRight } from 'lucide-react';
+import { useSettings } from '../contexts/SettingsContext';
+import { translations } from '../utils/translations';
+import { Lock, User as UserIcon, AlertCircle, ArrowRight, Languages } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 import googleIcon from '../assets/icons/icons8-google-48.png';
@@ -9,11 +11,14 @@ import murenaLogo from '../assets/brand/MURENA_no-casetta_56x56px.svg';
 
 export const LoginPage: React.FC = () => {
     const { login } = useAuth();
+    const { language, setLanguage } = useSettings();
     const navigate = useNavigate();
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+
+    const t = translations[language];
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -30,7 +35,7 @@ export const LoginPage: React.FC = () => {
             
             // Handle FastAPI validation errors or standard messages
             const detail = err.response?.data?.detail;
-            let msg = 'Login failed';
+            let msg = t.login.failed;
             
             if (Array.isArray(detail)) {
                 // Formatting for validation error list: "field: error message"
@@ -38,7 +43,7 @@ export const LoginPage: React.FC = () => {
             } else if (typeof detail === 'string') {
                 msg = detail;
             } else {
-                msg = err.message || 'Login failed';
+                msg = err.message || t.login.failed;
             }
             
             setError(`Error: ${msg} (API: ${apiUrl})`);
@@ -47,8 +52,23 @@ export const LoginPage: React.FC = () => {
         }
     };
 
+    const toggleLanguage = () => {
+        setLanguage(language === 'it' ? 'en' : 'it');
+    };
+
     return (
         <div className="min-h-screen w-full flex items-center justify-center relative overflow-hidden bg-[#0a0d12]">
+            {/* Language Switcher - Floating for Login Page */}
+            <div className="absolute top-6 right-6 z-50">
+                <button
+                    onClick={toggleLanguage}
+                    className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-gray-400 hover:text-white hover:bg-white/10 backdrop-blur-md transition-all font-medium text-xs"
+                >
+                    <Languages className="w-4 h-4 text-emerald-500" />
+                    <span>{language === 'it' ? 'EN' : 'IT'}</span>
+                </button>
+            </div>
+
             {/* Ambient Background Effects - subtle blue glow */}
             <div className="absolute top-[-30%] left-[-15%] w-[700px] h-[700px] bg-emerald-900/30 rounded-full blur-[150px] pointer-events-none" />
             <div className="absolute bottom-[-25%] right-[-15%] w-[600px] h-[600px] bg-green-900/20 rounded-full blur-[130px] pointer-events-none" />
@@ -68,10 +88,10 @@ export const LoginPage: React.FC = () => {
                             <img src={murenaLogo} alt="Murena" className="w-14 h-14" />
                         </div>
                         <h1 className="text-3xl font-bold text-white tracking-tight">
-                            Bentornato
+                            {t.login.welcome}
                         </h1>
                         <p className="text-gray-400 mt-2 text-sm">
-                            Accedi al Sistema Analitico Immobiliare
+                            {t.login.subtitle}
                         </p>
                     </div>
 
@@ -86,7 +106,7 @@ export const LoginPage: React.FC = () => {
                     {/* Login Form */}
                     <form onSubmit={handleSubmit} className="space-y-5">
                         <div className="space-y-2">
-                            <label className="text-xs font-medium text-gray-400 ml-1">Nome utente</label>
+                            <label className="text-xs font-medium text-gray-400 ml-1">{t.login.username}</label>
                             <div className="relative group">
                                 <UserIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 group-focus-within:text-emerald-400 transition-colors" />
                                 <input
@@ -94,14 +114,14 @@ export const LoginPage: React.FC = () => {
                                     value={username}
                                     onChange={(e) => setUsername(e.target.value)}
                                     className="w-full bg-[#0a0d12]/80 border border-emerald-500/10 rounded-xl py-3.5 pl-11 pr-4 text-gray-200 placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-emerald-500/50 focus:border-emerald-500/30 transition-all"
-                                    placeholder="Inserisci il tuo nome utente"
+                                    placeholder={t.login.usernamePlaceholder}
                                     required
                                 />
                             </div>
                         </div>
 
                         <div className="space-y-2">
-                            <label className="text-xs font-medium text-gray-400 ml-1">Password</label>
+                            <label className="text-xs font-medium text-gray-400 ml-1">{t.login.password}</label>
                             <div className="relative group">
                                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 group-focus-within:text-emerald-400 transition-colors" />
                                 <input
@@ -114,7 +134,7 @@ export const LoginPage: React.FC = () => {
                                 />
                             </div>
                             <div className="flex justify-end">
-                                <a href="#" className="text-xs text-emerald-400 hover:text-emerald-300 transition-colors">Password dimenticata?</a>
+                                <a href="#" className="text-xs text-emerald-400 hover:text-emerald-300 transition-colors">{t.login.forgotPassword}</a>
                             </div>
                         </div>
 
@@ -127,7 +147,7 @@ export const LoginPage: React.FC = () => {
                                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                             ) : (
                                 <>
-                                    <span>Accedi</span>
+                                    <span>{t.login.submit}</span>
                                     <ArrowRight className="w-4 h-4" />
                                 </>
                             )}
@@ -140,7 +160,7 @@ export const LoginPage: React.FC = () => {
                             <div className="w-full border-t border-white/5"></div>
                         </div>
                         <div className="relative flex justify-center text-xs uppercase">
-                            <span className="bg-[#0f1318] px-3 text-gray-500 tracking-wider">O continua con</span>
+                            <span className="bg-[#0f1318] px-3 text-gray-500 tracking-wider font-medium">{t.login.orContinueWith}</span>
                         </div>
                     </div>
 
@@ -159,7 +179,7 @@ export const LoginPage: React.FC = () => {
                     {/* Integrated Footer with blurred background */}
                     <div className="absolute bottom-0 left-0 w-full bg-[#0a0d12]/50 backdrop-blur-md border-t border-white/5 p-4 rounded-b-2xl">
                         <p className="text-center text-gray-500 text-sm">
-                            Non hai un account? <span className="text-emerald-400 hover:text-emerald-300 cursor-pointer transition-colors">Contatta l'amministratore</span>
+                            {t.login.noAccount} <span className="text-emerald-400 hover:text-emerald-300 cursor-pointer transition-colors font-medium">{t.login.contactAdmin}</span>
                         </p>
                     </div>
 
