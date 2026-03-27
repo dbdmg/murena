@@ -316,7 +316,7 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
                                     <div className="flex items-center gap-2 text-xs text-gray-500">
                                         <span>Made with</span>
                                         <Heart className="w-3 h-3 text-red-400" />
-                                        <span>for MEF</span>
+                                        <span>for Public Organization</span>
                                     </div>
 
                                     {/* Links */}
@@ -349,7 +349,7 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
 
                                 {/* Copyright */}
                                 <p className="text-center text-[10px] text-gray-600 mt-4">
-                                    © 2025 ResPublica AI • All rights reserved • MEF - Ministero dell'Economia e delle Finanze
+                                    © 2025 Anonymous AI Group • All rights reserved • Public Organization
                                 </p>
                             </motion.div>
                         </div>

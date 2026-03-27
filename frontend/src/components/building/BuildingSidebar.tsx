@@ -40,10 +40,10 @@ export const BuildingSidebar: React.FC<BuildingSidebarProps> = ({
             {/* Header */}
             <div className="p-4 border-b border-white/5 flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-2">
-                    <span className="font-bold text-gray-200">Dettagli Immobile</span>
+                    <span className="font-bold text-gray-200">Property Details</span>
                     {hasMultiple && (
                         <span className="text-xs bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded-full">
-                            {selectedBuildings.length} nello stesso punto
+                            {selectedBuildings.length} at this location
                         </span>
                     )}
                 </div>
@@ -61,7 +61,7 @@ export const BuildingSidebar: React.FC<BuildingSidebarProps> = ({
                             className="w-full flex items-center justify-between bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg px-3 py-2 text-sm text-gray-200 transition-colors"
                         >
                             <span className="truncate">
-                                {currentBuilding?.address || `Immobile ${currentBuilding?.id}`}
+                                {currentBuilding?.address || `Property ${currentBuilding?.id}`}
                             </span>
                             <ChevronDown className={`w-4 h-4 ml-2 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
                         </button>
@@ -79,11 +79,11 @@ export const BuildingSidebar: React.FC<BuildingSidebarProps> = ({
                                             }`}
                                     >
                                         <div className="font-medium truncate">
-                                            {building.address || `Immobile ${building.id}`}
+                                            {building.address || `Property ${building.id}`}
                                         </div>
                                         <div className="text-xs text-gray-500 truncate">
                                             {building.sub_properties && building.sub_properties.length > 0
-                                                ? `ID: ${building.id} | Sub: ${building.sub_properties.length}`
+                                                ? `ID: ${building.id} | Units: ${building.sub_properties.length}`
                                                 : `ID: ${building.id} | ${building.surface_area || 'N/A'} m²`
                                             }
                                         </div>
@@ -102,8 +102,8 @@ export const BuildingSidebar: React.FC<BuildingSidebarProps> = ({
                     <BuildingDetail data={currentBuilding as unknown as any} runId={runId || undefined} onFeedbackSuccess={onFeedbackSuccess} />
                 ) : (
                     <div className="text-center text-gray-500 mt-10">
-                        <p>Nessun immobile selezionato.</p>
-                        <p className="text-sm">Clicca su un marker sulla mappa.</p>
+                        <p>No property selected.</p>
+                        <p className="text-sm">Click a marker on the map.</p>
                     </div>
                 )}
             </div>

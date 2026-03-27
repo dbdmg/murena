@@ -1,5 +1,5 @@
 """
-MEF-Immobili User Deletion Script
+RealEstate-AI User Deletion Script
 
 Deletes a user from the database by username.
 
@@ -20,7 +20,7 @@ from app.repositories import UserRepository
 
 
 def main():
-    print("=== MEF-Immobili User Deletion ===")
+    print("=== RealEstate-AI User Deletion ===")
     print("This script removes a user from the database.\n")
 
     # 1. Gather Input

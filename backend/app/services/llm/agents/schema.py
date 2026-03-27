@@ -5,80 +5,79 @@ from pydantic import BaseModel, Field
 
 
 class PromptRecord(BaseModel):
-    """Record dei prompt inviati al modello LLM.
+    """Record of prompts sent to the LLM model.
 
-    - system: Istruzioni di sistema che definiscono il ruolo e comportamento dell'agente
-    - user: Template/messaggio dell'utente con le variabili sostituite
-    - full_text: Concatenazione completa di system + user (per debug)
+    - system: System instructions defining the agent's role and behavior
+    - user: User template/message with variables replaced
+    - full_text: Complete concatenation of system + user (for debugging)
     """
 
     system: str = Field(
-        default="N/D",
-        description="System prompt: istruzioni di ruolo e comportamento per l'agente",
+        default="N/A",
+        description="System prompt: role and behavior instructions for the agent",
     )
     user: str = Field(
-        default="N/D",
-        description="User prompt: richiesta specifica con i dati interpolati",
+        default="N/A",
+        description="User prompt: specific request with interpolated data",
     )
     full_text: Optional[str] = Field(
-        None, description="Prompt completo inviato al modello (system + user)"
+        None, description="Full prompt sent to the model (system + user)"
     )
 
 
 class Place(BaseModel):
-    name: str = Field(..., description="Nome del luogo, POI o punto di riferimento (es: 'Palazzo Nuovo', 'Piazza Castello', 'Via Roma')")
-    city: Optional[str] = Field(None, description="Città del luogo (es: 'Torino')")
-    lat: Optional[float] = Field(None, description="Latitudine (se nota)")
-    lon: Optional[float] = Field(None, description="Longitudine (se nota)")
-    radius_km: float = Field(default=3.0, description="Raggio di ricerca in km (default 3.0)")
+    name: str = Field(..., description="Name of the place, POI or landmark (e.g., 'Colosseum', 'Piazza del Popolo')")
+    city: Optional[str] = Field(None, description="City of the place (e.g., 'Rome')")
+    lat: Optional[float] = Field(None, description="Latitude (if known)")
+    lon: Optional[float] = Field(None, description="Longitude (if known)")
+    radius_km: float = Field(default=3.0, description="Search radius in km (default 3.0)")
 
 
 
 class CategoryResponse(BaseModel):
-    categories: List[str] = Field(default_factory=list, description="Lista delle categorie selezionate")
-    requisiti: List[Dict[str, Any]] = Field(default_factory=list, description="Lista di requisiti strutturati")
+    categories: List[str] = Field(default_factory=list, description="List of selected categories")
+    requirements: List[Dict[str, Any]] = Field(default_factory=list, description="List of structured requirements")
 
 
 class AmenityResponse(BaseModel):
-    amenities: Dict[str, List[str]] = Field(default_factory=dict, description="Amenity selezionate per categoria")
+    amenities: Dict[str, List[str]] = Field(default_factory=dict, description="Amenities selected per category")
 
 
-class NormativeResponse(BaseModel):
-    requisiti: List[Dict[str, Any]] = Field(default_factory=list, description="Requisiti normativi estratti")
-    found: bool = Field(default=False, description="True se sono stati trovati requisiti pertinenti")
+class RegulatoryResponse(BaseModel):
+    requirements: List[Dict[str, Any]] = Field(default_factory=list, description="Extracted regulatory requirements")
+    found: bool = Field(default=False, description="True if pertinent requirements were found")
 
 
-class ApeResponse(BaseModel):
-    requisiti: List[Dict[str, Any]] = Field(default_factory=list, description="Requisiti energetici estratti")
-    found: bool = Field(default=False, description="True se sono stati trovati requisiti pertinenti")
+class EnergyResponse(BaseModel):
+    requirements: List[Dict[str, Any]] = Field(default_factory=list, description="Extracted energy requirements")
+    found: bool = Field(default=False, description="True if pertinent requirements were found")
 
 
-
-class PropertyTechnicalResponse(BaseModel):
-    typologies: List[str] = Field(default_factory=list, description="Tipologie selezionate")
-    found: bool = Field(default=False, description="True se sono stati trovati requisiti pertinenti")
-    requisiti: List[Dict[str, Any]] = Field(default_factory=list, description="Requisiti strutturati estratti")
+class BuildingResponse(BaseModel):
+    typologies: List[str] = Field(default_factory=list, description="Selected typologies")
+    found: bool = Field(default=False, description="True if pertinent requirements were found")
+    requirements: List[Dict[str, Any]] = Field(default_factory=list, description="Extracted structured requirements")
 
 
 class LocationResponse(BaseModel):
-    places: List[Place] = Field(default_factory=list, description="Luoghi identificati")
-    found: bool = Field(default=False, description="True se sono stati trovati riferimenti geografici")
+    places: List[Place] = Field(default_factory=list, description="Identified places")
+    found: bool = Field(default=False, description="True if geographical references were found")
 
 
 class SQLResponse(BaseModel):
-    sql: str = Field(..., description="Query SQL DuckDB valida (SELECT)")
-    explanation: Optional[str] = Field(None, description="Spiegazione sintetica della logica della query")
+    sql: str = Field(..., description="Valid DuckDB SQL query (SELECT)")
+    explanation: Optional[str] = Field(None, description="Brief explanation of the query logic")
 
 
 
 
 
 class EvaluationResult(BaseModel):
-    id: Union[int, str] = Field(..., description="ID dell'immobile")
-    evaluation_text: str = Field(default="", description="Testo della valutazione qualitativa")
-    final_ranking_score: Optional[int] = Field(default=0, description="Punteggio di rilevanza (0-100) basato sul ranking deterministico")
-    pros: List[str] = Field(default_factory=list, description="Lista dei 3 punti di forza")
-    cons: List[str] = Field(default_factory=list, description="Lista dei 3 punti di debolezza")
+    id: Union[int, str] = Field(..., description="Real estate ID")
+    evaluation_text: str = Field(default="", description="Qualitative evaluation text")
+    final_ranking_score: Optional[int] = Field(default=0, description="Relevance score (0-100) based on deterministic ranking")
+    pros: List[str] = Field(default_factory=list, description="List of top 3 strengths")
+    cons: List[str] = Field(default_factory=list, description="List of top 3 weaknesses")
 
 
 class EvaluationList(BaseModel):
@@ -86,127 +85,114 @@ class EvaluationList(BaseModel):
 
 
 class AgentResult(BaseModel):
-    """Risultato standard di un agente.
+    """Standard agent result.
     
-    - prompt: Metadati sul prompt inviato
-    - raw_text: Risposta testuale del modello
-    - sources: Fonti opzionali (es. URL, documenti)
+    - prompt: Prompt metadata
+    - raw_text: Model textual response
+    - sources: Optional sources (e.g., URL, documents)
     """
     prompt: Optional[PromptRecord] = Field(None)
-    raw_text: str = Field(..., description="Risposta grezza del modello")
-    sources: Optional[List[str]] = Field(default_factory=list, description="Fonti o riferimenti")
+    raw_text: str = Field(..., description="Raw model response")
+    sources: Optional[List[str]] = Field(default_factory=list, description="Sources or references")
 
 
 
 
-# Alias o classi specifiche che ora seguono lo stesso schema per retrocompatibilità di tipo
+# Specific aliases or classes that now follow the same schema for type backward compatibility
 class LocationAgentResult(AgentResult): 
     has_locations: bool = False
     places: List[Place] = Field(default_factory=list)
 
-class PropertyTechnicalAgentResult(AgentResult): pass
+class BuildingAgentResult(AgentResult): pass
+
+class EnergyAgentResult(AgentResult): 
+    has_filters: bool = False
+
+class RegulatoryAgentResult(AgentResult): 
+    has_requirements: bool = False
+
+class ProximityAgentResult(AgentResult): 
+    has_proximity: bool = False
+    requirements: List[Dict[str, Any]] = Field(default_factory=list)
+
 class SQLAgentResult(AgentResult):
     sql: str = ""
     explanation: str = ""
+
 class EvaluationAgentResponse(AgentResult): pass
+
 class RankingWeights(BaseModel):
     location: float = Field(default=0.2)
-    normative: float = Field(default=0.2)
-    ape: float = Field(default=0.2)
-    property_technical: float = Field(default=0.2)
-    poi: float = Field(default=0.2)
+    regulatory: float = Field(default=0.2)
+    energy: float = Field(default=0.2)
+    building: float = Field(default=0.2)
+    proximity: float = Field(default=0.2)
 
 class RankedAgent(BaseModel):
-    agent_name: str = Field(..., description="Nome dell'agente (location, normative, ape, property_technical, poi)")
-    rank: int = Field(..., description="Posizione nel ranking (1 = massima priorità). È ammesso ex-aequo.")
+    agent_name: str = Field(..., description="Name of the agent (location, regulatory, energy, building, proximity)")
+    rank: int = Field(..., description="Ranking position (1 = highest priority). Ties are allowed.")
 
 class RankingRanking(BaseModel):
     ranking: List[RankedAgent] = Field(
         default_factory=list,
-        description="Lista degli agenti con relativo rank"
+        description="List of agents with their respective ranks"
     )
     reasoning: Optional[str] = Field(
-        None, description="Motivazione sintetica della scelta degli agenti e delle loro priorità"
+        None, description="Brief reasoning for the chosen agents and their priorities"
     )
 
 class RankingAgentResult(AgentResult): 
     weights: RankingWeights = Field(default_factory=RankingWeights)
     ranking: Optional[RankingRanking] = Field(None)
 
-class ApeAgentResult(AgentResult): 
-    has_filters: bool = False
-
-class NormativeAgentResult(AgentResult): 
-    has_requirements: bool = False
-
-class PoiAgentResult(AgentResult): 
-    has_pois: bool = False
-    requisiti: List[Dict[str, Any]] = Field(default_factory=list)
-
-
-
-
-
-class RelaxationProposal(BaseModel):
-    field: str = Field(..., description="Nome della colonna SQL da rilassare")
-    condizione_iniziale: str = Field(..., description="La stringa esatta della condizione SQL originale da sostituire")
-    condizione_relaxed: str = Field(..., description="La nuova stringa SQL rilassata da inserire al posto dell'originale")
-    reason: str = Field(..., description="Spiegazione del perché rilassare questo campo")
-    strategy_type: str = Field(..., description="Tipo di strategia: 'radius_expansion', 'category_widening', 'range_increase', 'removal'")
-    livello_rilassamento: str = Field(default="low", description="Livello di impatto: 'low', 'medium', 'high'")
-
-class RelaxationAgentResult(AgentResult):
-    proposals: List[RelaxationProposal] = Field(default_factory=list)
-    final_sql: Optional[str] = Field(None, description="SQL completo generato applicando i rilassamenti")
-    attempts: List[str] = Field(default_factory=list, description="Storico dei tentativi di rilassamento")
+# Relaxation types removed (aligned with MURENA paper)
 
 
 class AgentContext(BaseModel):
-    user_query: str = Field(..., description="Query originale dell'utente")
+    user_query: str = Field(..., description="Original user query")
     locations: List[Place] = Field(
-        default_factory=list, description="Luoghi identificati"
+        default_factory=list, description="Identified places"
     )
-    property_technical_result: Optional[PropertyTechnicalAgentResult] = Field(
-        None, description="Risultato del PropertyTechnicalAgent"
+    building_result: Optional[BuildingAgentResult] = Field(
+        None, description="Result of the Building Agent"
     )
-    # metrics_plan removed
-    normative_result: Optional[NormativeAgentResult] = Field(
-        None, description="Risultato del NormativeAgent per requisiti normativi"
+    regulatory_result: Optional[RegulatoryAgentResult] = Field(
+        None, description="Result of the Regulatory Agent for compliance requirements"
     )
-    poi_result: Optional[PoiAgentResult] = Field(
-        None, description="Risultato del PoiAgent per analisi POI"
+    proximity_result: Optional[ProximityAgentResult] = Field(
+        None, description="Result of the Proximity Agent for POI analysis"
     )
-    ape_result: Optional[ApeAgentResult] = Field(
-        None, description="Risultato dell'ApeAgent per analisi energetica"
+    energy_result: Optional[EnergyAgentResult] = Field(
+        None, description="Result of the Energy Agent for EPC analysis"
     )
     ranking_result: Optional[RankingAgentResult] = Field(
-        None, description="Risultato del RankingAgent per definire i pesi del ranking"
+        None, description="Result of the Ranking Agent for defining ranking weights"
     )
     filtered_dataset_preview: List[dict] = Field(
-        default_factory=list, description="Anteprima del dataset filtrato"
+        default_factory=list, description="Preview of the filtered dataset"
     )
     evaluation_results: List[Any] = Field(
-        default_factory=list, description="Valutazioni prodotte dall'LLM"
+        default_factory=list, description="Evaluations produced by the LLM"
     )
 
 
 class ChatAction(BaseModel):
     action_type: str = Field(
-        ..., description="Tipo di azione: 'filter', 'reset', 'rerun', 'none'"
+        ..., description="Action type: 'filter', 'reset', 'rerun', 'none'"
     )
     filter_field: Optional[str] = Field(
-        None, description="Campo su cui filtrare (es. 'tipologia', 'classe')"
+        None, description="Field to filter on (e.g., 'typology', 'class')"
     )
     filter_value: Optional[str] = Field(
-        None, description="Valore del filtro (es. 'Ufficio', 'A4')"
+        None, description="Filter value (e.g., 'Office', 'A4')"
     )
     reasoning: str = Field(
-        ..., description="Spiegazione dell'azione o risposta all'utente"
+        ..., description="Explanation of the action or response to the user"
     )
 
 
 class MapAssistantResponse(AgentResult):
     action: Optional[ChatAction] = Field(
-        None, description="Azione da eseguire sulla UI"
+        None, description="Action to perform on the UI"
     )
 

@@ -1,23 +1,23 @@
 services:
   db:
     image: postgres:15-alpine
-    container_name: mef-db
+    container_name: realestate-db
     restart: always
     environment:
-      POSTGRES_USER: mef_user
-      POSTGRES_PASSWORD: mef_password
-      POSTGRES_DB: mef_immobili
+      POSTGRES_USER: db_user
+      POSTGRES_PASSWORD: db_password
+      POSTGRES_DB: realestate_db
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U mef_user -d mef_immobili" ]
+      test: [ "CMD-SHELL", "pg_isready -U db_user -d realestate_db" ]
       interval: 10s
       timeout: 5s
       retries: 5
 
   redis:
     image: redis:7-alpine
-    container_name: mef-redis
+    container_name: realestate-redis
     restart: always
     volumes:
       - redis_data:/data
@@ -28,16 +28,16 @@ services:
       retries: 5
 
   backend:
-    image: mef-backend:latest
+    image: realestate-backend:latest
     build:
       context: ../../backend
       dockerfile: Dockerfile
-    container_name: mef-backend
+    container_name: realestate-backend
     restart: always
     ports:
       - "8000:8000"
     environment:
-      - DATABASE_URL=postgresql+psycopg2://mef_user:mef_password@db:5432/mef_immobili
+      - DATABASE_URL=postgresql+psycopg2://db_user:db_password@db:5432/realestate_db
       - REDIS_URL=redis://redis:6379/0
       - DEBUG=false 
     volumes:
@@ -55,11 +55,11 @@ services:
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000
 
   frontend:
-    image: mef-frontend:latest
+    image: realestate-frontend:latest
     build:
       context: ../../frontend
       dockerfile: Dockerfile
-    container_name: mef-frontend
+    container_name: realestate-frontend
     restart: always
     ports:
       - "8890:80"

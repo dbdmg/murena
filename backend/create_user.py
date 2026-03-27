@@ -14,7 +14,7 @@ from app.core.security import get_password_hash
 
 
 def main():
-    print("=== MEF-Immobili User Creator ===")
+    print("=== RealEstate-AI User Creator ===")
     print("This script adds a new user to the database.\n")
 
     # 1. Gather Input

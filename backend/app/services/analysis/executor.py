@@ -1,14 +1,15 @@
 """
 executor.py
 ===========
-Modulo per l'esecuzione dell'analisi live con LLM.
+Module for running live analysis with LLM agents.
 
-Funzioni principali:
-- execute_sql_query(): Esecuzione query SQL con DuckDB
+Main functions:
+- execute_sql_query(): SQL query execution with DuckDB
 """
 
 import os
 import traceback
+import logging
 from typing import Any, Dict
 
 import duckdb
@@ -22,18 +23,20 @@ APE_DETAILED_DATA_PATH = settings.APE_DETAILED_DATA_PATH
 from app.services.llm.agents.graph_agent import GraphOrchestratorAgent
 from app.utils.helpers import haversine_km
 
+logger = logging.getLogger(__name__)
+
 
 def execute_sql_query(sql_query, pd_data, dataset_path=None):
     """
-    Esegue una query SQL su un DataFrame Pandas usando DuckDB.
+    Executes a SQL query on a Pandas DataFrame using DuckDB.
 
     Args:
-        sql_query (str): La query SQL da eseguire
-        pd_data (pd.DataFrame): Il DataFrame su cui eseguire la query
-        dataset_path (str, optional): Path al file parquet per caricamento nativo
+        sql_query (str): The SQL query to execute
+        pd_data (pd.DataFrame): The DataFrame to query
+        dataset_path (str, optional): Path to the parquet file for native loading
 
     Returns:
-        tuple: (pd.DataFrame, str|None) Risultato della query e eventuale messaggio di errore
+        tuple: (pd.DataFrame, str|None) Query result and optional error message
     """
     try:
         with duckdb.connect(database=":memory:") as con:
@@ -70,12 +73,12 @@ def execute_sql_query(sql_query, pd_data, dataset_path=None):
                             join_query = """
                             CREATE VIEW IMMOBILI AS 
                             SELECT b.*, 
-                                   COALESCE(a.ape_score, 0) as ape_score,
-                                   COALESCE(a.ape_total_points, 0) as ape_total_points,
-                                   COALESCE(a.ape_class_score, 0) as ape_class_score,
-                                   COALESCE(a.ape_system_score, 0) as ape_system_score,
-                                   COALESCE(a.ape_envelope_score, 0) as ape_envelope_score,
-                                   COALESCE(a.ape_renewables_score, 0) as ape_renewables_score
+                                   COALESCE(a.energy_score, 0) as energy_score,
+                                   COALESCE(a.energy_total_points, 0) as energy_total_points,
+                                   COALESCE(a.energy_score_class, 0) as energy_score_class,
+                                   COALESCE(a.energy_score_plant, 0) as energy_score_plant,
+                                   COALESCE(a.energy_score_envelope, 0) as energy_score_envelope,
+                                   COALESCE(a.energy_score_renewables, 0) as energy_score_renewables
                             FROM base_immobili b
                             LEFT JOIN ape_data a ON CAST(b.id AS VARCHAR) = CAST(a.id AS VARCHAR)
                             """
@@ -107,7 +110,6 @@ def execute_sql_query(sql_query, pd_data, dataset_path=None):
             # Check if we have valid data to register
             if pd_data is None or pd_data.empty:
                 error_msg = "No valid dataset provided for SQL execution"
-                print(f"Errore: {error_msg}")
                 return pd.DataFrame(), error_msg
 
             con.register("IMMOBILI", pd_data)
@@ -121,5 +123,5 @@ def execute_sql_query(sql_query, pd_data, dataset_path=None):
 
             return con.execute(sql_query).fetchdf(), None
     except Exception as e:
-        print(f"Errore nell'esecuzione della query SQL: {e}\nQuery: {sql_query}")
+        logger.error(f"Error executing SQL query: {e}\nQuery: {sql_query}")
         return pd.DataFrame(), str(e)

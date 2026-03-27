@@ -127,40 +127,48 @@ def load_and_merge_data(file_path):
         logger.error(f"Generic load error: {e}")
         return None
 
-    # Merge with APE scores if available
+    # Merge with energy scores if available
     try:
         from app.core.config import settings
+        from app.core.constants import COLUMN_MAPPING
 
         APE_DETAILED_DATA_PATH = settings.APE_DETAILED_DATA_PATH
 
-        ape_df = load_ape_detailed_data(APE_DETAILED_DATA_PATH)
-        if ape_df is not None and "id" in ape_df.columns:
+        energy_df = load_ape_detailed_data(APE_DETAILED_DATA_PATH)
+        if energy_df is not None and "id" in energy_df.columns:
             # Ensure ID is string for merging
-            ape_df["id"] = ape_df["id"].astype(str)
+            energy_df["id"] = energy_df["id"].astype(str)
 
-            # Select only score columns to merge
+            # Define score columns to merge (now in English from processors.py)
             score_cols = [
                 "id",
-                "ape_score",
-                "ape_total_points",
-                "ape_class_score",
-                "ape_system_score",
-                "ape_envelope_score",
-                "ape_renewables_score",
+                "energy_score",
+                "energy_total_points",
+                "energy_score_class",
+                "energy_score_plant",
+                "energy_score_envelope",
+                "energy_score_renewables",
             ]
 
-            # Check if columns exist (they should if calculate_ape_score ran)
-            cols_to_merge = [c for c in score_cols if c in ape_df.columns]
+            # Check if columns exist
+            cols_to_merge = [c for c in score_cols if c in energy_df.columns]
 
             if len(cols_to_merge) > 1:
-                pd_data = pd.merge(pd_data, ape_df[cols_to_merge], on="id", how="left")
+                pd_data = pd.merge(pd_data, energy_df[cols_to_merge], on="id", how="left")
 
-                # Fill NaNs for scores with 0 or 1 (default low score)
+                # Fill NaNs for scores with 0
                 for col in cols_to_merge:
                     if col != "id":
                         pd_data[col] = pd_data[col].fillna(0)
+
+        # Apply global column renaming (MURENA alignment)
+        mapping_to_apply = {k: v for k, v in COLUMN_MAPPING.items() if k in pd_data.columns}
+        if mapping_to_apply:
+            logger.info(f"Renaming {len(mapping_to_apply)} columns to English nomenclature")
+            pd_data = pd_data.rename(columns=mapping_to_apply)
+
     except Exception as e:
-        logger.warning(f"Error merging APE scores: {e}")
+        logger.warning(f"Error merging or renaming energy scores: {e}")
 
     return pd_data
 

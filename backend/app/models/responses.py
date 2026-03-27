@@ -34,8 +34,8 @@ class Coordinates(BaseModel):
     lon: float
 
 
-class APEScores(BaseModel):
-    """APE (Energy Performance Certificate) scores."""
+class EnergyScores(BaseModel):
+    """Energy Performance Certificate (EPC) scores."""
 
     total: float
     class_score: int
@@ -44,14 +44,14 @@ class APEScores(BaseModel):
     renewables_score: int
 
 
-class POIScores(BaseModel):
-    """Points of Interest scores."""
+class ProximityScores(BaseModel):
+    """Proximity to Points of Interest scores."""
 
-    health: Optional[float] = None
+    healthcare: Optional[float] = None
     mobility: Optional[float] = None
-    green: Optional[float] = None
+    greenery: Optional[float] = None
     education: Optional[float] = None
-    shopping: Optional[float] = None
+    commerce: Optional[float] = None
     sport: Optional[float] = None
 
 
@@ -99,40 +99,32 @@ class BuildingResponse(BaseModel):
     price: Optional[float] = None
     description: Optional[str] = None
     # Extended property info
-    property_type: Optional[str] = None  # tipologia_bene_immobile
-    legal_nature: Optional[str] = None  # natura_giuridica_del_bene
-    cultural_constraint: Optional[str] = None  # vincolo_culturale_paesaggistico
-    purpose: Optional[str] = None  # finalita
-    omi_zone: Optional[str] = None  # zona_omi
-    cadastral_sheet: Optional[str] = None  # foglio
-    cadastral_parcel: Optional[str] = None  # particella
+    property_type: Optional[str] = None
+    legal_nature: Optional[str] = None
+    cultural_constraint: Optional[str] = None
+    purpose: Optional[str] = None
+    omi_zone: Optional[str] = None
+    cadastral_sheet: Optional[str] = None
+    cadastral_parcel: Optional[str] = None
     is_evaluated: bool = False
     is_match: bool = True
     meta_building: bool = False
-    # Extra fields requested by user
-    meta_immobile: Optional[bool] = None
-    canone_annuale: Optional[float] = None
-    tipo_detenzione_a_terzi: Optional[str] = None
-    data_decorrenza: Optional[str] = None
-    numero_immobili_per_catasto: Optional[int] = None
+    annual_rent: Optional[float] = None
+    third_party_tenure_type: Optional[str] = None
+    effective_date: Optional[str] = None
+    cadastral_units_count: Optional[int] = None
     id_list: Optional[str] = None
-    sub_properties: Optional[List[SubProperty]] = (
-        None  # Detailed sub-properties for meta immobili
-    )
-    ape_scores: Optional[APEScores] = None
-    poi_scores: Optional[POIScores] = None
-    ape_files: Optional[List[str]] = None  # List of APE file paths/identifiers
+    sub_properties: Optional[List[SubProperty]] = None
+    energy_scores: Optional[EnergyScores] = None
+    proximity_scores: Optional[ProximityScores] = None
+    energy_files: Optional[List[str]] = None
     distance_km: Optional[float] = None
-    poi_reference: Optional[str] = None
-    epglnren_ape: Optional[float] = None  # Indice prestazione energetica globale non rinnovabile
-    classe_energetica_ape: Optional[str] = None  # Alias per energy_class
-    ape_score_total: Optional[float] = None  # Punteggio totale APE
-    tipologia_bene_immobile: Optional[str] = None  # Alias per property_type
-    superficie_di_riferimento_mq: Optional[float] = None  # Alias per surface_area
-    epoca_costruzione: Optional[str] = None  # Alias per construction_year
-    verde: Optional[float] = None  # Alias per poi_scores.green
-    mobilita: Optional[float] = None  # Alias per poi_scores.mobility
-    educazione: Optional[float] = None  # Alias per poi_scores.education
+    proximity_reference: Optional[str] = None
+    energy_performance_index: Optional[float] = None
+    energy_score: Optional[float] = None
+    greenery: Optional[float] = None
+    mobility: Optional[float] = None
+    education: Optional[float] = None
 
     model_config = ConfigDict(from_attributes=True)
 

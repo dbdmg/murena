@@ -314,7 +314,7 @@ def calculate_travel_times_df(
 
 def parse_ape_xml(xml_text: str) -> dict:
     """
-    Parser APE aggiornato con logica degli esperti.
+    Updated EPC (APE) parser implementing expert analysis logic.
 
     Implements:
     - Bug fixes for data extraction
@@ -325,7 +325,7 @@ def parse_ape_xml(xml_text: str) -> dict:
         xml_text: XML content as string
 
     Returns:
-        dict: Parsed APE data
+        dict: Parsed energy performance data
     """
     ns = {"ape": "http://www.csi.it/sicee/siceeweb/xml/xmlapecompleto2015/data"}
     data = {}
@@ -345,60 +345,60 @@ def parse_ape_xml(xml_text: str) -> dict:
             return None
 
         # General data
-        data["indirizzo"] = xs(
+        data["address"] = xs(
             [
                 "//ape:datiGenerali/ape:indirizzo",
                 "//ape:datiCalcolo/ape:datiGenerali/ape:indirizzo",
             ]
         )
-        data["civico"] = xs(
+        data["house_number"] = xs(
             [
                 "//ape:datiGenerali/ape:datiIdentificativi/ape:numeroCivico",
                 "//ape:datiGenerali/ape:datiIdentificativi/ape:civico",
                 "//ape:datiCalcolo/ape:datiGenerali/ape:civico",
             ]
         )
-        data["comune"] = xs(
+        data["municipality"] = xs(
             [
                 "//ape:datiGenerali/ape:datiExtra/ape:comune",
                 "//ape:datiCalcolo/ape:datiGenerali/ape:comune",
             ]
         )
-        data["zona_climatica"] = xs(
+        data["climate_zone"] = xs(
             [
                 "//ape:datiGenerali/ape:zonaClimatica",
                 "//ape:datiCalcolo/ape:datiGenerali/ape:zonaClimatica",
             ]
         )
 
-        data["anno_costruzione"] = xs(
+        data["construction_year"] = xs(
             [
                 "//ape:datiGenerali/ape:annoCostruzione",
                 "//ape:datiGenerali/ape:datiIdentificativi/ape:annoCostruzione",
             ]
         )
 
-        data["lat"] = xs(
+        data["latitude"] = xs(
             [
                 "//ape:datiGenerali/ape:LatitudineGIS",
                 "//ape:datiCalcolo/ape:datiGenerali/ape:latitudineGIS",
             ]
         )
-        data["lon"] = xs(
+        data["longitude"] = xs(
             [
                 "//ape:datiGenerali/ape:LongitudineGIS",
                 "//ape:datiCalcolo/ape:datiGenerali/ape:longitudineGIS",
             ]
         )
-        data["superficie"] = sxp(
+        data["surface_area"] = sxp(
             "//ape:datiGenerali/ape:datiIdentificativi/ape:superficieUtileRiscaldata"
         )
-        data["data_emissione"] = sxp("//ape:dataEmissione")
-        data["destinazione_uso_cod"] = sxp("//ape:datiGenerali/ape:destinazioneUso")
-        data["oggetto_attestato_cod"] = sxp("//ape:datiGenerali/ape:oggettoAttestato")
-        data["tipologia_edilizia_cod"] = sxp("//ape:datiExtra/ape:tipologiaEdilizia")
+        data["emission_date"] = sxp("//ape:dataEmissione")
+        data["use_case_code"] = sxp("//ape:datiGenerali/ape:destinazioneUso")
+        data["attestation_object_code"] = sxp("//ape:datiGenerali/ape:oggettoAttestato")
+        data["building_typology_code"] = sxp("//ape:datiExtra/ape:tipologiaEdilizia")
 
-        data["piano"] = xs(
+        data["floor"] = xs(
             [
                 "//ape:datiGenerali/ape:piano",
                 "//ape:datiFabbricato//ape:piano",
@@ -407,23 +407,23 @@ def parse_ape_xml(xml_text: str) -> dict:
         )
 
         # Main performance indicators
-        data["classe_energetica"] = sxp(
+        data["energy_class"] = sxp(
             "//ape:prestazioneGlobale/ape:prestazioneEnergeticaGlobale/ape:classificazione/ape:classeEnergetica"
         )
         data["epglnren"] = sxp(
             "//ape:prestazioneGlobale/ape:prestazioneEnergeticaGlobale/ape:classificazione/ape:epglnren"
         )
-        data["classe_energetica_rif"] = sxp(
+        data["energy_class_ref"] = sxp(
             "//ape:prestazioneGlobale/ape:riferimenti/ape:classificazioneNuovi/ape:classeEnergetica"
         )
-        data["epglnren_rif"] = sxp(
+        data["epglnren_ref"] = sxp(
             "//ape:prestazioneGlobale/ape:riferimenti/ape:classificazioneNuovi/ape:epglnren"
         )
         data["epglren"] = sxp("//ape:prestazioneImpianti/ape:epglren")
-        data["emissioni_co2"] = sxp("//ape:prestazioneImpianti/ape:emissioniCO2")
+        data["co2_emissions"] = sxp("//ape:prestazioneImpianti/ape:emissioniCO2")
 
         # Energy services (updated logic with 'impiantoSimulato')
-        servizi = []
+        services = []
 
         if (
             sxp("//ape:datiImpianti/ape:climatizzazioneInvernale/ape:impiantoSimulato")
@@ -435,7 +435,7 @@ def parse_ape_xml(xml_text: str) -> dict:
                 )
                 == "true"
             ):
-                servizi.append("Riscaldamento")
+                services.append("Heating")
 
         if sxp("//ape:datiImpianti/ape:produzioneACS/ape:impiantoSimulato") is None:
             if (
@@ -444,62 +444,62 @@ def parse_ape_xml(xml_text: str) -> dict:
                 )
                 == "true"
             ):
-                servizi.append("ACS")
+                services.append("DHW")
 
         for tag, label in [
-            ("climatizzazioneEstiva", "Raffrescamento"),
-            ("ventilazioneMeccanica", "Ventilazione"),
-            ("illuminazione", "Illuminazione"),
-            ("trasportoPersoneCose", "Ascensori/Trasporto"),
+            ("climatizzazioneEstiva", "Cooling"),
+            ("ventilazioneMeccanica", "Ventilation"),
+            ("illuminazione", "Lighting"),
+            ("trasportoPersoneCose", "Lifts/Transport"),
         ]:
             v = sxp(f"//ape:datiGenerali/ape:serviziEnergeticiPresenti/ape:{tag}")
             if v and v.lower() == "true":
-                servizi.append(label)
+                services.append(label)
 
-        data["servizi_presenti"] = servizi
+        data["present_services"] = services
 
         # Main energy vector calculation
-        consumi_calcolati_kwh = {}
+        calculated_consumption_kwh = {}
 
-        for nome, path in VETTORI_XPATHS.items():
-            consumo_str = sxp(path)
-            if consumo_str:
+        for name, path in VETTORI_XPATHS.items():
+            consumption_str = sxp(path)
+            if consumption_str:
                 try:
-                    consumo_val = float(consumo_str.replace(",", "."))
-                    if nome in VETTORI_PCI:
-                        consumo_val *= VETTORI_PCI[nome]
-                    consumi_calcolati_kwh[nome] = consumo_val
+                    consumption_val = float(consumption_str.replace(",", "."))
+                    if name in VETTORI_PCI:
+                        consumption_val *= VETTORI_PCI[name]
+                    calculated_consumption_kwh[name] = consumption_val
                 except ValueError:
                     continue
 
-        vettore_principale = None
-        if consumi_calcolati_kwh:
-            vettori_ordinati = sorted(
-                consumi_calcolati_kwh.items(), key=lambda item: item[1], reverse=True
+        main_energy_vector = None
+        if calculated_consumption_kwh:
+            vectors_sorted = sorted(
+                calculated_consumption_kwh.items(), key=lambda item: item[1], reverse=True
             )
-            vettori_positivi = [
-                (nome, round(val, 2)) for nome, val in vettori_ordinati if val > 0
+            positive_vectors = [
+                (name, round(val, 2)) for name, val in vectors_sorted if val > 0
             ]
 
-            if vettori_positivi:
-                vettore_principale = vettori_positivi[0][0]
+            if positive_vectors:
+                main_energy_vector = positive_vectors[0][0]
 
-            data["vettori_top"] = vettori_positivi[:5]
+            data["top_vectors"] = positive_vectors[:5]
         else:
-            data["vettori_top"] = []
+            data["top_vectors"] = []
 
-        data["vettore_energetico_principale"] = vettore_principale
-        data["consumi_calcolati_kwh"] = consumi_calcolati_kwh
+        data["main_energy_vector"] = main_energy_vector
+        data["calculated_consumption_kwh"] = calculated_consumption_kwh
 
         # Cadastral data
         cat = {
-            "codice_catastale": None,
-            "sezione": None,
-            "foglio": None,
-            "particella": None,
+            "cadastral_code": None,
+            "section": None,
+            "sheet": None,
+            "parcel": None,
             "subA": None,
             "subDA": None,
-            "subalterno": None,
+            "subaltern": None,
         }
         nodes = root.xpath(".//ape:datiCatastali", namespaces=ns)
         if nodes:
@@ -509,10 +509,10 @@ def parse_ape_xml(xml_text: str) -> dict:
                 t = n.xpath(f"string({node_x})", namespaces=ns)
                 return t.strip() if t and t.strip() else None
 
-            cat["codice_catastale"] = s("ape:codiceCatastale")
-            cat["sezione"] = s("ape:sezione")
-            cat["foglio"] = s("ape:foglio")
-            cat["particella"] = s("ape:particella")
+            cat["cadastral_code"] = s("ape:codiceCatastale")
+            cat["section"] = s("ape:sezione")
+            cat["sheet"] = s("ape:foglio")
+            cat["parcel"] = s("ape:particella")
             cat["subA"] = s("ape:subalterni/ape:subA")
             cat["subDA"] = s("ape:subalterni/ape:subDA")
 
@@ -529,17 +529,17 @@ def parse_ape_xml(xml_text: str) -> dict:
                 for patt in patterns:
                     m = re.search(patt, idf, re.IGNORECASE)
                     if m:
-                        cat["foglio"] = cat["foglio"] or m.group(1)
-                        cat["particella"] = cat["particella"] or m.group(2)
-                        cat["subalterno"] = cat["subalterno"] or m.group(3)
+                        cat["sheet"] = cat["sheet"] or m.group(1)
+                        cat["parcel"] = cat["parcel"] or m.group(2)
+                        cat["subaltern"] = cat["subaltern"] or m.group(3)
                         break
 
-            if (cat["foglio"] or cat["particella"]) and not cat["codice_catastale"]:
+            if (cat["sheet"] or cat["parcel"]) and not cat["cadastral_code"]:
                 cc = sxp(".//ape:codiceCatastale")
                 if cc:
-                    cat["codice_catastale"] = cc
-            if cat["subalterno"] and not (cat["subA"] or cat["subDA"]):
-                cat["subA"] = cat["subalterno"]
+                    cat["cadastral_code"] = cc
+            if cat["subaltern"] and not (cat["subA"] or cat["subDA"]):
+                cat["subA"] = cat["subaltern"]
         data.update(cat)
 
         # Building envelope quality (updated mapping)
@@ -548,14 +548,14 @@ def parse_ape_xml(xml_text: str) -> dict:
         val_inv = sxp(
             "//ape:prestazioneGlobale/ape:prestazioneEnergeticaFabbricato/ape:inverno"
         )
-        data["qualita_invernale_cod"] = val_inv
-        data["qualita_invernale"] = MAPPING_QUALITA_INVOLUCRO.get(val_inv, val_inv)
+        data["winter_quality_code"] = val_inv
+        data["winter_quality"] = MAPPING_QUALITA_INVOLUCRO.get(val_inv, val_inv)
 
         val_est = sxp(
             "//ape:prestazioneGlobale/ape:prestazioneEnergeticaFabbricato/ape:estate"
         )
-        data["qualita_estiva_cod"] = val_est
-        data["qualita_estiva"] = MAPPING_QUALITA_INVOLUCRO.get(val_est, val_est)
+        data["summer_quality_code"] = val_est
+        data["summer_quality"] = MAPPING_QUALITA_INVOLUCRO.get(val_est, val_est)
 
         # Systems information extraction
         def get_service_info(xpaths_service):
@@ -567,53 +567,53 @@ def parse_ape_xml(xml_text: str) -> dict:
                     break
             if found_node is None:
                 return {
-                    "tecnologia": None,
-                    "anno": None,
-                    "descrizione": None,
+                    "technology": None,
+                    "year": None,
+                    "description": None,
                     "epnren": None,
-                    "tipo_impianto_cod": None,
+                    "system_type_code": None,
                 }
 
             def s(xpath):
                 val = found_node.xpath(f"string({xpath})", namespaces=ns)
                 return val.strip() if isinstance(val, str) and val.strip() else None
 
-            anno = s(
+            year = s(
                 f".//*[contains({tolower},'install') and contains({tolower},'anno')][1]"
             )
-            descrizione = s(".//ape:impianto[1]/ape:descrizioneImpianto")
+            description = s(".//ape:impianto[1]/ape:descrizioneImpianto")
             epnren = s(".//ape:prestazione/ape:epnren")
 
-            tipo_impianto_cod = s(".//ape:impianto[1]/ape:tipoImpianto")
-            tecnologia = MAPPING_IMPIANTI.get(tipo_impianto_cod, descrizione)
+            system_type_code = s(".//ape:impianto[1]/ape:tipoImpianto")
+            technology = MAPPING_IMPIANTI.get(system_type_code, description)
 
-            if tecnologia is None:
-                tecnologia = s(
+            if technology is None:
+                technology = s(
                     f".//*[contains({tolower},'tecnolog') or contains({tolower},'tipogener') or contains({tolower},'tipo')][1]"
                 )
 
             return {
-                "tecnologia": tecnologia,
-                "anno": anno,
-                "descrizione": descrizione,
+                "technology": technology,
+                "year": year,
+                "description": description,
                 "epnren": epnren,
-                "tipo_impianto_cod": tipo_impianto_cod,
+                "system_type_code": system_type_code,
             }
 
-        data["impianti"] = {
-            "Riscaldamento": get_service_info(
+        data["systems"] = {
+            "Heating": get_service_info(
                 [
                     "//ape:datiImpianti//ape:climatizzazioneInvernale",
                     "//ape:impianti//ape:impiantoClimatizzazioneInvernale",
                 ]
             ),
-            "ACS": get_service_info(
+            "DHW": get_service_info(
                 [
                     "//ape:datiImpianti//ape:produzioneACS",
                     "//ape:impianti//ape:impiantoAcquaCaldaSanitaria",
                 ]
             ),
-            "Raffrescamento": get_service_info(
+            "Cooling": get_service_info(
                 [
                     "//ape:datiImpianti//ape:climatizzazioneEstiva",
                     "//ape:impianti//ape:impiantoClimatizzazioneEstiva",
@@ -626,14 +626,14 @@ def parse_ape_xml(xml_text: str) -> dict:
             val_fv = float(sxp(VETTORI_XPATHS["Solare fotovoltaico"]) or 0)
             val_st = float(sxp(VETTORI_XPATHS["Solare termico"]) or 0)
             if val_fv > 0 or val_st > 0:
-                data["fonti_rinnovabili"] = "Sì"
+                data["renewable_sources"] = "Yes"
             else:
-                data["fonti_rinnovabili"] = "No"
+                data["renewable_sources"] = "No"
         except Exception:
-            data["fonti_rinnovabili"] = "No"
+            data["renewable_sources"] = "No"
 
         # Improvements
-        data["classe_target"] = xs(
+        data["target_class"] = xs(
             [
                 "//ape:raccomandazioni//ape:classificazioneRaggiungibile/ape:classeEnergetica",
                 "//ape:prestazioneGlobale//ape:classeEnergeticaRaggiungibile",
@@ -642,33 +642,33 @@ def parse_ape_xml(xml_text: str) -> dict:
             ]
         )
 
-        data["risparmio_perc"] = None  # Removed, too unreliable
+        data["savings_percentage"] = None  # Removed, too unreliable
 
-        data["tempo_ritorno"] = sxp(
+        data["payback_period"] = sxp(
             "//ape:raccomandazioni//ape:tempoRitornoInvestimento"
         )
-        if data["tempo_ritorno"] is None:
+        if data["payback_period"] is None:
             full_text = " ".join(root.xpath("string(//*)")).strip()
             payback = re.search(
                 r"(\d+(?:[.,]\d+)?)\s*(?:anni|anno)\s*(?:di)?\s*(?:ritorno|payback)",
                 full_text,
                 re.IGNORECASE,
             )
-            data["tempo_ritorno"] = (
+            data["payback_period"] = (
                 (payback.group(1).replace(",", ".")) if payback else None
             )
 
-        migli_txt = xs(["//ape:informazioniMiglioramento", "//ape:raccomandazioni"])
-        if migli_txt:
-            raw = migli_txt.replace("\r", "\n")
+        improv_txt = xs(["//ape:informazioniMiglioramento", "//ape:raccomandazioni"])
+        if improv_txt:
+            raw = improv_txt.replace("\r", "\n")
             lines = re.split(r"[\n;•\-]+", raw)
-            interventi = [l.strip(" .:;") for l in lines if l and len(l.strip()) > 2]
-            data["interventi_suggeriti"] = interventi[:3]
+            interventions = [l.strip(" .:;") for l in lines if l and len(l.strip()) > 2]
+            data["suggested_interventions"] = interventions[:3]
         else:
-            data["interventi_suggeriti"] = []
+            data["suggested_interventions"] = []
 
     except Exception as e:
-        print(f"Errore nel parsing APE: {type(e).__name__}: {e}")
+        print(f"Error parsing APE: {type(e).__name__}: {e}")
         import traceback
 
         traceback.print_exc()
@@ -720,110 +720,106 @@ def extract_ape_image_b64(xml_text: str):
 
 def calculate_ape_score(ape_df: pd.DataFrame) -> pd.DataFrame:
     """
-    Calcola uno score sintetico per ogni APE basato su criteri esperti.
-    Ogni categoria usa una scala 1-5.
+    Calculates a synthetic EPC (APE) score for each property based on expert criteria.
+    Each category uses a 1-5 scale.
 
-    Criteri (Scala 1-5 per categoria):
-    1. Classe Energetica:
-       - A1, A2, A3, A4 -> 5 punti
-       - B -> 4 punti
-       - C, D -> 3 punti
-       - E -> 2 punti
-       - F, G -> 1 punto
+    Criteria (1-5 scale per category):
+    1. Energy Class:
+       - A1, A2, A3, A4 -> 5 points
+       - B -> 4 points
+       - C, D -> 3 points
+       - E -> 2 points
+       - F, G -> 1 point
 
-    2. Impianto:
-       - Pompa di calore / Teleriscaldamento -> 5 punti
-       - Caldaia a condensazione / Biomassa -> 4 punti
-       - Altro (caldaia standard, gasolio, etc.) -> 2 punti
+    2. System:
+       - Heat pump / District heating -> 5 points
+       - Condensing boiler / Biomass -> 4 points
+       - Other (standard boiler, oil, etc.) -> 2 points
 
-    3. Involucro (basato su qualità invernale):
-       - Alta qualità (Faccina sorridente) -> 5 punti
-       - Media qualità (Faccina neutra/basita) -> 3 punti
-       - Bassa qualità (Faccina triste) -> 1 punto
+    3. Envelope (based on winter quality):
+       - High quality (Smiling face) -> 5 points
+       - Medium quality (Neutral/amazed face) -> 3 points
+       - Low quality (Sad face) -> 1 point
 
-    4. Rinnovabili:
-       - Presenti fonti rinnovabili -> 5 punti
-       - Assenti -> 2 punti
+    4. Renewables:
+       - Renewable sources present -> 5 points
+       - Absent -> 2 points
 
     Args:
-        ape_df: DataFrame con i dati APE dettagliati
+        ape_df: DataFrame with detailed EPC data
 
     Returns:
-        pd.DataFrame: DataFrame arricchito con colonne score (scala 1-5)
+        pd.DataFrame: Enriched DataFrame with score columns (1-5 scale)
     """
     df = ape_df.copy()
 
-    # 1. Score Classe Energetica (1-5)
-    classe = df["classe"].astype(str).str.upper().str.strip()
+    # 1. Energy Class Score (1-5)
+    energy_class = df["classe"].astype(str).str.upper().str.strip()
 
     conditions_class = [
-        classe.isin(["A1", "A2", "A3", "A4", "A"]),  # Classe A -> 5
-        classe == "B",  # Classe B -> 4
-        classe.isin(["C", "D"]),  # Classe C, D -> 3
-        classe == "E",  # Classe E -> 2
-        # Default (F, G, altro) -> 1
+        energy_class.isin(["A1", "A2", "A3", "A4", "A"]),  # Class A -> 5
+        energy_class == "B",  # Class B -> 4
+        energy_class.isin(["C", "D"]),  # Class C, D -> 3
+        energy_class == "E",  # Class E -> 2
     ]
     choices_class = [5, 4, 3, 2]
-    df["ape_class_score"] = np.select(conditions_class, choices_class, default=1)
+    df["energy_score_class"] = np.select(conditions_class, choices_class, default=1)
 
-    # 2. Score Impianto (1-5)
+    # 2. System Score (1-5)
     desc = df["imp_risc_desc"].astype(str).str.lower()
 
-    # Pattern per impianti ad alta efficienza (5 punti)
+    # Pattern for high efficiency systems (5 points)
     high_score_pattern = r"pompa di calore|teleriscaldamento|geotermico"
-    # Pattern per impianti a media efficienza (4 punti)
+    # Pattern for medium efficiency systems (4 points)
     med_score_pattern = r"condensazione|biomassa|cippato|legna|pellet"
 
     conditions_sys = [
         desc.str.contains(high_score_pattern, regex=True, na=False),  # -> 5
         desc.str.contains(med_score_pattern, regex=True, na=False),  # -> 4
-        # Default (caldaia standard, gasolio, etc.) -> 2
     ]
     choices_sys = [5, 4]
-    df["ape_system_score"] = np.select(conditions_sys, choices_sys, default=2)
+    df["energy_score_plant"] = np.select(conditions_sys, choices_sys, default=2)
 
-    # 3. Score Involucro (1-5, basato su qualità invernale)
-    qualita = df["qualita_invernale"].astype(str).str.lower()
+    # 3. Envelope Score (1-5, based on winter quality)
+    quality = df["qualita_invernale"].astype(str).str.lower()
 
     conditions_env = [
-        qualita.str.contains("sorridente", na=False),  # Alta qualità -> 5
-        qualita.str.contains("basita|neutr", regex=True, na=False),  # Media -> 3
-        # Default (triste, altro) -> 1
+        quality.str.contains("sorridente", na=False),  # High quality -> 5
+        quality.str.contains("basita|neutr", regex=True, na=False),  # Medium -> 3
     ]
     choices_env = [5, 3]
-    df["ape_envelope_score"] = np.select(conditions_env, choices_env, default=1)
+    df["energy_score_envelope"] = np.select(conditions_env, choices_env, default=1)
 
-    # 4. Score Rinnovabili (scala 2-5)
-    rinnovabili = df["fonti_rinnovabili"].astype(str).str.lower()
-    # Check for 'si' or 'sì' -> 5, altrimenti -> 2
-    df["ape_renewables_score"] = np.where(
-        rinnovabili.str.contains(r"s[iì]", regex=True, na=False), 5, 2
+    # 4. Renewables Score (2-5 scale)
+    renewables = df["fonti_rinnovabili"].astype(str).str.lower()
+    # Check for 'si' or 'sì' -> 5, else -> 2
+    df["energy_score_renewables"] = np.where(
+        renewables.str.contains(r"s[iì]", regex=True, na=False), 5, 2
     )
 
-    # Calcolo Totale (Max 20, Min 6)
-    df["ape_total_points"] = (
-        df["ape_class_score"]
-        + df["ape_system_score"]
-        + df["ape_envelope_score"]
-        + df["ape_renewables_score"]
+    # Total Calculation (Max 20, Min 6)
+    df["energy_total_points"] = (
+        df["energy_score_class"]
+        + df["energy_score_plant"]
+        + df["energy_score_envelope"]
+        + df["energy_score_renewables"]
     )
 
-    # Mapping a score finale 1-5 (normalizzato)
-    # Range: 6-20 punti
-    # 18-20 -> 5 (Eccellente)
-    # 15-17 -> 4 (Buono)
-    # 12-14 -> 3 (Sufficiente)
-    # 9-11 -> 2 (Scarso)
-    # 6-8 -> 1 (Insufficiente)
-    points = df["ape_total_points"]
+    # Mapping to final 1-5 score (normalized)
+    # Range: 6-20 points
+    # 18-20 -> 5 (Excellent)
+    # 15-17 -> 4 (Good)
+    # 12-14 -> 3 (Sufficient)
+    # 9-11 -> 2 (Poor)
+    # 6-8 -> 1 (Insufficient)
+    points = df["energy_total_points"]
     conditions_total = [
         points >= 18,  # -> 5
         points >= 15,  # -> 4
         points >= 12,  # -> 3
         points >= 9,  # -> 2
-        # < 9 -> 1
     ]
     choices_total = [5, 4, 3, 2]
-    df["ape_score"] = np.select(conditions_total, choices_total, default=1)
+    df["energy_score"] = np.select(conditions_total, choices_total, default=1)
 
     return df

@@ -21,7 +21,7 @@ class ModelConfig(TypedDict):
     model: str
     api_base: Optional[str]
     api_key: Optional[str]
-    provider: str  # "openai" | "llm_polito" | "ollama" | "vllm"
+    provider: str  # "openai" | "institutional" | "ollama" | "vllm"
     supports_structured_output: bool  # whether the model reliably handles function_calling / json_mode
 
 
@@ -35,11 +35,11 @@ MODEL_OPTIONS: dict[str, ModelConfig] = {
         "supports_structured_output": True,
     },
     "gpt-oss-120b": {
-        "backend": "llm polito API",
+        "backend": "Institutional LLM API",
         "model": "gpt-oss-120b",
-        "api_base": "https://llm.polito.it/v1",
-        "api_key": None,  # read from LLM_POLITO_API_KEY env var via settings
-        "provider": "llm_polito",
+        "api_base": "https://api.institutional-endpoint.edu/v1",
+        "api_key": None,  # read from INSTITUTIONAL_LLM_API_KEY env var via settings
+        "provider": "institutional",
         "supports_structured_output": False,
     },
     "ollama-gpt-oss-120b": {
@@ -124,9 +124,9 @@ def apply_model_config(settings_obj: object, model_key: str) -> None:
     if cfg["api_key"] is not None:
         # Override only when the entry carries an explicit key (e.g. ollama placeholder).
         settings_obj.OPENAI_API_KEY = cfg["api_key"]
-    elif cfg["provider"] == "llm_polito":
-        # Delegate to the value already loaded from LLM_POLITO_API_KEY env var.
-        settings_obj.OPENAI_API_KEY = settings_obj.LLM_POLITO_API_KEY
+    elif cfg["provider"] == "institutional":
+        # Delegate to the value already loaded from INSTITUTIONAL_LLM_API_KEY env var.
+        settings_obj.OPENAI_API_KEY = settings_obj.INSTITUTIONAL_LLM_API_KEY
     else:
         # Restore the original OpenAI API key from environment variables.
         settings_obj.OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")

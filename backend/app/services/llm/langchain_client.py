@@ -27,12 +27,12 @@ def _get_llm_internal(
     if openai_api_key:
         api_key = openai_api_key
     else:
-        # If the base URL points to the Polito instance, prefer LLM_POLITO_API_KEY.
-        is_polito = openai_api_base and "polito.it" in openai_api_base
-        if is_polito:
+        # If the base URL points to the institutional instance, prefer INSTITUTIONAL_LLM_API_KEY.
+        is_institutional = openai_api_base and "institutional-endpoint.edu" in openai_api_base
+        if is_institutional:
             api_key = (
-                settings.LLM_POLITO_API_KEY
-                or os.getenv("LLM_POLITO_API_KEY")
+                settings.INSTITUTIONAL_LLM_API_KEY
+                or os.getenv("INSTITUTIONAL_LLM_API_KEY")
                 or settings.OPENAI_API_KEY
                 or os.getenv("OPENAI_API_KEY")
             )
@@ -145,7 +145,7 @@ def is_oss_model(model_name: Optional[str] = None) -> bool:
         or "deepseek" in resolved
         or "mistral" in resolved
         or "ollama" in api_base
-        or "polito" in api_base
+        or "institutional" in api_base
         or "localhost" in api_base
     )
 

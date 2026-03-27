@@ -5,7 +5,7 @@ Dummy responses for testing the UI/UX pipeline without burning tokens.
 """
 
 from app.services.llm.agents.schema import (
-    PropertyTechnicalAgentResult,
+    BuildingAgentResult,
     Place,
     LocationAgentResult,
     EvaluationAgentResponse,
@@ -15,15 +15,15 @@ from app.services.llm.agents.schema import (
 
 import json
 
-# Mock Property Technical
-MOCK_PROPERTY_TECHNICAL = PropertyTechnicalAgentResult(
-    raw_text=json.dumps({"typologies": ["Ufficio", "Caserma"]}, ensure_ascii=False),
+# Mock Building Result
+MOCK_BUILDING = BuildingAgentResult(
+    raw_text=json.dumps({"typologies": ["Office", "Barracks"]}, ensure_ascii=False),
     prompt=PromptRecord(system="Mock", user="Mock"),
 )
 
 # Mock Location (Rome center)
 MOCK_LOCATION = LocationAgentResult(
-    raw_text=json.dumps({"places": [{"name": "Roma Centro", "city": "Roma", "lat": 41.9028, "lon": 12.4964}]}, ensure_ascii=False),
+    raw_text=json.dumps({"places": [{"name": "Rome Center", "city": "Rome", "lat": 41.9028, "lon": 12.4964}]}, ensure_ascii=False),
     prompt=PromptRecord(system="Mock", user="Mock"),
 )
 
@@ -35,17 +35,17 @@ MOCK_EVALUATION = EvaluationAgentResponse(
     raw_text=json.dumps([
         {
             "id": 12345,
-            "evaluation_text": "Ottimo immobile simulato per test.",
+            "evaluation_text": "Excellent simulated property for testing.",
             "final_ranking_score": 95,
-            "pros": ["Economico", "Centrale", "Ristrutturato"],
-            "cons": ["Piano alto senza ascensore"],
+            "pros": ["Affordable", "Central", "Renovated"],
+            "cons": ["High floor without elevator"],
         },
         {
             "id": 67890,
-            "evaluation_text": "Buona alternativa simulata.",
+            "evaluation_text": "Good simulated alternative.",
             "final_ranking_score": 88,
-            "pros": ["Ampio", "Luminoso"],
-            "cons": ["Da ristrutturare"],
+            "pros": ["Spacious", "Bright"],
+            "cons": ["Needs renovation"],
         },
     ], ensure_ascii=False),
     prompt=PromptRecord(system="Mock", user="Mock"),
@@ -53,12 +53,12 @@ MOCK_EVALUATION = EvaluationAgentResponse(
 
 # Mock Broker Summary
 MOCK_BROKER_SUMMARY = """
-**Executive Summary (Simulazione)**
+**Executive Summary (Simulation)**
 
-L'analisi dei candidati evidenzia l'immobile **ID 12345** come scelta primaria.
-Nonostante l'assenza di ascensore, la posizione centrale e il costo contenuto lo rendono ideale per l'uso ufficio richiesto.
+The analysis of candidates highlights property **ID 12345** as the primary choice.
+Despite the absence of an elevator, the central location and low cost make it ideal for the requested office use.
 
-L'alternativa **ID 67890** offre più spazio ma richiede investimenti significativi per la ristrutturazione.
+The alternative **ID 67890** offers more space but requires significant investment for renovation.
 
-**Raccomandazione:** Procedere con ID 12345 se il budget è vincolante.
+**Recommendation:** Proceed with ID 12345 if the budget is a constraint.
 """

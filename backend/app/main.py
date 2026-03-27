@@ -45,7 +45,7 @@ async def lifespan(app: FastAPI):
                 user_repo.create_user(
                     username="admin",
                     password_hash=security.get_password_hash("admin123"),
-                    email="admin@mef-immobili.it",
+                    email="admin@realestate-ai.example",
                 )
                 logger.info("Default admin user created")
         except Exception as e:
@@ -101,7 +101,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title=settings.APP_NAME,
     version=settings.APP_VERSION,
-    description="RESTful API for MEF-Immobili real estate analysis platform",
+    description="RESTful API for RealEstate-AI analysis platform",
     docs_url="/docs" if settings.DEBUG else None,
     redoc_url="/redoc" if settings.DEBUG else None,
     lifespan=lifespan,
@@ -134,21 +134,21 @@ if __name__ == "__main__":
     import uvicorn
     import argparse
 
-    # Parsing argomenti command line
-    parser = argparse.ArgumentParser(description=f"Avvia il server {settings.APP_NAME}")
+    # Command line argument parsing
+    parser = argparse.ArgumentParser(description=f"Start the {settings.APP_NAME} server")
     parser.add_argument(
         "--model", 
         choices=["gpt-oss-120b", "deepseek-r1-8b", "vllm-gemma3-27b", "vllm-qwen", "gpt-5-nano"], 
-        help="Scegli il sapore del modello LLM da utilizzare"
+        help="Choose the LLM model to use"
     )
     
-    # parse_known_args permette di ignorare gli argomenti di uvicorn se presenti
+    # parse_known_args allows ignoring uvicorn arguments if present
     args, _ = parser.parse_known_args()
 
-    # Applica configurazione modello se specificata
+    # Apply model configuration if specified
     if args.model:
         settings.set_llm_model(args.model)
-        logger.info(f"Modello LLM impostato a: {args.model} ({settings.OPENAI_MODEL_FAST})")
+        logger.info(f"LLM model set to: {args.model} ({settings.OPENAI_MODEL_FAST})")
 
     uvicorn.run(
         "app.main:app",

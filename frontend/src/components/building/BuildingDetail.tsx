@@ -1,8 +1,8 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
 import { Zap, MapPin, Building2, FileText, Shield, ChevronDown, FileCheck, Sparkles, Info, Activity } from 'lucide-react';
-import type { APEDetail } from './APEDetailModal';
-import { APEDetailModal } from './APEDetailModal';
+import type { EnergyDetail } from './EnergyDetailModal';
+import { EnergyDetailModal } from './EnergyDetailModal';
 import { AIEvaluationCard } from './AIEvaluationCard';
 import { StreetImage } from './StreetImage';
 import client from '../../api/client';
@@ -34,28 +34,30 @@ interface BuildingData {
     omi_zone?: string;
     cadastral_sheet?: string;
     cadastral_parcel?: string;
-    ape_scores?: {
+    // Energy info
+    energy_scores?: {
         total?: number;
         class_score?: number;
-        system_score?: number;
+        plant_score?: number;
         envelope_score?: number;
         renewables_score?: number;
     };
-    poi_scores?: {
-        health?: number;
+    proximity_scores?: {
+        healthcare?: number;
         mobility?: number;
-        green?: number;
+        greenery?: number;
         education?: number;
-        shopping?: number;
+        commerce?: number;
         sport?: number;
     };
-    ape_files?: string[];
+    energy_files?: string[];
     // User requested fields
-    meta_immobile?: boolean;
-    tipo_detenzione_a_terzi?: string;
-    canone_annuale?: number;
-    data_decorrenza?: string;
-    numero_immobili_per_catasto?: number;
+    is_meta_building?: boolean;
+    meta_property?: string;
+    third_party_tenure_type?: string;
+    annual_rent?: number;
+    start_date?: string;
+    cadastral_units_count?: number;
     id_list?: string;
     sub_properties?: {
         id: string;
@@ -77,10 +79,10 @@ interface BuildingDetailProps {
     onFeedbackSuccess?: () => void;
 }
 
-// APE file info cache type
-interface ApeFileInfo {
-    classe?: string;
-    costo_annuo_euro?: number;
+// Energy file info cache type
+interface EnergyFileInfo {
+    energy_class?: string;
+    annual_cost_estimate?: number;
     loading: boolean;
 }
 
@@ -98,9 +100,9 @@ const getClassBadgeColor = (cls?: string) => {
 };
 
 // Collapsible APE Files List Component
-const ApeFilesList: React.FC<{ files: string[]; onFileClick: (file: string) => void }> = ({ files, onFileClick }) => {
+const EnergyFilesList: React.FC<{ files: string[]; onFileClick: (file: string) => void }> = ({ files, onFileClick }) => {
     const [isExpanded, setIsExpanded] = useState(false);
-    const [fileInfos, setFileInfos] = useState<Record<string, ApeFileInfo>>({});
+    const [fileInfos, setFileInfos] = useState<Record<string, EnergyFileInfo>>({});
     const displayedFiles = isExpanded ? files : files.slice(0, 2);
     const hasMore = files.length > 2;
 
@@ -125,14 +127,14 @@ const ApeFilesList: React.FC<{ files: string[]; onFileClick: (file: string) => v
 
                 setFileInfos(prev => ({ ...prev, [fileName]: { loading: true } }));
 
-                client.get<APEDetail>(`/ape/${fileName}`)
+                client.get<EnergyDetail>(`/energy/${fileName}`)
                     .then(res => {
                         if (isMounted) {
                             setFileInfos(prev => ({
                                 ...prev,
                                 [fileName]: {
-                                    classe: res.data.classe,
-                                    costo_annuo_euro: res.data.costo_annuo_euro,
+                                    energy_class: res.data.energy_class,
+                                    annual_cost_estimate: res.data.annual_cost_estimate,
                                     loading: false
                                 }
                             }));
@@ -158,7 +160,7 @@ const ApeFilesList: React.FC<{ files: string[]; onFileClick: (file: string) => v
         <div className="mt-3 pt-3 border-t border-white/10">
             <div className="flex items-center gap-1.5 mb-2">
                 <FileCheck className="w-3 h-3 text-green-400" />
-                <span className="text-[10px] uppercase text-gray-500 font-medium">Attestati APE ({files.length})</span>
+                <span className="text-[10px] uppercase text-gray-500 font-medium">Energy certificates ({files.length})</span>
             </div>
             <div className="space-y-1.5">
                 {displayedFiles.map((file, index) => {
@@ -172,20 +174,20 @@ const ApeFilesList: React.FC<{ files: string[]; onFileClick: (file: string) => v
                         >
                             <FileText className="w-3 h-3 text-gray-500 group-hover:text-emerald-400 shrink-0" />
                             <span className="truncate flex-1 min-w-0">{fileName}</span>
-                            {/* Badges for Classe Energetica and Costo */}
+                            {/* Badges for Energy Class and Cost */}
                             <div className="flex items-center gap-1.5 shrink-0">
                                 {info?.loading ? (
                                     <span className="w-3 h-3 border border-gray-500/50 border-t-emerald-400 rounded-full animate-spin" />
                                 ) : (
                                     <>
-                                        {info?.classe && (
-                                            <span className={`px - 1.5 py - 0.5 rounded text - [10px] font - semibold ${getClassBadgeColor(info.classe)} `}>
-                                                {info.classe}
+                                        {info?.energy_class && (
+                                            <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${getClassBadgeColor(info.energy_class)}`}>
+                                                {info.energy_class}
                                             </span>
                                         )}
-                                        {info?.costo_annuo_euro != null && (
+                                        {info?.annual_cost_estimate != null && (
                                             <span className="px-1.5 py-0.5 rounded text-[10px] bg-purple-500/20 text-purple-400 border border-purple-500/30">
-                                                €{info.costo_annuo_euro.toLocaleString('it-IT', { maximumFractionDigits: 0 })}
+                                                €{info.annual_cost_estimate.toLocaleString('it-IT', { maximumFractionDigits: 0 })}
                                             </span>
                                         )}
                                     </>
@@ -200,8 +202,8 @@ const ApeFilesList: React.FC<{ files: string[]; onFileClick: (file: string) => v
                     onClick={() => setIsExpanded(!isExpanded)}
                     className="mt-2 flex items-center gap-1 text-[10px] text-emerald-400 hover:text-emerald-300 transition-colors"
                 >
-                    <ChevronDown className={`w - 3 h - 3 transition - transform ${isExpanded ? 'rotate-180' : ''} `} />
-                    {isExpanded ? 'Mostra meno' : `Mostra altri ${files.length - 2} `}
+                    <ChevronDown className={`w-3 h-3 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                    {isExpanded ? 'Show less' : `Show matching ${files.length - 2}`}
                 </button>
             )}
         </div>
@@ -211,8 +213,10 @@ const ApeFilesList: React.FC<{ files: string[]; onFileClick: (file: string) => v
 
 export const BuildingDetail: React.FC<BuildingDetailProps> = ({ data, runId, onFeedbackSuccess }) => {
     const details = data;
-    const [selectedApeFile, setSelectedApeFile] = useState<string | null>(null);
+    const [selectedEnergyFile, setSelectedEnergyFile] = useState<string | null>(null);
     const [existingFeedback, setExistingFeedback] = useState<AgentFeedbackResponse | undefined>(undefined);
+
+    const is_meta_building_val = details.is_meta_building === true || String(details.is_meta_building) === 'true';
 
     // Fetch existing feedback when building or run changes
     useEffect(() => {
@@ -232,36 +236,36 @@ export const BuildingDetail: React.FC<BuildingDetailProps> = ({ data, runId, onF
         }
     }, [runId, details.id]);
 
-    // POI Radar data (6 metrics)
-    const poiRadarData = useMemo(() => {
-        if (!details.poi_scores) return [];
+    // Proximity Radar data (6 metrics)
+    const proximityRadarData = useMemo(() => {
+        if (!details.proximity_scores) return [];
         return [
-            { subject: 'Sanità', A: details.poi_scores.health || 0, fullMark: 5 },
-            { subject: 'Mobilità', A: details.poi_scores.mobility || 0, fullMark: 5 },
-            { subject: 'Verde', A: details.poi_scores.green || 0, fullMark: 5 },
-            { subject: 'Sport', A: details.poi_scores.sport || 0, fullMark: 5 },
-            { subject: 'Commercio', A: details.poi_scores.shopping || 0, fullMark: 5 },
-            { subject: 'Istruzione', A: details.poi_scores.education || 0, fullMark: 5 },
+            { subject: 'Healthcare', A: details.proximity_scores.healthcare || 0, fullMark: 5 },
+            { subject: 'Mobility', A: details.proximity_scores.mobility || 0, fullMark: 5 },
+            { subject: 'Greenery', A: details.proximity_scores.greenery || 0, fullMark: 5 },
+            { subject: 'Sport', A: details.proximity_scores.sport || 0, fullMark: 5 },
+            { subject: 'Commerce', A: details.proximity_scores.commerce || 0, fullMark: 5 },
+            { subject: 'Education', A: details.proximity_scores.education || 0, fullMark: 5 },
         ];
-    }, [details.poi_scores]);
+    }, [details.proximity_scores]);
 
-    // APE Radar data (for new APE radar chart)
-    const apeRadarData = useMemo(() => {
-        if (!details.ape_scores) return [];
+    // Energy Radar data
+    const energyRadarData = useMemo(() => {
+        if (!details.energy_scores) return [];
         return [
-            { subject: 'Classe', A: details.ape_scores.class_score || 0, fullMark: 5 },
-            { subject: 'Impianto', A: details.ape_scores.system_score || 0, fullMark: 5 },
-            { subject: 'Involucro', A: details.ape_scores.envelope_score || 0, fullMark: 5 },
-            { subject: 'Rinnovabili', A: details.ape_scores.renewables_score || 0, fullMark: 5 },
+            { subject: 'Class', A: details.energy_scores.class_score || 0, fullMark: 5 },
+            { subject: 'Plant', A: details.energy_scores.plant_score || 0, fullMark: 5 },
+            { subject: 'Envelope', A: details.energy_scores.envelope_score || 0, fullMark: 5 },
+            { subject: 'Renewable', A: details.energy_scores.renewables_score || 0, fullMark: 5 },
         ];
-    }, [details.ape_scores]);
+    }, [details.energy_scores]);
 
     // Custom tick component for radar chart to show values
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const renderPolarAngleAxisTick = (props: any) => {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { payload, x, y, cx, cy, verticalAnchor, ...rest } = props;
-        const dataPoint = poiRadarData.find(d => d.subject === payload.value);
+        const dataPoint = proximityRadarData.find(d => d.subject === payload.value);
         const value = dataPoint?.A ?? 0;
 
         return (
@@ -278,10 +282,10 @@ export const BuildingDetail: React.FC<BuildingDetailProps> = ({ data, runId, onF
 
     // Custom tick for APE radar
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const renderApeRadarTick = (props: any) => {
+    const renderEnergyRadarTick = (props: any) => {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { payload, x, y, cx, cy, verticalAnchor, ...rest } = props;
-        const dataPoint = apeRadarData.find(d => d.subject === payload.value);
+        const dataPoint = energyRadarData.find(d => d.subject === payload.value);
         const value = dataPoint?.A ?? 0;
 
         return (
@@ -296,8 +300,8 @@ export const BuildingDetail: React.FC<BuildingDetailProps> = ({ data, runId, onF
         );
     };
 
-    // APE color based on class
-    const getApeColor = (cls?: string) => {
+    // Energy class color based on class
+    const getEnergyColor = (cls?: string) => {
         if (!cls) return 'from-gray-500 to-gray-600';
         if (['A1', 'A2', 'A3', 'A4', 'A'].includes(cls.toUpperCase())) return 'from-emerald-500 to-green-600';
         if (['B', 'C'].includes(cls.toUpperCase())) return 'from-lime-500 to-green-500';
@@ -305,8 +309,8 @@ export const BuildingDetail: React.FC<BuildingDetailProps> = ({ data, runId, onF
         return 'from-red-500 to-orange-600';
     };
 
-    const hasPoiData = poiRadarData.some(d => d.A > 0);
-    const hasApeRadarData = apeRadarData.length > 0 && apeRadarData.some(d => d.A > 0);
+    const hasProximityData = proximityRadarData.some(d => d.A > 0);
+    const hasEnergyRadarData = energyRadarData.length > 0 && energyRadarData.some(d => d.A > 0);
     const hasAIEvaluation = details.is_evaluated && (details.ranking_score != null || details.evaluation_text);
 
     // Get tier badge info
@@ -320,7 +324,7 @@ export const BuildingDetail: React.FC<BuildingDetailProps> = ({ data, runId, onF
         }
         if (details.tier === 2) {
             return {
-                label: 'Risultato',
+                label: 'Result',
                 icon: null,
                 className: 'bg-emerald-500/20 text-emerald-400 border border-emerald-400/30',
             };
@@ -349,21 +353,21 @@ export const BuildingDetail: React.FC<BuildingDetailProps> = ({ data, runId, onF
                         {tierBadge.label}
                     </div>
                 )}
-                {(details.meta_immobile === true || String(details.meta_immobile) === 'true') && (
+                {is_meta_building_val && (
                     <div className="absolute top-2 right-2 flex flex-col items-end gap-1">
                         {details.omi_zone && (
                             <div className="bg-emerald-900/90 backdrop-blur-md px-2 py-0.5 rounded border border-emerald-400/50 shadow-lg">
-                                <p className="text-[10px] font-semibold text-emerald-200">Zona OMI: {details.omi_zone}</p>
+                                <p className="text-[10px] font-semibold text-emerald-200">OMI Zone: {details.omi_zone}</p>
                             </div>
                         )}
                         <div className="bg-purple-900/90 backdrop-blur-md px-2 py-0.5 rounded border border-purple-400/50 shadow-lg">
-                            <p className="text-[10px] font-bold text-purple-200">META IMMOBILE</p>
+                            <p className="text-[10px] font-bold text-purple-200">META PROPERTY</p>
                         </div>
                     </div>
                 )}
-                {!((details.meta_immobile === true || String(details.meta_immobile) === 'true')) && details.omi_zone && (
+                {!is_meta_building_val && details.omi_zone && (
                     <div className="absolute top-2 right-2 bg-emerald-900/90 backdrop-blur-md px-2 py-0.5 rounded border border-emerald-400/50 shadow-lg">
-                        <p className="text-[10px] font-semibold text-emerald-200">Zona OMI: {details.omi_zone}</p>
+                        <p className="text-[10px] font-semibold text-emerald-200">OMI Zone: {details.omi_zone}</p>
                     </div>
                 )}
             </div>
@@ -371,16 +375,16 @@ export const BuildingDetail: React.FC<BuildingDetailProps> = ({ data, runId, onF
             {/* Title & Address */}
             <div>
                 <h2 className="text-base font-bold text-white leading-tight">
-                    {details.address || `Immobile ${details.id} `}
+                    {details.address || `Property ${details.id}`}
                 </h2>
                 {details.city && <p className="text-gray-400 text-xs mt-0.5">{details.city}</p>}
                 {details.price && details.price > 0 ? (
                     <p className="text-lg font-bold text-emerald-400 mt-1">
-                        € {details.price.toLocaleString('it-IT')} <span className="text-xs font-normal text-gray-400">/anno</span>
+                        € {details.price.toLocaleString('it-IT')} <span className="text-xs font-normal text-gray-400">/year</span>
                     </p>
-                ) : details.canone_annuale && details.canone_annuale > 0 && (
+                ) : details.annual_rent && details.annual_rent > 0 && (
                     <p className="text-lg font-bold text-emerald-400 mt-1">
-                        € {details.canone_annuale.toLocaleString('it-IT')} <span className="text-xs font-normal text-gray-400">/anno (Canone)</span>
+                        € {details.annual_rent.toLocaleString('it-IT')} <span className="text-xs font-normal text-gray-400">/year (Rent)</span>
                     </p>
                 )}
             </div>
@@ -394,8 +398,8 @@ export const BuildingDetail: React.FC<BuildingDetailProps> = ({ data, runId, onF
                     className="w-full flex items-center justify-center gap-2 bg-linear-to-r from-emerald-600 to-green-500 hover:from-emerald-500 hover:to-green-400 rounded-lg py-2.5 px-4 text-sm font-medium text-white shadow-lg shadow-emerald-500/20 transition-all"
                 >
                     <MapPin className="w-4 h-4" />
-                    Apri in Google Maps
-                </a >
+                    Open in Google Maps
+                </a>
             )}
 
             {/* User Feedback/Rating */}
@@ -443,7 +447,7 @@ export const BuildingDetail: React.FC<BuildingDetailProps> = ({ data, runId, onF
                     <div className="bg-white/5 p-3 rounded-lg border border-white/5 space-y-1">
                         <div className="flex items-center gap-1.5 mb-1">
                             <Building2 className="w-3.5 h-3.5 text-gray-400" />
-                            <span className="text-[10px] uppercase text-gray-500 font-medium">Tipologia & Uso</span>
+                            <span className="text-[10px] uppercase text-gray-500 font-medium">Type & Usage</span>
                         </div>
                         {details.property_type && (
                             <p className="text-xs text-gray-300">{details.property_type}</p>
@@ -458,11 +462,11 @@ export const BuildingDetail: React.FC<BuildingDetailProps> = ({ data, runId, onF
             {/* Key Stats Grid */}
             <div className="grid grid-cols-2 gap-2 text-xs">
                 <div className="bg-white/5 p-2 rounded-lg border border-white/5">
-                    <p className="text-[9px] text-gray-500 uppercase">Superficie</p>
+                    <p className="text-[9px] text-gray-500 uppercase">Surface</p>
                     <p className="font-semibold text-white">{details.surface_area ? `${details.surface_area} m²` : 'N/A'}</p>
                 </div>
                 <div className="bg-white/5 p-2 rounded-lg border border-white/5">
-                    <p className="text-[9px] text-gray-500 uppercase">Epoca</p>
+                    <p className="text-[9px] text-gray-500 uppercase">Period</p>
                     <p className="font-semibold text-white">{details.construction_year || 'N/A'}</p>
                 </div>
             </div>
@@ -471,135 +475,135 @@ export const BuildingDetail: React.FC<BuildingDetailProps> = ({ data, runId, onF
             <div className="bg-[#1a1d24]/60 p-3 rounded-lg border border-white/5">
                 <div className="flex items-center gap-1.5 mb-2">
                     <FileText className="w-3.5 h-3.5 text-gray-400" />
-                    <span className="text-[10px] uppercase text-gray-500 font-medium">Dati Catastali & Giuridici</span>
+                    <span className="text-[10px] uppercase text-gray-500 font-medium">Cadastral & Legal Data</span>
                 </div>
                 <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
                     {details.cadastral_sheet && details.cadastral_sheet !== 'None' && (
                         <div className="flex justify-between">
-                            <span className="text-gray-500">Foglio</span>
+                            <span className="text-gray-500">Sheet</span>
                             <span className="text-gray-300">{details.cadastral_sheet}</span>
                         </div>
                     )}
                     {details.cadastral_parcel && details.cadastral_parcel !== 'None' && (
                         <div className="flex justify-between">
-                            <span className="text-gray-500">Particella</span>
+                            <span className="text-gray-500">Parcel</span>
                             <span className="text-gray-300">{details.cadastral_parcel}</span>
                         </div>
                     )}
                     {details.legal_nature && (
                         <div className="flex justify-between col-span-2">
-                            <span className="text-gray-500">Natura Giuridica</span>
+                            <span className="text-gray-500">Legal Nature</span>
                             <span className="text-gray-300 text-right truncate max-w-[150px]">{details.legal_nature}</span>
                         </div>
                     )}
                     {details.purpose && (
                         <div className="flex justify-between col-span-2">
-                            <span className="text-gray-500">Finalità</span>
+                            <span className="text-gray-500">Purpose</span>
                             <span className="text-gray-300">{details.purpose}</span>
                         </div>
                     )}
-                    {details.tipo_detenzione_a_terzi && (
+                    {details.third_party_tenure_type && (
                         <div className="flex justify-between col-span-2">
-                            <span className="text-gray-500">Detenzione</span>
-                            <span className="text-gray-300">{details.tipo_detenzione_a_terzi}</span>
+                            <span className="text-gray-500">Tenure</span>
+                            <span className="text-gray-300">{details.third_party_tenure_type}</span>
                         </div>
                     )}
-                    {details.data_decorrenza && (
+                    {details.start_date && (
                         <div className="flex justify-between col-span-2">
-                            <span className="text-gray-500">Decorrenza</span>
-                            <span className="text-gray-300">{details.data_decorrenza}</span>
+                            <span className="text-gray-500">Start Date</span>
+                            <span className="text-gray-300">{details.start_date}</span>
                         </div>
                     )}
-                    {details.numero_immobili_per_catasto && (
+                    {details.cadastral_units_count && (
                         <div className="flex justify-between col-span-2">
-                            <span className="text-gray-500">Immobili Catasto</span>
-                            <span className="text-gray-300">{details.numero_immobili_per_catasto}</span>
+                            <span className="text-gray-500">Cadastral Units</span>
+                            <span className="text-gray-300">{details.cadastral_units_count}</span>
                         </div>
                     )}
                 </div>
                 {details.cultural_constraint && details.cultural_constraint.toLowerCase() !== 'no' && (
                     <div className="mt-2 flex items-center gap-1.5 text-amber-400">
                         <Shield className="w-3.5 h-3.5" />
-                        <span className="text-[10px]">Vincolo: {details.cultural_constraint}</span>
+                        <span className="text-[10px]">Constraint: {details.cultural_constraint}</span>
                     </div>
                 )}
             </div>
 
-            {/* APE Section with integrated files list */}
+            {/* Energy Section with integrated files list */}
             {
                 details.energy_class && (
                     <div className="bg-[#1a1d24]/60 p-3 rounded-lg border border-white/5">
                         <div className="flex items-center gap-1.5 mb-2">
                             <Zap className="w-3.5 h-3.5 text-yellow-400" />
-                            <span className="text-[10px] uppercase text-gray-500 font-medium">Classe Energetica</span>
+                            <span className="text-[10px] uppercase text-gray-500 font-medium">Energy Class</span>
                         </div>
                         <div className="flex items-center gap-3 mb-3">
-                            <div className={`w-12 h-12 shrink-0 rounded-lg bg-linear-to-br ${getApeColor(details.energy_class)} flex flex-col items-center justify-center text-white font-bold border border-white/10`}>
+                            <div className={`w-12 h-12 shrink-0 rounded-lg bg-linear-to-br ${getEnergyColor(details.energy_class)} flex flex-col items-center justify-center text-white font-bold border border-white/10`}>
                                 <span className="text-lg leading-none">{details.energy_class}</span>
                             </div>
-                            {details.ape_scores?.total != null && (
+                            {details.energy_scores?.total != null && (
                                 <div className="flex flex-col">
-                                    <span className="text-[10px] text-gray-500">Punteggio Totale</span>
+                                    <span className="text-[10px] text-gray-500">Total Score</span>
                                     <span className="text-xl font-bold text-white">
-                                        {details.ape_scores.total.toFixed(0)} <span className="text-xs text-gray-500 font-normal">/20 punti</span>
+                                        {details.energy_scores.total.toFixed(0)} <span className="text-xs text-gray-500 font-normal">/20 points</span>
                                     </span>
                                 </div>
                             )}
                         </div>
-                        {/* APE Radar Chart with Info Tooltip */}
-                        {hasApeRadarData && (
+                        {/* Energy Radar Chart with Info Tooltip */}
+                        {hasEnergyRadarData && (
                             <>
                                 <div className="flex items-center justify-between mb-1">
-                                    <span className="text-[10px] text-gray-500">Punteggio Dettagliato</span>
+                                    <span className="text-[10px] text-gray-500">Detailed Score</span>
                                     <div className="relative group">
                                         <button className="p-1 rounded-full hover:bg-white/10 transition-colors">
                                             <Info className="w-3.5 h-3.5 text-amber-400" />
                                         </button>
                                         {/* Tooltip */}
                                         <div className="absolute right-0 bottom-full mb-1 w-64 p-3 bg-[#1a1d24] border border-white/20 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
-                                            <p className="text-xs font-semibold text-white mb-2">Criteri di Punteggio (Scala 1-5)</p>
+                                            <p className="text-xs font-semibold text-white mb-2">Scoring Criteria (Scale 1-5)</p>
                                             <div className="space-y-1.5 text-[10px]">
                                                 <div>
-                                                    <p className="text-emerald-400 font-medium">Classe Energetica</p>
+                                                    <p className="text-emerald-400 font-medium">Energy Class</p>
                                                     <p className="text-gray-400">A1-A4: 5 • B: 4 • C,D: 3 • E: 2 • F,G: 1</p>
                                                 </div>
                                                 <div>
-                                                    <p className="text-orange-400 font-medium">Impianto</p>
-                                                    <p className="text-gray-400">Pompa calore/Teleriscald.: 5 • Condensazione: 4 • Altro: 2</p>
+                                                    <p className="text-orange-400 font-medium">Plant</p>
+                                                    <p className="text-gray-400">Heat Pump/Dist. Heat.: 5 • Condensing: 4 • Other: 2</p>
                                                 </div>
                                                 <div>
-                                                    <p className="text-emerald-400 font-medium">Involucro</p>
-                                                    <p className="text-gray-400">Alta qualità: 5 • Media: 3 • Bassa: 1</p>
+                                                    <p className="text-emerald-400 font-medium">Envelope</p>
+                                                    <p className="text-gray-400">High quality: 5 • Medium: 3 • Low: 1</p>
                                                 </div>
                                                 <div>
-                                                    <p className="text-green-400 font-medium">Rinnovabili</p>
-                                                    <p className="text-gray-400">Presenti: 5 • Assenti: 2</p>
+                                                    <p className="text-green-400 font-medium">Renewables</p>
+                                                    <p className="text-gray-400">Present: 5 • Absent: 2</p>
                                                 </div>
                                             </div>
                                             <div className="mt-2 pt-2 border-t border-white/10 text-[10px] text-gray-500">
-                                                <p><strong>Totale:</strong> Somma dei 4 punteggi (min 6, max 20)</p>
-                                                <p><strong>Multi-APE:</strong> MODA per classe, MEDIA per punteggi</p>
+                                                <p><strong>Total:</strong> Sum of 4 scores (min 6, max 20)</p>
+                                                <p><strong>Multi-Energy:</strong> MODE for class, AVERAGE for scores</p>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-                                {/* APE Radar Chart */}
+                                {/* Energy Radar Chart */}
                                 <div className="bg-white/5 rounded-xl p-4 border border-white/10 relative h-[300px]">
                                     <h4 className="text-xs font-semibold text-gray-300 mb-2 flex items-center gap-1.5 absolute top-4 left-4 z-10">
                                         <Activity className="w-3.5 h-3.5 text-amber-400" />
-                                        Prestazioni Energetiche
+                                        Energy Performance
                                     </h4>
                                     <div className="w-full h-full">
                                         <ResponsiveContainer width="100%" height="100%">
-                                            <RadarChart cx="50%" cy="50%" outerRadius="70%" data={apeRadarData}>
+                                            <RadarChart cx="50%" cy="50%" outerRadius="70%" data={energyRadarData}>
                                                 <PolarGrid stroke="#ffffff20" />
                                                 <PolarAngleAxis
                                                     dataKey="subject"
-                                                    tick={renderApeRadarTick}
+                                                    tick={renderEnergyRadarTick}
                                                 />
                                                 <PolarRadiusAxis angle={30} domain={[0, 5]} tick={false} axisLine={false} />
                                                 <Radar
-                                                    name="APE"
+                                                    name="Energy"
                                                     dataKey="A"
                                                     stroke="#f59e0b"
                                                     strokeWidth={2}
@@ -612,21 +616,21 @@ export const BuildingDetail: React.FC<BuildingDetailProps> = ({ data, runId, onF
                                 </div>
                             </>
                         )}
-                        {/* APE Files integrated here */}
-                        {details.ape_files && details.ape_files.length > 0 && (
-                            <ApeFilesList files={details.ape_files} onFileClick={setSelectedApeFile} />
+                        {/* Energy Files integrated here */}
+                        {details.energy_files && details.energy_files.length > 0 && (
+                            <EnergyFilesList files={details.energy_files} onFileClick={setSelectedEnergyFile} />
                         )}
                     </div>
                 )
             }
 
-            {/* Meta Immobile Sub-Properties List */}
+            {/* Meta Property Sub-Properties List */}
             {
-                (details.meta_immobile === true || String(details.meta_immobile) === 'true') && details.sub_properties && details.sub_properties.length > 0 && (
+                is_meta_building_val && details.sub_properties && details.sub_properties.length > 0 && (
                     <div className="bg-[#1a1d24]/60 p-3 rounded-lg border border-purple-500/20">
                         <div className="flex items-center gap-1.5 mb-2">
                             <Building2 className="w-3.5 h-3.5 text-purple-400" />
-                            <span className="text-[10px] uppercase text-gray-500 font-medium">Immobili Componenti ({details.sub_properties.length})</span>
+                            <span className="text-[10px] uppercase text-gray-500 font-medium">Component Properties ({details.sub_properties.length})</span>
                         </div>
                         <div className="space-y-1.5 max-h-[180px] overflow-y-auto">
                             {details.sub_properties.map((prop, index) => (
@@ -643,7 +647,7 @@ export const BuildingDetail: React.FC<BuildingDetailProps> = ({ data, runId, onF
                                     )}
                                     {prop.property_type && (
                                         <div className="flex items-center gap-1 flex-1 min-w-0">
-                                            <span className="text-gray-500">Tipo:</span>
+                                            <span className="text-gray-500">Type:</span>
                                             <span className="text-gray-300 truncate">{prop.property_type}</span>
                                         </div>
                                     )}
@@ -654,26 +658,26 @@ export const BuildingDetail: React.FC<BuildingDetailProps> = ({ data, runId, onF
                 )
             }
 
-            {/* POI Radar Chart */}
+            {/* Proximity Radar Chart */}
             {
-                hasPoiData && (
+                hasProximityData && (
                     <div className="bg-[#1a1d24]/60 p-3 rounded-lg border border-white/5">
                         <div className="flex items-center gap-1.5 mb-1">
                             <MapPin className="w-3.5 h-3.5 text-emerald-400" />
-                            <span className="text-[10px] uppercase text-gray-500 font-medium">Score Localizzazione (POI)</span>
+                            <span className="text-[10px] uppercase text-gray-500 font-medium">Proximity Score</span>
                         </div>
                         <div className="flex items-center justify-between mb-1">
-                            <span className="text-[10px] text-gray-500">Punteggio Dettagliato</span>
+                            <span className="text-[10px] text-gray-500">Detailed Score</span>
                             <div className="relative group">
-                                <button className="p-1 rounded-full hover:bg-white/10 transition-colors" aria-label="Info punteggio POI">
+                                <button className="p-1 rounded-full hover:bg-white/10 transition-colors" aria-label="Info proximity score">
                                     <Info className="w-3.5 h-3.5 text-emerald-400" />
                                 </button>
                                 <div className="absolute right-0 bottom-full mb-1 w-64 p-3 bg-[#1a1d24] border border-white/20 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
-                                    <p className="text-xs font-semibold text-white mb-2">Scala POI (1-5) • raggio 1km</p>
+                                    <p className="text-xs font-semibold text-white mb-2">Proximity Scale (1-5) • 1km radius</p>
                                     <div className="space-y-1.5 text-[10px] text-gray-400">
-                                        <p><span className="text-emerald-300 font-medium">5</span> = eccellente copertura servizi</p>
-                                        <p><span className="text-emerald-300 font-medium">3</span> = buona copertura</p>
-                                        <p><span className="text-emerald-300 font-medium">1</span> = copertura scarsa</p>
+                                        <p><span className="text-emerald-300 font-medium">5</span> = Excellent service coverage</p>
+                                        <p><span className="text-emerald-300 font-medium">3</span> = Good coverage</p>
+                                        <p><span className="text-emerald-300 font-medium">1</span> = Poor coverage</p>
                                     </div>
                                 </div>
                             </div>
@@ -681,17 +685,17 @@ export const BuildingDetail: React.FC<BuildingDetailProps> = ({ data, runId, onF
 
                         <div className="bg-white/5 rounded-xl p-4 border border-white/10 relative h-[300px]">
                             <h4 className="text-xs font-semibold text-gray-300 mb-2 flex items-center gap-1.5 absolute top-4 left-4 z-10">
-                                <MapPin className="w-3.5 h-3.5 text-emerald-400" />
-                                Servizi di Prossimità
-                            </h4>
+                                    <MapPin className="w-3.5 h-3.5 text-emerald-400" />
+                                    Proximity Services
+                                </h4>
                             <div className="w-full h-full">
                                 <ResponsiveContainer width="100%" height="100%">
-                                    <RadarChart cx="50%" cy="50%" outerRadius="70%" data={poiRadarData}>
+                                    <RadarChart cx="50%" cy="50%" outerRadius="70%" data={proximityRadarData}>
                                         <PolarGrid stroke="#ffffff20" />
                                         <PolarAngleAxis dataKey="subject" tick={renderPolarAngleAxisTick} />
                                         <PolarRadiusAxis angle={30} domain={[0, 5]} tick={false} axisLine={false} />
                                         <Radar
-                                            name="POI"
+                                            name="Proximity"
                                             dataKey="A"
                                             stroke="#10b981"
                                             strokeWidth={2}
@@ -706,11 +710,11 @@ export const BuildingDetail: React.FC<BuildingDetailProps> = ({ data, runId, onF
                 )
             }
 
-            {/* APE Detail Modal */}
-            <APEDetailModal
-                filename={selectedApeFile || ''}
-                isOpen={!!selectedApeFile}
-                onClose={() => setSelectedApeFile(null)}
+            {/* Energy Detail Modal */}
+            <EnergyDetailModal
+                filename={selectedEnergyFile || ''}
+                isOpen={!!selectedEnergyFile}
+                onClose={() => setSelectedEnergyFile(null)}
             />
         </div >
     );

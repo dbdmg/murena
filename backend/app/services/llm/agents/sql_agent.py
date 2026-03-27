@@ -16,51 +16,50 @@ import re
 import sqlglot
 
 def _clean_sql(text: str) -> str:
+    """Clean the SQL string from markdown, comments, and additional text.
+    Extracts only the first valid SELECT or WITH query.
     """
-    Pulisce la stringa SQL da markdown, commenti e testo addizionale.
-    Estrae solo la prima query SELECT valida se presente.
-    """
-    # Rimuove blocchi di ragionamento <think> (DeepSeek-R1)
+    # Remove reasoning blocks <think> (e.g., DeepSeek-R1)
     text = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL).strip()
     
-    # Rimuove blocchi di codice markdown
+    # Remove markdown code blocks
     text = re.sub(r'```sql\s*', '', text, flags=re.IGNORECASE)
     text = re.sub(r'```\s*', '', text)
     
-    # Rimuove commenti SQL inline (-- commento)
+    # Remove inline SQL comments (-- comment)
     text = re.sub(r'--.*$', '', text, flags=re.MULTILINE)
     
-    # Cerca il primo WITH o SELECT e prende tutto fino alla fine o al primo punto e virgola
-    # Questo aiuta se l'LLM aggiunge chiacchiere prima o dopo
+    # Search for the first WITH or SELECT and capture everything until the end or semicolon.
+    # This mitigates issues where LLMs add surrounding conversational text.
     match = re.search(r'((?:WITH|SELECT)\s+.*)', text, re.IGNORECASE | re.DOTALL)
     if match:
         sql = match.group(1).strip()
-        # Se c'è un punto e virgola, prendiamo solo fino a lì (evita comandi multipli)
+        # If a semicolon exists, take only up to that point to avoid multiple commands.
         if ';' in sql:
             sql = sql.split(';')[0].strip()
         
-        # Formattazione tramite sqlglot per leggibilità e correttezza sintattica
+        # Format using sqlglot for readability and syntactic correctness
         try:
-            # transpile restituisce una lista di query, prendiamo la prima
+            # transpile returns a list of queries; take the first one
             transpiled = sqlglot.transpile(sql, read="duckdb", pretty=True)
             if transpiled:
                 return transpiled[0]
         except Exception:
-            # Fallback alla stringa pulita ma non formattata in caso di errore di parsing
+            # Fallback to the sanitized but unformatted string on parsing error
             return sql
     
     return text.strip()
 
 def _validate_sql(sql: str) -> bool:
-    """Verifica che la query sia un SELECT sicuro e valido per DuckDB."""
+    """Verify that the query is a safe and valid SELECT for DuckDB."""
     sql_upper = sql.upper().strip()
     if not sql_upper.startswith("SELECT"):
         return False
     
-    # Lista di parole chiave proibite per sicurezza (anche se DuckDB in memory è isolato)
+    # List of prohibited keywords for security (even if DuckDB in-memory is isolated).
     prohibited = ["INSERT", "UPDATE", "DELETE", "DROP", "ALTER", "TRUNCATE", "CREATE", "EXECUTE", "ATTACH"]
     for word in prohibited:
-        # Cerchiamo la parola intera
+        # Search for full words only.
         if re.search(r'\b' + word + r'\b', sql_upper):
             return False
             
@@ -159,8 +158,8 @@ class SQLAgent(BaseAgent):
             # Last resort: existing regex cleaning if JSON extraction failed
             final_sql = _clean_sql(raw_text)
             # If we used regex cleaning, we might be able to extract explanation too
-            if not explanation and "spiegazione" in raw_text.lower():
-                 expl_match = re.search(r"(?:spiegazione|explanation):\s*(.*)", raw_text, re.IGNORECASE | re.DOTALL)
+            if not explanation and "explanation" in raw_text.lower():
+                 expl_match = re.search(r"(?:explanation):\s*(.*)", raw_text, re.IGNORECASE | re.DOTALL)
                  if expl_match:
                      explanation = expl_match.group(1).strip()
 
@@ -193,7 +192,7 @@ class SQLAgent(BaseAgent):
         lon = 0.0
 
         if location:
-            # Gestione location object o stringa
+            # Handle location object or string
             if hasattr(location, "lat") and hasattr(location, "lon"):
                 lat = location.lat
                 lon = location.lon
@@ -205,9 +204,9 @@ class SQLAgent(BaseAgent):
             else:
                 location_str = str(location)
 
-        # Modifica dinamica del prompt per inserire lat/lon se disponibili
+        # Dynamic prompt modification to insert lat/lon if available.
         if lat and lon:
-            location_str = f"Latitudine {lat}, Longitudine {lon}"
+            location_str = f"Latitude {lat}, Longitude {lon}"
 
         is_retry = bool(failed_query)
         system = self.retry_system if is_retry else self.system_prompt
@@ -221,7 +220,7 @@ class SQLAgent(BaseAgent):
             "location_str": location_str,
             "lat": lat,
             "lon": lon,
-            "error_msg": error_msg or "Nessun risultato trovato (query vuota).",
+            "error_msg": error_msg or "No results found (empty query).",
             "db_metadata": db_metadata,
         }
 

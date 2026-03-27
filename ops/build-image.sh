@@ -22,7 +22,7 @@ if [ -z "$FRONTEND_VERSION" ] || [ -z "$BACKEND_VERSION" ]; then
 fi
 
 echo "=========================================="
-echo "🏗️  MEF-Immobili Build System"
+echo "🏗️  RealEstate-AI Build System"
 echo "=========================================="
 echo "Frontend Version: $FRONTEND_VERSION"
 echo "Backend Version:  $BACKEND_VERSION"
@@ -30,19 +30,19 @@ echo "=========================================="
 echo ""
 
 # Build Backend
-echo "📦 Building Backend (mef-backend:$BACKEND_VERSION)..."
-docker build -t mef-backend:$BACKEND_VERSION -t mef-backend:latest -t mef-backend:local -f ../backend/Dockerfile ../backend
+echo "📦 Building Backend (realestate-backend:$BACKEND_VERSION)..."
+docker build -t realestate-backend:$BACKEND_VERSION -t realestate-backend:latest -t realestate-backend:local -f ../backend/Dockerfile ../backend
 
 # Build Frontend
-echo "📦 Building Frontend (mef-frontend:$FRONTEND_VERSION)..."
-docker build -t mef-frontend:$FRONTEND_VERSION -t mef-frontend:latest -t mef-frontend:local -f ../frontend/Dockerfile ../frontend
+echo "📦 Building Frontend (realestate-frontend:$FRONTEND_VERSION)..."
+docker build -t realestate-frontend:$FRONTEND_VERSION -t realestate-frontend:latest -t realestate-frontend:local -f ../frontend/Dockerfile ../frontend
 
 echo ""
 echo "✅ Build Complete!"
 echo "------------------------------------------"
 echo "Images created:"
-echo " - mef-backend:$BACKEND_VERSION (latest)"
-echo " - mef-frontend:$FRONTEND_VERSION (latest)"
+echo " - realestate-backend:$BACKEND_VERSION (latest)"
+echo " - realestate-frontend:$FRONTEND_VERSION (latest)"
 echo "------------------------------------------"
 echo "To run production:"
 echo "cd ops/production && docker-compose up -d"

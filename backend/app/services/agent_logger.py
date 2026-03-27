@@ -21,7 +21,11 @@ def get_active_evaluation_logger() -> Optional['AgentLogger']:
     return _active_evaluation_logger
 
 class AgentLogger:
-    """Logger per tracciare input/output di ogni agente."""
+    """Logger for tracking input and output of every specialized agent.
+    
+    Provides structured logging of agent executions, supporting both
+    in-memory tracing and persistent storage in JSON/HTML formats.
+    """
     
     def __init__(self, log_dir: Optional[Path] = None):
         if log_dir:
@@ -34,14 +38,22 @@ class AgentLogger:
         self.log_data = []
     
     def start_evaluation(self, use_case: str, prompt_id: str, run_number: int, timestamp: str, user_query: Optional[str] = None):
-        """Inizializza un nuovo file di log per una specifica valutazione."""
+        """Initialize a new log file for a specific evaluation run.
+
+        Args:
+            use_case: Context of the evaluation.
+            prompt_id: Unique identifier for the query prompt.
+            run_number: Iteration number of the run.
+            timestamp: Execution timestamp.
+            user_query: Original natural language query.
+        """
         self.log_data = []
         
-        # Scrivi header
+        # Write header
         header = {
             "use_case": use_case,
             "prompt_id": prompt_id,
-            "user_query": user_query,  # Passato esplicitamente
+            "user_query": user_query,  # Passed explicitly
             "run_number": run_number,
             "timestamp": datetime.now().isoformat()
         }
@@ -54,12 +66,21 @@ class AgentLogger:
     
     def log_agent_execution(self, agent_name: str, input_data: Any, output_data: Any, 
                            execution_time_ms: float, agent_mode: str = "filtering", metadata: Optional[Dict] = None):
-        """Registra l'esecuzione di un singolo agente con campi selezionati."""
+        """Record the execution details of a single agent.
+
+        Args:
+            agent_name: Identifier of the executing agent.
+            input_data: Raw input provided to the agent.
+            output_data: Raw output received from the agent.
+            execution_time_ms: Duration of the execution in milliseconds.
+            agent_mode: Operation mode (filtering or ranking).
+            metadata: Additional contextual information.
+        """
         
-        # Estrai input dall'input (se presente)
+        # Extract input from input_data (if present)
         input_extracted = None
         if isinstance(input_data, dict):
-            # Se l'input è un PromptRecord (ha chiavi system/user/full_text), usalo direttamente
+            # If input is a PromptRecord (has system/user/full_text keys), use it directly
             if 'system' in input_data or 'user' in input_data or 'full_text' in input_data:
                 input_extracted = input_data
             else:
@@ -70,20 +91,20 @@ class AgentLogger:
         else:
             input_extracted = input_data
         
-        # Estrai output dall'output (se presente)
+        # Extract output from output_data (if present)
         output_extracted = None
 
         # Case 1: result is a DataFrame (Ranking or Mapping mode)
         if isinstance(output_data, pd.DataFrame):
             agent_type = agent_name.replace("-agent", "").replace("-extractor", "").replace("-extraction", "").replace("_", "-")
             
-            # Mappa prefissi colonne per ogni agente
+            # Map column prefixes for each agent
             prefix_map = {
                 "property_technical": "property_technical_",
                 "location": "location_",
-                "ape": "ape_",
-                "normative": "normative_",
-                "poi": "poi_"
+                "energy": "energy_",
+                "regulatory": "regulatory_",
+                "proximity": "proximity_"
             }
             prefix = None
             for k, v in prefix_map.items():
@@ -98,15 +119,15 @@ class AgentLogger:
                 transparency_cols = [c for c in output_data.columns if c.startswith(prefix) or c.startswith(f"{prefix}rank_") or c.startswith(f"{prefix}weight_")]
                 involved_cols.extend([c for c in transparency_cols if c not in involved_cols])
                 
-                # Aggiungiamo colonne di input rilevanti definite nelle costanti (lazy import inside method if needed)
+                # Add relevant input columns defined in constants (lazy import inside method if needed)
                 try:
                     from app.core.constants import ALL_AGENT_COLUMNS
                     source_cols_map = {
                         "property_technical": ALL_AGENT_COLUMNS,
-                        "location": ["distanza_km", "poi_riferimento"] + ALL_AGENT_COLUMNS,
-                        "ape": ALL_AGENT_COLUMNS,
-                        "normative": ALL_AGENT_COLUMNS,
-                        "poi": ALL_AGENT_COLUMNS
+                        "location": ["distance_km", "poi_reference"] + ALL_AGENT_COLUMNS,
+                        "energy": ALL_AGENT_COLUMNS,
+                        "regulatory": ALL_AGENT_COLUMNS,
+                        "proximity": ALL_AGENT_COLUMNS
                     }
                     agent_key = next((k for k in source_cols_map if k in agent_type), None)
                     source_cols = []
@@ -116,7 +137,7 @@ class AgentLogger:
                 except:
                     source_cols = []
 
-                # INPUT: Nomi delle colonne coinvolte (solo sorgenti)
+                # INPUT: Names of involved columns (sources only)
                 input_extracted = ", ".join(source_cols) if source_cols else ", ".join([c for c in involved_cols if c != "id"])
                 
                 # OUTPUT: Formula per immobile (Full)
@@ -125,7 +146,7 @@ class AgentLogger:
                     if agent_name == "ranking-agent":
                         # Final global ranking score
                         scores = []
-                        for agent in ["location", "normative", "ape", "property_technical", "poi"]:
+                        for agent in ["location", "regulatory", "energy", "property_technical", "proximity"]:
                             sc = row.get(f"{agent}_score", 0.0)
                             w = row.get(f"ranking_weight_{agent}", 0.0)
                             scores.append(f"{agent}_score({sc}) * Weight({w})")
@@ -133,9 +154,9 @@ class AgentLogger:
                         formula_list = ["RankingSum("] + [f"  {s}," for s in scores[:-1]] + [f"  {scores[-1]}", ")"]
                     elif "property_technical" in agent_type:
                         rank_pos = row.get(f"{prefix}rank_position", "N/A")
-                        formula_list = [f"100 / Position({rank_pos})" if rank_pos != "N/A" else "0 (Non corrispondente)"]
+                        formula_list = [f"100 / Position({rank_pos})" if rank_pos != "N/A" else "0 (Not matching)"]
                     elif "location" in agent_type:
-                        dist = row.get("distanza_km", 0)
+                        dist = row.get("distance_km", 0)
                         # Formula: 100 * exp(-(dist/2.5)^3)
                         formula_list = [f"100 * exp(-({dist:.2f}/2.5)^3)"]
                     elif any(x in agent_type for x in ["poi", "ape", "normative"]):
@@ -153,23 +174,23 @@ class AgentLogger:
                                 score_pt = row.get(pc)
                                 weight = row.get(f"{prefix}weight_{col_name}", 1.0 / len(partial_cols))
                                 
-                                # Caso Speciale: Classe Energetica (Categorico)
-                                if col_name == "classe_energetica_ape":
-                                    rank_pos = row.get(f"ape_rank_position_{col_name}", "N/A")
+                                # Special Case: Energy Class (Categorical)
+                                if col_name == "energy_class":
+                                    rank_pos = row.get(f"energy_rank_position_{col_name}", "N/A")
                                     if rank_pos != "N/A":
                                         desc = f"{col_name}({val_raw})[Rank {rank_pos}/10]: 100*(1-{int(rank_pos)-1}/9)={score_pt}"
                                     else:
                                         desc = f"{col_name}({val_raw}): {score_pt}"
                                 
-                                # Caso Speciale: Normative Typology Rank
-                                elif col_name == "tipologia_bene_immobile" and "normative" in agent_type:
-                                    rank_pos = row.get(f"normative_rank_position_{col_name}", "N/A")
+                                # Special Case: Regulatory Typology Rank
+                                elif col_name == "property_type" and "regulatory" in agent_type:
+                                    rank_pos = row.get(f"regulatory_rank_position_{col_name}", "N/A")
                                     if rank_pos != "N/A":
                                         desc = f"{col_name}({val_raw})[Rank {rank_pos}]: {score_pt}"
                                     else:
                                         desc = f"{col_name}({val_raw}): {score_pt}"
 
-                                # Caso Numerico (Min-Max Scaling relativo al dataset attuale)
+                                # Numerical Case (Min-Max Scaling relative to current dataset)
                                 else:
                                     try:
                                         if pd.api.types.is_numeric_dtype(output_data[col_name]):
@@ -216,7 +237,7 @@ class AgentLogger:
                 
                 output_extracted = ranking_entries
             else:
-                # Comportamento standard per DataFrame (es. filtraggio)
+                # Standard behavior for DataFrame (e.g. filtering)
                 if not output_data.columns.is_unique:
                     output_data = output_data.loc[:, ~output_data.columns.duplicated()]
                 output_extracted = json.loads(output_data.to_json(orient="records"))
@@ -290,7 +311,12 @@ class AgentLogger:
             self._write_log_entry(log_entry)
     
     def end_evaluation(self, success: bool, error_msg: Optional[str] = None):
-        """Finalizza il log per questa valutazione."""
+        """Finalize the log for the current evaluation session.
+
+        Args:
+            success: Whether the evaluation completed successfully.
+            error_msg: Optional error message if evaluation failed.
+        """
         footer = {
             "type": "evaluation_end",
             "timestamp": datetime.now().isoformat(),
@@ -343,7 +369,11 @@ class AgentLogger:
             traceback.print_exc()
 
     def _process_log_data_for_export(self, raw_log_data, run_props):
-        """Processa i dati raw in una struttura pulita per export."""
+        """Process raw log data into a clean structure for export.
+
+        Ensures data is serialized correctly and handles batched evaluations
+        for standard reporting formats.
+        """
         agent_executions = []
         batch_counter = 1
         
@@ -427,7 +457,14 @@ class AgentLogger:
         return agent_executions
 
     def generate_html_view(self, agent_executions: List[Dict], title: str, json_filename: Optional[str] = None, view_mode: str = "table") -> str:
-        """Genera la stringa HTML completa per la visualizzazione tabellare o a tab."""
+        """Generate a complete HTML string for tabular or tabbed visualization.
+
+        Args:
+            agent_executions: List of processed agent execution records.
+            title: Title for the HTML document.
+            json_filename: Name of the source JSON file for reference.
+            view_mode: UI style selection ('table' or 'tabs').
+        """
         
         # DataFrame per TUTTE le agent executions
         agent_rows = []
@@ -472,7 +509,7 @@ class AgentLogger:
         df = pd.DataFrame(agent_rows)
         
         if df.empty:
-             return "<html><body><h1>Nessun dato registrato</h1></body></html>"
+             return "<html><body><h1>No data recorded</h1></body></html>"
 
         # Raggruppa per retry
         df['retry_id'] = df.groupby(['agent_name', 'run_number', 'batch_id', 'agent_mode'], dropna=False).cumcount() + 1
@@ -501,7 +538,7 @@ class AgentLogger:
         wide_columns = ['input', 'output']
         html_content = f"""
 <!DOCTYPE html>
-<html lang="it">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">

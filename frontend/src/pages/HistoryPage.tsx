@@ -49,7 +49,7 @@ const DATE_FILTERS: { value: DateFilter; label: string }[] = [
 ];
 
 const ITEMS_PER_PAGE = 12; // 4x3 grid
-const FAVORITES_KEY = 'mef_history_favorites';
+const FAVORITES_KEY = 'realestate_history_favorites';
 
 export const HistoryPage: React.FC = () => {
     const navigate = useNavigate();

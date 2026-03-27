@@ -67,20 +67,19 @@ export interface MapMarker {
     floor?: string;
     is_evaluated?: boolean;
     is_match?: boolean;
-    meta_building?: boolean;
+    is_meta_building?: boolean;
     // New fields
-    meta_immobile?: boolean;
-    canone_annuale?: number;
-    tipo_detenzione_a_terzi?: string;
-    data_decorrenza?: string;
-    numero_immobili_per_catasto?: number;
+    meta_property?: string;
+    annual_rent?: number;
+    third_party_tenure_type?: string;
+    start_date?: string;
+    cadastral_units_count?: number;
     id_list?: string;
     sub_properties?: {
         id: string;
         surface_area?: number;
         property_type?: string;
     }[];
-    // Extended property info
     // Extended property info
     property_type?: string;
     legal_nature?: string;
@@ -89,22 +88,22 @@ export interface MapMarker {
     omi_zone?: string;
     cadastral_sheet?: string;
     cadastral_parcel?: string;
-    ape_scores?: {
+    energy_scores?: {
         total?: number;
         class_score?: number;
         system_score?: number;
         envelope_score?: number;
         renewables_score?: number;
     };
-    poi_scores?: {
-        health?: number;
+    proximity_scores?: {
+        healthcare?: number;
         mobility?: number;
-        green?: number;
+        greenery?: number;
         education?: number;
-        shopping?: number;
+        commerce?: number;
         sport?: number;
     };
-    ape_files?: string[];
+    energy_files?: string[];
     // Intelligence Map - AI Evaluation fields
     tier?: MarkerTier; // 1=Background, 2=Search Results, 3=Top Picks
     evaluation_text?: string;
@@ -121,7 +120,7 @@ export interface MapConfig {
 }
 
 // Building Details Types
-export interface APEScores {
+export interface EnergyScores {
     total: number;
     class_score: number;
     system_score: number;
@@ -129,12 +128,13 @@ export interface APEScores {
     renewables_score: number;
 }
 
-export interface POIScores {
-    health?: number;
+export interface ProximityScores {
+    healthcare?: number;
     mobility?: number;
-    green?: number;
+    greenery?: number;
     education?: number;
-    shopping?: number;
+    commerce?: number;
+    sport?: number;
 }
 
 export interface BuildingResponse {
@@ -153,20 +153,20 @@ export interface BuildingResponse {
     description?: string;
     is_evaluated: boolean;
     is_match: boolean;
-    meta_building: boolean;
+    is_meta_building: boolean;
     // New fields
-    meta_immobile?: boolean;
-    canone_annuale?: number;
-    tipo_detenzione_a_terzi?: string;
-    data_decorrenza?: string;
-    numero_immobili_per_catasto?: number;
+    meta_property?: string;
+    annual_rent?: number;
+    third_party_tenure_type?: string;
+    start_date?: string;
+    cadastral_units_count?: number;
     id_list?: string;
-    ape_scores?: APEScores;
-    poi_scores?: POIScores;
+    energy_scores?: EnergyScores;
+    proximity_scores?: ProximityScores;
     distance_km?: number;
-    poi_reference?: string;
+    proximity_reference?: string;
     // Extended fields
-    ape_files?: string[];
+    energy_files?: string[];
     property_type?: string;
     legal_nature?: string;
     cultural_constraint?: string;
@@ -307,10 +307,10 @@ export interface AgentTraceItem {
 }
 
 /**
- * Struttura del record prompt inviato al modello LLM.
- * - system: Istruzioni di sistema che definiscono ruolo e comportamento dell'agente
- * - user: Template/messaggio dell'utente con le variabili sostituite
- * - full_text: Concatenazione completa (per debug)
+ * Structure of the prompt record sent to the LLM model.
+ * - system: System instructions defining agent role and behavior
+ * - user: User message template with replaced variables
+ * - full_text: Complete concatenation (for debugging)
  */
 export interface PromptRecord {
     system: string;

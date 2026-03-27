@@ -22,38 +22,37 @@ MAX_LLM_CAP = settings.MAX_LLM_CAP
 USE_MOCK_RESPONSES = settings.USE_MOCK_RESPONSES
 from app.data.loaders import get_coordinates
 from app.data.processors import calculate_travel_times_df
-from app.services.llm.agents.ape_agent import ApeAgent
+from app.services.llm.agents.energy_agent import EnergyAgent
 from app.services.llm.agents.base import BaseAgent
 from app.services.llm.agents.broker_agent import BrokerAgent
 from app.services.llm.agents.evaluation_agent import EvaluationAgent
 from app.services.llm.agents.location_agent import LocationAgent
-from app.services.llm.agents.normative_agent import NormativeAgent
-from app.services.llm.agents.poi_agent import PoiAgent
+from app.services.llm.agents.regulatory_agent import RegulatoryAgent
+from app.services.llm.agents.proximity_agent import ProximityAgent
 from app.services.llm.agents.schema import (
     AgentContext,
     EvaluationAgentResponse,
-    NormativeAgentResult,
-    PropertyTechnicalAgentResult,
+    RegulatoryAgentResult,
+    BuildingAgentResult,
     RankingAgentResult,
     RankingWeights,
-    NormativeResponse,
-    PropertyTechnicalResponse,
+    RegulatoryResponse,
+    BuildingResponse,
     LocationResponse,
-    ApeResponse,
+    EnergyResponse,
     EvaluationResult,
     EvaluationList,
-    ApeAgentResult,
-    PoiAgentResult,
+    EnergyAgentResult,
+    ProximityAgentResult,
     Place,
 )
 from app.services.llm.agents.sql_agent import SQLAgent, _clean_sql
-from app.services.llm.agents.property_technical_agent import PropertyTechnicalAgent
+from app.services.llm.agents.building_agent import BuildingAgent
 from app.services.llm.agents.ranking_agent import RankingAgent
-from app.services.llm.agents.relaxation_agent import RelaxationAgent
 from app.utils.logger import logger
 from app.utils.json_parser import safe_extract_json
 from app.services.llm.mocks import (
-    MOCK_PROPERTY_TECHNICAL,
+    MOCK_BUILDING,
     MOCK_LOCATION,
     MOCK_SQL_QUERY,
     MOCK_EVALUATION,
@@ -65,6 +64,11 @@ import sqlparse
 
 @dataclass
 class OrchestratorResult:
+    """Result of the orchestration process for real estate analysis.
+
+    Contains the final processed dataframe, location information, and
+    metadata about the agentic workflow execution.
+    """
     map_df: pd.DataFrame
     location: List[List[Union[str, float]]]
     status_msg: str
@@ -75,70 +79,68 @@ class OrchestratorResult:
     match_count: int = 0
     broker_summary: Optional[str] = None
     agent_trace: Optional[List[Dict[str, Any]]] = field(default_factory=list)
-    relaxation_applied: bool = False
-    relaxation_proposals: List[Any] = field(default_factory=list)
 
 
 class GraphState(TypedDict):
+    """Internal state for the LangGraph orchestration workflow.
+
+    Maintains query context, intermediate results from specialized agents,
+    and orchestration flags for managing the execution flow.
+    """
     query: str
     dataset_key: str
-    base_dataset: Any  # ADDED: Reference to dataset DataFrame for APE stats
-    dataset_path: Optional[str]  # Path to parquet file
+    base_dataset: Any  # Reference to the source dataset DataFrame
+    dataset_path: Optional[str]  # Path to the source file
     db_schema: Dict[str, Any]
-    db_metadata: Dict[str, Any]  # New field for metadata
-    dataset_metadata: Dict[
-        str, Any
-    ]  # New field for lightweight metadata (columns, typologies)
+    db_metadata: Dict[str, Any]  # Dataset and database metadata for LLM reasoning
+    dataset_metadata: Dict[str, Any]  # Lightweight metadata summaries
 
-    # Configuration
+    # Configuration flags
     analysis_mode: str
     architecture: str
     
-    # Intermediate
+    # Intermediate results
     location_payload: List[List[Union[str, float]]]
     use_case_str: str
-    # metrics_plan has been removed as part of clean architecture refactor
-    property_technical_result: Optional[PropertyTechnicalAgentResult]
-    poi_result: Optional[Any]
-    ape_result: Optional[Any]
-    normative_result: Optional[NormativeAgentResult]
+    building_result: Optional[BuildingAgentResult]
+    proximity_result: Optional[ProximityAgentResult]
+    energy_result: Optional[EnergyAgentResult]
+    regulatory_result: Optional[RegulatoryAgentResult]
     ranking_result: Optional[RankingAgentResult]
     sql_query: str
-    selected_data: Any  # pd.DataFrame
+    selected_data: pd.DataFrame  # Results filtered by SQL
     execution_error: Optional[str]
     retry_count: int
     status_msg: str
     gemini_responses: Dict[str, Any]
     context: AgentContext
     where_clause: str
-    broker_summary: str  # Executive summary from Senior Broker
-    sql_history: List[str]  # History of all SQL queries tried (initial + retry)
+    broker_summary: str  # Final narrative summary from the Senior Broker agent
+    sql_history: List[str]  # History of SQL queries for debugging/retry analysis
 
     match_count: int
     agent_trace: List[Dict[str, Any]]
     
-    # Config
+    # Execution configuration
     llm_limit: Optional[int]
     map_limit: Optional[int]
     metro_graph: Any
-    analysis_mode: str
-    disabled_agents: List[str] # List of agents to skip during execution
+    disabled_agents: List[str]  # List of agents to skip during execution
 
-    # Progress callback
+    # Workflow management
     set_progress: Optional[Callable[[Any], None]]
     step_definitions: List[Dict[str, str]]
     steps_state: List[Dict[str, Any]]
-    last_retry_reason: Optional[str]  # Why we are retrying (error)
-    use_data_knowledge: bool  # Whether to pass data distribution statistics to agents
-    use_relaxation: bool  # Whether to use query relaxation if 0 results found
-    relax_constraints: bool  # Flag indicating we are in relaxation mode
-    relaxation_applied: bool # Flag indicating if relaxation was successful
-    relaxation_count: int # Number of times relaxation has been applied
-    relaxation_proposals: List[Any] # Proposals for UI
+    last_retry_reason: Optional[str]
+    use_data_knowledge: bool  # Whether data statistics are passed to agents
+
 
 class GraphOrchestratorAgent(BaseAgent):
-    """
-    Orchestrator implemented using LangGraph.
+    """Main orchestrator for the property search multi-agent system.
+
+    This agent uses a state graph to coordinate specialized sub-agents
+    (SQL, POI, Energy, etc.) for complex real estate queries. It supports
+    both multi-agent refinement and unified baseline planning modes.
     """
 
     name = "graph-orchestrator-agent"
@@ -154,42 +156,59 @@ class GraphOrchestratorAgent(BaseAgent):
         location_agent: Optional[LocationAgent] = None,
         sql_agent: Optional[SQLAgent] = None,
         evaluation_agent: Optional[EvaluationAgent] = None,
-        property_technical_agent: Optional[PropertyTechnicalAgent] = None,
-        ape_agent: Optional[ApeAgent] = None,
-        poi_agent: Optional[PoiAgent] = None,
-        normative_agent: Optional[NormativeAgent] = None,
+        building_agent: Optional[BuildingAgent] = None,
+        energy_agent: Optional[EnergyAgent] = None,
+        proximity_agent: Optional[ProximityAgent] = None,
+        regulatory_agent: Optional[RegulatoryAgent] = None,
     ) -> None:
+        """Initialize the graph orchestrator with its specialized sub-agents.
+
+        Args:
+            analysis_mode: Determines if specialized agents ('agent') or a unified planner ('classic') is used.
+            architecture: The agentic architecture pattern to follow.
+            execute_sql_fn: Function to execute the generated SQL against the dataset.
+            location_agent: Agent for geographic parsing and radius estimation.
+            sql_agent: Agent for DuckDB SQL generation.
+            evaluation_agent: Agent for qualitative property evaluation.
+            building_agent: Agent for technical building attribute analysis.
+            energy_agent: Agent for energy performance (EPC) analysis.
+            proximity_agent: Agent for proximity analysis of services and amenities.
+            regulatory_agent: Agent for regulatory and compliance analysis.
+        """
         if execute_sql_fn is None:
             raise ValueError("execute_sql_fn is required.")
 
-        self.analysis_mode = (analysis_mode or "agent").lower()
-        self.architecture = (architecture or "multiagent").lower()
-        self.is_agent_mode = self.analysis_mode == "agent"
+        self.analysis_mode: str = (analysis_mode or "agent").lower()
+        self.architecture: str = (architecture or "multiagent").lower()
+        self.is_agent_mode: bool = self.analysis_mode == "agent"
         self.execute_sql_fn = execute_sql_fn
 
         self.location_agent = location_agent or LocationAgent()
         self.sql_agent = sql_agent or SQLAgent()
         self.evaluation_agent = evaluation_agent or EvaluationAgent()
         self.broker_agent = BrokerAgent()
-        self.property_technical_agent = property_technical_agent or PropertyTechnicalAgent()
-        self.ape_agent = ape_agent or ApeAgent()
-        self.poi_agent = poi_agent or PoiAgent()
-        self.normative_agent = normative_agent or NormativeAgent()
+        self.building_agent = building_agent or BuildingAgent()
+        self.energy_agent = energy_agent or EnergyAgent()
+        self.proximity_agent = proximity_agent or ProximityAgent()
+        self.regulatory_agent = regulatory_agent or RegulatoryAgent()
         self.ranking_agent = RankingAgent()
-        self.relaxation_agent = RelaxationAgent()
 
         self.workflow = self._build_graph()
 
     def _build_graph(self) -> StateGraph:
+        """Define and compile the LangGraph workflow structure.
+
+        Returns:
+            A compiled StateGraph representing the multi-agent workflow.
+        """
         workflow = StateGraph(GraphState)
 
-        # Add nodes
+        # Register processing nodes
         workflow.add_node("analyze_request", self._analyze_request)
         workflow.add_node("generate_sql", self._generate_sql)
         workflow.add_node("execute_sql", self._execute_sql)
         workflow.add_node("handle_retry", self._handle_retry)
-        workflow.add_node("relax_query", self._relax_query)
-        workflow.add_node("fallback_results", self._fallback_results)  # NEW
+        workflow.add_node("fallback_results", self._fallback_results)
         workflow.add_node("enrich_results", self._enrich_results)
         workflow.add_node("calculate_ranking_weights", self._calculate_ranking_weights)
         workflow.add_node("rank_results", self._rank_results)
@@ -197,30 +216,29 @@ class GraphOrchestratorAgent(BaseAgent):
         workflow.add_node("broker_review", self._broker_review)
         workflow.add_node("finalize_results", self._finalize_results)
 
-        # Add edges
+        # Configure workflow edges and entry point
         workflow.set_entry_point("analyze_request")
         workflow.add_edge("analyze_request", "generate_sql")
         workflow.add_edge("generate_sql", "execute_sql")
         workflow.add_edge("handle_retry", "generate_sql")
-        workflow.add_edge("relax_query", "generate_sql")
 
-        # Conditional edge for retry loop
+        # Routing logic for SQL execution results
         workflow.add_conditional_edges(
             "execute_sql",
             self._check_sql_execution,
             {
                 "retry": "handle_retry",
-                "relax": "relax_query",
                 "continue": "enrich_results",
-                "fallback": "fallback_results",  # NEW: route to fallback instead of empty
+                "fallback": "fallback_results",
             },
         )
 
-        # Fallback continues to enrich (so ranking/evaluation still happen)
+        # Finalization pipeline
         workflow.add_edge("fallback_results", "enrich_results")
         workflow.add_edge("enrich_results", "calculate_ranking_weights")
         workflow.add_edge("calculate_ranking_weights", "rank_results")
         workflow.add_edge("rank_results", "evaluate_results")
+        
         workflow.add_conditional_edges(
             "evaluate_results",
             self._should_broker_review,
@@ -249,29 +267,48 @@ class GraphOrchestratorAgent(BaseAgent):
         metro_graph: Optional[Any] = None,
         disabled_agents: Optional[List[str]] = None,
         use_data_knowledge: bool = True,
-        use_relaxation: bool = True,
         analysis_mode: str = "agent",
         architecture: str = "multiagent",
     ) -> OrchestratorResult:
-        # Step definitions per la UI (comuni)
+        """Execute the full agentic orchestration pipeline for a user query.
+
+        Args:
+            query: The natural language search query.
+            dataset_key: Identifier for the target dataset.
+            base_dataset: The source DataFrame to analyze.
+            db_schema: Structural information about the dataset.
+            ape_df: Optional energy performance data.
+            dataset_path: File system path to the source dataset.
+            set_progress: Callback function for real-time progress updates.
+            llm_limit: Maximum number of records to process with LLM.
+            map_limit: Maximum number of records to return for spatial visualization.
+            metro_graph: Graph structure for transportation analysis.
+            disabled_agents: List of agents to skip during this run.
+            use_data_knowledge: Whether to augment prompts with dataset statistics.
+            analysis_mode: Selection of orchestration methodology.
+            architecture: Architectural pattern for agent coordination.
+
+        Returns:
+            An OrchestratorResult containing processed data and agentic traces.
+        """
+        # Define progress steps for the orchestration workflow (in English for publication)
         step_definitions = [
-            {"key": "ranking_init", "label": "Analizzo la richiesta utente..."},
-            {"key": "property_technical", "label": "Valuto le caratteristiche planimetriche e tecniche degli immobili..."},
-            {"key": "location", "label": "Individuo una posizione geografica di ricerca..."},
-            {"key": "ape", "label": "Analizzo le prestazioni energetiche degli edifici..."},
-            {"key": "normative", "label": "Verifico i requisiti normativi..."},
-            {"key": "poi", "label": "Esamino la disponibilità di servizi nelle vicinanze..."},
-            {"key": "ranking", "label": "Calcolo gli score..."},
-            {"key": "evaluation", "label": "Fornisco delle motivazioni a supporto delle mie scelte..."},
-            {"key": "broker", "label": "Descrivo la scelta migliore..."},
+            {"key": "ranking_init", "label": "Analyzing user request..."},
+            {"key": "building", "label": "Evaluating technical building characteristics..."},
+            {"key": "location", "label": "Identifying search geographic area..."},
+            {"key": "energy", "label": "Analyzing building energy performance (EPC)..."},
+            {"key": "regulatory", "label": "Verifying regulatory compliance..."},
+            {"key": "proximity", "label": "Scanning nearby services and amenities..."},
+            {"key": "ranking", "label": "Calculating relevance scores..."},
+            {"key": "evaluation", "label": "Generating qualitative building justifications..."},
+            {"key": "broker", "label": "Synthesizing executive summary..."},
         ]
 
-        # Load metadata
-        # Load metadata from centralized memory (constants.py)
+        # Load centralized metadata
         from app.core.constants import DB_METADATA
         db_metadata = DB_METADATA
 
-        # Extract lightweight metadata from base_dataset to avoid passing it in state
+        # Extract lightweight metadata summaries for prompt context
         dataset_metadata = {
             "columns": list(base_dataset.columns) if base_dataset is not None else [],
             "sample_columns": (
@@ -279,6 +316,7 @@ class GraphOrchestratorAgent(BaseAgent):
             ),
             "typologies": [],
         }
+        
         if (
             base_dataset is not None
             and "tipologia_bene_immobile" in base_dataset.columns
@@ -289,16 +327,14 @@ class GraphOrchestratorAgent(BaseAgent):
                 if pd.notna(x)
             ]
 
-        # Suppress FutureWarning for downcasting which is triggered in _finalize_results
+        # Suppress future warnings for downcasting during finalization
         pd.set_option('future.no_silent_downcasting', True)
 
-
-            
         initial_state: GraphState = {
             "agent_trace": [],
             "query": query,
             "dataset_key": dataset_key,
-            "base_dataset": base_dataset,  # ADDED: Keep reference to dataset for APE stats
+            "base_dataset": base_dataset,
             "dataset_path": dataset_path,
             "db_schema": db_schema,
             "db_metadata": db_metadata,
@@ -307,13 +343,12 @@ class GraphOrchestratorAgent(BaseAgent):
             "architecture": architecture.lower(),
             "disabled_agents": disabled_agents or [],
             "use_data_knowledge": use_data_knowledge,
-            "use_relaxation": use_relaxation,
             "location_payload": [],
             "use_case_str": "",
-            "property_technical_result": None,
-            "poi_result": None,
-            "ape_result": None,
-            "normative_result": None,
+            "building_result": None,
+            "proximity_result": None,
+            "energy_result": None,
+            "regulatory_result": None,
             "ranking_result": None,
             "sql_query": "",
             "selected_data": pd.DataFrame(),
@@ -331,7 +366,6 @@ class GraphOrchestratorAgent(BaseAgent):
             "llm_limit": llm_limit,
             "map_limit": map_limit,
             "metro_graph": metro_graph,
-            "analysis_mode": self.analysis_mode,
             "set_progress": set_progress,
             "step_definitions": step_definitions,
             "steps_state": [
@@ -340,39 +374,25 @@ class GraphOrchestratorAgent(BaseAgent):
             ],
             "last_retry_reason": None,
             "sql_history": [],
-            "disabled_agents": disabled_agents or [],
-            "use_data_knowledge": use_data_knowledge,
-            "use_relaxation": use_relaxation,
-            "relax_constraints": False,
-            "relaxation_applied": False,
-            "relaxation_count": 0,
-            "relaxation_proposals": [],
         }
 
-        # Safe recursion limit to handle retry loops while preventing infinite loops
+        # Invoke the workflow with recursion limit to prevent infinite loops
         final_state = self.workflow.invoke(initial_state, {"recursion_limit": 30})
 
-        # Explicitly release the large base_dataset reference from state so the
-        # full parquet DataFrame can be GC'd before the rest of this method runs.
+        # Release the large base_dataset reference for garbage collection
         final_state.pop("base_dataset", None)
 
-        # Get results - finalize_results should have added is_evaluated
         result_df = final_state["selected_data"]
 
-        # Ensure is_evaluated exists (safety check)
+        # Ensure evaluation metadata exists
         if not result_df.empty and "is_evaluated" not in result_df.columns:
-            logger.warning("is_evaluated column missing, adding default")
             result_df["is_evaluated"] = False
 
-        # Optional JSON export for LLM analysis/debugging
+        # Export trace to JSON if enabled for evaluation/debugging
         if settings.ENABLE_RUN_JSON_EXPORT:
-            logger.info("JSON export enabled, attempting to save run...")
+            logger.info("JSON export enabled, saving run results...")
             try:
-                # Generate unique run_id if not in state
                 run_id = final_state.get("run_id", f"run_{int(time.time()*1000)}")
-                logger.debug(f"Run ID: {run_id}")
-
-                # Convert result_df to JSON-serializable format
                 results_json = {
                     "buildings": (
                         result_df.to_dict(orient="records")
@@ -380,11 +400,7 @@ class GraphOrchestratorAgent(BaseAgent):
                         else []
                     )
                 }
-                logger.debug(
-                    f"Results prepared: {len(results_json['buildings'])} buildings"
-                )
-
-                # Log the run
+                
                 json_logger = get_run_logger()
                 json_logger.log_run(
                     run_id=run_id,
@@ -393,12 +409,8 @@ class GraphOrchestratorAgent(BaseAgent):
                     gemini_responses=final_state["gemini_responses"],
                     results=results_json,
                 )
-                logger.info(" Run successfully exported to JSON")
             except Exception as e:
-                logger.error(f"Failed to export run to JSON: {e}")
-                import traceback
-
-                logger.error(traceback.format_exc())
+                logger.error(f"Failed to export run results to JSON: {e}")
 
         return OrchestratorResult(
             map_df=result_df,
@@ -417,31 +429,35 @@ class GraphOrchestratorAgent(BaseAgent):
 
 
     def _unified_analysis(self, state: GraphState) -> GraphState:
-        """Esegue l'analisi tramite un singolo prompt unificato (Baseline Planner)."""
+        """Execute the analysis via a single unified prompt (Baseline Planner mode).
+
+        This serves as a baseline for the multi-agent orchestration, generating
+        both the SQL query and ranking weights in a single LLM pass.
+        """
         from app.services.llm.langchain_client import get_llm
         from langchain_core.messages import HumanMessage
         
-        query = state["query"]
-        self._update_progress(state, "ranking_init", "Generazione piano di analisi unificato...")
+        query: str = state["query"]
+        self._update_progress(state, "ranking_init", "Generating unified analysis plan...")
 
-        # 1. Caricamento Metadati e Prompt
-        db_metadata = state.get('db_metadata', {}).copy()
+        # 1. Metadata and prompt preparation
+        db_metadata: Dict[str, Any] = state.get('db_metadata', {}).copy()
         if not state.get("use_data_knowledge", True):
-            # If no data knowledge, we strip statistics and unique values from metadata fields
+            # If data knowledge is disabled, strip statistics and unique values for baseline comparison
             if "fields" in db_metadata:
                 clean_fields = {}
-                for col_name, col_meta in db_metadata["fields"].items():
-                    clean_fields[col_name] = {} # Keep the key but no statistics/values
+                for col_name in db_metadata["fields"].keys():
+                    clean_fields[col_name] = {}
                 db_metadata["fields"] = clean_fields
         
-        # Carichiamo il template centralizzato
+        # Load centralized system prompt
         from app.services.llm.prompt_loader import get_system_prompt
         template = get_system_prompt("baseline_planner")
         if not template:
-            logger.error("Template baseline_planner non trovato in prompt_config.md")
-            template = "Genera un JSON con 'sql' (query DuckDB) e 'layer2' (pesi ranking)."
+            logger.error("Template baseline_planner not found in prompt_config.md")
+            template = "Generate JSON with 'sql' (DuckDB query) and 'layer2' (ranking weights)."
 
-        # Stats di supporto (data knowledge)
+        # Fetch distribution statistics (supporting data knowledge)
         stats = {}
         if state.get("use_data_knowledge", True):
             stats = self._get_column_statistics(
@@ -451,18 +467,18 @@ class GraphOrchestratorAgent(BaseAgent):
                 db_metadata=state.get("db_metadata")
             )
 
-        # 1.5 Caricamento Normativa
-        from app.services.llm.agents.normative_agent import load_normative_documents
-        normativa_text, _, _ = load_normative_documents()
+        # 1.5 Load regulatory references
+        from app.services.llm.agents.regulatory_agent import load_regulatory_documents
+        regulatory_text, _, _ = load_regulatory_documents()
 
-        # 2. Invocazione LLM (Unified Architect)
+        # 2. LLM Invocation (Unified Architect pass)
         prompt_text = (
-            "========================================\nQUERY UTENTE (INPUT)\n"
+            "========================================\nUSER QUERY (INPUT)\n"
             f"{query}\n========================================\n"
-            f"METADATI DATASET:\n{json.dumps(db_metadata, ensure_ascii=False)}\n\n"
-            f"STATISTICHE DISTRIBUZIONE:\n{json.dumps(stats, ensure_ascii=False)}\n\n"
-            f"NORMATIVA DI RIFERIMENTO:\n{normativa_text}\n\n"
-            f"ISTRUZIONI DI RAGIONAMENTO & OUTPUT FORMAT:\n{template}"
+            f"DATASET METADATA:\n{json.dumps(db_metadata, ensure_ascii=False)}\n\n"
+            f"DISTRIBUTION STATISTICS:\n{json.dumps(stats, ensure_ascii=False)}\n\n"
+            f"REFERENCE REGULATORY:\n{regulatory_text}\n\n"
+            f"REASONING INSTRUCTIONS & OUTPUT FORMAT:\n{template}"
         )
 
         llm = get_llm()
@@ -471,65 +487,64 @@ class GraphOrchestratorAgent(BaseAgent):
         duration_ms = (time.time() - start_t) * 1000
         llm_output = response.content if hasattr(response, "content") else str(response)
 
-        # 3. Parsing e popolamento dello Stato
+        # 3. Parsing and State population
         data = safe_extract_json(llm_output) or {}
         
-        # SQL Query
+        # SQL Query Extraction
         sql_query = data.get("sql", {}).get("query", "")
         if sql_query:
-            # Format and sanitize
             sql_query = _clean_sql(sql_query)
-            # Basic validation: ensure it's not empty and looks like SQL
             if "SELECT" not in sql_query.upper():
                 logger.warning(f"Baseline planner generated invalid SQL: {sql_query}")
         state["sql_query"] = sql_query
         
-        # Ranking Weights (Mappa i nomi del prompt a quelli dello schema)
-        weights_data = data.get("layer2", {}).get("pesi", {})
+        # Ranking weights mapping
+        # Maps output keys to the internal ranking schema naming conventions
+        weights_data = data.get("layer2", {}).get("weights", {})
         weights = RankingWeights(
-            location=weights_data.get("localizzazione", 0.2),
-            normative=weights_data.get("normativa", 0.2),
-            ape=weights_data.get("energia", 0.2),
-            property_technical=weights_data.get("tipologia", 0.2),
-            poi=weights_data.get("servizi", 0.2)
+            location=weights_data.get("location", weights_data.get("localizzazione", 0.2)),
+            regulatory=weights_data.get("regulatory", weights_data.get("normativa", 0.2)),
+            energy=weights_data.get("energy", weights_data.get("energia", 0.2)),
+            building=weights_data.get("building", weights_data.get("tipologia", 0.2)),
+            proximity=weights_data.get("proximity", weights_data.get("servizi", 0.2))
         )
         state["ranking_result"] = RankingAgentResult(raw_text=llm_output, weights=weights)
 
-        # 4. Popolamento dei risultati tecnici (layer1) per compatibilità con il ranking deterministico
-        # Questo assicura che i pesi non vengano azzerati in _rank_results se l'agente non ha girato.
-        layer1 = data.get("layer1", {}).get("analisi", {})
+        # 4. Population of technical results (layer 1) for compatibility with deterministic ranking
+        # This ensures that weights are not zeroed in _rank_results if the agent didn't run.
+        layer1 = data.get("layer1", {}).get("analysis", {})
         if layer1:
-            # Helper per estrarre parametri o filtri in modo agnostico
+            # Helper to extract parameters or filters in an agnostic way
             def get_reqs(obj):
                 if not isinstance(obj, dict): return {}
-                return obj.get("parametri") or obj.get("parameters") or obj.get("filters") or obj.get("requirements") or {}
+                return obj.get("parameters") or obj.get("filters") or obj.get("requirements") or obj.get("parametri") or {}
 
-            # 1. Tipologia -> PropertyTechnicalAgentResult
-            tip = layer1.get("tipologia", {})
-            if tip.get("found"):
-                reqs = get_reqs(tip)
-                # Tentativo di recupero tipologie
+            # 1. Building typology -> BuildingAgentResult
+            typ = layer1.get("building", layer1.get("tipologia", {}))
+            if typ.get("found"):
+                reqs = get_reqs(typ)
+                # Attempt to retrieve typologies
                 typs = reqs.get("tipologia_bene_immobile", []) if isinstance(reqs, dict) else []
-                # Se non è una lista ma una stringa (comune errore LLM), convertila
+                # If it's not a list but a string (common LLM error), convert it
                 if isinstance(typs, str): typs = [typs]
                 
                 payload = {
-                    "typologies": typs if typs else ["Abitazione"], # Fallback a valore sicuro se found=True
+                    "typologies": typs if typs else ["Apartment"], # Fallback to a safe value if found=True
                     "found": True,
-                    "requisiti": [{"colonna": "superficie_di_riferimento_mq"}] 
+                    "requirements": [{"column": "superficie_di_riferimento_mq"}] 
                 }
-                state["property_technical_result"] = PropertyTechnicalAgentResult(
+                state["building_result"] = BuildingAgentResult(
                     raw_text=json.dumps(payload),
                     prompt=None
                 )
 
-            # 2. Localizzazione -> context.locations
-            loc = layer1.get("localizzazione", {})
+            # 2. Location -> context.locations
+            loc = layer1.get("location", layer1.get("localizzazione", {}))
             if loc.get("found"):
                 params = get_reqs(loc)
-                if isinstance(params, dict) and (params.get("latitudine") or params.get("coordinate")):
-                    lat = params.get("latitudine")
-                    lon = params.get("longitudine")
+                if isinstance(params, dict) and (params.get("latitude") or params.get("latitudine") or params.get("coordinate")):
+                    lat = params.get("latitude") or params.get("latitudine")
+                    lon = params.get("longitude") or params.get("longitudine")
                     if not lat and params.get("coordinate"):
                          coord = params.get("coordinate")
                          if isinstance(coord, dict):
@@ -537,40 +552,40 @@ class GraphOrchestratorAgent(BaseAgent):
                     
                     if lat and lon:
                         place = Place(
-                            name="Coordinate Planner",
+                            name="Planer coordinates",
                             lat=lat,
                             lon=lon,
-                            radius_km=params.get("raggio_km", 3.0)
+                            radius_km=params.get("radius_km", params.get("raggio_km", 3.0))
                         )
                         state["context"].locations = [place]
 
-            # 3. Energia -> ApeAgentResult
-            en = layer1.get("energia", {})
+            # 3. Energy -> EnergyAgentResult
+            en = layer1.get("energy", layer1.get("energia", {}))
             if en.get("found"):
-                payload = {"found": True, "requisiti": [{"colonna": "classe_energetica_ape"}]}
-                state["ape_result"] = ApeAgentResult(raw_text=json.dumps(payload))
+                payload = {"found": True, "requirements": [{"column": "classe_energetica_ape"}]}
+                state["energy_result"] = EnergyAgentResult(raw_text=json.dumps(payload))
 
-            # 4. Servizi -> PoiAgentResult
-            ser = layer1.get("servizi", {})
+            # 4. Proximity -> ProximityAgentResult
+            ser = layer1.get("proximity", layer1.get("servizi", {}))
             if ser.get("found"):
-                r_list = get_reqs(ser).get("prossimita_servizi") or ["sanita"] if isinstance(get_reqs(ser), dict) else ["sanita"]
-                payload = {"found": True, "requisiti": [{"servizio": s} for s in r_list]}
-                state["poi_result"] = PoiAgentResult(raw_text=json.dumps(payload))
+                r_list = get_reqs(ser).get("amenity_proximity") or ["healthcare"] if isinstance(get_reqs(ser), dict) else ["healthcare"]
+                payload = {"found": True, "requirements": [{"amenity": s} for s in r_list]}
+                state["proximity_result"] = ProximityAgentResult(raw_text=json.dumps(payload))
 
-            # 5. Normativa -> NormativeAgentResult
-            norm = layer1.get("normativa", {})
-            if norm.get("found"):
-                dest = get_reqs(norm).get("destinazione_uso") if isinstance(get_reqs(norm), dict) else "Altro"
-                payload = {"found": True, "requisiti": [{"note": dest or "Analisi normativa"}]}
-                state["normative_result"] = NormativeAgentResult(raw_text=json.dumps(payload))
+            # 5. Regulatory -> RegulatoryAgentResult
+            reg = layer1.get("regulatory", layer1.get("normativa", {}))
+            if reg.get("found"):
+                dest = get_reqs(reg).get("use_destination") if isinstance(get_reqs(reg), dict) else "Other"
+                payload = {"found": True, "requirements": [{"notes": dest or "Regulatory analysis"}]}
+                state["regulatory_result"] = RegulatoryAgentResult(raw_text=json.dumps(payload))
 
-        # Trace e Gemini Responses per compatibilità UI
+        # Trace and Gemini responses for UI compatibility
         state["gemini_responses"]["baseline_planner"] = data
         self._log_execution(state, "baseline-planner", llm_output, duration_ms)
         
-        # Mocking dei tecnici per evitare che i nodi successivi falliscano se li cercano
-        # (Opzionale: potremmo mappare layer1 qui se utile)
-        self._update_progress(state, "ranking_init", "Piano generato con successo.", status="done")
+        # Technical results mocking to avoid failure in downstream nodes
+        # (Optional: layer1 could be mapped here if useful)
+        self._update_progress(state, "ranking_init", "Plan generated successfully.", status="done")
         
         return state
 
@@ -634,18 +649,18 @@ class GraphOrchestratorAgent(BaseAgent):
                 involved_cols = ["id"]
                 score_col = f"{prefix}score"
                 
-                # Cerchiamo tutte le colonne che iniziano con il prefisso dell'agente (transparency cols)
+                # We look for all columns that start with the agent's prefix (transparency cols)
                 transparency_cols = [c for c in result.columns if c.startswith(prefix) or c.startswith(f"{prefix}rank_") or c.startswith(f"{prefix}weight_")]
                 involved_cols.extend([c for c in transparency_cols if c not in involved_cols])
                 
-                # Aggiungiamo colonne di input rilevanti definite nelle costanti
-                from app.core.constants import APE_AGENT_COLUMNS, PROPERTY_TECHNICAL_AGENT_COLUMNS, NORMATIVE_AGENT_COLUMNS, POI_AGENT_COLUMNS
+                # Add relevant input columns defined in constants
+                from app.core.constants import ENERGY_AGENT_COLUMNS, BUILDING_AGENT_COLUMNS, REGULATORY_AGENT_COLUMNS, PROXIMITY_AGENT_COLUMNS
                 source_cols_map = {
-                    "property_technical": PROPERTY_TECHNICAL_AGENT_COLUMNS,
+                    "building": BUILDING_AGENT_COLUMNS,
                     "location": ["distanza_km", "poi_riferimento"],
-                    "ape": APE_AGENT_COLUMNS,
-                    "normative": NORMATIVE_AGENT_COLUMNS,
-                    "poi": POI_AGENT_COLUMNS
+                    "energy": ENERGY_AGENT_COLUMNS,
+                    "regulatory": REGULATORY_AGENT_COLUMNS,
+                    "proximity": PROXIMITY_AGENT_COLUMNS
                 }
                 
                 agent_key = next((k for k in source_cols_map if k in agent_type), None)
@@ -665,15 +680,15 @@ class GraphOrchestratorAgent(BaseAgent):
                     if agent_name == "ranking-agent":
                         # Final global ranking score
                         scores = []
-                        for agent in ["location", "normative", "ape", "property_technical", "poi"]:
+                        for agent in ["location", "regulatory", "energy", "building", "proximity"]:
                             sc = row.get(f"{agent}_score", 0.0)
                             w = row.get(f"ranking_weight_{agent}", 0.0)
                             scores.append(f"{agent}_score({sc}) * Weight({w})")
                         
                         formula_list = ["RankingSum("] + [f"  {s}," for s in scores[:-1]] + [f"  {scores[-1]}", ")"]
-                    elif "property_technical" in agent_type:
+                    elif "building" in agent_type:
                         rank_pos = row.get(f"{prefix}rank_position", "N/A")
-                        formula_list = [f"100 / Position({rank_pos})" if rank_pos != "N/A" else "0 (Non corrispondente)"]
+                        formula_list = [f"100 / Position({rank_pos})" if rank_pos != "N/A" else "0 (No match)"]
                     elif "location" in agent_type:
                         dist = row.get("distanza_km")
                         poi = row.get("poi_riferimento")
@@ -689,8 +704,8 @@ class GraphOrchestratorAgent(BaseAgent):
                                     formula_list = [f"Distanza eccessiva ({dist:.2f}km) -> 0"]
                             else:
                                 formula_list = [f"Score: {score}"]
-                    elif "poi" in agent_type or "ape" in agent_type or "normative" in agent_type:
-                        # Queste logiche usano mediamente dei partial scores (0-100)
+                    elif "proximity" in agent_type or "energy" in agent_type or "regulatory" in agent_type:
+                        # These logics average partial scores (0-100)
                         partial_cols = [c for c in result.columns if f"{prefix}partial_score_" in c]
                         
                         if partial_cols:
@@ -704,17 +719,17 @@ class GraphOrchestratorAgent(BaseAgent):
                                 score_pt = row.get(pc)
                                 weight = row.get(f"{prefix}weight_{col_name}", 1.0 / len(partial_cols))
                                 
-                                # Caso Speciale: Classe Energetica (Categorico)
+                                # Special case: Energy Class (Categorical)
                                 if col_name == "classe_energetica_ape":
-                                    rank_pos = row.get(f"ape_rank_position_{col_name}", "N/A")
+                                    rank_pos = row.get(f"energy_rank_position_{col_name}", "N/A")
                                     if rank_pos != "N/A":
                                         desc = f"{col_name}({val_raw})[Rank {rank_pos}/10]: 100*(1-{int(rank_pos)-1}/9)={score_pt}"
                                     else:
                                         desc = f"{col_name}({val_raw}): {score_pt}"
                                 
-                                # Caso Speciale: Normative Typology Rank
-                                elif col_name == "tipologia_bene_immobile" and "normative" in agent_type:
-                                    rank_pos = row.get(f"normative_rank_position_{col_name}", "N/A")
+                                # Special case: Regulatory Typology Rank
+                                elif col_name == "tipologia_bene_immobile" and "regulatory" in agent_type:
+                                    rank_pos = row.get(f"regulatory_rank_position_{col_name}", "N/A")
                                     if rank_pos != "N/A":
                                         desc = f"{col_name}({val_raw})[Rank {rank_pos}]: {score_pt}"
                                     else:
@@ -776,7 +791,7 @@ class GraphOrchestratorAgent(BaseAgent):
                 
                 output_data = ranking_entries
             else:
-                # Comportamento standard per DataFrame (es. filtraggio)
+                # Standard behavior for DataFrames (e.g., filtering)
                 output_data = json.loads(result.to_json(orient="records"))
                 input_data = f"{mode.capitalize()} mode: {len(result)} records"
         elif agent_name == "ranking-agent":
@@ -788,11 +803,11 @@ class GraphOrchestratorAgent(BaseAgent):
                 output_data["weights"] = result.weights.model_dump()
             if hasattr(result, 'reasoning'):
                 output_data["reasoning"] = result.reasoning
-        elif agent_name == "poi-agent":
-            # For POI agent (filtering), show requirements
-            if hasattr(result, 'requisiti'):
+        elif agent_name == "proximity-agent":
+            # For proximity agent (filtering), show requirements
+            if hasattr(result, 'requirements'):
                 output_data = {
-                    "requisiti": result.requisiti
+                    "requirements": result.requirements
                 }
             elif hasattr(result, 'raw_text'):
                 output_data = result.raw_text
@@ -993,7 +1008,7 @@ class GraphOrchestratorAgent(BaseAgent):
         return categorical_values
 
     def _analyze_request(self, state: GraphState) -> GraphState:
-        self._update_progress(state, "ranking_init", "Agente di Analisi & Priorità in ascolto...")
+        self._update_progress(state, "ranking_init", "Analysis & priority agent listening...")
         query = state["query"]
         logger.info(f"Starting analysis for query: {query} (Architecture: {self.architecture})")
 
@@ -1006,20 +1021,20 @@ class GraphOrchestratorAgent(BaseAgent):
             logger.info("MOCK MODE: Simulating request analysis...")
             time.sleep(2)
 
-            # Mock Typology
-            state["property_technical_result"] = MOCK_PROPERTY_TECHNICAL
-            state["context"].property_technical_result = MOCK_PROPERTY_TECHNICAL
+            # Mock Building
+            state["building_result"] = MOCK_BUILDING
+            state["context"].building_result = MOCK_BUILDING
 
             # Mock Location
             state["context"].locations = MOCK_LOCATION.places
 
-            # Mock Strategy - REMOVED legacy metrics_plan
-            state["use_case_str"] = "Mock Use Case Strategy"
+            # Mock Strategy
+            state["use_case_str"] = "Mock use case strategy"
 
             # Populate Gemini responses needed for UI
-            state["gemini_responses"]["property_technical_extraction"] = {
-                "response": MOCK_PROPERTY_TECHNICAL.raw_text,
-                "typologies": MOCK_PROPERTY_TECHNICAL.typologies if hasattr(MOCK_PROPERTY_TECHNICAL, 'typologies') else [],
+            state["gemini_responses"]["building_extraction"] = {
+                "response": MOCK_BUILDING.raw_text,
+                "typologies": MOCK_BUILDING.typologies if hasattr(MOCK_BUILDING, 'typologies') else [],
             }
             state["gemini_responses"]["location_extraction"] = {
                 "response": MOCK_LOCATION.raw_text,
@@ -1043,95 +1058,95 @@ class GraphOrchestratorAgent(BaseAgent):
 
         def run_ranking():
             start_t = time.time()
-            self._update_progress(state, "ranking_init", "Analizzo la priorità dei requisiti...")
-            logger.info("Executing RankingAgent (Parallel)")
+            self._update_progress(state, "ranking_init", "Analyzing requirement priority...")
+            logger.info("Executing Ranking agent (parallel)")
             result = self.ranking_agent.run(query=query, mode="filtering")
-            logger.info("RankingAgent completed")
+            logger.info("Ranking agent completed")
             return result, (time.time() - start_t) * 1000
 
-        def run_property_technical():
+        def run_building():
             start_t = time.time()
-            self._update_progress(state, "property_technical", "Analisi tecnica...")
+            self._update_progress(state, "building", "Technical analysis...")
             prop_stats = {}
             if state.get("use_data_knowledge", True):
                 prop_stats = self._get_column_statistics(
-                    columns=PROPERTY_TECHNICAL_AGENT_COLUMNS,
+                    columns=BUILDING_AGENT_COLUMNS,
                     dataset_path=dataset_path, dataset_df=base_dataset,
                     db_metadata=state.get("db_metadata")
                 )
-            result = self.property_technical_agent.run(
+            result = self.building_agent.run(
                 query=query, mode="filtering",
                 available_typologies=str(state["db_metadata"].get("tipologia_bene_immobile", {}).get("values", [])),
                 statistics=prop_stats
             )
-            logger.info("PropertyTechnicalAgent completed")
+            logger.info("Building agent completed")
             return result, (time.time() - start_t) * 1000
 
         def run_location():
             start_t = time.time()
-            self._update_progress(state, "location", "Ricerca geografica...")
+            self._update_progress(state, "location", "Geographic search...")
             result = self.location_agent.run(query=query)
-            logger.info("LocationAgent completed")
+            logger.info("Location agent completed")
             return result, (time.time() - start_t) * 1000
 
-        def run_ape():
+        def run_energy():
             start_t = time.time()
             if base_dataset is not None or dataset_path is not None:
-                self._update_progress(state, "ape", "Valutazione energetica...")
-                ape_stats = {}
+                self._update_progress(state, "energy", "Energy assessment...")
+                energy_stats = {}
                 if state.get("use_data_knowledge", True):
-                    ape_stats = self._get_column_statistics(
-                        columns=APE_AGENT_COLUMNS, 
+                    energy_stats = self._get_column_statistics(
+                        columns=ENERGY_AGENT_COLUMNS, 
                         dataset_path=dataset_path, 
                         dataset_df=base_dataset,
                         target_not_na_col="classe_energetica_ape",
                         db_metadata=state.get("db_metadata")
                     )
-                result = self.ape_agent.run(
+                result = self.energy_agent.run(
                     query=query, mode="filtering",
-                    statistics=ape_stats, score_legend=APE_SCORE_LEGEND,
+                    statistics=energy_stats, score_legend=APE_SCORE_LEGEND,
                 )
-                logger.info("ApeAgent completed")
+                logger.info("Energy agent completed")
                 return result, (time.time() - start_t) * 1000
             return None, 0
 
-        def run_poi():
+        def run_proximity():
             start_t = time.time()
-            self._update_progress(state, "poi", "Analisi servizi...")
-            poi_stats = {}
+            self._update_progress(state, "proximity", "Proximity analysis...")
+            proximity_stats = {}
             if state.get("use_data_knowledge", True):
-                poi_stats = self._get_column_statistics(
-                    columns=POI_AGENT_COLUMNS,
+                proximity_stats = self._get_column_statistics(
+                    columns=PROXIMITY_AGENT_COLUMNS,
                     dataset_path=dataset_path, dataset_df=base_dataset,
                     db_metadata=state.get("db_metadata")
                 )
-            result = self.poi_agent.run(query=query, mode="filtering", statistics=poi_stats)
-            logger.info("PoiAgent completed")
+            result = self.proximity_agent.run(query=query, mode="filtering", statistics=proximity_stats)
+            logger.info("Proximity agent completed")
             return result, (time.time() - start_t) * 1000
         
-        def run_normative():
+        def run_regulatory():
             start_t = time.time()
-            self._update_progress(state, "normative", "Verifica norme...")
-            norm_stats = {}
+            self._update_progress(state, "regulatory", "Regulatory check...")
+            regulatory_stats = {}
             if state.get("use_data_knowledge", True) and (base_dataset is not None or dataset_path is not None):
-                norm_stats = self._get_column_statistics(
-                    columns=NORMATIVE_AGENT_COLUMNS,
+                regulatory_stats = self._get_column_statistics(
+                    columns=REGULATORY_AGENT_COLUMNS,
                     dataset_path=dataset_path, dataset_df=base_dataset,
                     db_metadata=state.get("db_metadata")
                 )
-            result = self.normative_agent.run(query=query, available_columns=NORMATIVE_AGENT_COLUMNS, statistics=norm_stats)
-            logger.info("NormativeAgent completed")
+            result = self.regulatory_agent.run(query=query, available_columns=REGULATORY_AGENT_COLUMNS, statistics=regulatory_stats)
+            logger.info("Regulatory agent completed")
             return result, (time.time() - start_t) * 1000
 
         # 2. Execute all in parallel
         # We start EVERYTHING since prompt_config enforces all agents in ranking anyway.
         active_tasks = {
             "ranking": run_ranking,
-            "property_technical": run_property_technical,
+            "building": run_building,
             "location": run_location,
-            "ape": run_ape,
-            "poi": run_poi,
-            "normative": run_normative
+            "energy": run_energy,
+            "proximity": run_proximity,
+            "regulatory": run_regulatory
         }
         
         # Filter out disabled agents for ablation study
@@ -1162,36 +1177,36 @@ class GraphOrchestratorAgent(BaseAgent):
                     import traceback
                     logger.error(f"Error executing {agent_name}: {e}\n{traceback.format_exc()}")
 
-        # 3. Collect Results
+        # 3. Collect results
         ranking_result = results.get("ranking")
         state["ranking_result"] = ranking_result
         
-        property_technical_result = results.get("property_technical")
+        building_result = results.get("building")
         loc_result = results.get("location")
-        ape_result = results.get("ape")
-        poi_result = results.get("poi")
-        normative_result = results.get("normative")
+        energy_result = results.get("energy")
+        proximity_result = results.get("proximity")
+        regulatory_result = results.get("regulatory")
 
-        # Process PropertyTechnical
+        # Process building result
         typologies = []
-        if property_technical_result:
-            prop_data = safe_extract_json(property_technical_result.raw_text, schema=PropertyTechnicalResponse)
+        if building_result:
+            prop_data = safe_extract_json(building_result.raw_text, schema=BuildingResponse)
             typologies = prop_data.typologies if prop_data else []
-            state["gemini_responses"]["property_technical_extraction"] = {
+            state["gemini_responses"]["building_extraction"] = {
                 "prompt": (
-                    property_technical_result.prompt.model_dump() if property_technical_result.prompt else None
+                    building_result.prompt.model_dump() if building_result.prompt else None
                 ),
-                "response": property_technical_result.raw_text,
+                "response": building_result.raw_text,
                 "typologies": typologies,
             }
         else:
-            state["gemini_responses"]["property_technical_extraction"] = {
+            state["gemini_responses"]["building_extraction"] = {
                 "prompt": None,
-                "response": "Agente disattivato per irrilevanza",
+                "response": "Agent deactivated due to irrelevance",
                 "typologies": [],
             }
-        state["property_technical_result"] = property_technical_result
-        state["context"].property_technical_result = property_technical_result
+        state["building_result"] = building_result
+        state["context"].building_result = building_result
 
         # Process Location
         places = []
@@ -1206,16 +1221,16 @@ class GraphOrchestratorAgent(BaseAgent):
         else:
             state["gemini_responses"]["location_extraction"] = {
                 "prompt": None,
-                "response": "Agente disattivato per irrilevanza",
+                "response": "Agent deactivated due to irrelevance",
                 "places": [],
             }
         state["context"].locations = places
         
         # If no places found after execution, remove step from UI
         if loc_result and not places:
-             logger.info(" LocationAgent non ha trovato luoghi: rimuovo lo step dalla UI.")
+             logger.info("Location Agent found no places: removing step from UI.")
              state["step_definitions"] = [s for s in state["step_definitions"] if s["key"] != "location"]
-             state["steps_state"] = [s for s in state["steps_state"] if s["label"] != "Individuo una posizione geografica di ricerca..."]
+             state["steps_state"] = [s for s in state["steps_state"] if s["label"] != "Identifying search geographic area..."]
              # Force update to refresh UI
              self._update_progress(state, "ranking_init", "", status="done")
 
@@ -1229,56 +1244,56 @@ class GraphOrchestratorAgent(BaseAgent):
 
         state["location_payload"] = location_payload
 
-        # Process POI
-        state["poi_result"] = poi_result
-        state["context"].poi_result = poi_result
-        poi_data = safe_extract_json(poi_result.raw_text) if poi_result else {}
-        if poi_result is not None:
-            state["gemini_responses"]["poi_analysis"] = {
-                "prompt": poi_result.prompt.model_dump() if poi_result.prompt else None,
-                "response": poi_result.raw_text,
-                "requisiti": poi_data.get('requisiti', []),
-                "found": poi_data.get('found', False)
+        # Process proximity
+        state["proximity_result"] = proximity_result
+        state["context"].proximity_result = proximity_result
+        proximity_data = safe_extract_json(proximity_result.raw_text) if proximity_result else {}
+        if proximity_result is not None:
+            state["gemini_responses"]["proximity_analysis"] = {
+                "prompt": proximity_result.prompt.model_dump() if proximity_result.prompt else None,
+                "response": proximity_result.raw_text,
+                "requirements": proximity_data.get('requirements', []),
+                "found": proximity_data.get('found', False)
             }
         else:
-            state["gemini_responses"]["poi_analysis"] = {
+            state["gemini_responses"]["proximity_analysis"] = {
                 "prompt": None,
-                "response": "Agente disattivato per irrilevanza",
-                "requisiti": [],
+                "response": "Agent deactivated due to irrelevance",
+                "requirements": [],
                 "found": False
             }
 
-        # Process APE
-        state["ape_result"] = ape_result
-        state["context"].ape_result = ape_result
-        ape_data = safe_extract_json(ape_result.raw_text) if ape_result else {}
-        if ape_result:
-            state["gemini_responses"]["ape_analysis"] = {
-                "prompt": ape_result.prompt.model_dump() if ape_result.prompt else None,
-                "response": ape_result.raw_text,
-                "requisiti": ape_data.get('requisiti', []),
-                "found": ape_data.get("found", False)
+        # Process energy
+        state["energy_result"] = energy_result
+        state["context"].energy_result = energy_result
+        energy_data = safe_extract_json(energy_result.raw_text) if energy_result else {}
+        if energy_result:
+            state["gemini_responses"]["energy_analysis"] = {
+                "prompt": energy_result.prompt.model_dump() if energy_result.prompt else None,
+                "response": energy_result.raw_text,
+                "requirements": energy_data.get('requirements', []),
+                "found": energy_data.get("found", False)
             }
         else:
-            state["gemini_responses"]["ape_analysis"] = {
+            state["gemini_responses"]["energy_analysis"] = {
                 "prompt": None,
-                "response": "Agente disattivato per irrilevanza",
-                "requisiti": [],
+                "response": "Agent deactivated due to irrelevance",
+                "requirements": [],
                 "found": False
             }
 
-        # Process APE Text for Context
-        ape_text = ""
-        if ape_data and ape_data.get("found"):
-            ape_reqs = ape_data.get("requisiti", [])
-            if ape_reqs:
-                target_cols = [r.get('colonna_target') for r in ape_reqs if isinstance(r, dict)]
-                ape_text = f"\n\nAnalisi Energetica: L'utente ha espresso necessità relative all'efficienza (APE). Requisiti su: {', '.join(target_cols)}."
+        # Process energy text for context
+        energy_text = ""
+        if energy_data and energy_data.get("found"):
+            energy_reqs = energy_data.get("requirements", [])
+            if energy_reqs:
+                target_cols = [r.get('target_column', r.get('colonna_target')) for r in energy_reqs if isinstance(r, dict)]
+                energy_text = f"\n\nEnergy analysis: The user expressed needs regarding efficiency (EPC). Requirements on: {', '.join(target_cols)}."
 
-        # Process POI Text for Context
-        poi_text = ""
-        if poi_data:
-            poi_requisiti = poi_data.get('requisiti', [])
+        # Process proximity text for context
+        proximity_text = ""
+        if proximity_data:
+            proximity_requirements = proximity_data.get('requirements', [])
             # Consider high priority if value is relatively high (e.g. >= 3.0)
             def safe_float_compare(v, threshold):
                 if isinstance(v, list):
@@ -1288,49 +1303,49 @@ class GraphOrchestratorAgent(BaseAgent):
                 except (ValueError, TypeError):
                     return False
 
-            high_priority = [r.get('colonna_target') for r in poi_requisiti if isinstance(r, dict) and safe_float_compare(r.get('valore', 0), 3.0)]
+            high_priority = [r.get('target_column', r.get('colonna_target')) for r in proximity_requirements if isinstance(r, dict) and safe_float_compare(r.get('value', r.get('valore', 0)), 3.0)]
             if high_priority:
-                poi_text = f"\n\nAnalisi POI: L'utente ha espresso preferenza per: {', '.join(high_priority)} con soglie di qualità elevate."
-            elif poi_requisiti:
-                all_targets = [r.get('colonna_target') for r in poi_requisiti if isinstance(r, dict)]
-                poi_text = f"\n\nAnalisi POI: Categorie rilevanti: {', '.join(all_targets)}."
+                proximity_text = f"\n\nProximity analysis: The user expressed preference for: {', '.join(high_priority)} with high quality thresholds."
+            elif proximity_requirements:
+                all_targets = [r.get('target_column', r.get('colonna_target')) for r in proximity_requirements if isinstance(r, dict)]
+                proximity_text = f"\n\nProximity analysis: Relevant categories: {', '.join(all_targets)}."
 
-        # Save normative result in state and context
-        state["normative_result"] = normative_result
-        state["context"].normative_result = normative_result
-        norm_data = safe_extract_json(normative_result.raw_text, schema=NormativeResponse) if normative_result else None
-        if normative_result:
-            state["gemini_responses"]["normative_analysis"] = {
-                "prompt": normative_result.prompt.model_dump() if normative_result.prompt else None,
-                "response": normative_result.raw_text,
-                "normative_info": normative_result.raw_text,
-                "sources": normative_result.sources,
-                "found": norm_data.found if norm_data else False
+        # Save regulatory result in state and context
+        state["regulatory_result"] = regulatory_result
+        state["context"].regulatory_result = regulatory_result
+        reg_data = safe_extract_json(regulatory_result.raw_text, schema=RegulatoryResponse) if regulatory_result else None
+        if regulatory_result:
+            state["gemini_responses"]["regulatory_analysis"] = {
+                "prompt": regulatory_result.prompt.model_dump() if regulatory_result.prompt else None,
+                "response": regulatory_result.raw_text,
+                "regulatory_info": regulatory_result.raw_text,
+                "sources": regulatory_result.sources,
+                "found": reg_data.found if reg_data else False
             }
         else:
-            state["gemini_responses"]["normative_analysis"] = {
+            state["gemini_responses"]["regulatory_analysis"] = {
                 "prompt": None,
-                "response": "Agente disattivato per irrilevanza",
-                "normative_info": "",
+                "response": "Agent deactivated due to irrelevance",
+                "regulatory_info": "",
                 "sources": [],
             }
 
         # Build use_case_str from agent results (no needs_metric)
         use_case_parts = []
-        if ape_text:
-            use_case_parts.append(ape_text.strip())
-        if poi_text:
-            use_case_parts.append(poi_text.strip())
-        if normative_result:
-            use_case_parts.append(f"Normative: {normative_result.raw_text[:200]}")
+        if energy_text:
+            use_case_parts.append(energy_text.strip())
+        if proximity_text:
+            use_case_parts.append(proximity_text.strip())
+        if regulatory_result:
+            use_case_parts.append(f"Regulatory: {regulatory_result.raw_text[:200]}")
         state["use_case_str"] = "\n".join(use_case_parts)
 
         return state
 
     def _fix_sql_quotes(self, sql: str) -> str:
         """
-        Riparazione euristica di errori comuni di quotatura degli LLM.
-        Gestisce casi come 'valore'' (doppio apice finale errato) o apici mancanti.
+        Heuristic repair of common LLM quoting errors.
+        Handles cases like 'value'' (incorrect final double single quote) or missing quotes.
         """
         if not sql:
             return sql
@@ -1351,37 +1366,37 @@ class GraphOrchestratorAgent(BaseAgent):
         return sql
 
     def _format_agent_requirements(self, agent_result: Any) -> str:
-        """Formatta i requisiti di un agente (APE o Normative) in formato compatto [col] [op] [val]."""
-        if not agent_result or not agent_result.raw_text or agent_result.raw_text == "N/D":
-            return "N/D"
+        """Formats an agent's requirements (Energy or Regulatory) in compact format [col] [op] [val]."""
+        if not agent_result or not agent_result.raw_text or agent_result.raw_text == "N/A":
+            return "N/A"
         
         try:
-            # Estrarre JSON in modo sicuro (gestisce blocchi markdown e testo extra)
+            # Safely extract JSON (handles markdown blocks and extra text)
             data = safe_extract_json(agent_result.raw_text)
             
             if not data or not isinstance(data, dict):
-                # Se non è un dict valido, restituiamo il testo originale ma limitato
+                # If not a valid dict, return the original text but limited
                 return str(agent_result.raw_text)[:500]
                 
-            requisiti = data.get("requisiti", [])
-            if not requisiti:
-                return "Nessun requisito specifico identificato."
+            requirements = data.get("requirements", data.get("requisiti", []))
+            if not requirements:
+                return "No specific requirements identified."
             
             formatted = []
-            for req in requisiti:
-                col = req.get("colonna_target")
-                op = req.get("operatore")
-                val = req.get("valore")
+            for req in requirements:
+                col = req.get("target_column", req.get("colonna_target"))
+                op = req.get("operator", req.get("operatore"))
+                val = req.get("value", req.get("valore"))
                 if col and op and val is not None:
-                    # Se valore è una lista, formattala come (val1, val2)
+                    # If value is a list, format it as (val1, val2)
                     if isinstance(val, list):
                         if len(val) == 1:
                             val_str = f"'{val[0]}'" if isinstance(val[0], str) else str(val[0])
                             formatted.append(f"{col} {op} {val_str}")
                         else:
                             val_str = "(" + ", ".join(f"'{v}'" if isinstance(v, str) else str(v) for v in val) + ")"
-                            # Se l'operatore non è IN/NOT IN, l'uso di una lista potrebbe essere tecnicamente errato per l'agente SQL
-                            # ma lo passiamo comunque confidando nella sua capacità di correzione.
+                            # If the operator is not IN/NOT IN, using a list might be technically incorrect for the SQL agent
+                            # but we pass it anyway trusting its correction capability.
                             formatted.append(f"{col} {op} {val_str}")
                     else:
                         val_str = f"'{val}'" if isinstance(val, str) else str(val)
@@ -1938,7 +1953,7 @@ class GraphOrchestratorAgent(BaseAgent):
         
         # In mock mode, use defaults or simulated weights
         if USE_MOCK_RESPONSES:
-            weights = RankingWeights(location=0.3, normative=0.1, ape=0.2, property_technical=0.2, poi=0.2)
+            weights = RankingWeights(location=0.3, regulatory=0.1, energy=0.2, building=0.2, proximity=0.2)
             state["ranking_result"] = RankingAgentResult(raw_text="{}", weights=weights)
             ranking_result = state["ranking_result"]
             duration_ms = 0
@@ -2008,7 +2023,7 @@ class GraphOrchestratorAgent(BaseAgent):
             active_agents = [r.agent_name for r in ranking_res.ranking.ranking]
         else:
             # Fallback to all if ranking failed
-            active_agents = ["location", "normative", "ape", "property_technical", "poi"]
+            active_agents = ["location", "regulatory", "energy", "building", "proximity"]
         
         logger.info(f"Active agents for ranking: {active_agents}")
 
@@ -2020,29 +2035,29 @@ class GraphOrchestratorAgent(BaseAgent):
         if state["context"].locations and len(state["context"].locations) > 0:
             really_found_agents.append("location")
             
-        # 2. Property Technical
-        if state.get("property_technical_result"):
-            t_data = safe_extract_json(state["property_technical_result"].raw_text, schema=PropertyTechnicalResponse)
-            if t_data and (len(t_data.typologies) > 0 or len(t_data.requisiti) > 0):
-                really_found_agents.append("property_technical")
+        # 2. Building
+        if state.get("building_result"):
+            t_data = safe_extract_json(state["building_result"].raw_text, schema=BuildingResponse)
+            if t_data and (len(t_data.typologies) > 0 or len(t_data.requirements) > 0):
+                really_found_agents.append("building")
                 
-        # 3. APE
-        if state.get("ape_result"):
-            a_data = safe_extract_json(state["ape_result"].raw_text, schema=ApeResponse)
-            if a_data and len(a_data.requisiti) > 0:
-                really_found_agents.append("ape")
+        # 3. Energy
+        if state.get("energy_result"):
+            a_data = safe_extract_json(state["energy_result"].raw_text, schema=EnergyResponse)
+            if a_data and len(a_data.requirements) > 0:
+                really_found_agents.append("energy")
                 
-        # 4. POI
-        if state.get("poi_result"):
-            p_data = safe_extract_json(state["poi_result"].raw_text)
-            if p_data and p_data.get("requisiti") and len(p_data["requisiti"]) > 0:
-                really_found_agents.append("poi")
+        # 4. Proximity
+        if state.get("proximity_result"):
+            p_data = safe_extract_json(state["proximity_result"].raw_text)
+            if p_data and p_data.get("requirements") and len(p_data["requirements"]) > 0:
+                really_found_agents.append("proximity")
                 
-        # 5. Normative
-        if state.get("normative_result"):
-            n_data = safe_extract_json(state["normative_result"].raw_text, schema=NormativeResponse)
-            if n_data and n_data.requisiti and len(n_data.requisiti) > 0:
-                really_found_agents.append("normative")
+        # 5. Regulatory
+        if state.get("regulatory_result"):
+            n_data = safe_extract_json(state["regulatory_result"].raw_text, schema=RegulatoryResponse)
+            if n_data and n_data.requirements and len(n_data.requirements) > 0:
+                really_found_agents.append("regulatory")
 
         logger.info("Agents with found requirements in filtering phase: {}", really_found_agents)
 
@@ -2064,7 +2079,7 @@ class GraphOrchestratorAgent(BaseAgent):
             if remaining_weight_sum > 0:
                 # Redistribute the total weight of excluded agents to remaining found agents
                 new_weights_dict = {}
-                for a in ["location", "property_technical", "ape", "poi", "normative"]:
+                for a in ["location", "building", "energy", "proximity", "regulatory"]:
                     if a in active_and_found:
                         # Proportional redistribution
                         new_weights_dict[a] = round(current_weights_dict[a] / remaining_weight_sum, 2)
@@ -2095,7 +2110,7 @@ class GraphOrchestratorAgent(BaseAgent):
 
         # Compute global statistics for all relevant columns for ranking
         # This allows agents to normalize scores against the entire dataset instead of the current subset.
-        all_ranking_cols = list(set(APE_AGENT_COLUMNS + NORMATIVE_AGENT_COLUMNS + POI_AGENT_COLUMNS + PROPERTY_TECHNICAL_AGENT_COLUMNS))
+        all_ranking_cols = list(set(ENERGY_AGENT_COLUMNS + REGULATORY_AGENT_COLUMNS + PROXIMITY_AGENT_COLUMNS + BUILDING_AGENT_COLUMNS))
         global_stats = self._get_column_statistics(
             columns=all_ranking_cols,
             dataset_path=state.get("dataset_path"),
@@ -2104,24 +2119,24 @@ class GraphOrchestratorAgent(BaseAgent):
         )
 
         # Define ranking tasks for parallel execution
-        def rank_property_technical():
+        def rank_building():
             start_t = time.time()
-            res = state.get("property_technical_result")
+            res = state.get("building_result")
             if res:
-                data = safe_extract_json(res.raw_text, schema=PropertyTechnicalResponse)
-                if data and (data.typologies or data.requisiti):
+                data = safe_extract_json(res.raw_text, schema=BuildingResponse)
+                if data and (data.typologies or data.requirements):
                     # For ranking, typologies is the main driver, but we pass requirements for numerical scoring
-                    tmp = self.property_technical_agent.run(
+                    tmp = self.building_agent.run(
                         mode="ranking", 
                         df=df.copy(), 
                         ranked_typologies=data.typologies,
-                        requirements=data.requisiti,
+                        requirements=data.requirements,
                         global_stats=global_stats
                     )
                     return tmp, (time.time() - start_t) * 1000
             tmp = df.copy()
-            tmp["property_technical_score"] = 0.0
-            return tmp[["id", "property_technical_score"]], (time.time() - start_t) * 1000
+            tmp["building_score"] = 0.0
+            return tmp[["id", "building_score"]], (time.time() - start_t) * 1000
 
         def rank_location():
             start_t = time.time()
@@ -2132,54 +2147,54 @@ class GraphOrchestratorAgent(BaseAgent):
             tmp["location_score"] = 0.0
             return tmp[["id", "location_score"]], (time.time() - start_t) * 1000
 
-        def rank_ape():
+        def rank_energy():
             start_t = time.time()
-            res = state.get("ape_result")
+            res = state.get("energy_result")
             requirements = None
             if res:
-                data = safe_extract_json(res.raw_text, schema=ApeResponse)
+                data = safe_extract_json(res.raw_text, schema=EnergyResponse)
                 if data and data.found:
-                    requirements = data.requisiti
+                    requirements = data.requirements
             
-            tmp = self.ape_agent.run(mode="ranking", df=df.copy(), requirements=requirements, global_stats=global_stats)
+            tmp = self.energy_agent.run(mode="ranking", df=df.copy(), requirements=requirements, global_stats=global_stats)
             return tmp, (time.time() - start_t) * 1000
 
-        def rank_normative():
+        def rank_regulatory():
             start_t = time.time()
-            res = state.get("normative_result")
+            res = state.get("regulatory_result")
             if res:
-                data = safe_extract_json(res.raw_text, schema=NormativeResponse)
+                data = safe_extract_json(res.raw_text, schema=RegulatoryResponse)
                 if data and data.found:
-                    tmp = self.normative_agent.run(mode="ranking", df=df.copy(), requirements=data.requisiti, available_columns=NORMATIVE_AGENT_COLUMNS, global_stats=global_stats)
+                    tmp = self.regulatory_agent.run(mode="ranking", df=df.copy(), requirements=data.requirements, available_columns=REGULATORY_AGENT_COLUMNS, global_stats=global_stats)
                     return tmp, (time.time() - start_t) * 1000
             tmp = df.copy()
-            tmp["normative_score"] = 0.0
-            return tmp[["id", "normative_score"]], (time.time() - start_t) * 1000
+            tmp["regulatory_score"] = 0.0
+            return tmp[["id", "regulatory_score"]], (time.time() - start_t) * 1000
 
-        def rank_poi():
+        def rank_proximity():
             start_t = time.time()
-            res = state.get("poi_result")
+            res = state.get("proximity_result")
             if res:
-                poi_data = safe_extract_json(res.raw_text)
-                if poi_data and poi_data.get("requisiti"):
-                    tmp = self.poi_agent.run(mode="ranking", df=df.copy(), requirements=poi_data.get("requisiti"), global_stats=global_stats)
+                proximity_data = safe_extract_json(res.raw_text)
+                if proximity_data and proximity_data.get("requirements"):
+                    tmp = self.proximity_agent.run(mode="ranking", df=df.copy(), requirements=proximity_data.get("requirements"), global_stats=global_stats)
                     return tmp, (time.time() - start_t) * 1000
             tmp = df.copy()
-            tmp["poi_score"] = 0.0
-            return tmp[["id", "poi_score"]], (time.time() - start_t) * 1000
+            tmp["proximity_score"] = 0.0
+            return tmp[["id", "proximity_score"]], (time.time() - start_t) * 1000
 
         # Build active ranking tasks based on active_agents
         ranking_tasks = {}
-        if "property_technical" in active_agents:
-            ranking_tasks["property_technical"] = rank_property_technical
+        if "building" in active_agents:
+            ranking_tasks["building"] = rank_building
         if "location" in active_agents:
             ranking_tasks["location"] = rank_location
-        if "ape" in active_agents:
-            ranking_tasks["ape"] = rank_ape
-        if "normative" in active_agents:
-            ranking_tasks["normative"] = rank_normative
-        if "poi" in active_agents:
-            ranking_tasks["poi"] = rank_poi
+        if "energy" in active_agents:
+            ranking_tasks["energy"] = rank_energy
+        if "regulatory" in active_agents:
+            ranking_tasks["regulatory"] = rank_regulatory
+        if "proximity" in active_agents:
+            ranking_tasks["proximity"] = rank_proximity
 
         # Execute parallel ranking tasks (only for active agents)
         with ThreadPoolExecutor(max_workers=len(ranking_tasks) if ranking_tasks else 1) as executor:
@@ -2210,14 +2225,14 @@ class GraphOrchestratorAgent(BaseAgent):
                     df = df.merge(res_df[new_cols], on="id", how="left")
                 except Exception as e:
                     logger.error(f"Error in parallel ranking part {name}: {e}")
-                    col = "ape_score" if name == "ape" else f"{name}_score"
+                    col = f"{name}_score"
                     if col not in df.columns:
                         df[col] = 0.0
 
         # Ensure all agent score columns exist (set to 0.0 for inactive agents)
-        all_possible_agents = ["location", "normative", "ape", "property_technical", "poi"]
+        all_possible_agents = ["location", "regulatory", "energy", "building", "proximity"]
         for agent in all_possible_agents:
-            score_col = "ape_score" if agent == "ape" else f"{agent}_score"
+            score_col = f"{agent}_score"
             if score_col not in df.columns:
                 logger.info(f"Agent '{agent}' not active, setting {score_col} to 0.0")
                 df[score_col] = 0.0

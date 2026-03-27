@@ -1,4 +1,4 @@
-# MEF-Immobili Setup Script
+# RealEstate-AI Setup Script
 # Run this script from the repository root to set up a new development environment.
 #
 # Usage:
@@ -18,7 +18,7 @@ $RepoRoot = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
 
 Write-Host ""
 Write-Host "========================================" -ForegroundColor Cyan
-Write-Host "   MEF-Immobili Development Setup" -ForegroundColor Cyan
+Write-Host "   RealEstate-AI Development Setup" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 

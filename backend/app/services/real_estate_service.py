@@ -47,6 +47,7 @@ class RealEstateService:
         limit: int = 100,
         offset: int = 0,
         dataset_key: str = "full",
+        db: Optional["Session"] = None,
     ) -> Tuple[List[BuildingResponse], int]:
         """
         Get filtered and paginated buildings.
@@ -56,6 +57,7 @@ class RealEstateService:
             limit: Maximum number of results to return
             offset: Number of results to skip
             dataset_key: Dataset to use ('full', 'meta', 'ape')
+            db: Optional database session for run_id lookup
 
         Returns:
             Tuple of (list of buildings, total count before pagination)
@@ -68,7 +70,7 @@ class RealEstateService:
             return [], 0
 
         # Apply filters
-        filtered_df = self._apply_filters(df, filters)
+        filtered_df = self._apply_filters(df, filters, db=db)
         total_count = len(filtered_df)
 
         # Apply pagination
@@ -116,14 +118,14 @@ class RealEstateService:
         
         column_mapping = {
             "id": ["id"],
-            "lat": ["lat", "latitude", "coordinata_y", "latitudine"],
-            "lng": ["lon", "longitude", "coordinata_x", "longitudine"],
-            "price": ["price", "canone_annuale"],
-            "surface": ["surface_area", "superficie_di_riferimento_mq", "superficie"],
-            "energy_class": ["energy_class", "classe_energetica_ape", "classe_energetica"],
-            "year": ["construction_year", "epoca_costruzione"],
-            "type": ["property_type", "tipologia_bene_immobile", "tipologia_edilizia_str"],
-            "is_meta": ["meta_immobile", "meta_building"]
+            "lat": ["latitude", "lat", "latitudine"],
+            "lng": ["longitude", "lon", "longitudine"],
+            "price": ["price", "annual_rent"],
+            "surface": ["surface_area", "surface"],
+            "energy_class": ["energy_class"],
+            "year": ["construction_year"],
+            "type": ["property_type"],
+            "is_meta": ["is_meta"]
         }
 
         # Create a new DataFrame with mapped columns
@@ -276,7 +278,7 @@ class RealEstateService:
         return dataset_paths.get(dataset_key.lower())
 
     def _apply_filters(
-        self, df: pd.DataFrame, filters: BuildingFilters
+        self, df: pd.DataFrame, filters: BuildingFilters, db: Optional["Session"] = None
     ) -> pd.DataFrame:
         """
         Apply filters to DataFrame.
@@ -284,45 +286,62 @@ class RealEstateService:
         Args:
             df: Input DataFrame
             filters: BuildingFilters object
+            db: Optional database session for run_id lookup
 
         Returns:
             Filtered DataFrame
         """
         result = df.copy()
 
+        # 0. Filter by run_id (requires database lookup)
+        if filters.run_id and db:
+            from app.database.models import Run
+
+            run = db.query(Run).filter(Run.run_id == filters.run_id).first()
+            if run and run.results:
+                # Extract building IDs from run results
+                try:
+                    target_ids = []
+                    # Case 1: results is a list of objects with an 'id' field
+                    if isinstance(run.results, list):
+                        target_ids = [str(item.get("id")) for item in run.results if item.get("id")]
+                    # Case 2: results is a dict with a 'ranking' list
+                    elif isinstance(run.results, dict) and "ranking" in run.results:
+                        target_ids = [
+                            str(item.get("id")) for item in run.results["ranking"] if item.get("id")
+                        ]
+
+                    if target_ids:
+                        result = result[result["id"].astype(str).isin(target_ids)]
+                    else:
+                        logger.warning(f"No building IDs found in run results for {filters.run_id}")
+                except Exception as e:
+                    logger.error(f"Error extracting IDs from run {filters.run_id}: {e}")
+            elif not run:
+                logger.warning(f"Run {filters.run_id} not found in database")
+        elif filters.run_id and not db:
+            logger.warning("run_id filter provided but no database session available")
+
         # Filter by city
         if filters.city:
             if "city" in result.columns:
                 result = result[result["city"].str.lower() == filters.city.lower()]
-            elif "comune" in result.columns:
-                result = result[result["comune"].str.lower() == filters.city.lower()]
 
         # Filter by surface area range
         if filters.min_surface is not None:
             if "surface_area" in result.columns:
                 result = result[result["surface_area"] >= filters.min_surface]
-            elif "superficie" in result.columns:
-                result = result[result["superficie"] >= filters.min_surface]
 
         if filters.max_surface is not None:
             if "surface_area" in result.columns:
                 result = result[result["surface_area"] <= filters.max_surface]
-            elif "superficie" in result.columns:
-                result = result[result["superficie"] <= filters.max_surface]
 
         # Filter by energy classes
         if filters.energy_classes:
             energy_col = None
-            # Check for various possible column names
-            for col_name in [
-                "energy_class",
-                "classe_energetica",
-                "classe",
-                "classe_energetica_ape",
-            ]:
-                if col_name in result.columns:
-                    energy_col = col_name
-                    break
+            # Check for standard energy class column
+            if "energy_class" in result.columns:
+                energy_col = "energy_class"
 
             if energy_col:
                 # Normalize filter classes to uppercase
@@ -362,25 +381,19 @@ class RealEstateService:
         if filters.is_evaluated is not None and "is_evaluated" in result.columns:
             result = result[result["is_evaluated"] == filters.is_evaluated]
 
-        # Filter by epoche costruzione (string matching)
+        # Filter by construction eras
         if filters.epoche_costruzione:
-            epoca_col = None
-            if "epoca_costruzione" in result.columns:
-                epoca_col = "epoca_costruzione"
+            epoca_col = "construction_year" if "construction_year" in result.columns else None
 
             if epoca_col:
-                logger.info(f"Filtering by epoche: {filters.epoche_costruzione}")
+                logger.info(f"Filtering by eras: {filters.epoche_costruzione}")
                 before_count = len(result)
                 result = result[result[epoca_col].isin(filters.epoche_costruzione)]
-                logger.info(f"Epoca filter: {before_count} -> {len(result)} buildings")
+                logger.info(f"Era filter: {before_count} -> {len(result)} buildings")
 
         # Filter by property types
         if filters.property_types:
-            type_col = None
-            if "property_type" in result.columns:
-                type_col = "property_type"
-            elif "tipologia_edilizia_str" in result.columns:
-                type_col = "tipologia_edilizia_str"
+            type_col = "property_type" if "property_type" in result.columns else None
 
             if type_col:
                 # Case-insensitive match
@@ -432,10 +445,6 @@ class RealEstateService:
                     ]
 
 
-        # TODO: Filter by run_id (requires database lookup for run results)
-        if filters.run_id:
-            logger.warning(f"run_id filter not yet implemented: {filters.run_id}")
-
         return result
 
     def _df_row_to_building(self, row: pd.Series) -> BuildingResponse:
@@ -480,8 +489,8 @@ class RealEstateService:
                 pass
 
         # Extract coordinates
-        lat = safe_get("lat", alternatives=["latitude", "coordinata_y", "latitudine"])
-        lon = safe_get("lon", alternatives=["longitude", "coordinata_x", "longitudine"])
+        lat = safe_get("latitude", alternatives=["lat"])
+        lon = safe_get("longitude", alternatives=["lon"])
 
         if lat is None or lon is None:
             # Try to extract from other common column names
@@ -499,42 +508,42 @@ class RealEstateService:
 
         coordinates = Coordinates(lat=float(lat), lon=float(lon))
 
-        # Extract APE scores if available (using actual column names from dataset)
-        ape_scores = None
-        ape_score_cols = {
-            "total": ["ape_score_total"],
-            "class_score": ["ape_score_classe"],
-            "system_score": ["ape_score_impianto"],
-            "envelope_score": ["ape_score_involucro"],
-            "renewables_score": ["ape_score_rinnovabili"],
+        # Extract energy scores if available
+        energy_scores = None
+        energy_score_cols = {
+            "total": ["energy_score"],
+            "class_score": ["energy_score_class"],
+            "system_score": ["energy_score_plant"],
+            "envelope_score": ["energy_score_envelope"],
+            "renewables_score": ["energy_score_renewables"],
         }
 
-        ape_data = {}
-        for key, cols in ape_score_cols.items():
+        energy_data = {}
+        for key, cols in energy_score_cols.items():
             value = safe_get(cols[0], alternatives=cols[1:] if len(cols) > 1 else [])
             if value is not None:
                 if key == "total":
-                    ape_data[key] = float(value)
+                    energy_data[key] = float(value)
                 else:
-                    ape_data[key] = int(value) if not pd.isna(value) else 0
+                    energy_data[key] = int(value) if not pd.isna(value) else 0
 
-        if ape_data and "total" in ape_data:
-            ape_scores = APEScores(
-                total=ape_data.get("total", 0.0),
-                class_score=ape_data.get("class_score", 0),
-                system_score=ape_data.get("system_score", 0),
-                envelope_score=ape_data.get("envelope_score", 0),
-                renewables_score=ape_data.get("renewables_score", 0),
+        if energy_data and "total" in energy_data:
+            energy_scores = APEScores(
+                total=energy_data.get("total", 0.0),
+                class_score=energy_data.get("class_score", 0),
+                system_score=energy_data.get("system_score", 0),
+                envelope_score=energy_data.get("envelope_score", 0),
+                renewables_score=energy_data.get("renewables_score", 0),
             )
 
-        # Extract POI scores if available (using actual column names from dataset)
+        # Extract POI scores if available
         poi_scores = None
         poi_columns = {
-            "health": ["sanita"],
-            "mobility": ["mobilita"],
-            "green": ["verde"],
-            "education": ["educazione"],
-            "shopping": ["commerciale"],
+            "health": ["healthcare"],
+            "mobility": ["mobility"],
+            "green": ["greenery"],
+            "education": ["education"],
+            "shopping": ["commerce"],
             "sport": ["sport"],
         }
 
@@ -568,21 +577,16 @@ class RealEstateService:
                     if "," in val:
                         return [v.strip() for v in val.split(",") if v.strip()]
                     return [val] if val.strip() else None
-            return None
-
+        # Parse energy files list
         ape_files = parse_ape_list(
             safe_get(
-                "ape_files",
-                alternatives=[
-                    "list_file_ape_filtered",
-                    "list_file_ape_filtered_parsed",
-                ],
+                "energy_files"
             )
         )
 
-        # Parse sub-properties for meta immobili
+        # Parse sub-properties for meta buildings
         sub_properties = None
-        if self._str_to_bool(safe_get("meta_immobile", default=False)):
+        if self._str_to_bool(safe_get("meta_building", default=False)):
             id_list_raw = safe_get("id_list")
             if id_list_raw is not None:
                 try:
@@ -645,36 +649,28 @@ class RealEstateService:
         # Build the response
         res_data = {
             "id": str(safe_get("id", "")),
-            "address": safe_get("address", alternatives=["indirizzo", "via"]),
-            "city": safe_get("city", alternatives=["comune", "codice_comune"]),
+            "address": safe_get("address"),
+            "city": safe_get("city"),
             "coordinates": coordinates,
-            "surface_area": safe_get(
-                "surface_area", alternatives=["superficie_di_riferimento_mq"]
-            ),
-            "energy_class": safe_get(
-                "energy_class", alternatives=["classe_energetica_ape"]
-            ),
-            "score": safe_get("score", alternatives=["final_ranking_score", "ape_score_total"]),
+            "surface_area": safe_get("surface_area"),
+            "energy_class": safe_get("energy_class"),
+            "score": safe_get("score", alternatives=["final_ranking_score", "energy_score"]),
             "rooms": None,
             "bathrooms": None,
             "floor": None,
-            "price": safe_get("price", alternatives=["canone_annuale"]),
+            "price": safe_get("price", alternatives=["annual_rent"]),
             "description": safe_get("description"),
 
-            "property_type": safe_get(
-                "property_type", alternatives=["tipologia_bene_immobile"]
-            ),
-            "legal_nature": safe_get(
-                "legal_nature", alternatives=["natura_giuridica_del_bene"]
-            ),
+            "property_type": safe_get("property_type"),
+            "legal_nature": safe_get("legal_nature"),
             "cultural_constraint": None,
-            "purpose": safe_get("purpose", alternatives=["finalita"]),
-            "omi_zone": safe_get("omi_zone", alternatives=["zona_omi"]),
+            "purpose": safe_get("purpose"),
+            "omi_zone": safe_get("omi_zone"),
             "is_evaluated": bool(safe_get("is_evaluated", default=False)),
             "is_match": bool(safe_get("is_match", default=True)),
-            "meta_building": self._str_to_bool(safe_get("meta_immobile", default=False)),
-            "meta_immobile": self._str_to_bool(safe_get("meta_immobile", default=False)),
-            "canone_annuale": safe_get("canone_annuale", default=None),
+            "meta_building": self._str_to_bool(safe_get("is_meta", default=False)),
+            "meta_immobile": self._str_to_bool(safe_get("is_meta", default=False)),
+            "annual_rent": safe_get("annual_rent"),
             "tipo_detenzione_a_terzi": safe_get("tipo_detenzione_a_terzi", default=None),
             "numero_immobili_per_catasto": safe_get(
                 "numero_immobili_per_catasto", default=None
@@ -683,20 +679,20 @@ class RealEstateService:
                 str(safe_get("id_list", default="")) if safe_get("id_list") else None
             ),
             "sub_properties": sub_properties,
-            "ape_scores": ape_scores,
+            "ape_scores": energy_scores,
             "poi_scores": poi_scores,
             "ape_files": ape_files,
-            "distance_km": safe_get("distance_km", alternatives=["distanza_km"]),
-            "poi_reference": safe_get("poi_reference", alternatives=["poi_riferimento"]),
+            "distance_km": safe_get("distance_km"),
+            "poi_reference": safe_get("poi_reference"),
             "epglnren_ape": safe_get("epglnren_ape", default=None),
-            "classe_energetica_ape": safe_get("classe_energetica_ape", alternatives=["energy_class"]),
-            "ape_score_total": safe_get("ape_score_total", default=None),
-            "tipologia_bene_immobile": safe_get("tipologia_bene_immobile", alternatives=["property_type"]),
-            "superficie_di_riferimento_mq": safe_get("superficie_di_riferimento_mq", alternatives=["surface_area"]),
-            "epoca_costruzione": safe_get("epoca_costruzione", alternatives=["construction_year"]),
-            "verde": safe_get("verde"),
-            "mobilita": safe_get("mobilita"),
-            "educazione": safe_get("educazione"),
+            "classe_energetica_ape": safe_get("energy_class"),
+            "energy_score": safe_get("energy_score"),
+            "tipologia_bene_immobile": safe_get("property_type"),
+            "superficie_di_riferimento_mq": safe_get("surface_area"),
+            "epoca_costruzione": safe_get("construction_year"),
+            "greenery": safe_get("greenery"),
+            "mobility": safe_get("mobility"),
+            "education": safe_get("education"),
         }
 
         # Handle fields that need explicit string conversion or might be None

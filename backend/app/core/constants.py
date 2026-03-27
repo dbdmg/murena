@@ -1,123 +1,152 @@
 from typing import Dict, List
 
-# Legenda Punteggi (1-5) per APE e POI
-SCORE_LEGEND = """LEGENDA PUNTEGGI (tutti su scala 1-5, dove 5=ottimo):
+# Score legend (1-5) for energy and proximity
+SCORE_LEGEND = """SCORE LEGEND (all on 1-5 scale, where 5=excellent):
 
-APE (Efficienza Energetica):
-- ape_score_classe: Classe energetica (5=A1-A4, 3=B-E, 1=F-G)
-- ape_score_impianto: Qualità impianto termico (5=Pompa calore/Teleriscaldamento, 3=Condensazione/Biomassa, 1=Tradizionale)
-- ape_score_involucro: Isolamento edificio (5=Ottimo, 3=Medio, 1=Scarso/Assente)
-- ape_score_rinnovabili: Presenza fonti rinnovabili (5=Sì, 1=No)
-- ape_score_total: Media complessiva dei punteggi energetici
+Energy (energy efficiency):
+- energy_score_class: Energy class (5=A1-A4, 3=B-E, 1=F-G)
+- energy_score_plant: Thermal plant quality (5=Heat pump/District heating, 3=Condensation/Biomass, 1=Traditional)
+- energy_score_envelope: Building insulation (5=Excellent, 3=Medium, 1=Poor/None)
+- energy_score_renewables: Renewable energy sources present (5=Yes, 1=No)
+- energy_score_total: Overall average of energy scores
 
-POI (Servizi di Prossimità):
-- sanita: Vicinanza a servizi sanitari (Ospedali, farmacie)
-- mobilita: Accessibilità trasporti pubblici (Metro, bus, stazioni)
-- verde: Presenza aree verdi (Parchi, giardini)
-- sport: Vicinanza impianti sportivi (Palestre, piscine)
-- commerciale: Servizi commerciali (Negozi, supermercati)
-- educazione: Scuole e istruzione (Scuole, università)
+Proximity (proximity services):
+- healthcare: Proximity to healthcare services (Hospitals, pharmacies)
+- mobility: Public transport accessibility (Metro, bus, stations)
+- green: Presence of green areas (Parks, gardens)
+- sport: Proximity to sports facilities (Gyms, pools)
+- commercial: Commercial services (Shops, supermarkets)
+- education: Schools and education (Schools, universities)
 """
 
-# Legenda specifica per APE Agent (solo APE)
-APE_SCORE_LEGEND = """LEGENDA PUNTEGGI APE (scala 1-5, dove 5=ottimo):
+# Specific legend for Energy agent
+ENERGY_SCORE_LEGEND = """ENERGY SCORE LEGEND (1-5 scale, where 5=excellent):
 
-- ape_score_classe: Classe energetica (5=A1-A4, 3=B-E, 1=F-G)
-- ape_score_impianto: Qualità impianto termico (5=Pompa calore/Teleriscaldamento, 3=Condensazione/Biomassa, 1=Tradizionale)
-- ape_score_involucro: Isolamento edificio (5=Ottimo, 3=Medio, 1=Scarso/Assente)
-- ape_score_rinnovabili: Presenza fonti rinnovabili (5=Sì, 1=No)
-- ape_score_total: Media complessiva dei punteggi energetici
+- energy_score_class: Energy class (5=A1-A4, 3=B-E, 1=F-G)
+- energy_score_plant: Thermal plant quality (5=Heat pump/District heating, 3=Condensation/Biomass, 1=Traditional)
+- energy_score_envelope: Building insulation (5=Excellent, 3=Medium, 1=Poor/None)
+- energy_score_renewables: Renewable energy sources present (5=Yes, 1=No)
+- energy_score_total: Overall average of energy scores
 """
 
-# Colonne specifiche per Location Agent
+# Columns for Location agent
 LOCATION_AGENT_COLUMNS: List[str] = [
-    "indirizzo",
-    "numero_civico",
-    "latitudine",
-    "longitudine",
-    "zona_omi",
+    "address",
+    "house_number",
+    "latitude",
+    "longitude",
+    "omi_zone",
 ]
 
-# Colonne specifiche per APE Agent
-APE_AGENT_COLUMNS: List[str] = [
-    "classe_energetica_ape",
+# Columns for Energy agent
+ENERGY_AGENT_COLUMNS: List[str] = [
+    "energy_class",
     "epglnren_ape",
     "classe_target_ape",
-    "ape_score_classe",
-    "ape_score_impianto",
-    "ape_score_involucro",
-    "ape_score_rinnovabili",
-    "ape_score_total",
+    "energy_score_class",
+    "energy_score_plant",
+    "energy_score_envelope",
+    "energy_score_renewables",
+    "energy_score_total",
 ]
 
-# Colonne specifiche per Property Technical Agent
-PROPERTY_TECHNICAL_AGENT_COLUMNS: List[str] = [
-    "tipologia_bene_immobile",
-    "epoca_costruzione",
+# Columns for Building agent
+BUILDING_AGENT_COLUMNS: List[str] = [
+    "property_type",
+    "construction_period",
     "id",
     "codice_comune",
     "foglio",
     "particella",
     "subalterno",
     "numero_immobili_per_catasto",
-    "superficie_di_riferimento_mq",
+    "surface_area",
 ]
 
-# Colonne specifiche per Normative Agent
-NORMATIVE_AGENT_COLUMNS: List[str] = [
-    "superficie_di_riferimento_mq",
-    "tipologia_bene_immobile",
+# Columns for Regulatory agent
+REGULATORY_AGENT_COLUMNS: List[str] = [
+    "surface_area",
+    "property_type",
 ]
 
-# Colonne specifiche per POI Agent
-POI_AGENT_COLUMNS: List[str] = [
-    "sanita",
-    "mobilita",
-    "verde",
+# Columns for Proximity agent
+PROXIMITY_AGENT_COLUMNS: List[str] = [
+    "healthcare",
+    "mobility",
+    "green",
     "sport",
-    "commerciale",
-    "educazione",
+    "commercial",
+    "education",
 ]
 
 
-# Unione di tutte le colonne visibili agli agenti e quindi filtrabili via SQL
+# Union of all columns visible to agents and thus filterable via SQL
 ALL_AGENT_COLUMNS_SET = set(
     LOCATION_AGENT_COLUMNS +
-    APE_AGENT_COLUMNS +
-    PROPERTY_TECHNICAL_AGENT_COLUMNS +
-    NORMATIVE_AGENT_COLUMNS +
-    POI_AGENT_COLUMNS
+    ENERGY_AGENT_COLUMNS +
+    BUILDING_AGENT_COLUMNS +
+    REGULATORY_AGENT_COLUMNS +
+    PROXIMITY_AGENT_COLUMNS
 )
 
 SQL_FILTERABLE_COLUMNS: List[str] = sorted(list(ALL_AGENT_COLUMNS_SET))
 ALL_AGENT_COLUMNS: List[str] = SQL_FILTERABLE_COLUMNS
 
-# Categorie POI per la documentazione
-POI_CATEGORIES: Dict[str, str] = {
-    "sanita": "Ospedali, farmacie, ambulatori",
-    "mobilita": "Metro, bus, stazioni",
-    "verde": "Parchi, giardini",
-    "sport": "Palestre, piscine, campi",
-    "commerciale": "Negozi, supermercati",
-    "educazione": "Scuole, università",
+# Proximity categories for documentation
+PROXIMITY_CATEGORIES: Dict[str, str] = {
+    "healthcare": "Hospitals, pharmacies, clinics",
+    "mobility": "Metro, bus, stations",
+    "green": "Parks, gardens",
+    "sport": "Gyms, pools, courts",
+    "commercial": "Shops, supermarkets",
+    "education": "Schools, universities",
 }
 
-# Oggetto globale che conterrà i metadati aggiornati a runtime
+# Column mapping from database (Italian) to MURENA (English)
+COLUMN_MAPPING: Dict[str, str] = {
+    # Proximity pillars
+    "sanita": "healthcare",
+    "mobilita": "mobility",
+    "verde": "green",
+    "sport": "sport",
+    "commerciale": "commercial",
+    "educazione": "education",
+    # Energy scores
+    "ape_score_classe": "energy_score_class",
+    "ape_score_impianto": "energy_score_plant",
+    "ape_score_involucro": "energy_score_envelope",
+    "ape_score_rinnovabili": "energy_score_renewables",
+    "ape_score_total": "energy_score_total",
+    "ape_score": "energy_score",
+    # General attributes
+    "indirizzo": "address",
+    "numero_civico": "house_number",
+    "zona_omi": "omi_zone",
+    "superficie_di_riferimento_mq": "surface_area",
+    "tipologia_bene_immobile": "property_type",
+    "epoca_costruzione": "construction_period",
+    "finalita": "purpose",
+    "classe_energetica_ape": "energy_class",
+    "latitudine": "latitude",
+    "longitudine": "longitude"
+}
+
+# Global object containing updated runtime metadata
 DB_METADATA = {
     "_metadata_version": "2.0",
     "score_legends": {
-        "ape_scores": APE_SCORE_LEGEND,
-        "poi_scores": SCORE_LEGEND
+        "energy_scores": ENERGY_SCORE_LEGEND,
+        "proximity_scores": SCORE_LEGEND
     },
     "filterable_columns": SQL_FILTERABLE_COLUMNS,
-    "fields": {}  # Qui verranno inserite le statistiche e i valori categorici
+    "fields": {}  # Populated with statistics and categorical values at runtime
 }
 
 
 def update_runtime_metadata(df):
     """
-    Popola DB_METADATA con le statistiche reali del dataframe caricato.
-    Sostituisce la necessità di file JSON esterni.
+    Populates DB_METADATA with real statistics from the loaded dataframe.
+    Replaces the need for external JSON files.
     """
     try:
         from datetime import datetime
@@ -126,14 +155,14 @@ def update_runtime_metadata(df):
         DB_METADATA["_last_updated"] = datetime.now().strftime("%Y-%m-%d")
         df_columns = set(df.columns)
         
-        # Sincronizza colonne filtrabili
+        # Synchronize filterable columns
         DB_METADATA["filterable_columns"] = [c for c in SQL_FILTERABLE_COLUMNS if c in df_columns]
         
-        # Liste di colonne da analizzare
+        # Lists of columns to analyze
         categorical = ["codice_comune", "tipologia_bene_immobile", "epoca_costruzione", "classe_energetica_ape"]
         numerical = [
-            "superficie_di_riferimento_mq", "ape_score_total", 
-            "sanita", "mobilita", "verde", "sport", "commerciale", "educazione"
+            "superficie_di_riferimento_mq", "energy_score_total", 
+            "healthcare", "mobility", "green", "sport", "commercial", "education"
         ]
         
         # Reset fields
@@ -143,12 +172,12 @@ def update_runtime_metadata(df):
             if col in df.columns:
                 meta = {}
                 if col in categorical:
-                    # Estrai valori unici e ordina
+                    # Extract unique values and sort
                     unique_vals = sorted([str(v) for v in df[col].dropna().unique()])
                     meta["values"] = unique_vals
                     meta["is_truncated"] = False
                 else:
-                    # Calcola statistiche numeriche
+                    # Calculate numerical statistics
                     series = pd.to_numeric(df[col], errors='coerce').dropna()
                     if not series.empty:
                         meta.update({

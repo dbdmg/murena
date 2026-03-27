@@ -5,8 +5,8 @@ import sys
 import json
 from pathlib import Path
 
-# Setup paths
-suite_path = Path("/home/mdeluca/real-estate-ai/synthetic_test_suite")
+# Setup paths relative to script location for portability
+suite_path = Path(__file__).resolve().parent
 results_path = suite_path / "results_sampled"
 results_path.mkdir(parents=True, exist_ok=True)
 
@@ -87,7 +87,7 @@ df_sens.to_csv(results_path / "sensitivity_queries_suite.csv", index=False)
 env = os.environ.copy()
 env["EXPERIMENT_RESULTS_DIR"] = str(results_path)
 # Ensure backend and site-packages are in PYTHONPATH
-backend_dir = "/home/mdeluca/real-estate-ai/backend"
+backend_dir = suite_path.parent / "backend"
 if "PYTHONPATH" in env:
     env["PYTHONPATH"] = f"{backend_dir}:{suite_path}:{env['PYTHONPATH']}"
 else:

@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     # ==========================================================================
     # App Info
     # ==========================================================================
-    APP_NAME: str = "MEF-Immobili-API"
+    APP_NAME: str = "RealEstate-AI-API"
     APP_VERSION: str = "1.0.0"
     DEBUG: bool = True
     LOG_LEVEL: str = "INFO"
@@ -32,8 +32,8 @@ class Settings(BaseSettings):
     DATABASE_URL: str
     DATABASE_POOL_SIZE: int = 5
     DATABASE_MAX_OVERFLOW: int = 10
-    DATABASE_PATH: str = "data/FOLDER_DATABASE/users.db"  # SQLite fallback
-    CACHE_DIR: str = "data/FOLDER_DATABASE/cache"
+    DATABASE_PATH: str = "data/database/users.db"  # SQLite fallback
+    CACHE_DIR: str = "data/database/cache"
 
     # ==========================================================================
     # Redis
@@ -67,25 +67,30 @@ class Settings(BaseSettings):
     OPENAI_API_KEY: str = ""
     HF_TOKEN: str = ""
 
-    LLM_POLITO_API_KEY: str = ""  # API key for llm.polito.it endpoint
+    # API key for the institutional LLM endpoint (anonymized for review)
+    INSTITUTIONAL_LLM_API_KEY: str = ""  
 
-    # LLM Provider: "openai" o "gemini" - controlla quale provider usare di default
+    # LLM Provider: "openai" or "gemini" - controls which provider to use by default
     DEFAULT_LLM_PROVIDER: str = "openai"
 
     # LLM Models
     OPENAI_MODEL_FAST: str = "gpt-oss-120b"
     OPENAI_MODEL_SMART: str = "gpt-oss-120b"
-    OPENAI_API_BASE: Optional[str] = "https://llm.polito.it/v1"
+    OPENAI_API_BASE: Optional[str] = "https://api.institutional-endpoint.edu/v1"
     USE_MOCK_RESPONSES: bool = False
     USE_MOCK_NORMATIVE_AGENT: bool = False
 
     def set_llm_model(self, model_type: str):
-        """Sets the LLM model configuration."""
+        """Sets the LLM model configuration.
+        
+        Args:
+            model_type: The identifier for the LLM flavor to use.
+        """
         if model_type in ["gpt-oss-120b", "deepseek-r1-8b"]:
             self.OPENAI_MODEL_FAST = model_type
             self.OPENAI_MODEL_SMART = model_type
-            self.OPENAI_API_BASE = "https://llm.polito.it/v1"
-            self.OPENAI_API_KEY = self.LLM_POLITO_API_KEY
+            self.OPENAI_API_BASE = "https://api.institutional-endpoint.edu/v1"
+            self.OPENAI_API_KEY = self.INSTITUTIONAL_LLM_API_KEY
         elif model_type == "vllm-gemma3-27b":
             self.OPENAI_MODEL_FAST = "google/gemma-3-27b-it"
             self.OPENAI_MODEL_SMART = "google/gemma-3-27b-it"
@@ -119,46 +124,43 @@ class Settings(BaseSettings):
     # ==========================================================================
     # External APIs
     # ==========================================================================
-    NOMINATIM_USER_AGENT: str = "MEF-Immobili/1.0"
+    NOMINATIM_USER_AGENT: str = "RealEstate-AI/1.0"
 
     # ==========================================================================
     # File Paths (relative to backend/ directory)
-    # ==========================================================================
-    DATA_DIR: str = "data/FOLDER_DATASET"
-    STATIC_DIR: str = "data/FOLDER_STATIC_ROME"
-    APE_DIR: str = "data/FOLDER_APE"
-    META_DIR: str = "data/FOLDER_META"
+    DATA_DIR: str = "data/datasets"
+    STATIC_DIR: str = "data/static_data"
+    APE_DIR: str = "data/energy_data"
+    META_DIR: str = "data/metadata"
     RUNS_DIR: str = "data/runs"
     AGENT_LOGS_DIR: str = "data/agent_logs"
 
-    # APE specific paths
-    APE_MATCH_DIR: str = "data/FOLDER_APE/MATCH"
-    PLOT_DIR: str = "data/FOLDER_APE/META/plots_inverted"
+    # Energy specific paths
+    APE_MATCH_DIR: str = "data/energy_data/MATCH"
+    PLOT_DIR: str = "data/energy_data/metadata/plots_inverted"
 
     # Dataset paths
     DATASET_FULL: str = (
-        "data/FOLDER_META/immobili_with_meta_and_ape_full_cleaned.parquet"
+        "data/metadata/immobili_with_meta_and_ape_full_cleaned.parquet"
     )
     IMMOBILI_MAPPING_PATH: str = os.path.normpath("notebooks/02_quotazione/mapping_immobili.csv")
     QIP_VALORI_PATH: str = "notebooks/02_quotazione/QIP_1303437_1_20251_VALORI.csv"
     QIP_MAPPING_PATH: str = "notebooks/02_quotazione/mapping_qip.csv"
-    ZONE_OMI_PROVINCIA_TORINO_GEOJSON: str = "data/FOLDER_STATIC_ROME/zone_omi_provincia_torino.geojson.zip"
+    ZONE_OMI_PROVINCIA_TORINO_GEOJSON: str = "data/static_data/zone_omi_provincia_torino.geojson.zip"
     IMMOBILI_QUOTAZIONE_PATH: str = "notebooks/02_quotazione/quotazione_immobili.csv"
     ZONE_GRUPPO_QUOTAZIONI_PATH: str = "notebooks/02_quotazione/zone_gruppo_quotazioni.csv"
     MISSING_QUOTAZIONI_IDS_PATH: str = "notebooks/02_quotazione/missing_quotazioni_ids.csv"
-    # NOTE: DATASET_META and DATASET_APE removed - they were legacy files never used
-    # The application uses DATASET_FULL as the single source of truth
-    APE_DETAILED_DATA_PATH: str = "data/FOLDER_META/ape_detailed_data.parquet"
+    APE_DETAILED_DATA_PATH: str = "data/metadata/ape_detailed_data.parquet"
 
     # Static data
-    STATIONS_CSV: str = "data/FOLDER_DATASET/station_dataframe.csv"
+    STATIONS_CSV: str = "data/datasets/station_dataframe.csv"
     POPULATION_CSV: str = (
-        "data/FOLDER_STATIC_ROME/dati_popolazione_roma_normalizzati.csv"
+        "data/static_data/dati_popolazione_roma_normalizzati.csv"
     )
-    MUNICIPI_GEOJSON: str = "data/FOLDER_STATIC_ROME/municipi_roma.geojson"
-    ZONE_OMI_GEOJSON: str = "data/FOLDER_STATIC_ROME/Zone_omi_torino.geojson"
+    MUNICIPI_GEOJSON: str = "data/static_data/municipi_roma.geojson"
+    ZONE_OMI_GEOJSON: str = "data/static_data/Zone_omi_torino.geojson"
     ZONE_URBANISTICHE_GEOJSON: str = (
-        "data/FOLDER_STATIC_ROME/roma_zone_urbanistiche.geojson"
+        "data/static_data/roma_zone_urbanistiche.geojson"
     )
 
     TORINO_LAT: float = 45.116177

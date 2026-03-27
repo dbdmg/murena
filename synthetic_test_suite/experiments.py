@@ -1,11 +1,7 @@
 import asyncio
-import csv
-import fcntl
-import contextlib
 import json
 import itertools
 import logging
-from contextvars import ContextVar
 import os
 import sys
 import time
@@ -19,12 +15,17 @@ import numpy as np
 import pandas as pd
 from scipy import stats
 
-try:
-    import sqlglot
-    from sqlglot import exp
-    HAS_SQLGLOT = True
-except ImportError:
-    HAS_SQLGLOT = False
+# Import custom utilities (Ensure current dir is in sys.path)
+sys.path.append(str(Path(__file__).resolve().parent))
+from logging_utils import (
+    setup_logging, query_ctx, experiment_ctx, log_dir_ctx,
+    safe_read_csv, safe_save_csv, safe_update_csv_column, file_lock
+)
+from analysis_utils import (
+    calculate_iou, calculate_f1, get_activated_agents, 
+    calculate_architecture_agreement, extract_sql_columns
+)
+from reporting_utils import generate_report
 
 # --- 1. SETTINGS & ENVIRONMENT SETUP ---
 
@@ -34,6 +35,9 @@ base_dir = suite_path.parent
 backend_dir = base_dir / "backend"
 sys.path.append(str(backend_dir))
 from app.utils.json_sanitizer import make_json_safe
+from app.core.config import settings
+from app.services.analysis_service import analysis_service
+from tests.model_config import apply_model_config
 
 # Added subfolder for results
 results_path = Path(os.environ.get("EXPERIMENT_RESULTS_DIR", str(suite_path / "results")))
@@ -41,43 +45,18 @@ results_path.mkdir(parents=True, exist_ok=True)
 
 # Global execution log
 execution_csv_path = results_path / "execution_log.csv"
-pending_jobs_path = results_path / "pending_jobs.txt"
-
-# Execution ID logic to link all logs to a single test suite execution
-is_child = "SYNTHETIC_RUN_ID" in os.environ
 RUN_ID = os.environ.get("SYNTHETIC_RUN_ID", f"RUN_{datetime.now().strftime('%Y%m%d_%H%M%S')}")
 os.environ["SYNTHETIC_RUN_ID"] = RUN_ID
 
-# CSV Logging Infrastructure
-query_ctx: ContextVar[str] = ContextVar("query_ctx", default="SYSTEM")
-experiment_ctx: ContextVar[str] = ContextVar("experiment_ctx", default="N/A")
-log_dir_ctx: ContextVar[Optional[Path]] = ContextVar("log_dir_ctx", default=None)
+# Initialize logging
+setup_logging(RUN_ID, execution_csv_path)
 
-import io
-import csv
-import threading
-import shutil
-
-def format_csv_line(row: List[Any]) -> str:
-    """Helper to generate a properly quoted CSV line."""
-    output = io.StringIO()
-    writer = csv.writer(output, quoting=csv.QUOTE_ALL, lineterminator="")
-    writer.writerow(row)
-    return output.getvalue()
-
-class CsvLoggingFilter(logging.Filter):
-    def filter(self, record):
-        record.query_id = query_ctx.get()
-        record.experiment_id = experiment_ctx.get()
-        return True
-
-class CsvFormatter(logging.Formatter):
-    def format(self, record):
-        query_id = getattr(record, 'query_id', 'SYSTEM')
-        experiment_id = getattr(record, 'experiment_id', 'N/A')
-        msg = record.getMessage().strip()
-        timestamp = self.formatTime(record, self.datefmt)
-        return format_csv_line([timestamp, RUN_ID, experiment_id, query_id, record.levelname, record.name, msg])
+def log_output(msg):
+    """Centralized log message helper."""
+    logging.info(msg)
+    # Also print to stdout for real-time monitoring if not in child process
+    if "SYNTHETIC_RUN_ID" not in os.environ or os.environ.get("DEBUG_STDOUT") == "1":
+        print(f"[{datetime.now().strftime('%H:%M:%S')}] {msg}")
 
 def with_query_context(func):
     """Decorator to set query context for async functions."""
@@ -91,113 +70,8 @@ def with_query_context(func):
             query_ctx.reset(token)
     return wrapper
 
-# Clear existing file and write header
-if not is_child:
-    if execution_csv_path.exists(): execution_csv_path.unlink()
-    if pending_jobs_path.exists(): pending_jobs_path.unlink()
-    with open(execution_csv_path, "w", encoding='utf-8') as f:
-        f.write(format_csv_line(["timestamp", "run_id", "experiment", "query", "level", "logger", "message"]) + "\n")
-
-def log_output(msg):
-    logging.info(msg)
-
 BASELINE_MODEL = "gpt-5.4"
 EVALUATION_MODEL = "gpt-5.4"
-
-class DynamicFolderHandler(logging.Handler):
-    """Routes logs to the specific folder of the active experiment."""
-    def __init__(self, fallback_path: Path):
-        super().__init__()
-        self.fallback_path = fallback_path
-        self._handles = {}
-        self._lock = threading.Lock()
-
-    def _get_target_path(self) -> Path:
-        current_dir = log_dir_ctx.get()
-        if current_dir:
-            return current_dir / "execution.csv"
-        return self.fallback_path
-
-    def emit(self, record):
-        try:
-            target_path = self._get_target_path()
-            msg = self.format(record)
-            
-            with self._lock:
-                if target_path not in self._handles:
-                    target_path.parent.mkdir(parents=True, exist_ok=True)
-                    # Don't truncate, just append
-                    is_new = not target_path.exists()
-                    f = open(target_path, "a", encoding='utf-8')
-                    if is_new:
-                        f.write(format_csv_line(["timestamp", "run_id", "experiment", "query", "level", "logger", "message"]) + "\n")
-                    self._handles[target_path] = f
-                
-                self._handles[target_path].write(msg + "\n")
-                self._handles[target_path].flush()
-        except Exception:
-            self.handleError(record)
-
-# Safe cross-process CSV management
-@contextlib.contextmanager
-def file_lock(path: Path):
-    """File lock using fcntl for cross-process synchronization."""
-    lock_path = path.with_suffix(path.suffix + ".lock")
-    # Ensure the lock file exists
-    if not lock_path.exists():
-        lock_path.touch()
-    
-    with open(lock_path, "r+") as f:
-        fcntl.flock(f, fcntl.LOCK_EX)
-        try:
-            yield
-        finally:
-            fcntl.flock(f, fcntl.LOCK_UN)
-
-def safe_update_csv_column(csv_path: Path, index: int, column: str, value: Any):
-    """Safely updates a single cell in a CSV file across processes."""
-    with file_lock(csv_path):
-        df = pd.read_csv(csv_path)
-        if column not in df.columns:
-            df[column] = 0
-        df.at[index, column] = value
-        df.to_csv(csv_path, index=False)
-
-def safe_read_csv(csv_path: Path) -> pd.DataFrame:
-    """Safely reads a CSV file with a lock."""
-    with file_lock(csv_path):
-        return pd.read_csv(csv_path)
-
-def safe_save_csv(df: pd.DataFrame, csv_path: Path):
-    """Safely saves a CSV file with a lock."""
-    with file_lock(csv_path):
-        df.to_csv(csv_path, index=False)
-
-def update_pending_job(job_id: str, action: str):
-    """Adds or removes a job from the pending jobs list with file locking."""
-    with file_lock(pending_jobs_path):
-        jobs = []
-        if pending_jobs_path.exists():
-            with open(pending_jobs_path, "r", encoding="utf-8") as f:
-                jobs = [line.strip() for line in f if line.strip()]
-        
-        if action == "add":
-            if job_id not in jobs:
-                jobs.append(job_id)
-        elif action == "remove":
-            if job_id in jobs:
-                jobs.remove(job_id)
-        
-        with open(pending_jobs_path, "w", encoding="utf-8") as f:
-            for job in sorted(jobs):
-                f.write(f"{job}\n")
-
-# Configure standard logging with DynamicFolderHandler
-handler = DynamicFolderHandler(fallback_path=execution_csv_path)
-handler.addFilter(CsvLoggingFilter())
-handler.setFormatter(CsvFormatter(datefmt='%Y-%m-%d %H:%M:%S'))
-logging.root.addHandler(handler)
-logging.root.setLevel(logging.INFO)
 
 # Model-specific concurrency limits to prevent quota issues (429)
 # Models not listed here will use the global --max-concurrent value.
@@ -226,104 +100,12 @@ for attr in ["DATASET_FULL", "APE_DETAILED_DATA_PATH", "STATIC_DIR", "DATA_DIR",
     if val and isinstance(val, str) and not os.path.isabs(val):
         setattr(settings, attr, str(backend_dir / val))
 
-try:
-    from loguru import logger
-    # Brute force removal of all existing handlers to prevent conflicts
-    logger.remove()
-    
-    def loguru_csv_format(record):
-        # Escape curly braces in message to prevent Loguru's internal formatters from re-evaluating them
-        msg = record["message"].strip().replace("{", "{{").replace("}", "}}")
-        q_id = query_ctx.get()
-        e_id = experiment_ctx.get()
-        timestamp = record["time"].strftime('%Y-%m-%d %H:%M:%S')
-        lvl = record["level"].name
-        name = record["name"]
-        return format_csv_line([timestamp, RUN_ID, e_id, q_id, lvl, name, msg]) + "\n"
-    
-    class LoguruDynamicSink:
-        def __init__(self, handler):
-            self.handler = handler
-        def write(self, message):
-            # Loguru messages come as strings from the format function
-            # We bypass standard emit because we already have the formatted string
-            target_path = self.handler._get_target_path()
-            with self.handler._lock:
-                if target_path not in self.handler._handles:
-                    target_path.parent.mkdir(parents=True, exist_ok=True)
-                    is_new = not target_path.exists()
-                    f = open(target_path, "a", encoding='utf-8')
-                    if is_new:
-                        f.write(format_csv_line(["timestamp", "run_id", "experiment", "query", "level", "logger", "message"]) + "\n")
-                    self.handler._handles[target_path] = f
-                self.handler._handles[target_path].write(message)
-                self.handler._handles[target_path].flush()
-
-    logger.add(LoguruDynamicSink(handler), level="INFO", format=loguru_csv_format)
-except ImportError:
-    pass
-
-# --- 2. ANALYTICS UTILS & VERBOSE LOGGING ---
-
-class AnalyticsLog:
-    """Manages a verbose log of all calculation steps for auditing analysis."""
-    def __init__(self, path: Path):
-        self.path = path
-        if self.path.exists(): self.path.unlink()
-        
-    def log(self, section: str, message: str):
-        with open(self.path, "a", encoding="utf-8") as f:
-            timestamp = datetime.now().strftime('%H:%M:%S')
-            f.write(f"[{timestamp}] [{section}] {message}\n")
-
-verbose_log_path = results_path / "analytics_verbose.log"
-vlog = AnalyticsLog(verbose_log_path)
-
-async def preload_data():
-    dataset_path = Path(settings.DATASET_FULL)
-    if dataset_path.exists():
-        df = load_and_merge_data(str(dataset_path))
-        RealEstateService._dataset_cache["full"] = df
-        analysis_service._base_dataset_cache["full"] = df
-    return True
-
-def get_data_stats():
-    df = RealEstateService._dataset_cache.get("full")
-    if df is None: return {}
-    num_cols = df.select_dtypes(include=[np.number]).columns
-    return {col.upper(): {"min": float(df[col].min()), "max": float(df[col].max())} for col in num_cols}
-
-def calculate_iou(ids_a, ids_b):
-    set_a, set_b = set(ids_a), set(ids_b)
-    if not set_a and not set_b: return 1.0
-    u = len(set_a.union(set_b))
-    return len(set_a.intersection(set_b)) / u if u > 0 else 0.0
-
-def extract_sql_conditions(sql: str) -> Set[str]:
-    if not sql: return set()
-    if HAS_SQLGLOT:
-        try:
-            parsed = sqlglot.parse_one(sql)
-            where = parsed.find(exp.Where)
-            if where:
-                predicates = []
-                def walk(node):
-                    if isinstance(node, (exp.And, exp.Or)):
-                        for arg in node.args.values():
-                            if arg: walk(arg)
-                    elif isinstance(node, (exp.Binary, exp.In, exp.Between)):
-                        predicates.append(node.sql().upper())
-                walk(where.this)
-                if predicates: return set(predicates)
-        except: pass
-    return set()
-
 def calculate_sql_iou(sql_a, sql_b, file_a="N/A", file_b="N/A"):
-    cond_a, cond_b = extract_sql_conditions(sql_a), extract_sql_conditions(sql_b)
-    if not cond_a and not cond_b: return 1.0
-    u = len(cond_a.union(cond_b))
-    iou = len(cond_a.intersection(cond_b)) / u if u > 0 else 0.0
-    vlog.log("SQL_SIM", f"  Compare: {file_a} vs {file_b} | CondA: {len(cond_a)} | CondB: {len(cond_b)} | Int: {len(cond_a.intersection(cond_b))} | IoU: {iou:.3f}")
+    # This uses extract_sql_columns from analysis_utils
+    cols_a = extract_sql_columns(sql_a)
+    cols_b = extract_sql_columns(sql_b)
+    iou = calculate_iou(list(cols_a), list(cols_b))
+    vlog.log("SQL_SIM", f"  Compare: {file_a} vs {file_b} | ColsA: {len(cols_a)} | ColsB: {len(cols_b)} | IoU: {iou:.3f}")
     return iou
 
 def check_sql_ood(sql, data_stats):

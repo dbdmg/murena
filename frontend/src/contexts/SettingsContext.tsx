@@ -27,7 +27,7 @@ interface SettingsContextType {
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
 
-const STORAGE_KEY = 'mef-settings';
+const STORAGE_KEY = 'realestate-settings';
 
 interface StoredSettings {
     markersLimit: number;

@@ -8,7 +8,7 @@ from app.api.v1.endpoints import (
     websockets,
     auth,
     map,
-    ape,
+    energy,
     layers,
     prompts,
     feedback,
@@ -22,7 +22,7 @@ api_router.include_router(analysis.router, prefix="/analysis", tags=["analysis"]
 api_router.include_router(buildings.router, tags=["buildings"])
 api_router.include_router(websockets.router, tags=["websockets"])
 api_router.include_router(map.router, prefix="/map", tags=["map"])
-api_router.include_router(ape.router, prefix="/ape", tags=["ape"])
+api_router.include_router(energy.router, prefix="/energy", tags=["energy"])
 api_router.include_router(layers.router, tags=["layers"])
 api_router.include_router(prompts.router, prefix="/prompts", tags=["prompts"])
 api_router.include_router(feedback.router, prefix="/feedback", tags=["feedback"])
@@ -31,7 +31,7 @@ api_router.include_router(feedback.router, prefix="/feedback", tags=["feedback"]
 
 # Placeholder routers (will be implemented later)
 # api_router.include_router(map.router, prefix="/map", tags=["map"])
-# api_router.include_router(ape.router, prefix="/ape", tags=["ape"])
+# api_router.include_router(energy.router, prefix="/energy", tags=["energy"])
 # api_router.include_router(feedback.router, prefix="/feedback", tags=["feedback"])
 
 
@@ -39,7 +39,7 @@ api_router.include_router(feedback.router, prefix="/feedback", tags=["feedback"]
 async def api_root():
     """API root endpoint."""
     return {
-        "message": "MEF-Immobili API v1",
+        "message": "RealEstate-AI API v1",
         "docs": "/docs",
         "health": "/health",
         "endpoints": {

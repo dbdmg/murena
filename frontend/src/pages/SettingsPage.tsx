@@ -174,7 +174,7 @@ export const SettingsPage: React.FC = () => {
                 </div>
                 <div>
                     <h1 className="text-2xl font-bold text-white">Impostazioni</h1>
-                    <p className="text-sm text-gray-400">Configura ResPublica AI</p>
+                    <p className="text-sm text-gray-400">Configura RealEstate AI</p>
                 </div>
             </div>
 
@@ -506,7 +506,7 @@ export const SettingsPage: React.FC = () => {
             {/* Footer */}
             <div className="mt-8 pt-6 border-t border-white/10 text-center">
                 <p className="text-xs text-gray-500">
-                    ResPublica AI v0.9.2 Alpha • Le modifiche vengono salvate automaticamente
+                    RealEstate AI v1.0.0 • Le modifiche vengono salvate automaticamente
                 </p>
             </div>
         </div>

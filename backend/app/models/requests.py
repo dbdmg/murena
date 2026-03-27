@@ -38,7 +38,7 @@ class AnalysisRequest(BaseModel):
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
-                "query": "Appartamenti a Torino vicino al Politecnico con classe energetica A",
+                "query": "Apartments in Turin near the Polytechnic with energy class A",
                 "dataset_key": "full",
                 "map_limit": 500,
                 "llm_limit": 10,
@@ -113,36 +113,36 @@ class BuildingFilters(BaseModel):
     is_evaluated: Optional[bool] = Field(
         None, description="Filter by evaluation status"
     )
-    epoche_costruzione: Optional[List[str]] = Field(
+    construction_periods: Optional[List[str]] = Field(
         None,
-        description="List of construction periods (e.g. 'Prima del 1919', 'Dal 1919 al 1945')",
+        description="List of construction periods (e.g. 'Before 1919', 'From 1919 to 1945')",
     )
     property_types: Optional[List[str]] = Field(
         None, description="List of property types to include"
     )
-    utilizzo_bene: Optional[List[str]] = Field(
+    asset_utilization: Optional[List[str]] = Field(
         None,
-        description="List of asset utilization statuses (Utilizzato direttamente, Non utilizzato, etc.)",
+        description="List of asset utilization statuses (Directly used, Not used, etc.)",
     )
-    vincolo_culturale: Optional[List[str]] = Field(
+    cultural_constraints: Optional[List[str]] = Field(
         None, description="List of cultural constraint types"
     )
-    is_meta_immobile: Optional[bool] = Field(
-        None, description="Filter by meta immobile status (True = meta immobili only)"
+    is_meta_building: Optional[bool] = Field(
+        None, description="Filter by meta building status (True = meta buildings only)"
     )
-    natura_bene: Optional[str] = Field(
-        None, description="Filter by asset nature (FABBRICATO or TERRENO)"
+    asset_nature: Optional[str] = Field(
+        None, description="Filter by asset nature (BUILDING or LAND)"
     )
 
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
-                "city": "Roma",
+                "city": "Rome",
                 "min_surface": 50,
                 "max_surface": 150,
                 "energy_classes": ["A1", "B"],
                 "min_score": 70,
-                "epoche_costruzione": ["Dal 1991 al 2000", "Dopo il 2010"],
+                "construction_periods": ["From 1991 to 2000", "After 2010"],
             }
         }
     )

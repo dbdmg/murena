@@ -59,13 +59,13 @@ class MapService:
         Get GeoJSON overlay by type.
 
         Args:
-            overlay_type: 'municipi', 'omi', or 'urbanistiche'
+            overlay_type: 'municipalities', 'omi', or 'urban'
         """
-        if overlay_type == "municipi":
+        if overlay_type == "municipalities" or overlay_type == "municipi":
             return self._load_geojson(settings.MUNICIPI_GEOJSON)
         elif overlay_type == "omi":
             return self._load_geojson(settings.ZONE_OMI_GEOJSON)
-        elif overlay_type == "urbanistiche":
+        elif overlay_type == "urban" or overlay_type == "urbanistiche":
             return self._load_geojson(settings.ZONE_URBANISTICHE_GEOJSON)
         else:
             return None
@@ -115,13 +115,13 @@ class MapService:
                         "bathrooms": b.bathrooms,
                         "floor": b.floor,
                         "is_evaluated": b.is_evaluated,
-                        "meta_building": b.meta_building,
+                        "is_meta_building": b.is_meta_building,
                         # New metadata fields
-                        "meta_immobile": b.meta_immobile,
-                        "canone_annuale": b.canone_annuale,
-                        "tipo_detenzione_a_terzi": b.tipo_detenzione_a_terzi,
-                        "data_decorrenza": b.data_decorrenza,
-                        "numero_immobili_per_catasto": b.numero_immobili_per_catasto,
+                        "meta_property": b.meta_property,
+                        "annual_rent": b.annual_rent,
+                        "third_party_tenure_type": b.third_party_tenure_type,
+                        "start_date": b.start_date,
+                        "cadastral_units_count": b.cadastral_units_count,
                         "id_list": b.id_list,
                         # Extended property info
                         "property_type": b.property_type,
@@ -131,51 +131,51 @@ class MapService:
                         "omi_zone": b.omi_zone,
                         "cadastral_sheet": b.cadastral_sheet,
                         "cadastral_parcel": b.cadastral_parcel,
-                        # APE scores if available
-                        "ape_scores": (
+                        # Energy scores if available
+                        "energy_scores": (
                             {
-                                "total": b.ape_scores.total if b.ape_scores else None,
+                                "total": b.energy_scores.total if b.energy_scores else None,
                                 "class_score": (
-                                    b.ape_scores.class_score if b.ape_scores else None
+                                    b.energy_scores.class_score if b.energy_scores else None
                                 ),
-                                "system_score": (
-                                    b.ape_scores.system_score if b.ape_scores else None
+                                "plant_score": (
+                                    b.energy_scores.plant_score if b.energy_scores else None
                                 ),
                                 "envelope_score": (
-                                    b.ape_scores.envelope_score
-                                    if b.ape_scores
+                                    b.energy_scores.envelope_score
+                                    if b.energy_scores
                                     else None
                                 ),
                                 "renewables_score": (
-                                    b.ape_scores.renewables_score
-                                    if b.ape_scores
+                                    b.energy_scores.renewables_score
+                                    if b.energy_scores
                                     else None
                                 ),
                             }
-                            if b.ape_scores
+                            if b.energy_scores
                             else None
                         ),
-                        # POI scores if available
-                        "poi_scores": (
+                        # Proximity scores if available
+                        "proximity_scores": (
                             {
-                                "health": b.poi_scores.health if b.poi_scores else None,
+                                "healthcare": b.proximity_scores.healthcare if b.proximity_scores else None,
                                 "mobility": (
-                                    b.poi_scores.mobility if b.poi_scores else None
+                                    b.proximity_scores.mobility if b.proximity_scores else None
                                 ),
-                                "green": b.poi_scores.green if b.poi_scores else None,
+                                "greenery": b.proximity_scores.greenery if b.proximity_scores else None,
                                 "education": (
-                                    b.poi_scores.education if b.poi_scores else None
+                                    b.proximity_scores.education if b.proximity_scores else None
                                 ),
-                                "shopping": (
-                                    b.poi_scores.shopping if b.poi_scores else None
+                                "commerce": (
+                                    b.proximity_scores.commerce if b.proximity_scores else None
                                 ),
-                                "sport": b.poi_scores.sport if b.poi_scores else None,
+                                "sport": b.proximity_scores.sport if b.proximity_scores else None,
                             }
-                            if b.poi_scores
+                            if b.proximity_scores
                             else None
                         ),
-                        # APE files list
-                        "ape_files": b.ape_files,
+                        # Energy files list
+                        "energy_files": b.energy_files,
                         # Sub-properties for meta immobili
                         "sub_properties": (
                             [

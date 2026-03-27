@@ -34,8 +34,8 @@ ENERGY_COSTS = {
 
 # Usage type labels
 USAGE_TYPE_LABELS = {
-    0: "Residenziale",
-    1: "Uffici/Commerciale",
+    0: "Residential",
+    1: "Office/Commercial",
 }
 
 # Default electricity cost for kWh-based calculations
@@ -218,22 +218,22 @@ class EnergyScoreCalculator:
         if usage_type is not None and usage_type in self._distributions:
             dist = self._distributions[usage_type]
             usage_label = USAGE_TYPE_LABELS.get(
-                int(usage_type), f"Tipo {int(usage_type)}"
+                int(usage_type), f"Type {int(usage_type)}"
             )
         else:
             dist = self._global_distribution
-            usage_label = "Media generale"
+            usage_label = "General average"
 
         return {
-            "ape_score": score,
+            "energy_score": score,
             "kwh_per_sqm": round(kwh_per_sqm, 1),
-            "consumo_kwh_anno": round(total_kwh, 0),
-            "costo_annuo_euro": round(annual_cost, 2),
-            "costo_per_mq_anno": round(kwh_per_sqm * DEFAULT_KWH_COST, 2),
-            "confronto": {
-                "tipo_uso": usage_label,
-                "media_kwh_mq": round(dist["mean"], 1) if dist else None,
-                "differenza_percentuale": (
+            "annual_kwh_consumption": round(total_kwh, 0),
+            "annual_cost_estimate": round(annual_cost, 2),
+            "cost_per_sqm_year": round(kwh_per_sqm * DEFAULT_KWH_COST, 2),
+            "comparison": {
+                "usage_type": usage_label,
+                "average_kwh_sqm": round(dist["mean"], 1) if dist else None,
+                "percentage_difference": (
                     round(((kwh_per_sqm - dist["mean"]) / dist["mean"]) * 100, 1)
                     if dist and dist["mean"] > 0
                     else None
@@ -241,12 +241,12 @@ class EnergyScoreCalculator:
             },
         }
 
-    def get_score_for_ape(self, filename: str) -> Optional[Dict[str, Any]]:
+    def get_score_for_energy_file(self, filename: str) -> Optional[Dict[str, Any]]:
         """
-        Get energy score details for a specific APE file.
+        Get all score details for a specific energy certificate file.
 
         Args:
-            filename: APE filename
+            filename: The file identifier
 
         Returns:
             Score details or None if not found
@@ -273,9 +273,9 @@ class EnergyScoreCalculator:
         details = self.get_score_details(kwh_per_sqm, superficie, usage_type)
 
         # Add class comparison
-        classe = row.get("classe")
-        if classe:
-            details["classe_energetica"] = classe
+        class_val = row.get("classe")
+        if class_val:
+            details["energy_class"] = class_val
 
         return details
 
@@ -330,14 +330,14 @@ def calculate_energy_score(
     return get_energy_calculator().get_score(kwh_per_sqm, usage_type)
 
 
-def get_ape_score_details(filename: str) -> Optional[Dict[str, Any]]:
+def get_energy_score_details(filename: str) -> Optional[Dict[str, Any]]:
     """
-    Convenience function to get APE score details.
+    Convenience function to get energy certificate score details.
 
     Args:
-        filename: APE filename
+        filename: Energy certificate filename
 
     Returns:
         Score details or None
     """
-    return get_energy_calculator().get_score_for_ape(filename)
+    return get_energy_calculator().get_score_for_energy_file(filename)

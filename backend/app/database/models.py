@@ -1,5 +1,5 @@
 """
-SQLAlchemy database models for MEF-Immobili backend.
+SQLAlchemy database models for RealEstate-AI backend.
 
 Models:
 - User: User accounts and authentication

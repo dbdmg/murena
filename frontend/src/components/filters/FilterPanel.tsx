@@ -20,13 +20,13 @@ export interface FilterState {
     energyClasses: string[];
     minSurface: number | null;
     maxSurface: number | null;
-    epocheCostruzione: string[];
-    tipologiaBene: string[];
-    utilizzo: string[];
-    vincolo: string[];
-    isMetaImmobile: boolean | null;
-    naturaBene: string | null;
-    hasApe: boolean | null;  // Filter for buildings with/without APE
+    constructionPeriods: string[];
+    propertyTypes: string[];
+    usage: string[];
+    constraints: string[];
+    isMetaBuilding: boolean | null;
+    legalNature: string | null;
+    hasEPC: boolean | null;  // Filter for buildings with/without EPC
     // Intelligence Map filters
     showOnlyTopPicks: boolean;
     showOnlyResults: boolean;
@@ -37,13 +37,13 @@ export const defaultFilters: FilterState = {
     energyClasses: [],
     minSurface: null,
     maxSurface: null,
-    epocheCostruzione: [],
-    tipologiaBene: [],
-    utilizzo: [],
-    vincolo: [],
-    isMetaImmobile: null,
-    naturaBene: null,
-    hasApe: null,
+    constructionPeriods: [],
+    propertyTypes: [],
+    usage: [],
+    constraints: [],
+    isMetaBuilding: null,
+    legalNature: null,
+    hasEPC: null,
     showOnlyTopPicks: false,
     showOnlyResults: false,
 };
@@ -55,45 +55,45 @@ interface FilterPanelProps {
 
 // Real values from db_metadata.json
 const ENERGY_CLASSES = ['A1', 'A2', 'A4', 'B', 'C', 'D', 'E', 'F', 'G'];
-const EPOCHE_COSTRUZIONE = [
-    'Prima del 1919',
-    'Dal 1919 al 1945',
-    'Dal 1946 al 1960',
-    'Dal 1961 al 1970',
-    'Dal 1971 al 1980',
-    'Dal 1981 al 1990',
-    'Dal 1991 al 2000',
-    'Dal 2001 al 2010',
-    'Dopo il 2010',
+const CONSTRUCTION_PERIODS = [
+    'Before 1919',
+    '1919 to 1945',
+    '1946 to 1960',
+    '1961 to 1970',
+    '1971 to 1980',
+    '1981 to 1990',
+    '1991 to 2000',
+    '2001 to 2010',
+    'After 2010',
 ];
 
-const TIPOLOGIE_BENE = [
-    'Abitazione',
-    'Ufficio strutturato ed assimilabili',
-    'Locale commerciale, negozio',
-    'Magazzino e locali di deposito',
-    'Fabbricato per attività produttiva (industriale, artigianale o agricola)',
-    'Edificio scolastico',
-    'Biblioteca, pinacoteca, museo, gallerie',
-    'Ospedali, case di cura, cliniche e assimilabili',
-    'Palazzo storico, castello',
-    'Teatro, cinematografo',
-    'Impianto sportivo',
-    'Parcheggio collettivo',
+const PROPERTY_TYPES = [
+    'Residential',
+    'Office building',
+    'Commercial space, shop',
+    'Warehouse and storage',
+    'Industrial/Artisanal/Agricultural building',
+    'School building',
+    'Library, Museum, Gallery',
+    'Hospital, Clinic',
+    'Historical palace, Castle',
+    'Theatre, Cinema',
+    'Sports facility',
+    'Public parking',
 ];
 
-const UTILIZZO_BENE = [
-    'Utilizzato direttamente',
-    'Non utilizzato',
-    'In ristrutturazione/manutenzione',
-    'Inutilizzabile',
+const PROPERTY_USAGE = [
+    'Directly used',
+    'Unused',
+    'Under renovation/maintenance',
+    'Unusable',
 ];
 
-const VINCOLI = [
-    'Nessuno',
-    'Dichiarazione di interesse culturale',
-    'Dichiarazione di notevole interesse pubblico',
-    'Verifica dell\'interesse culturale in corso',
+const CONSTRAINTS = [
+    'None',
+    'Cultural interest declaration',
+    'Public interest declaration',
+    'Cultural interest verification in progress',
 ];
 
 const getEnergyClassColor = (cls: string, isSelected: boolean) => {
@@ -111,7 +111,7 @@ const getEnergyClassColor = (cls: string, isSelected: boolean) => {
     }
 };
 
-type ActiveDropdown = 'energy' | 'surface' | 'epoca' | 'tipologia' | 'utilizzo' | 'vincolo' | 'more' | null;
+type ActiveDropdown = 'energy' | 'surface' | 'period' | 'type' | 'usage' | 'constraint' | 'more' | null;
 
 export const FilterPanel: React.FC<FilterPanelProps> = ({
     filters,
@@ -124,13 +124,13 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
     const activeFilterCount = [
         filters.energyClasses.length > 0,
         filters.minSurface !== null || filters.maxSurface !== null,
-        filters.epocheCostruzione.length > 0,
-        filters.tipologiaBene.length > 0,
-        filters.utilizzo.length > 0,
-        filters.vincolo.length > 0,
-        filters.isMetaImmobile !== null,
-        filters.naturaBene !== null,
-        filters.hasApe !== null,
+        filters.constructionPeriods.length > 0,
+        filters.propertyTypes.length > 0,
+        filters.usage.length > 0,
+        filters.constraints.length > 0,
+        filters.isMetaBuilding !== null,
+        filters.legalNature !== null,
+        filters.hasEPC !== null,
         filters.showOnlyTopPicks,
         filters.showOnlyResults,
     ].filter(Boolean).length;
@@ -149,7 +149,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
     }, []);
 
     // Toggle array filter
-    const toggleArrayFilter = (key: 'energyClasses' | 'epocheCostruzione' | 'tipologiaBene' | 'utilizzo' | 'vincolo', value: string) => {
+    const toggleArrayFilter = (key: 'energyClasses' | 'constructionPeriods' | 'propertyTypes' | 'usage' | 'constraints', value: string) => {
         const current = filters[key] as string[];
         const newValues = current.includes(value)
             ? current.filter(v => v !== value)
@@ -166,29 +166,29 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
         switch (type) {
             case 'energy':
                 return filters.energyClasses.length > 0
-                    ? `Classe: ${filters.energyClasses.slice(0, 3).join(', ')}${filters.energyClasses.length > 3 ? '...' : ''}`
-                    : 'Classe Energetica';
+                    ? `Class: ${filters.energyClasses.slice(0, 3).join(', ')}${filters.energyClasses.length > 3 ? '...' : ''}`
+                    : 'Energy Class';
             case 'surface':
                 if (filters.minSurface && filters.maxSurface) return `${filters.minSurface}-${filters.maxSurface}m²`;
                 if (filters.minSurface) return `≥${filters.minSurface}m²`;
                 if (filters.maxSurface) return `≤${filters.maxSurface}m²`;
-                return 'Superficie';
-            case 'epoca':
-                return filters.epocheCostruzione.length > 0
-                    ? `${filters.epocheCostruzione.length} periodi`
-                    : 'Epoca';
-            case 'tipologia':
-                return filters.tipologiaBene.length > 0
-                    ? `${filters.tipologiaBene.length} tipologie`
-                    : 'Tipologia';
-            case 'utilizzo':
-                return filters.utilizzo.length > 0
-                    ? `${filters.utilizzo.length} utilizzi`
-                    : 'Utilizzo';
-            case 'vincolo':
-                return filters.vincolo.length > 0
-                    ? `${filters.vincolo.length} vincoli`
-                    : 'Vincolo';
+                return 'Surface area';
+            case 'period':
+                return filters.constructionPeriods.length > 0
+                    ? `${filters.constructionPeriods.length} periods`
+                    : 'Period';
+            case 'type':
+                return filters.propertyTypes.length > 0
+                    ? `${filters.propertyTypes.length} types`
+                    : 'Type';
+            case 'usage':
+                return filters.usage.length > 0
+                    ? `${filters.usage.length} usage`
+                    : 'Usage';
+            case 'constraint':
+                return filters.constraints.length > 0
+                    ? `${filters.constraints.length} constraints`
+                    : 'Constraint';
             default:
                 return '';
         }
@@ -198,10 +198,10 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
         switch (type) {
             case 'energy': return filters.energyClasses.length > 0;
             case 'surface': return filters.minSurface !== null || filters.maxSurface !== null;
-            case 'epoca': return filters.epocheCostruzione.length > 0;
-            case 'tipologia': return filters.tipologiaBene.length > 0;
-            case 'utilizzo': return filters.utilizzo.length > 0;
-            case 'vincolo': return filters.vincolo.length > 0;
+            case 'period': return filters.constructionPeriods.length > 0;
+            case 'type': return filters.propertyTypes.length > 0;
+            case 'usage': return filters.usage.length > 0;
+            case 'constraint': return filters.constraints.length > 0;
             default: return false;
         }
     };
@@ -219,7 +219,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
                     <Filter className="w-4 h-4" />
                 </div>
 
-                {/* Main Filter Toggle Button (matches Livelli style) */}
+                {/* Main Filter Toggle Button */}
                 <button
                     onClick={() => setIsExpanded(!isExpanded)}
                     className={`
@@ -231,7 +231,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
                         }
                     `}
                 >
-                    <span className="font-medium">Filtri</span>
+                    <span className="font-medium">Filters</span>
                     {activeFilterCount > 0 && (
                         <span className="ml-1 bg-cyan-500/30 px-1.5 py-0.5 rounded-full text-[10px]">
                             {activeFilterCount}
@@ -265,36 +265,36 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
                         onToggle={() => setActiveDropdown(activeDropdown === 'surface' ? null : 'surface')}
                     />
                     <FilterChip
-                        type="epoca"
+                        type="period"
                         icon={<Calendar className="w-3.5 h-3.5" />}
-                        isActive={isChipActive('epoca')}
-                        isOpen={activeDropdown === 'epoca'}
-                        label={getChipLabel('epoca')}
-                        onToggle={() => setActiveDropdown(activeDropdown === 'epoca' ? null : 'epoca')}
+                        isActive={isChipActive('period')}
+                        isOpen={activeDropdown === 'period'}
+                        label={getChipLabel('period')}
+                        onToggle={() => setActiveDropdown(activeDropdown === 'period' ? null : 'period')}
                     />
                     <FilterChip
-                        type="tipologia"
+                        type="type"
                         icon={<Building2 className="w-3.5 h-3.5" />}
-                        isActive={isChipActive('tipologia')}
-                        isOpen={activeDropdown === 'tipologia'}
-                        label={getChipLabel('tipologia')}
-                        onToggle={() => setActiveDropdown(activeDropdown === 'tipologia' ? null : 'tipologia')}
+                        isActive={isChipActive('type')}
+                        isOpen={activeDropdown === 'type'}
+                        label={getChipLabel('type')}
+                        onToggle={() => setActiveDropdown(activeDropdown === 'type' ? null : 'type')}
                     />
                     <FilterChip
-                        type="utilizzo"
+                        type="usage"
                         icon={<Activity className="w-3.5 h-3.5" />}
-                        isActive={isChipActive('utilizzo')}
-                        isOpen={activeDropdown === 'utilizzo'}
-                        label={getChipLabel('utilizzo')}
-                        onToggle={() => setActiveDropdown(activeDropdown === 'utilizzo' ? null : 'utilizzo')}
+                        isActive={isChipActive('usage')}
+                        isOpen={activeDropdown === 'usage'}
+                        label={getChipLabel('usage')}
+                        onToggle={() => setActiveDropdown(activeDropdown === 'usage' ? null : 'usage')}
                     />
                     <FilterChip
-                        type="vincolo"
+                        type="constraint"
                         icon={<Shield className="w-3.5 h-3.5" />}
-                        isActive={isChipActive('vincolo')}
-                        isOpen={activeDropdown === 'vincolo'}
-                        label={getChipLabel('vincolo')}
-                        onToggle={() => setActiveDropdown(activeDropdown === 'vincolo' ? null : 'vincolo')}
+                        isActive={isChipActive('constraint')}
+                        isOpen={activeDropdown === 'constraint'}
+                        label={getChipLabel('constraint')}
+                        onToggle={() => setActiveDropdown(activeDropdown === 'constraint' ? null : 'constraint')}
                     />
 
                     {/* More Filters & Agent Tuner */}
@@ -303,7 +303,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
                         className={`
                             flex items-center gap-1 px-2 py-2 rounded-lg text-xs
                             transition-all border whitespace-nowrap
-                            ${(filters.isMetaImmobile !== null || filters.naturaBene !== null || filters.hasApe !== null || filters.showOnlyTopPicks || filters.showOnlyResults)
+                            ${(filters.isMetaBuilding !== null || filters.legalNature !== null || filters.hasEPC !== null || filters.showOnlyTopPicks || filters.showOnlyResults)
                                 ? 'bg-cyan-500/20 text-cyan-400 border-cyan-500/50'
                                 : 'bg-white/5 text-gray-500 border-white/10 hover:border-white/20'
                             }
@@ -321,7 +321,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
                         <button
                             onClick={handleReset}
                             className="flex items-center gap-1 px-2 py-1.5 text-xs text-gray-500 hover:text-red-400 transition-colors whitespace-nowrap"
-                            title="Reset filtri"
+                            title="Reset filters"
                         >
                             <RotateCcw className="w-3.5 h-3.5" />
                             Reset
@@ -341,7 +341,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2 text-sm text-gray-300">
                                         <Zap className="w-4 h-4 text-yellow-400" />
-                                        Classe Energetica
+                                        Energy Class
                                     </div>
                                     <button onClick={() => setActiveDropdown(null)} className="text-gray-500 hover:text-gray-300">
                                         <X className="w-4 h-4" />
@@ -372,7 +372,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2 text-sm text-gray-300">
                                         <Ruler className="w-4 h-4 text-blue-400" />
-                                        Superficie (m²)
+                                        Surface (m²)
                                     </div>
                                     <button onClick={() => setActiveDropdown(null)} className="text-gray-500 hover:text-gray-300">
                                         <X className="w-4 h-4" />
@@ -404,71 +404,71 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
                             </div>
                         )}
 
-                        {/* Epoca Dropdown */}
-                        {activeDropdown === 'epoca' && (
+                        {/* Period Dropdown */}
+                        {activeDropdown === 'period' && (
                             <div className="space-y-3 max-w-[320px]">
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2 text-sm text-gray-300">
                                         <Calendar className="w-4 h-4 text-purple-400" />
-                                        Epoca Costruzione
+                                        Construction Period
                                     </div>
                                     <button onClick={() => setActiveDropdown(null)} className="text-gray-500 hover:text-gray-300">
                                         <X className="w-4 h-4" />
                                     </button>
                                 </div>
                                 <div className="grid grid-cols-2 gap-2">
-                                    {EPOCHE_COSTRUZIONE.map(epoca => (
+                                    {CONSTRUCTION_PERIODS.map(period => (
                                         <button
-                                            key={epoca}
-                                            onClick={() => toggleArrayFilter('epocheCostruzione', epoca)}
+                                            key={period}
+                                            onClick={() => toggleArrayFilter('constructionPeriods', period)}
                                             className={`
                                                 px-2 py-1.5 rounded-lg text-[11px] transition-all
                                                 border flex items-center gap-1 text-left
-                                                ${filters.epocheCostruzione.includes(epoca)
+                                                ${filters.constructionPeriods.includes(period)
                                                     ? 'bg-purple-500/20 text-purple-400 border-purple-500/50'
                                                     : 'bg-white/5 text-gray-500 border-white/10 hover:border-white/20'
                                                 }
                                             `}
                                         >
-                                            {filters.epocheCostruzione.includes(epoca) && <Check className="w-3 h-3 shrink-0" />}
-                                            <span className="truncate">{epoca}</span>
+                                            {filters.constructionPeriods.includes(period) && <Check className="w-3 h-3 shrink-0" />}
+                                            <span className="truncate">{period}</span>
                                         </button>
                                     ))}
                                 </div>
                             </div>
                         )}
 
-                        {/* Tipologia Dropdown */}
-                        {activeDropdown === 'tipologia' && (
+                        {/* Type Dropdown */}
+                        {activeDropdown === 'type' && (
                             <div className="space-y-3 min-w-[300px] max-w-[400px]">
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2 text-sm text-gray-300">
                                         <Building2 className="w-4 h-4 text-indigo-400" />
-                                        Tipologia Bene
+                                        Property Type
                                     </div>
                                     <button onClick={() => setActiveDropdown(null)} className="text-gray-500 hover:text-gray-300">
                                         <X className="w-4 h-4" />
                                     </button>
                                 </div>
                                 <div className="space-y-1 max-h-[250px] overflow-y-auto pr-2">
-                                    {TIPOLOGIE_BENE.map(tipo => (
+                                    {PROPERTY_TYPES.map(tipo => (
                                         <button
                                             key={tipo}
-                                            onClick={() => toggleArrayFilter('tipologiaBene', tipo)}
+                                            onClick={() => toggleArrayFilter('propertyTypes', tipo)}
                                             className={`
                                                 w-full px-3 py-2 rounded-lg text-xs transition-all
                                                 border flex items-center gap-2 text-left
-                                                ${filters.tipologiaBene.includes(tipo)
+                                                ${filters.propertyTypes.includes(tipo)
                                                     ? 'bg-indigo-500/20 text-indigo-400 border-indigo-500/50'
                                                     : 'bg-white/5 text-gray-400 border-white/10 hover:border-white/20'
                                                 }
                                             `}
                                         >
-                                            <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${filters.tipologiaBene.includes(tipo)
+                                            <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${filters.propertyTypes.includes(tipo)
                                                 ? 'border-indigo-400 bg-indigo-500/30'
                                                 : 'border-white/20'
                                                 }`}>
-                                                {filters.tipologiaBene.includes(tipo) && <Check className="w-3 h-3" />}
+                                                {filters.propertyTypes.includes(tipo) && <Check className="w-3 h-3" />}
                                             </div>
                                             <span className="truncate">{tipo}</span>
                                         </button>
@@ -477,37 +477,37 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
                             </div>
                         )}
 
-                        {/* Utilizzo Dropdown */}
-                        {activeDropdown === 'utilizzo' && (
+                        {/* Usage Dropdown */}
+                        {activeDropdown === 'usage' && (
                             <div className="space-y-3 min-w-[260px]">
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2 text-sm text-gray-300">
                                         <Activity className="w-4 h-4 text-teal-400" />
-                                        Utilizzo del Bene
+                                        Property Usage
                                     </div>
                                     <button onClick={() => setActiveDropdown(null)} className="text-gray-500 hover:text-gray-300">
                                         <X className="w-4 h-4" />
                                     </button>
                                 </div>
                                 <div className="space-y-1">
-                                    {UTILIZZO_BENE.map(uso => (
+                                    {PROPERTY_USAGE.map(uso => (
                                         <button
                                             key={uso}
-                                            onClick={() => toggleArrayFilter('utilizzo', uso)}
+                                            onClick={() => toggleArrayFilter('usage', uso)}
                                             className={`
                                                 w-full px-3 py-2 rounded-lg text-xs transition-all
                                                 border flex items-center gap-2 text-left
-                                                ${filters.utilizzo.includes(uso)
+                                                ${filters.usage.includes(uso)
                                                     ? 'bg-teal-500/20 text-teal-400 border-teal-500/50'
                                                     : 'bg-white/5 text-gray-400 border-white/10 hover:border-white/20'
                                                 }
                                             `}
                                         >
-                                            <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${filters.utilizzo.includes(uso)
+                                            <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${filters.usage.includes(uso)
                                                 ? 'border-teal-400 bg-teal-500/30'
                                                 : 'border-white/20'
                                                 }`}>
-                                                {filters.utilizzo.includes(uso) && <Check className="w-3 h-3" />}
+                                                {filters.usage.includes(uso) && <Check className="w-3 h-3" />}
                                             </div>
                                             <span>{uso}</span>
                                         </button>
@@ -516,37 +516,37 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
                             </div>
                         )}
 
-                        {/* Vincolo Dropdown */}
-                        {activeDropdown === 'vincolo' && (
+                        {/* Constraint Dropdown */}
+                        {activeDropdown === 'constraint' && (
                             <div className="space-y-3 min-w-[280px]">
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2 text-sm text-gray-300">
                                         <Shield className="w-4 h-4 text-amber-400" />
-                                        Vincolo Culturale
+                                        Cultural Constraint
                                     </div>
                                     <button onClick={() => setActiveDropdown(null)} className="text-gray-500 hover:text-gray-300">
                                         <X className="w-4 h-4" />
                                     </button>
                                 </div>
                                 <div className="space-y-1">
-                                    {VINCOLI.map(vincolo => (
+                                    {CONSTRAINTS.map(vincolo => (
                                         <button
                                             key={vincolo}
-                                            onClick={() => toggleArrayFilter('vincolo', vincolo)}
+                                            onClick={() => toggleArrayFilter('constraints', vincolo)}
                                             className={`
                                                 w-full px-3 py-2 rounded-lg text-xs transition-all
                                                 border flex items-center gap-2 text-left
-                                                ${filters.vincolo.includes(vincolo)
+                                                ${filters.constraints.includes(vincolo)
                                                     ? 'bg-amber-500/20 text-amber-400 border-amber-500/50'
                                                     : 'bg-white/5 text-gray-400 border-white/10 hover:border-white/20'
                                                 }
                                             `}
                                         >
-                                            <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${filters.vincolo.includes(vincolo)
+                                            <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${filters.constraints.includes(vincolo)
                                                 ? 'border-amber-400 bg-amber-500/30'
                                                 : 'border-white/20'
                                                 }`}>
-                                                {filters.vincolo.includes(vincolo) && <Check className="w-3 h-3" />}
+                                                {filters.constraints.includes(vincolo) && <Check className="w-3 h-3" />}
                                             </div>
                                             <span className="truncate">{vincolo}</span>
                                         </button>
@@ -572,7 +572,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
                                 <div className="border-t border-white/10 pt-3">
                                     <div className="text-xs text-gray-400 mb-2 flex items-center gap-1.5">
                                         <Target className="w-3 h-3" />
-                                        Visualizzazione Mappa
+                                        Map Visualization
                                     </div>
                                     <div className="space-y-2">
                                         <button
@@ -590,7 +590,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
                                             `}
                                         >
                                             <Sparkles className="w-4 h-4" />
-                                            <span>Solo Top Picks AI</span>
+                                            <span>AI Top Picks Only</span>
                                             {filters.showOnlyTopPicks && <Check className="w-3.5 h-3.5 ml-auto" />}
                                         </button>
                                         <button
@@ -608,7 +608,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
                                             `}
                                         >
                                             <Target className="w-4 h-4" />
-                                            <span>Solo Risultati Ricerca</span>
+                                            <span>Search Results Only</span>
                                             {filters.showOnlyResults && <Check className="w-3.5 h-3.5 ml-auto" />}
                                         </button>
                                     </div>
@@ -616,35 +616,35 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
 
                                 <div className="border-t border-white/10 pt-3">
                                     <ToggleSwitch
-                                        label="Meta Immobile"
-                                        value={filters.isMetaImmobile}
-                                        onChange={(val) => onFiltersChange({ ...filters, isMetaImmobile: val })}
-                                        options={{ on: 'Solo Meta', off: 'Escludi' }}
+                                        label="Meta Building"
+                                        value={filters.isMetaBuilding}
+                                        onChange={(val) => onFiltersChange({ ...filters, isMetaBuilding: val })}
+                                        options={{ on: 'Solo Meta', off: 'Exclude' }}
                                     />
                                 </div>
 
                                 <div className="border-t border-white/10 pt-3">
                                     <ToggleSwitch
-                                        label="Certificati APE"
-                                        value={filters.hasApe}
-                                        onChange={(val) => onFiltersChange({ ...filters, hasApe: val })}
-                                        options={{ on: 'Con APE', off: 'Senza APE' }}
+                                        label="Energy Certificates (EPC)"
+                                        value={filters.hasEPC}
+                                        onChange={(val) => onFiltersChange({ ...filters, hasEPC: val })}
+                                        options={{ on: 'With EPC', off: 'Without EPC' }}
                                     />
                                 </div>
 
                                 <div className="border-t border-white/10 pt-3">
-                                    <div className="text-xs text-gray-400 mb-2">Natura del Bene</div>
+                                    <div className="text-xs text-gray-400 mb-2">Legal Nature</div>
                                     <div className="flex gap-2">
-                                        {['FABBRICATO', 'TERRENO'].map(natura => (
+                                        {['BUILDING', 'LAND'].map(natura => (
                                             <button
                                                 key={natura}
                                                 onClick={() => onFiltersChange({
                                                     ...filters,
-                                                    naturaBene: filters.naturaBene === natura ? null : natura
+                                                    legalNature: filters.legalNature === natura ? null : natura
                                                 })}
                                                 className={`
                                                     flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-all border
-                                                    ${filters.naturaBene === natura
+                                                    ${filters.legalNature === natura
                                                         ? 'bg-cyan-500/20 text-cyan-400 border-cyan-500/50'
                                                         : 'bg-white/5 text-gray-500 border-white/10 hover:border-white/20'
                                                     }
@@ -705,7 +705,7 @@ interface ToggleSwitchProps {
     options?: { on: string; off: string };
 }
 
-const ToggleSwitch: React.FC<ToggleSwitchProps> = ({ label, value, onChange, options = { on: 'Sì', off: 'No' } }) => (
+const ToggleSwitch: React.FC<ToggleSwitchProps> = ({ label, value, onChange, options = { on: 'Yes', off: 'No' } }) => (
     <div className="flex items-center justify-between gap-4 py-2">
         <span className="text-xs text-gray-400">{label}</span>
         <div className="flex items-center gap-1 bg-white/5 rounded-lg p-0.5">
@@ -725,7 +725,7 @@ const ToggleSwitch: React.FC<ToggleSwitchProps> = ({ label, value, onChange, opt
                     : 'text-gray-600 hover:text-gray-400'
                     }`}
             >
-                Tutti
+                All
             </button>
             <button
                 onClick={() => onChange(value === true ? null : true)}

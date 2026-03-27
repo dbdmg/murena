@@ -92,7 +92,7 @@ async def list_buildings(
 
         # Get buildings from service
         buildings, total = await real_estate_service.get_buildings(
-            filters=filters, limit=limit, offset=offset, dataset_key=dataset_key
+            filters=filters, limit=limit, offset=offset, dataset_key=dataset_key, db=db
         )
 
         # Calculate if more results are available

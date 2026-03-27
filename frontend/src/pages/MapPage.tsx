@@ -127,53 +127,51 @@ export const MapPage: React.FC = () => {
             result = result.filter(m => (m.surface_area || 0) <= filters.maxSurface!);
         }
 
-        // 3. Filter by Epoca Costruzione
-        if (filters.epocheCostruzione.length > 0) {
-            result = result.filter(m => m.construction_year && filters.epocheCostruzione.includes(m.construction_year));
+        // 3. Filter by Construction Period
+        if (filters.constructionPeriods.length > 0) {
+            result = result.filter(m => m.construction_year && filters.constructionPeriods.includes(m.construction_year));
         }
 
-        // 4. Filter by Tipologia Bene
-        if (filters.tipologiaBene.length > 0) {
-            result = result.filter(m => m.property_type && filters.tipologiaBene.includes(m.property_type));
+        // 4. Filter by Property Type
+        if (filters.propertyTypes.length > 0) {
+            result = result.filter(m => m.property_type && filters.propertyTypes.includes(m.property_type));
         }
 
-        // 5. Filter by Utilizzo
-        if (filters.utilizzo.length > 0) {
-            // Check description or explicit field if added in future
-            // Using description/usage text matching for now as per backend logic
+        // 5. Filter by Usage
+        if (filters.usage.length > 0) {
             result = result.filter(m => {
                 const desc = (m.description || '').toLowerCase();
-                return filters.utilizzo.some(u => desc.includes(u.toLowerCase()));
+                return filters.usage.some(u => desc.includes(u.toLowerCase()));
             });
         }
 
-        // 6. Filter by Vincolo
-        if (filters.vincolo.length > 0) {
+        // 6. Filter by Constraint
+        if (filters.constraints.length > 0) {
             result = result.filter(m => {
                 const vinc = (m.cultural_constraint || '').toLowerCase();
-                return filters.vincolo.some(v => vinc.includes(v.toLowerCase()));
+                return filters.constraints.some(v => vinc.includes(v.toLowerCase()));
             });
         }
 
-        // 7. Filter by Meta Immobile
-        if (filters.isMetaImmobile !== null) {
+        // 7. Filter by Meta Building
+        if (filters.isMetaBuilding !== null) {
             result = result.filter(m => {
-                const isMeta = m.meta_immobile === true || (m.meta_immobile as unknown as string) === 'true' || m.meta_building === true;
-                return filters.isMetaImmobile ? isMeta : !isMeta;
+                const isMeta = m.is_meta_building === true;
+                return filters.isMetaBuilding ? isMeta : !isMeta;
             });
         }
 
-        // 8. Filter by Natura Bene
-        if (filters.naturaBene) {
-            result = result.filter(m => m.legal_nature && m.legal_nature.toUpperCase() === filters.naturaBene!.toUpperCase());
+        // 8. Filter by Legal Nature
+        if (filters.legalNature) {
+            result = result.filter(m => m.legal_nature && m.legal_nature.toUpperCase() === filters.legalNature!.toUpperCase());
         }
 
-        // 9. Filter by has APE
-        if (filters.hasApe !== null) {
+        // 9. Filter by has EPC
+        if (filters.hasEPC !== null) {
             result = result.filter(m => {
-                // Check if building has APE (ape_files array or energy_class)
-                const hasApe = (m.ape_files && m.ape_files.length > 0) || !!m.energy_class;
-                return filters.hasApe ? hasApe : !hasApe;
+                // Check if building has Energy Certificate (energy_files array or energy_class)
+                const hasEPC = (m.energy_files && m.energy_files.length > 0) || !!m.energy_class;
+                return filters.hasEPC ? hasEPC : !hasEPC;
             });
         }
 
@@ -260,7 +258,7 @@ export const MapPage: React.FC = () => {
         }
 
         // Check if we need to fetch details (Tier 1 background markers usually lack details)
-        if (marker.tier === 1 || !marker.poi_scores) {
+        if (marker.tier === 1 || !marker.proximity_scores) {
             try {
                 // Fetch details
                 const fullBuilding = await buildingsApi.getBuilding(marker.id);
@@ -289,7 +287,7 @@ export const MapPage: React.FC = () => {
         // Fetch details for the first one at least, so something shows up.
         if (clusterMarkers.length > 0) {
             const first = clusterMarkers[0];
-            if (first.tier === 1 || !first.poi_scores) {
+            if (first.tier === 1 || !first.proximity_scores) {
                 try {
                     const fullBuilding = await buildingsApi.getBuilding(first.id);
                     const richMarker: MapMarker = {
@@ -430,7 +428,7 @@ export const MapPage: React.FC = () => {
                                 <Building2 className="w-3.5 h-3.5 text-slate-300" />
                             </div>
                             <div className="flex flex-col">
-                                <span className="text-xs text-slate-400 leading-none">Visibili</span>
+                                <span className="text-xs text-slate-400 leading-none">Visible</span>
                                 <span className="text-sm text-white font-bold leading-tight">{filteredMarkers.length}</span>
                             </div>
                         </div>
@@ -442,7 +440,7 @@ export const MapPage: React.FC = () => {
                                         <Building2 className="w-3.5 h-3.5 text-teal-400" />
                                     </div>
                                     <div className="flex flex-col">
-                                        <span className="text-xs text-slate-400 leading-none">Risultati</span>
+                                        <span className="text-xs text-slate-400 leading-none">Results</span>
                                         <span className="text-sm text-teal-400 font-bold leading-tight">
                                             {allMarkers.filter(m => m.tier === 2 || m.tier === 3).length}
                                         </span>
@@ -458,7 +456,7 @@ export const MapPage: React.FC = () => {
                                         <Sparkles className="w-3.5 h-3.5 text-amber-400" />
                                     </div>
                                     <div className="flex flex-col">
-                                        <span className="text-xs text-slate-400 leading-none">Top AI</span>
+                                        <span className="text-xs text-slate-400 leading-none">AI Top Picks</span>
                                         <span className="text-sm text-amber-400 font-bold leading-tight">{topPicks.length}</span>
                                     </div>
                                 </div>

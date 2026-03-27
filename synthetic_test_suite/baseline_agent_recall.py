@@ -181,10 +181,11 @@ def process_directory(results_dir: Path, agent_mapping: Dict[str, str], valid_id
     return results
 
 def run_recall_analysis():
-    synthetic_test_dir = Path("/home/mdeluca/real-estate-ai/synthetic_test_suite")
-    results_root = synthetic_test_dir / "results" / "outputs"
+    # Use relative paths based on the script's location for portability
+    synthetic_test_dir = Path(__file__).resolve().parent
+    results_root = synthetic_test_dir / "results"
     mapping_file = synthetic_test_dir / "agent_mapping.json"
-    sensitivity_csv = synthetic_test_dir / "results" / "sensitivity_queries_suite.csv"
+    sensitivity_csv = results_root / "sensitivity_queries_suite.csv"
     
     if not mapping_file.exists():
         print(f"Mapping file not found: {mapping_file}")

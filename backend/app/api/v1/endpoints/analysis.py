@@ -35,15 +35,15 @@ def _label_for_step_key(key: str) -> str:
         return ""
 
     base_labels = {
-        "location_extraction": "Estrazione località",
-        "property_technical_extraction": "Caratteristiche tecniche",
-        "needs_metric_plan": "Metriche e strategia",
-        "use_case_generation": "Generazione use case",
-        "sql_generation": "Generazione SQL",
-        "ape_analysis": "Analisi APE",
-        "poi_analysis": "Analisi POI",
-        "evaluation": "Valutazione",
-        "merge": "Finalizzazione risultati",
+        "location_extraction": "Location extraction",
+        "property_technical_extraction": "Technical features",
+        "needs_metric_plan": "Metrics and strategy",
+        "use_case_generation": "Use case generation",
+        "sql_generation": "SQL generation",
+        "ape_analysis": "Energy analysis",
+        "poi_analysis": "POI analysis",
+        "evaluation": "Evaluation",
+        "merge": "Result finalization",
         "broker_review": "Broker review",
         "agent_context": "Agent context",
         "_demo": "Demo metadata",
@@ -583,15 +583,15 @@ async def start_demo_run(
 
     # Define simulated steps for demo progress
     demo_steps = [
-        ("Estrazione località", 10),
-        ("Caratteristiche tecniche", 20),
-        ("Metriche e strategia", 35),
-        ("Generazione SQL", 50),
-        ("Analisi APE", 65),
-        ("Analisi POI", 75),
-        ("Valutazione", 85),
+        ("Location extraction", 10),
+        ("Technical features", 20),
+        ("Metrics and strategy", 35),
+        ("SQL generation", 50),
+        ("Energy analysis", 65),
+        ("POI analysis", 75),
+        ("Evaluation", 85),
         ("Broker review", 95),
-        ("Finalizzazione risultati", 100),
+        ("Result finalization", 100),
     ]
 
     async def simulate_demo_progress():
@@ -909,77 +909,75 @@ async def get_analysis(
 
                         # Enrich surface_area if missing
                         if building.surface_area is None:
-                            val = row.get("superficie_di_riferimento_mq")
+                            val = row.get("surface_area")
                             if pd.notna(val):
                                 building.surface_area = float(val)
 
                         # Enrich property_type if missing
                         if building.property_type is None:
-                            val = row.get("tipologia_bene_immobile")
+                            val = row.get("property_type")
                             if pd.notna(val):
                                 building.property_type = str(val)
 
                         # Enrich construction_year if missing
                         if building.construction_year is None:
-                            val = row.get("epoca_costruzione")
+                            val = row.get("construction_period")
                             if pd.notna(val):
                                 building.construction_year = str(val)
 
                         # Enrich energy_class if missing
                         if building.energy_class is None:
-                            val = row.get("classe_energetica_ape")
+                            val = row.get("energy_class")
                             if pd.notna(val):
                                 building.energy_class = str(val)
 
-                        # Enrich ape_scores if missing
-                        if building.ape_scores is None:
-                            ape_total = row.get("ape_score_total")
-                            if pd.notna(ape_total):
-                                cls = row.get("ape_score_classe")
-                                sys_score = row.get("ape_score_impianto")
-                                env = row.get("ape_score_involucro")
-                                ren = row.get("ape_score_rinnovabili")
-                                if all(pd.notna(x) for x in [cls, sys_score, env, ren]):
-                                    building.ape_scores = APEScores(
-                                        total=float(ape_total),
-                                        class_score=int(float(cls)),
-                                        system_score=int(float(sys_score)),
-                                        envelope_score=int(float(env)),
-                                        renewables_score=int(float(ren)),
+                        # Enrich energy_scores if missing
+                        if building.energy_scores is None:
+                            energy_total = row.get("energy_total_points")
+                            if pd.notna(energy_total):
+                                cls_score = row.get("energy_score_class")
+                                plant_score = row.get("energy_score_plant")
+                                env_score = row.get("energy_score_envelope")
+                                ren_score = row.get("energy_score_renewables")
+                                if all(pd.notna(x) for x in [cls_score, plant_score, env_score, ren_score]):
+                                    building.energy_scores = EnergyScores(
+                                        total=float(energy_total),
+                                        class_score=int(float(cls_score)),
+                                        plant_score=int(float(plant_score)),
+                                        envelope_score=int(float(env_score)),
+                                        renewables_score=int(float(ren_score)),
                                     )
 
-                        # Enrich poi_scores if missing
-                        if building.poi_scores is None:
-                            poi_fields = {
-                                "health": "sanita",
-                                "mobility": "mobilita",
-                                "green": "verde",
-                                "education": "educazione",
-                                "shopping": "commerciale",
+                        # Enrich proximity_scores if missing
+                        if building.proximity_scores is None:
+                            proximity_fields = {
+                                "healthcare": "healthcare",
+                                "mobility": "mobility",
+                                "greenery": "greenery",
+                                "education": "education",
+                                "commerce": "commerce",
                                 "sport": "sport",
                             }
-                            poi_values = {}
+                            proximity_values = {}
                             has_any = False
-                            for poi_key, csv_key in poi_fields.items():
+                            for prox_key, csv_key in proximity_fields.items():
                                 val = row.get(csv_key)
                                 if pd.notna(val):
-                                    poi_values[poi_key] = float(val)
+                                    proximity_values[prox_key] = float(val)
                                     has_any = True
                                 else:
-                                    poi_values[poi_key] = None
+                                    proximity_values[prox_key] = None
 
                             if has_any:
-                                building.poi_scores = POIScores(**poi_values)
+                                building.proximity_scores = ProximityScores(**proximity_values)
 
-                        # Enrich ape_files if missing
-                        if not building.ape_files:
-                            ape_files_raw = row.get("lista_file_ape") or row.get(
-                                "list_file_ape_filtered"
-                            )
-                            if pd.notna(ape_files_raw) and ape_files_raw:
+                        # Enrich energy_files if missing
+                        if not building.energy_files:
+                            energy_files_raw = row.get("energy_files")
+                            if pd.notna(energy_files_raw) and energy_files_raw:
                                 try:
-                                    building.ape_files = ast.literal_eval(
-                                        str(ape_files_raw)
+                                    building.energy_files = ast.literal_eval(
+                                        str(energy_files_raw)
                                     )
                                 except Exception:
                                     pass
@@ -988,9 +986,9 @@ async def get_analysis(
                             f"Error enriching building {building.id}: {enrich_err}"
                         )
 
-                # Enrich meta immobili with sub_properties if missing
+                # Enrich meta properties with sub_properties if missing
                 if (
-                    building.meta_immobile
+                    building.is_meta_building
                     and building.id_list
                     and not building.sub_properties
                 ):
@@ -1025,22 +1023,22 @@ async def get_analysis(
                                             sub_row = sub_row.iloc[0]
                                         # Extract surface_area
                                         if (
-                                            "superficie_di_riferimento_mq"
+                                            "surface_area"
                                             in sub_row.index
                                         ):
                                             val = sub_row.get(
-                                                "superficie_di_riferimento_mq"
+                                                "surface_area"
                                             )
                                             if pd.notna(val):
                                                 sub_prop.surface_area = float(val)
                                         # Extract property_type
-                                        if "tipologia_bene_immobile" in sub_row.index:
-                                            val = sub_row.get("tipologia_bene_immobile")
+                                        if "property_type" in sub_row.index:
+                                            val = sub_row.get("property_type")
                                             if pd.notna(val):
                                                 sub_prop.property_type = str(val)
                                         # Extract energy_class
-                                        if "classe_energetica_ape" in sub_row.index:
-                                            val = sub_row.get("classe_energetica_ape")
+                                        if "energy_class" in sub_row.index:
+                                            val = sub_row.get("energy_class")
                                             if pd.notna(val):
                                                 sub_prop.energy_class = str(val)
                                     except Exception as sub_err:
