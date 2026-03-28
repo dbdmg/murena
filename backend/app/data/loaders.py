@@ -36,7 +36,9 @@ if os.path.exists(GEOCODE_CACHE_FILE):
     except Exception as e:
         logger.warning(f"Failed to load geocode cache: {e}")
 
-TORINO_LANDMARKS = {
+DEFAULT_CITY = os.getenv("DEFAULT_CITY", "Torino")
+
+LOCAL_LANDMARKS = {
     "palazzo nuovo": (45.068846, 7.691295),
     "porta susa": (45.0732, 7.6663),
     "porta nuova": (45.0622, 7.6785),
@@ -193,9 +195,8 @@ def get_coordinates(place_name):
 
     # 2. Local landmarks registry (Turin focused)
     clean_name = place_name.lower().strip()
-    for landmark, coords in TORINO_LANDMARKS.items():
+    for landmark, coords in LOCAL_LANDMARKS.items():
         if landmark in clean_name or (len(clean_name) > 3 and clean_name in landmark):
-            # logger.info(f"Geocoding match: '{place_name}' -> Landmark '{landmark}'")
             return coords
 
     # 3. Global file-based cache
@@ -208,11 +209,11 @@ def get_coordinates(place_name):
     
     # Config descriptions
     # 1. Bounded search (strict)
-    # 2. Unbounded search with Torino context
+    # 2. Unbounded search with local context
     queries = [
-        { "q": f"{place_name}, Torino, Piemonte, Italia", "bounded": 1 },
-        { "q": f"{place_name}, Torino, Italia", "bounded": 0 },
-        { "q": f"{place_name}, Piemonte, Italia", "bounded": 0 }
+        { "q": f"{place_name}, {DEFAULT_CITY}, Italia", "bounded": 1 },
+        { "q": f"{place_name}, {DEFAULT_CITY}, Italia", "bounded": 0 },
+        { "q": f"{place_name}, Italia", "bounded": 0 }
     ]
 
     for config in queries:
@@ -279,8 +280,7 @@ def load_static_data():
         pd.DataFrame: Station data
     """
     try:
-        stazioni_df = pd.read_csv("data/FOLDER_DATASET/station_dataframe.csv")
-        return stazioni_df
+        return pd.read_csv("data/datasets/station_dataframe.csv")
     except FileNotFoundError:
         logger.warning("Station file not found.")
         return pd.DataFrame(columns=["Lat", "Lon", "Linea", "Nome"])

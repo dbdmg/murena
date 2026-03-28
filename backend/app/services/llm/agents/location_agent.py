@@ -65,7 +65,7 @@ class LocationAgent(BaseAgent):
         **kwargs
     ) -> Union[LocationAgentResult, pd.DataFrame]:
         """
-        Esegue l'agente per estrarre luoghi (LLM) o calcolare il ranking (Deterministico).
+        Executes the agent to extract places (LLM) or calculate ranking (Deterministic).
         """
         try:
             if mode == "filtering":
@@ -76,7 +76,7 @@ class LocationAgent(BaseAgent):
                     places=kwargs.get("places")
                 )
             else:
-                raise ValueError(f"Modalità '{mode}' non supportata dal LocationAgent.")
+                raise ValueError(f"Mode '{mode}' not supported by LocationAgent.")
         except Exception as e:
             logger.error(f"Error in {self.name}.run ({mode}): {e}")
             import traceback
@@ -91,7 +91,7 @@ class LocationAgent(BaseAgent):
             return LocationAgentResult(raw_text="{}", found=False, places=[], prompt=None)
 
     def _run_filtering(self, query: str) -> LocationAgentResult:
-        """Modalità originale: estrazione entità geografiche tramite LLM + Geocoding."""
+        """Original mode: geographic entity extraction via LLM + Geocoding."""
         from app.data.loaders import get_coordinates
         from concurrent.futures import ThreadPoolExecutor
 
@@ -230,7 +230,7 @@ class LocationAgent(BaseAgent):
 
 
     def _run_ranking(self, *, df: pd.DataFrame, places: List[Place]) -> pd.DataFrame:
-        """Modalità ranking: calcolo score deterministico 0-100 basato sulla distanza."""
+        """Ranking mode: 0-100 deterministic score calculation based on distance."""
         if df is None or df.empty or not places:
             if df is not None:
                 df["location_score"] = 0

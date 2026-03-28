@@ -9,7 +9,6 @@ from app.api.v1.endpoints import (
     auth,
     map,
     energy,
-    layers,
     prompts,
     feedback,
 )
@@ -23,7 +22,6 @@ api_router.include_router(buildings.router, tags=["buildings"])
 api_router.include_router(websockets.router, tags=["websockets"])
 api_router.include_router(map.router, prefix="/map", tags=["map"])
 api_router.include_router(energy.router, prefix="/energy", tags=["energy"])
-api_router.include_router(layers.router, tags=["layers"])
 api_router.include_router(prompts.router, prefix="/prompts", tags=["prompts"])
 api_router.include_router(feedback.router, prefix="/feedback", tags=["feedback"])
 

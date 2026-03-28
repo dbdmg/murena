@@ -14,12 +14,19 @@ from sqlglot import exp, parse_one
 
 from app.services.analysis.ranking import calculate_ranking_score
 from app.core.config import settings
-from app.core.constants import SCORE_LEGEND, APE_SCORE_LEGEND, APE_AGENT_COLUMNS, NORMATIVE_AGENT_COLUMNS, POI_AGENT_COLUMNS, PROPERTY_TECHNICAL_AGENT_COLUMNS, ALL_AGENT_COLUMNS
+from app.core.constants import (
+    SCORE_LEGEND, 
+    ENERGY_SCORE_LEGEND, 
+    ENERGY_AGENT_COLUMNS, 
+    REGULATORY_AGENT_COLUMNS, 
+    PROXIMITY_AGENT_COLUMNS, 
+    BUILDING_AGENT_COLUMNS, 
+    ALL_AGENT_COLUMNS
+)
 
 MAX_ITEMS_FOR_LLM = settings.MAX_ITEMS_FOR_LLM
 MAX_ITEMS_FOR_MAP = settings.MAX_ITEMS_FOR_MAP
 MAX_LLM_CAP = settings.MAX_LLM_CAP
-USE_MOCK_RESPONSES = settings.USE_MOCK_RESPONSES
 from app.data.loaders import get_coordinates
 from app.data.processors import calculate_travel_times_df
 from app.services.llm.agents.energy_agent import EnergyAgent
@@ -51,13 +58,6 @@ from app.services.llm.agents.building_agent import BuildingAgent
 from app.services.llm.agents.ranking_agent import RankingAgent
 from app.utils.logger import logger
 from app.utils.json_parser import safe_extract_json
-from app.services.llm.mocks import (
-    MOCK_BUILDING,
-    MOCK_LOCATION,
-    MOCK_SQL_QUERY,
-    MOCK_EVALUATION,
-    MOCK_BROKER_SUMMARY,
-)
 from app.utils.run_json_logger import get_run_logger
 from dataclasses import dataclass, field
 import sqlparse
@@ -197,6 +197,11 @@ class GraphOrchestratorAgent(BaseAgent):
 
     def _build_graph(self) -> StateGraph:
         """Define and compile the LangGraph workflow structure.
+        
+        The workflow is organized into the three MURENA core phases:
+        - Phase 1: Multi-Agent Extraction (Identification of requirements)
+        - Phase 2: Technical Standardization & Scoring (SQL generation and ranking)
+        - Phase 3: Qualitative Evaluation & Review (Final narrative and review)
 
         Returns:
             A compiled StateGraph representing the multi-agent workflow.
@@ -204,7 +209,10 @@ class GraphOrchestratorAgent(BaseAgent):
         workflow = StateGraph(GraphState)
 
         # Register processing nodes
+        # Phase 1: Contextual Extraction
         workflow.add_node("analyze_request", self._analyze_request)
+        
+        # Phase 2: Technical Standardization & Search
         workflow.add_node("generate_sql", self._generate_sql)
         workflow.add_node("execute_sql", self._execute_sql)
         workflow.add_node("handle_retry", self._handle_retry)
@@ -212,6 +220,8 @@ class GraphOrchestratorAgent(BaseAgent):
         workflow.add_node("enrich_results", self._enrich_results)
         workflow.add_node("calculate_ranking_weights", self._calculate_ranking_weights)
         workflow.add_node("rank_results", self._rank_results)
+        
+        # Phase 3: Qualitative Evaluation & Strategic Review
         workflow.add_node("evaluate_results", self._evaluate_results)
         workflow.add_node("broker_review", self._broker_review)
         workflow.add_node("finalize_results", self._finalize_results)
@@ -961,10 +971,10 @@ class GraphOrchestratorAgent(BaseAgent):
             logger.error(f"Error calculating column statistics: {e}")
             return {"error": str(e)}
 
-    def _get_ape_statistics(self, dataset_path: str = None, dataset_df: pd.DataFrame = None, db_metadata: dict = None) -> dict:
-        """Wrapper per retrocompatibilità o logica specifica APE."""
+    def _get_energy_statistics(self, dataset_path: str = None, dataset_df: pd.DataFrame = None, db_metadata: dict = None) -> dict:
+        """Wrapper for retrocompatibility or specific Energy (EPC) logic."""
         return self._get_column_statistics(
-            columns=APE_AGENT_COLUMNS, 
+            columns=ENERGY_AGENT_COLUMNS, 
             dataset_path=dataset_path, 
             dataset_df=dataset_df,
             target_not_na_col="classe_energetica_ape",
@@ -1017,38 +1027,6 @@ class GraphOrchestratorAgent(BaseAgent):
             return self._unified_analysis(state)
 
         # --- MULTIAGENT PATH: Parallel Technical Agents ---
-        if USE_MOCK_RESPONSES:
-            logger.info("MOCK MODE: Simulating request analysis...")
-            time.sleep(2)
-
-            # Mock Building
-            state["building_result"] = MOCK_BUILDING
-            state["context"].building_result = MOCK_BUILDING
-
-            # Mock Location
-            state["context"].locations = MOCK_LOCATION.places
-
-            # Mock Strategy
-            state["use_case_str"] = "Mock use case strategy"
-
-            # Populate Gemini responses needed for UI
-            state["gemini_responses"]["building_extraction"] = {
-                "response": MOCK_BUILDING.raw_text,
-                "typologies": MOCK_BUILDING.typologies if hasattr(MOCK_BUILDING, 'typologies') else [],
-            }
-            state["gemini_responses"]["location_extraction"] = {
-                "response": MOCK_LOCATION.raw_text,
-                "places": [p.model_dump() for p in MOCK_LOCATION.places],
-            }
-            # needs_metric_plan removed
-
-            # Fake payload for location
-            state["location_payload"] = [
-                [p.name, p.lat, p.lon] for p in MOCK_LOCATION.places
-            ]
-
-            return state
-
         # 1. Define ALL tasks (Ranking + 5 Technicians) in Parallel
         # We run Ranking simultaneously with the others to save the sequential delay,
         # as all agents are usually active per system instructions.
@@ -1104,7 +1082,7 @@ class GraphOrchestratorAgent(BaseAgent):
                     )
                 result = self.energy_agent.run(
                     query=query, mode="filtering",
-                    statistics=energy_stats, score_legend=APE_SCORE_LEGEND,
+                    statistics=energy_stats, score_legend=ENERGY_SCORE_LEGEND,
                 )
                 logger.info("Energy agent completed")
                 return result, (time.time() - start_t) * 1000
@@ -1444,10 +1422,10 @@ class GraphOrchestratorAgent(BaseAgent):
             loc_obj = {"lat": lat, "lon": lon}
 
         # Raw agent outputs
-        property_technical_result = state.get("property_technical_result")
-        poi_result = state.get("poi_result")
-        ape_result = state.get("ape_result")
-        normative_result = state.get("normative_result")
+        building_result = state.get("building_result")
+        proximity_result = state.get("proximity_result")
+        energy_result = state.get("energy_result")
+        regulatory_result = state.get("regulatory_result")
         
         # Format locations as JSON string for clarity: only lat, lon, radius_km
         locations_list = state["gemini_responses"].get("location_extraction", {}).get("places", [])
@@ -1462,19 +1440,19 @@ class GraphOrchestratorAgent(BaseAgent):
 
         # Aggregate all requirements into a single list
         all_reqs = []
-        # 1. Property Technical
-        if property_technical_result and property_technical_result.raw_text != "N/D":
+        # 1. Building / Property Technical
+        if building_result and building_result.raw_text != "N/D":
             try:
-                t_data = safe_extract_json(property_technical_result.raw_text)
+                t_data = safe_extract_json(building_result.raw_text)
                 if t_data and isinstance(t_data, dict) and t_data.get("typologies"):
                     typs = t_data['typologies']
                     all_reqs.append(f"tipologia_bene_immobile: {', '.join(typs)}")
             except: pass
             
-            # PropertyTechnicalAgent now also extracts structured requirements (ID, contracts, surfaces)
-            prop_fmt = self._format_agent_requirements(property_technical_result)
-            if prop_fmt != "N/D" and "Nessun requisito" not in prop_fmt:
-                all_reqs.append(prop_fmt)
+            # BuildingAgent now also extracts structured requirements (ID, contracts, surfaces)
+            building_fmt = self._format_agent_requirements(building_result)
+            if building_fmt != "N/D" and "Nessun requisito" not in building_fmt:
+                all_reqs.append(building_fmt)
 
         # 2. Locations
         if filtered_locations:
@@ -1484,19 +1462,19 @@ class GraphOrchestratorAgent(BaseAgent):
                     radius_str += f", threshold {loc['threshold']}km"
                 all_reqs.append(f"Coordinate: {loc['lat']}, {loc['lon']} ({radius_str})")
 
-        # 3. Structured requirements (APE, POI, Normative)
-        # Use helper for APE, Normative, and POI
-        ape_fmt = self._format_agent_requirements(ape_result)
-        if ape_fmt != "N/D" and "Nessun requisito" not in ape_fmt:
-            all_reqs.append(ape_fmt)
+        # 3. Structured requirements (Energy, Proximity, Regulatory)
+        # Use helper for Energy, Regulatory, and Proximity
+        energy_fmt = self._format_agent_requirements(energy_result)
+        if energy_fmt != "N/D" and "Nessun requisito" not in energy_fmt:
+            all_reqs.append(energy_fmt)
             
-        norm_fmt = self._format_agent_requirements(normative_result)
-        if norm_fmt != "N/D" and "Nessun requisito" not in norm_fmt:
-             all_reqs.append(norm_fmt)
-
-        poi_fmt = self._format_agent_requirements(poi_result)
-        if poi_fmt != "N/D" and "Nessun requisito" not in poi_fmt:
-            all_reqs.append(poi_fmt)
+        regulatory_fmt = self._format_agent_requirements(regulatory_result)
+        if regulatory_fmt != "N/D" and "Nessun requisito" not in regulatory_fmt:
+             all_reqs.append(regulatory_fmt)
+ 
+        proximity_fmt = self._format_agent_requirements(proximity_result)
+        if proximity_fmt != "N/D" and "Nessun requisito" not in proximity_fmt:
+            all_reqs.append(proximity_fmt)
 
         # 4. Relaxation Proposals (if active)
         if state.get("relax_constraints") and state.get("relaxation_proposals"):
@@ -1504,16 +1482,6 @@ class GraphOrchestratorAgent(BaseAgent):
                 all_reqs.append(f"RELAXATION SUGGESTION for field '{p['field']}': expand from '{p['condizione_iniziale']}' to '{p['condizione_relaxed']}' because: {p['reason']}")
 
         all_requirements_str = "\n".join([f"- {r}" for r in all_reqs]) if all_reqs else "N/D"
-
-        if USE_MOCK_RESPONSES:
-            logger.info("MOCK MODE: Simulating SQL generation...")
-            time.sleep(1.5)
-            state["sql_query"] = MOCK_SQL_QUERY
-            state["gemini_responses"]["sql_generation"] = {
-                "response": "Mock SQL generated",
-                "sql_query": MOCK_SQL_QUERY,
-            }
-            return state
 
         # Determination of whether to use Retry Prompt
         # Prepare failed query and error message for the SQL Agent.
@@ -1819,8 +1787,14 @@ class GraphOrchestratorAgent(BaseAgent):
                 except Exception:
                     pass
 
-            # Sort by best APE score, or by distance if location available
-            if (
+            # Sort by best energy (EPC) score, or by distance if location available
+            if not self.location_agent.is_found(state["location_payload"]):
+                # Sort by energy score (higher is better)
+                if "ape_score_total" in full_df.columns:
+                    fallback_df = full_df.nlargest(500, "ape_score_total")
+                else:
+                    fallback_df = full_df.sample(min(500, len(full_df)))
+            elif (
                 user_location
                 and "latitudine" in full_df.columns
                 and "longitudine" in full_df.columns
@@ -1834,7 +1808,7 @@ class GraphOrchestratorAgent(BaseAgent):
                 fallback_df = full_df.nsmallest(500, "_fallback_dist")
                 fallback_df = fallback_df.drop(columns=["_fallback_dist"])
             elif "ape_score_total" in full_df.columns:
-                # Sort by APE score (higher is better)
+                # Sort by energy score (higher is better)
                 fallback_df = full_df.nlargest(500, "ape_score_total")
             else:
                 # Random sample as last resort
@@ -1951,43 +1925,32 @@ class GraphOrchestratorAgent(BaseAgent):
         self._update_progress(state, "ranking", "")
         query = state["query"]
         
-        # In mock mode, use defaults or simulated weights
-        if USE_MOCK_RESPONSES:
-            weights = RankingWeights(location=0.3, regulatory=0.1, energy=0.2, building=0.2, proximity=0.2)
-            state["ranking_result"] = RankingAgentResult(raw_text="{}", weights=weights)
-            ranking_result = state["ranking_result"]
-            duration_ms = 0
-            already_ran = False
+        # Check if ranking was already computed in baseline phase
+        ranking_result = state.get("ranking_result")
+        duration_ms = 0
+        
+        if ranking_result and self.architecture == "baseline":
+            logger.info("Ranking weights already provided by Baseline Planner, using them.")
         else:
-            # Check if ranking was already computed in baseline phase
-            ranking_result = state.get("ranking_result")
-            if ranking_result and self.architecture == "baseline":
-                logger.info("Ranking weights already provided by Baseline Planner, using them.")
-            else:
-                already_ran = ranking_result is not None
-                if not ranking_result:
-                    disabled = state.get("disabled_agents", [])
-                    if "ranking" in disabled:
-                        logger.info("RankingAgent disabled by ablation config, using uniform weights.")
-                        ranking_result = RankingAgentResult(
-                            raw_text="{\"reasoning\": \"Ranking disabled for ablation comparison. Using uniform weights.\"}",
-                            weights=RankingWeights()
-                        )
-                        duration_ms = 0
-                    else:
-                        start_t = time.time()
-                        ranking_result = self.ranking_agent.run(
-                            query=query, 
-                            mode="filtering", 
-                            db_metadata=state.get("db_metadata")
-                        )
-                        duration_ms = (time.time() - start_t) * 1000
-                    state["ranking_result"] = ranking_result
+            if not ranking_result:
+                disabled = state.get("disabled_agents", [])
+                if "ranking" in disabled:
+                    logger.info("RankingAgent disabled by ablation config, using uniform weights.")
+                    ranking_result = RankingAgentResult(
+                        raw_text="{\"reasoning\": \"Ranking disabled for ablation comparison. Using uniform weights.\"}",
+                        weights=RankingWeights()
+                    )
                 else:
-                    duration_ms = 0 # Already ran
+                    start_t = time.time()
+                    ranking_result = self.ranking_agent.run(
+                        query=query, 
+                        mode="filtering", 
+                        db_metadata=state.get("db_metadata")
+                    )
+                    duration_ms = (time.time() - start_t) * 1000
+                state["ranking_result"] = ranking_result
 
-            state["context"].ranking_result = ranking_result
-            already_ran = False # Ensure weights are always logged below
+        state["context"].ranking_result = ranking_result
 
         # ALWAYS populate gemini_responses if we have a result
         if ranking_result:
@@ -1996,9 +1959,7 @@ class GraphOrchestratorAgent(BaseAgent):
                 "response": ranking_result.raw_text,
                 "weights": ranking_result.weights.model_dump()
             }
-            # Only log trace if it wasn't already logged in parallel phase
-            if not locals().get('already_ran', False):
-                self._log_execution(state, "ranking-agent", ranking_result, duration_ms if 'duration_ms' in locals() else 0, mode="ranking")
+            self._log_execution(state, "ranking-agent", ranking_result, duration_ms, mode="ranking")
         
         return state
 
@@ -2258,55 +2219,6 @@ class GraphOrchestratorAgent(BaseAgent):
         # Restore top 10 as per user request
         llm_cap = MAX_LLM_CAP
 
-        if USE_MOCK_RESPONSES:
-            logger.info("MOCK MODE: Simulating Evaluation...")
-            self._update_progress(
-                state, "evaluation", ""
-            )
-            time.sleep(1)
-
-            # Create fake evaluation results matching selected IDs if possible, or just generic
-            # For mocks, we just reuse the static mock data but adapted to ID?
-            # Actually, we need to make sure IDs match.
-            # Let's just use the MOCK_EVALUATION results as is.
-            # IMPORTANT: To make it work with the map, we need IDs that exist in the DB.
-            # If we use random IDs, they won't join with the map.
-            # So we should rely on what execute_sql returned in MOCK mode.
-            # Wait, _execute_sql runs normally even in mock mode? Yes, MOCK_SQL_QUERY is a real query.
-            # So selected_data will have real rows.
-            # We should evaluate THOSE rows.
-            # For Mock mode, we'll just generate fake evaluations for the top 3 rows of selected_data.
-
-            eval_results = []
-            if not enriched_data.empty:
-                mock_data = json.loads(MOCK_EVALUATION.raw_text)
-                for idx, item_id in enumerate(enriched_data.head(llm_cap)["id"].tolist()):
-                    if idx < len(mock_data):
-                        res_dict = mock_data[idx]
-                        res = EvaluationResult(**res_dict)
-                        res.id = item_id
-                        eval_results.append(res)
-                        time.sleep(0.5)
-                        self._update_progress(
-                            state,
-                            "evaluation",
-                            "",
-                        )
-
-            state["context"].evaluation_results = eval_results
-            if "evaluation" not in state["gemini_responses"]:
-                state["gemini_responses"]["evaluation"] = {}
-            state["gemini_responses"]["evaluation"]["results"] = [
-                r.model_dump() for r in eval_results
-            ]
-
-            self._update_progress(
-                state,
-                "evaluation",
-                "",
-            )
-            return state
-
         # Limit evaluation to top results defined by llm_cap
         eval_input_df = enriched_data.head(llm_cap).copy()
         eval_input_df["is_evaluated"] = True
@@ -2342,7 +2254,7 @@ class GraphOrchestratorAgent(BaseAgent):
             "tipologia_bene_immobile",
             "epoca_costruzione",
             "finalita",
-            # APE data
+            # Energy data
             "classe_energetica_ape",
             "ape_score_classe",
             "ape_score_impianto",
@@ -2496,13 +2408,6 @@ class GraphOrchestratorAgent(BaseAgent):
 
     def _broker_review(self, state: GraphState) -> GraphState:
         self._update_progress(state, "broker", "")
-
-        if USE_MOCK_RESPONSES:
-            logger.info("MOCK MODE: Simulating Broker Review...")
-            time.sleep(1.5)
-            state["broker_summary"] = MOCK_BROKER_SUMMARY
-            state["gemini_responses"]["broker_review"] = MOCK_BROKER_SUMMARY
-            return state
 
         eval_results = state["context"].evaluation_results
 

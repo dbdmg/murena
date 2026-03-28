@@ -10,7 +10,7 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.messages import HumanMessage
 
-from app.core.config import AGENT_MODELS, USE_MOCK_REGULATORY_AGENT
+from app.core.config import AGENT_MODELS
 from app.services.llm.agents.base import BaseAgent
 from app.services.llm.agents.schema import RegulatoryAgentResult, PromptRecord, RegulatoryResponse
 from app.core.constants import REGULATORY_AGENT_COLUMNS
@@ -122,31 +122,6 @@ class RegulatoryAgent(BaseAgent):
             raise ValueError(f"Mode '{mode}' not supported by RegulatoryAgent.")
 
     def _run_filtering(self, query: str, available_columns: List[str] = None, statistics: dict = None) -> RegulatoryAgentResult:
-        if USE_MOCK_REGULATORY_AGENT:
-            # ... (mock stays mostly same but could include stats if needed)
-            mock_json = {
-                "found": True,
-                "requisiti": [
-                    {
-                        "categoria": "use_case",
-                        "tipo": "allowed use",
-                        "valore": "Residential",
-                        "unita": "N/A",
-                        "operatore": "LIKE",
-                        "colonna_target": "tipologia_bene_immobile",
-                        "normativa": "D.M. 5/7/1975",
-                        "ambito": "for housing",
-                        "descrizione": "Residential buildings only"
-                    }
-                ]
-            }
-            return RegulatoryAgentResult(
-                raw_text=json.dumps(mock_json, indent=2, ensure_ascii=False),
-                sources=["https://mock-regulations.it"],
-                has_requirements=True,
-                prompt=PromptRecord(system="N/D", user=query),
-            )
-        
         regulatory_docs, sources, images = load_regulatory_documents()
         
         # Inseriamo le colonne disponibili nel prompt
@@ -192,7 +167,7 @@ class RegulatoryAgent(BaseAgent):
         norm_data = safe_extract_json(raw, schema=RegulatoryResponse)
         has_requirements = norm_data.found if norm_data else False
 
-        return NormativeAgentResult(
+        return RegulatoryAgentResult(
             raw_text=raw,
             sources=sources,
             has_requirements=has_requirements,
@@ -213,7 +188,7 @@ class RegulatoryAgent(BaseAgent):
 
         df_ranked = df.copy()
         
-        # Identifica tutte le colonne per cui è stato espresso un requisito (che esistono nel DF)
+        # Identify all columns for which a requirement was expressed (that exist in the DF)
         all_req_columns = set()
         for req in requirements:
             col = req.get("target_column")
@@ -222,7 +197,7 @@ class RegulatoryAgent(BaseAgent):
 
         total_scores = pd.Series(0.0, index=df_ranked.index)
         valid_req_count = 0
-        used_columns = set() # we still track used_columns for debug if needed, but we'll return all_req_columns
+        used_columns = set() # tracked for consistency
         transparency_cols = []
 
         for req in requirements:

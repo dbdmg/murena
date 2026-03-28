@@ -10,14 +10,14 @@ class BaseAgent(ABC):
     @abstractmethod
     @handle_agent_error()
     def run(self, **kwargs):
-        """Esegue l'agente restituendo un risultato strutturato."""
+        """Executes the agent returning a structured result."""
         raise NotImplementedError
 
     def render_template(self, template: str, **kwargs) -> str:
-        """Sostituisce {key} con value ignorando le parentesi graffe del JSON.
+        """Replaces {key} with value while ignoring JSON curly braces.
         
-        Usa una regex per trovare solo i segnaposto semplici come {query} o {statistics},
-        evitando di interpretare le parentesi graffe dei blocchi JSON che spesso causano KeyError.
+        Uses a regex to find only simple placeholders like {query} or {statistics},
+        avoiding interpretation of curly braces in JSON blocks which often cause KeyError.
         """
         if not template:
             return ""

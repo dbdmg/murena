@@ -24,7 +24,7 @@ from app.llm.agents.location_agent import LocationAgent
 
 agent = LocationAgent()
 result = agent.run(query="trova edifici vicino a Piazza Statuto")
-print(result.places)  # [Place(name="Piazza Statuto", city="Torino"), ...]
+print(result.places)  # [Place(name="Point of Interest", city="Example City"), ...]
 ```
 
 ## Env vars

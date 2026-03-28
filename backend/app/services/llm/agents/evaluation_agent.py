@@ -80,7 +80,7 @@ class EvaluationAgent(BaseAgent):
         original_query: str = "",  # NEW: original user query for context
         score_legend: str = "",
     ) -> EvaluationAgentResponse:
-        # Se query è vuota, usa original_query per il prompt
+        # If query is empty, use original_query for the prompt
         if not query:
             query = original_query
 
@@ -139,7 +139,7 @@ class EvaluationAgent(BaseAgent):
                     try:
                         eval_list = EvaluationList(**result)
                     except:
-                        # Se è un dict con la chiave 'evaluations', prova a estrarla
+                        # If it's a dict with the 'evaluations' key, try extracting it
                         if "evaluations" in result:
                             eval_list = EvaluationList(evaluations=result["evaluations"])
                 
@@ -185,9 +185,9 @@ class EvaluationAgent(BaseAgent):
                         break
 
             except Exception as e:
-                logger.error(f"Errore nel parsing della valutazione (tentativo {attempt + 1}/{max_retries}): {e}")
+                logger.error(f"Error parsing evaluation (attempt {attempt + 1}/{max_retries}): {e}")
                 raw_text = json.dumps({"error": str(e), "evaluations": []})
-                # Continua il loop per il retry
+                # Continue retry loop
 
         prompt_record = PromptRecord(
             system=self._system_with_format.strip(),

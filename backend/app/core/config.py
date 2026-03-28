@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     # ==========================================================================
     # App Info
     # ==========================================================================
-    APP_NAME: str = "RealEstate-AI-API"
+    APP_NAME: str = "MURENA-API"
     APP_VERSION: str = "1.0.0"
     DEBUG: bool = True
     LOG_LEVEL: str = "INFO"
@@ -77,8 +77,6 @@ class Settings(BaseSettings):
     OPENAI_MODEL_FAST: str = "gpt-oss-120b"
     OPENAI_MODEL_SMART: str = "gpt-oss-120b"
     OPENAI_API_BASE: Optional[str] = "https://api.institutional-endpoint.edu/v1"
-    USE_MOCK_RESPONSES: bool = False
-    USE_MOCK_NORMATIVE_AGENT: bool = False
 
     def set_llm_model(self, model_type: str):
         """Sets the LLM model configuration.
@@ -124,19 +122,19 @@ class Settings(BaseSettings):
     # ==========================================================================
     # External APIs
     # ==========================================================================
-    NOMINATIM_USER_AGENT: str = "RealEstate-AI/1.0"
+    NOMINATIM_USER_AGENT: str = "MURENA/1.0"
 
     # ==========================================================================
     # File Paths (relative to backend/ directory)
     DATA_DIR: str = "data/datasets"
     STATIC_DIR: str = "data/static_data"
-    APE_DIR: str = "data/energy_data"
+    ENERGY_DIR: str = "data/energy_data"
     META_DIR: str = "data/metadata"
     RUNS_DIR: str = "data/runs"
     AGENT_LOGS_DIR: str = "data/agent_logs"
 
     # Energy specific paths
-    APE_MATCH_DIR: str = "data/energy_data/MATCH"
+    ENERGY_MATCH_DIR: str = "data/energy_data/MATCH"
     PLOT_DIR: str = "data/energy_data/metadata/plots_inverted"
 
     # Dataset paths
@@ -150,17 +148,13 @@ class Settings(BaseSettings):
     IMMOBILI_QUOTAZIONE_PATH: str = "notebooks/02_quotazione/quotazione_immobili.csv"
     ZONE_GRUPPO_QUOTAZIONI_PATH: str = "notebooks/02_quotazione/zone_gruppo_quotazioni.csv"
     MISSING_QUOTAZIONI_IDS_PATH: str = "notebooks/02_quotazione/missing_quotazioni_ids.csv"
-    APE_DETAILED_DATA_PATH: str = "data/metadata/ape_detailed_data.parquet"
+    ENERGY_DETAILED_DATA_PATH: str = "data/metadata/ape_detailed_data.parquet"
 
     # Static data
     STATIONS_CSV: str = "data/datasets/station_dataframe.csv"
-    POPULATION_CSV: str = (
-        "data/static_data/dati_popolazione_roma_normalizzati.csv"
-    )
-    MUNICIPI_GEOJSON: str = "data/static_data/municipi_roma.geojson"
-    ZONE_OMI_GEOJSON: str = "data/static_data/Zone_omi_torino.geojson"
+    ZONE_OMI_GEOJSON: str = "data/static_data/omi_zones.geojson"
     ZONE_URBANISTICHE_GEOJSON: str = (
-        "data/static_data/roma_zone_urbanistiche.geojson"
+        "data/static_data/rome_urban_zones.geojson"
     )
 
     TORINO_LAT: float = 45.116177
@@ -203,7 +197,7 @@ class Settings(BaseSettings):
         """
         return {
             "full": self.DATASET_FULL,
-            "ape": self.APE_DETAILED_DATA_PATH,
+            "energy": self.ENERGY_DETAILED_DATA_PATH,
         }
 
     @property
@@ -242,7 +236,6 @@ class DynamicAgentModels(dict):
         return settings.agent_models.values()
 
 AGENT_MODELS = DynamicAgentModels()
-USE_MOCK_NORMATIVE_AGENT = settings.USE_MOCK_NORMATIVE_AGENT
 
 # Legacy constants for backward compatibility
 QIP_VALORI_PATH = settings.QIP_VALORI_PATH

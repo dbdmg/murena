@@ -28,6 +28,9 @@ warnings.filterwarnings("ignore", category=FutureWarning)
 # --- CONFIGURAZIONE ---
 # Use environment variable for data path or a generic placeholder
 PATH_XML = os.environ.get("APE_XML_PATH", "./merged_xml_data")
+TARGET_CITY = os.environ.get("TARGET_CITY", "Torino")
+TARGET_PROVINCE = os.environ.get("TARGET_PROVINCE", "TO")
+TARGET_COMUNE_CODE = os.environ.get("TARGET_COMUNE_CODE", "L219")
 
 # --- COSTANTI E MAPPING ---
 
@@ -112,8 +115,8 @@ class OSMGeocodingService:
         # Rimuove CAP a inizio stringa (5 cifre)
         raw = re.sub(r'^\d{5}\s+', '', raw)
         # Rimuove "TORINO" o "TO" all'inizio o fine se presenti
-        raw = re.sub(r'^(TORINO|TO)\s*-?\s*', '', raw)
-        raw = re.sub(r'\s*-?\s*(TORINO|TO)$', '', raw)
+        raw = re.sub(rf'^({TARGET_CITY}|{TARGET_PROVINCE})\s*-?\s*', '', raw, flags=re.IGNORECASE)
+        raw = re.sub(rf'\s*-?\s*({TARGET_CITY}|{TARGET_PROVINCE})$', '', raw, flags=re.IGNORECASE)
         # Rimuove numeri casuali a inizio stringa (spesso spazzatura da export)
         raw = re.sub(r'^\d+\s+', '', raw)
         # Rimuove punteggiatura all'inizio
@@ -152,7 +155,7 @@ class OSMGeocodingService:
         if not street: return None
         
         street_clean, final_number = self._clean_address(street, number, city)
-        city_clean = city.strip().lower() if city else "torino"
+        city_clean = city.strip().lower() if city else TARGET_CITY.lower()
 
         if len(street_clean) < 3: # Troppo corto per essere una via valida
             return None
@@ -299,7 +302,7 @@ def init_omi_globals():
     global POOL_OMI_GDF
     if POOL_OMI_GDF is not None or gpd is None: return
     
-    omi_path = "/home/mdeluca/real-estate-ai/backend/data/FOLDER_STATIC_ROME/Zone_omi_torino.geojson"
+    omi_path = os.path.join(os.path.dirname(__file__), "..", "static_data", "omi_zones.geojson")
     try:
         if os.path.exists(omi_path):
             POOL_OMI_GDF = gpd.read_file(omi_path)
@@ -655,7 +658,7 @@ def process_single_xml(fname: str) -> dict:
             civico = p.get("civico")
             # Cerchiamo di geocodificare se abbiamo un indirizzo
             if indirizzo:
-                geo_res = POOL_GEOCODER.geocode(street=indirizzo, number=civico, city="Torino")
+                geo_res = POOL_GEOCODER.geocode(street=indirizzo, number=civico, city=TARGET_CITY)
                 # Se troviamo un match di alta qualità o se l'XML non ha coordinate, usiamo OSM
                 if geo_res and (geo_res['score'] >= 450 or lat_xml is None or lat_xml == 0):
                     res_lat = geo_res['lat']
@@ -734,7 +737,7 @@ def _load_ape_df(file_list: List[str]) -> pd.DataFrame:
         for res in results_gen:
             if res is not None:
                 # Applichiamo il filtro L219 immediatamente per minimizzare la memoria occupata
-                if res.get('codice_comune') == 'L219':
+                if res.get('codice_comune') == TARGET_COMUNE_CODE:
                     all_rows.append(res)
 
     return pd.DataFrame(all_rows)
@@ -758,7 +761,7 @@ def improve_df_coordinates(df: pd.DataFrame) -> pd.DataFrame:
         ind = row['indirizzo']
         civ = row['numero_civico']
         if not ind: return None
-        res = POOL_GEOCODER.geocode(street=ind, number=civ, city="Torino")
+        res = POOL_GEOCODER.geocode(street=ind, number=civ, city=TARGET_CITY)
         if res:
             # Pre-calcoliamo OMI e Amenity per l'indirizzo unico (ottimizzazione)
             new_lat, new_lon = res['lat'], res['lon']

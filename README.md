@@ -1,185 +1,91 @@
-# Agentic-RE: Multi-agent Real Estate Analysis Framework
+# MURENA: Multi-Agent LLM Pipeline for Large-Scale Real Estate Management
 
-[![Paper](https://img.shields.io/badge/Paper-ECML--PKDD--2026-blue)](docs/AGENT_ARCHITECTURE.md)
-[![Reproducibility](https://img.shields.io/badge/Reproducibility-Guide-green)](REPRODUCIBILITY.md)
+This repository contains the implementation of MURENA, an agentic framework for intelligent real estate analysis that integrates geospatial data, Energy Performance Certifications (EPC), and Point-of-Interest (POI) evaluation through multi-agent orchestration.
 
-An agentic framework for intelligent real estate analysis, combining geospatial data, energy performance certifications (EPC), and point-of-interest (POI) evaluation.
+---
+*Anonymized for blind review - ECML PKDD 2026*
+---
 
-> **Note for Reviewers:** This repository has been anonymized for the double-blind review process. Please refer to [`REPRODUCIBILITY.md`](REPRODUCIBILITY.md) for instructions on how to replicate the experimental results presented in the paper.
+## Overview
 
-## Default User Account:
-Username: `admin`  
-Password: `admin123`
+MURENA introduces a 3-phase multi-agent orchestration architecture designed to transform natural language queries into deterministic, technically validated real estate rankings:
 
-## 🏗️ Architecture
+1.  **Requirement extraction**: Specialized agents (Location, Property, Energy, Proximity, Regulatory) extract granular constraints in parallel.
+2.  **Standardized execution**: A SQL generation agent translates requirements into DuckDB queries, while a ranking agent computes objective scores based on property alignment.
+3.  **Synthesis and justification**: An evaluation agent provides qualitative justifications for top-ranked properties, followed by a Broker agent that synthesizes the final response.
 
+## Repository structure
+
+The project is structured to ensure modularity and reproducibility:
+
+```text
+murena/
+├── backend/                # FastAPI services, LLM agents, and data management
+│   ├── run_app.py          # main entry point for the integrated application
+│   ├── run_experiments.py  # entry point for research evaluation and benchmarks
+│   └── tests/              # experimental benchmarks and synthetic evaluation suite
+├── frontend/               # React-based analytics dashboard
 ```
-agentic-re/
-├── backend/                # Python FastAPI backend
-├── frontend/               # React TypeScript frontend
-├── docker-compose.yml      # Development environment
-└── TECH_STACK.md          # Complete tech stack documentation
-```
 
-## 🚀 Quick Start
+## Setup and installation
 
 ### Prerequisites
 
-- Python 3.11+
-- Node.js 20+
-- Docker & Docker Compose (optional but recommended)
+- Python 3.10+
+- Node.js & npm (for the frontend dashboard)
+- LLM API access (Gemini, OpenAI, or local via vLLM/Ollama)
 
-### Option 1: Automatic Setup (Recommended)
+### Environment configuration
 
-```powershell
-# Run the setup script from the root of the repository
-pwsh -File scripts/setup.ps1
-```
-
-This script:
-- Creates the Python virtual environment
-- Installs backend and frontend dependencies
-- Runs backend tests
-- Creates the default admin user (admin / admin123)
-
-Optional flags:
-- `-SkipTests`: Skip test execution
-- `-SkipUser`: Skip admin user creation
-
-### Option 2: Docker
+Create a `.env` file in the `backend/` directory based on `.env.example`:
 
 ```bash
-# Start all services
-docker-compose up -d
-
-# Backend: http://localhost:8000
-# Frontend: http://localhost:3000
-# API Docs: http://localhost:8000/docs
+cp backend/.env.example backend/.env
+# Edit backend/.env with your API keys and configuration
 ```
 
-### Option 3: Local Development
+## Usage
 
-**Backend:**
-```bash
-cd backend
-
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Configure environment
-cp .env.example .env
-# Edit .env with your configurations
-# Ensure LLM API keys are set
-
-# Start server
-uvicorn app.main:app --reload
-```
-
-**Frontend:**
-```bash
-cd frontend
-
-# Install dependencies
-npm install
-
-# Configure environment
-cp .env.example .env.local
-
-# Start development server
-npm run dev
-```
-
-## 📚 Documentation
-
-- [`TECH_STACK.md`](TECH_STACK.md) - Complete technology stack
-- [`backend/README.md`](backend/README.md) - Backend documentation
-- [`frontend/README.md`](frontend/README.md) - Frontend documentation
-- [`docs/AGENT_ARCHITECTURE.md`](docs/AGENT_ARCHITECTURE.md) - LLM agent architecture
-- [`backend/API_GUIDE.md`](backend/API_GUIDE.md) - API guide
-
-## 🛠️ Technology Stack
-
-### Backend
-- **FastAPI** - Modern web framework
-- **DuckDB** - In-process analytical database
-- **Redis** - Caching and state management
-- **LangGraph** - LLM orchestration (Multi-agent workflow)
-
-### Frontend
-- **React 18** + **TypeScript**
-- **Tailwind CSS** - Styling
-- **Vite** - Build tool
-- **React Leaflet** - Interactive maps
-
-## 📊 Features
-
-- ✅ AI-powered real estate analysis (Multi-agent LLM)
-- ✅ Interactive map with clustering
-- ✅ Energy performance certificate (EPC) management
-- ✅ Points of Interest (POI) evaluation
-- ✅ User feedback system
-- ✅ JWT Authentication
-- ✅ Real-time updates via WebSockets
-
-## 🔄 Project Status
-
-**Completed:**
-- [x] Tech stack definition
-- [x] Backend structure
-- [x] Frontend structure
-- [x] Docker configuration
-- [x] Core agentic orchestration
-- [x] Multi-attribute ranking engine
-
-**In Progress:**
-- [ ] Extended comparative evaluation
-- [ ] Additional geographic data integration
-
-## 📝 License
-
-See [LICENSE](LICENSE) file.
-
-## 👥 User Management
-
-The system provides CLI scripts for user management.
-
-### Create a User
+### 1. Application execution
+To launch the full system (backend and frontend):
 
 ```bash
-cd backend
-python create_user.py
+python backend/run_app.py
 ```
 
-### Delete a User
+This script automatically verifies the availability of datasets. If missing, it executes the generation pipeline to build the analytical Parquet files from source data before starting the FastAPI server (port 8000) and the Vite development server.
+
+### 2. Research evaluation
+To replicate the experimental results and benchmarks described in the paper:
 
 ```bash
-cd backend
-python delete_user.py
+python backend/run_experiments.py --type sampled --limit 20
 ```
 
-Follow the on-screen instructions.
+Similar to the main application, this script ensures all database dependencies are initialized before running the benchmarks.
 
-## 🧪 Testing
+The evaluation suite computes metrics for:
+- **Agent recall**: Accuracy of specialized agent activation.
+- **Ranking stability**: Intersection over Union (IoU) across varied query complexities.
+- **Inference latency**: Performance overhead of the multi-agent pipeline.
 
-The project includes a comprehensive test suite for the backend.
+## User management
 
-### Test Setup
+The system includes a basic authentication layer for history tracking.
 
-Ensure you are in the `backend` directory with the virtual environment active.
+**Default credentials:**
+- Username: `admin`
+- Password: `admin123`
 
-### Run Tests
-
+**CLI management:**
 ```bash
-# Run all tests
-pytest
-
-# Run specific repository tests
-python -m tests.test_repositories
-
-# Run integration tests
-python -m tests.test_integration
+python backend/run_app.py --create-user
+python backend/run_app.py --delete-user
 ```
+
+## Technical specifications
+
+- **Orchestration**: LangGraph StateGraph for complex agentic workflows.
+- **Data engine**: DuckDB for high-performance analytical queries on Parquet datasets.
+- **Frontend**: React with Leaflet for geospatial visualization.
+- **Scoring**: Deterministic mathematical weighting for property ranking.

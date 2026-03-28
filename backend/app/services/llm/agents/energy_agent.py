@@ -89,7 +89,7 @@ class EnergyAgent(BaseAgent):
         stats_str = json.dumps(statistics, indent=2, ensure_ascii=False) if statistics else "N/D"
         
         # Format specific columns list
-        columns_str = "\n".join([f"- `{col}`" for col in APE_AGENT_COLUMNS])
+        columns_str = "\n".join([f"- `{col}`" for col in ENERGY_AGENT_COLUMNS])
 
         prompt_inputs = {
             "query": query,
@@ -111,13 +111,13 @@ class EnergyAgent(BaseAgent):
             }
             structured_response = invoke_with_langfuse(self.chain, model_inputs)
             
-            # If the output is a string (fallback mode), we need to extract JSON manually
+            # If output is string, extract JSON manually
             if isinstance(structured_response, str) or hasattr(structured_response, 'content'):
                 text_to_parse = structured_response.content if hasattr(structured_response, 'content') else structured_response
-                structured_response = safe_extract_json(text_to_parse, schema=ApeAgentOutput)
+                structured_response = safe_extract_json(text_to_parse, schema=EnergyAgentOutput)
             
             if not structured_response:
-                raise ValueError("Could not parse APE requirements from LLM response")
+                raise ValueError("Could not parse Energy requirements from LLM response")
                 
             has_filters = structured_response.found
 
@@ -253,9 +253,9 @@ class EnergyAgent(BaseAgent):
                 # Add transparency: weight per column
                 weight = round(1.0 / valid_req_count, 3)
                 for col in used_columns:
-                    df_ranked[f"ape_weight_{col}"] = weight
+                    df_ranked[f"energy_weight_{col}"] = weight
             else:
-                df_ranked["ape_score"] = 0.0
+                df_ranked["energy_score"] = 0.0
                 
             cols_to_return = ["id", "energy_score"] + list(used_columns)
             weight_cols = [f"energy_weight_{c}" for c in used_columns]
@@ -271,7 +271,7 @@ class EnergyAgent(BaseAgent):
 
         # 2. Fallback Logic (Standard Deterministic)
         # If there are no specific requirements, assign 0 instead of average scores
-        # to avoid polluting the ranking if the user didn't explicitly ask for EPC data.
+        # to avoid polluting the ranking if the user didn't explicitly ask for energy data.
         used_col = None
         if "ape_total_points" in df_ranked.columns and not df_ranked["ape_total_points"].isna().all():
             used_col = "ape_total_points"

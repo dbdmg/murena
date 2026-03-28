@@ -21,7 +21,7 @@ from app.utils.scoring import calculate_continuous_score
 class ProximityAgentOutput(BaseModel):
     """Structured output schema for the Proximity Agent."""
     found: bool = Field(default=False, description="True if POI-related needs were identified in the user query")
-    requisiti: List[Dict[str, Any]] = Field(default_factory=list, description="Lista di requisiti strutturati con operatore e valore.")
+    requirements: List[Dict[str, Any]] = Field(default_factory=list, description="List of structured requirements with operator and value.")
 
 
 class ProximityAgent(BaseAgent):
@@ -155,10 +155,8 @@ class ProximityAgent(BaseAgent):
 
         df_ranked = df.copy()
         
-        # In questa modalità, estraiamo le categorie dai requisiti.
-        # Poiché l'utente ha chiesto di non avere più un ranking (lista ordinata), 
-        # assegniamo un peso uguale a tutti i requisiti identificati.
-        valid_reqs = [r for r in requirements if isinstance(r, dict) and r.get("colonna_target") and r.get("colonna_target") in df_ranked.columns]
+        # Assign equal weight to all identified requirements
+        valid_reqs = [r for r in requirements if isinstance(r, dict) and r.get("target_column") and r.get("target_column") in df_ranked.columns]
         
         if not valid_reqs:
             df_ranked["proximity_score"] = 0.0
@@ -209,14 +207,14 @@ class ProximityAgent(BaseAgent):
             
             # CLIP AND APPLY THRESHOLD
             # If there's a requirement for this category, enforce it in the score too
-            req = next((r for r in requirements if r.get("colonna_target") == cat), None)
+            req = next((r for r in requirements if r.get("target_column") == cat), None)
             if req and isinstance(req, dict):
-                op = req.get("operatore", ">=")
-                target_val = req.get("valore")
+                op = req.get("operator", ">=")
+                target_val = req.get("value")
                 if target_val is not None:
                     try:
                         exclusive = req.get("exclusive", False)
-                        # Usa l'utilità centralizzata per variabili continue
+                        # Use centralized utility for continuous variables
                         req_score = calculate_continuous_score(vals, target_val, op, exclusive)
                         norm_vals = req_score.to_numpy() / 100.0
                     except:

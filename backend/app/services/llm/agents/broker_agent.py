@@ -13,8 +13,8 @@ from app.utils.decorators import handle_agent_error, log_llm_usage
 
 class BrokerAgent(BaseAgent):
     """
-    Agente responsabile della sintesi comparativa e del reranking qualitativo.
-    Agisce come consulente strategico (Broker) per fornire insight iniziali sui risultati.
+    Agent responsible for comparative synthesis and qualitative reranking.
+    Acts as a strategic consultant (broker) to provide initial insights on results.
     """
     name = "broker-agent"
 
@@ -38,10 +38,10 @@ class BrokerAgent(BaseAgent):
         self.chain = self.prompt_template | self.llm
 
     @log_llm_usage
-    @handle_agent_error(fallback_value="Impossibile generare sintesi al momento.")
+    @handle_agent_error(fallback_value="Currently unable to generate synthesis.")
     def run(self, *, query: str, candidates_data: str) -> str:
         """
-        Esegue la sintesi comparativa dei candidati.
+        Performs comparative synthesis of the candidates.
         """
         user_text = self.render_template(
             self.user_template,
