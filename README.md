@@ -59,7 +59,7 @@ This script automatically verifies the availability of datasets. If missing, it 
 To replicate the experimental results and benchmarks described in the paper:
 
 ```bash
-python backend/run_experiments.py --type sampled --limit 20
+python backend/run_experiments.py --type all
 ```
 
 Similar to the main application, this script ensures all database dependencies are initialized before running the benchmarks.

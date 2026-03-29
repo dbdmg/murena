@@ -75,10 +75,9 @@ EVALUATION_MODEL = "gpt-5.4"
 # Models not listed here will use the global --max-concurrent value.
 MODEL_CONCURRENCY_LIMITS = {
     "gpt-5.4": 2,
-    "gpt-5-nano": 2,
     "gpt-oss-120b": 48,
-    "vllm-gemma3-27b": 48,
-    "vllm-qwen": 48,
+    "gemma3-27b": 48,
+    "qwen3-8b": 48,
 }
 
 def get_model_concurrency(model_name: str, default_val: int) -> int:
@@ -1088,7 +1087,7 @@ async def sync_sensitivity_with_benchmark(df_sens: pd.DataFrame, df_bench: pd.Da
                     if sens_file.exists():
                         df_sens.at[i, sens_col] = 1
 
-async def run_single_model_suite(model: str, max_concurrent: int):
+async def run_single_model_suite(model: str, max_concurrent: int, limit: int = None):
     """Execution logic for a single model with optimized non-redundant workflow."""
     # Initialize environment
     pos_json = suite_path / "query_variables_possibilities.json"
@@ -1111,6 +1110,11 @@ async def run_single_model_suite(model: str, max_concurrent: int):
 
     df_bench = safe_read_csv(bench_csv)
     df_sens = safe_read_csv(sens_csv)
+
+    if limit:
+        log_output(f"[*] Applying sampling limit: {limit} queries per suite")
+        df_bench = df_bench.head(limit).copy()
+        df_sens = df_sens.head(limit).copy()
 
     apply_model_config(settings, model)
     # Force re-initialization of the agents with the new model settings
@@ -1235,7 +1239,7 @@ async def run_single_model_suite(model: str, max_concurrent: int):
     
     log_output(f"=== [COMPLETE] Queries for {model} finished. ===")
 
-async def conductor_main(max_concurrent: int, only_analysis: bool = False):
+async def conductor_main(max_concurrent: int, only_analysis: bool = False, limit: int = None):
     """Main orchestrator that manages model processes and generates final reports."""
     pos_json = suite_path / "query_variables_possibilities.json"
     mapping_json = suite_path / "agent_mapping.json"
@@ -1243,7 +1247,7 @@ async def conductor_main(max_concurrent: int, only_analysis: bool = False):
     await preload_data()
     data_stats = get_data_stats()
 
-    models = ["gpt-5-nano", "gpt-oss-120b", "vllm-gemma3-27b", "vllm-qwen"]
+    models = ["gpt-oss-120b", "gemma3-27b", "qwen3-8b"]
     
     # 1. PREPARE SUITES (Only if not in analysis-only mode)
     bench_csv = results_path / "combinatorial_queries_suite.csv"
@@ -1256,7 +1260,9 @@ async def conductor_main(max_concurrent: int, only_analysis: bool = False):
         # 1. Run Master Baseline (gpt-5.4) first to ensure reference results exist
         log_output(f"[CONDUCTOR] Ensuring Master Baseline ({BASELINE_MODEL}) is complete...")
         m_concurrency = get_model_concurrency(BASELINE_MODEL, max_concurrent)
-        p_base = await asyncio.create_subprocess_exec(sys.executable, __file__, "--model", BASELINE_MODEL, "--max-concurrent", str(m_concurrency))
+        base_cmd = [sys.executable, __file__, "--model", BASELINE_MODEL, "--max-concurrent", str(m_concurrency)]
+        if limit is not None: base_cmd.extend(["--limit", str(limit)])
+        p_base = await asyncio.create_subprocess_exec(*base_cmd)
         await p_base.wait()
 
         # 2. RUN ALL MODELS IN PARALLEL
@@ -1265,7 +1271,9 @@ async def conductor_main(max_concurrent: int, only_analysis: bool = False):
         for m in models:
             m_concurrency = get_model_concurrency(m, max_concurrent)
             log_output(f"[CONDUCTOR] -> Starting {m} (max_concurrent={m_concurrency})")
-            p = await asyncio.create_subprocess_exec(sys.executable, __file__, "--model", m, "--max-concurrent", str(m_concurrency))
+            m_cmd = [sys.executable, __file__, "--model", m, "--max-concurrent", str(m_concurrency)]
+            if limit is not None: m_cmd.extend(["--limit", str(limit)])
+            p = await asyncio.create_subprocess_exec(*m_cmd)
             processes.append(p)
         
         await asyncio.gather(*(p.wait() for p in processes))
@@ -1337,6 +1345,7 @@ if __name__ == "__main__":
     parser.add_argument("--model", type=str, help="Run only a specific model")
     parser.add_argument("--only-analysis", action="store_true", help="Only run analysis on existing results")
     parser.add_argument("--max-concurrent", type=int, default=48, help="Max concurrent queries per model")
+    parser.add_argument("--limit", type=int, default=None, help="Limit number of queries per model")
     args = parser.parse_args()
 
     if args.model:
@@ -1347,10 +1356,10 @@ if __name__ == "__main__":
             m_concurrency = get_model_concurrency(args.model, 48)
             
         # Run a single model suite (to be called as a subprocess or manually)
-        asyncio.run(run_single_model_suite(args.model, m_concurrency))
+        asyncio.run(run_single_model_suite(args.model, m_concurrency, limit=args.limit))
     else:
         # Launch the conductor
-        asyncio.run(conductor_main(args.max_concurrent, args.only_analysis))
+        asyncio.run(conductor_main(args.max_concurrent, args.only_analysis, limit=args.limit))
 import json
 import numpy as np
 import pandas as pd

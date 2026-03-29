@@ -16,8 +16,6 @@ _langfuse_client = None
 def _get_llm_internal(
     model_name: str, 
     temperature: float, 
-    oss_device: str, 
-    oss_max_tokens: int,
     openai_api_base: Optional[str],
     openai_api_key: Optional[str] = None
 ):
@@ -103,8 +101,6 @@ def get_llm(
     return _get_llm_internal(
         model_name=resolved_model,
         temperature=resolved_temperature,
-        oss_device=settings.OSS_DEVICE,
-        oss_max_tokens=settings.OSS_MAX_TOKENS,
         openai_api_base=api_base or settings.OPENAI_API_BASE,
         openai_api_key=api_key
     )

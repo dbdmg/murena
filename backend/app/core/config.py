@@ -78,42 +78,43 @@ class Settings(BaseSettings):
     OPENAI_MODEL_SMART: str = "gpt-oss-120b"
     OPENAI_API_BASE: Optional[str] = "https://api.institutional-endpoint.edu/v1"
 
+    LLMODEL_CONCURRENCY_LIMITS = {
+        "gpt-5.4": 2,
+        "gpt-oss-120b": 48,
+        "gemma3-27b": 48,
+        "qwen3-8b": 48,
+    }
+
     def set_llm_model(self, model_type: str):
         """Sets the LLM model configuration.
         
         Args:
             model_type: The identifier for the LLM flavor to use.
         """
-        if model_type in ["gpt-oss-120b", "deepseek-r1-8b"]:
-            self.OPENAI_MODEL_FAST = model_type
-            self.OPENAI_MODEL_SMART = model_type
+        if model_type == "gpt-oss-120b":
+            self.OPENAI_MODEL_FAST = "gpt-oss-120b"
+            self.OPENAI_MODEL_SMART = "gpt-oss-120b"
             self.OPENAI_API_BASE = "https://api.institutional-endpoint.edu/v1"
             self.OPENAI_API_KEY = self.INSTITUTIONAL_LLM_API_KEY
-        elif model_type == "vllm-gemma3-27b":
+        elif model_type == "gemma3-27b":
             self.OPENAI_MODEL_FAST = "google/gemma-3-27b-it"
             self.OPENAI_MODEL_SMART = "google/gemma-3-27b-it"
             self.OPENAI_API_BASE = "http://localhost:8000/v1"
             self.OPENAI_API_KEY = "vllm"
-        elif model_type == "vllm-qwen":
+        elif model_type == "qwen3-8b":
             self.OPENAI_MODEL_FAST = "Qwen/Qwen3-8B"
             self.OPENAI_MODEL_SMART = "Qwen/Qwen3-8B"
             self.OPENAI_API_BASE = "http://localhost:8001/v1"
             self.OPENAI_API_KEY = "vllm"
-        elif model_type == "gpt-5-nano":
-            self.OPENAI_MODEL_FAST = "gpt-5-nano-2025-08-07"
-            self.OPENAI_MODEL_SMART = "gpt-5-nano-2025-08-07"
-            self.OPENAI_API_BASE = None # Use default OpenAI base
+        elif model_type == "gpt-5.4":
+            self.OPENAI_MODEL_FAST = "gpt-5.4"
+            self.OPENAI_MODEL_SMART = "gpt-5.4"
+            self.OPENAI_API_BASE = None # Base OpenAI
 
 
     # Agent Temperature - 0.0 for fully deterministic outputs (consistency)
     # Set to 0.0 to eliminate non-determinism, higher values allow creativity
     AGENT_TEMPERATURE: float = 0.0
-
-    # OSS Local Model Config
-    OSS_DEVICE: str = "auto"  # "auto", "cpu", "mps", "cuda"
-    OSS_MAX_TOKENS: int = 2048
-    OSS_LOAD_IN_4BIT: bool = True
-    OLLAMA_BASE_URL: str = "http://localhost:11434"
 
     # Enable JSON export of run results for LLM analysis/debugging
     # Set to False in production to avoid unnecessary file writes

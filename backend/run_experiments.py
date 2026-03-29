@@ -46,7 +46,7 @@ def run_experiment_script(script_name: str, args: list = None):
 def main():
     parser = argparse.ArgumentParser(description="Launcher for MURENA Experiments and Evaluation")
     parser.add_argument("--type", choices=["baseline", "sampled", "all"], default="sampled", help="Experiment type")
-    parser.add_argument("--limit", type=int, default=10, help="Number of samples to run")
+    parser.add_argument("--limit", type=int, default=None, help="Number of samples to run")
     parser.add_argument("--export", action="store_true", help="Export results to CSV/JSON")
     args = parser.parse_args()
 
@@ -57,8 +57,11 @@ def main():
     if args.type == "baseline":
         run_experiment_script("test_suite.py", ["--model", "gpt-5.4"])
     elif args.type == "sampled":
-        run_experiment_script("test_suite.py", ["--max-concurrent", "10"])
+        # Sampled mode with a reasonable default if limit is not provided
+        limit = args.limit or 20
+        run_experiment_script("test_suite.py", ["--max-concurrent", "10", "--limit", str(limit)])
     elif args.type == "all":
+        # All mode: no limit passed to test_suite
         run_experiment_script("test_suite.py")
 
     print("\nExperiments completed. Results can be found in the results/ directory.")
