@@ -9,31 +9,31 @@ def calculate_continuous_score(
     exclusive: bool = False
 ) -> pd.Series:
     """
-    Calcola un punteggio tra 0 e 100 per variabili continue secondo la logica 50/100.
+    Calculates a score between 0 and 100 for continuous variables using 50/100 logic.
     
-    Regole per '>=' (Minimo richiesto):
-    - Valore = Target: 50 punti
-    - Valore = 2 * Target: 100 punti
-    - Valore < Target: 0 punti (se exclusive o op == '>')
+    Rules for '>=' (Minimum required):
+    - Value = Target: 50 points
+    - Value = 2 * Target: 100 points
+    - Value < Target: 0 points (if exclusive or op == '>')
     
-    Regole per '<=' (Massimo richiesto):
-    - Valore = Target: 50 punti
-    - Valore = Target / 2: 100 punti
-    - Valore > Target: 0 punti (se exclusive o op == '<')
+    Rules for '<=' (Maximum required):
+    - Value = Target: 50 points
+    - Value = Target / 2: 100 points
+    - Value > Target: 0 points (if exclusive or op == '<')
     
     Args:
-        series: Serie pandas di valori numerici.
-        target: Valore di riferimento cercato dall'utente.
-        operator: Operatore di confronto (>=, >, <=, <).
-        exclusive: Se True, il limite è categorico (sotto/sopra soglia = 0).
+        series: Pandas series of numerical values.
+        target: Reference value searched by the user.
+        operator: Comparison operator (>=, >, <=, <).
+        exclusive: If True, the limit is categorical (under/over threshold = 0).
         
     Returns:
-        pd.Series: Punteggi calcolati e limitati a [0, 100].
+        pd.Series: Calculated scores limited to [0, 100].
     """
     if target is None:
         return pd.Series(0.0, index=series.index)
     
-    # Assicuriamoci che i valori siano numerici
+    # Ensure values are numerical
     vals = pd.to_numeric(series, errors="coerce").fillna(0)
     T = float(target)
     
@@ -41,35 +41,35 @@ def calculate_continuous_score(
     
     if op in [">=", ">"]:
         if T > 0:
-            # Formula: (valore / T * 50) -> a T dà 50, a 2T dà 100
+            # Formula: (value / T * 50) -> at T gives 50, at 2T gives 100
             score = (vals / T * 50).clip(0, 100)
             
-            # Gestione esclusività/rigore operatore
+            # Exclusivity / operator rigor handling
             if op == ">" or exclusive:
                 score = score.mask(vals <= T, 0.0)
             else: # >=
                 score = score.mask(vals < T, 0.0)
         else:
-            # Se il target è 0, ogni valore >= 0 è un match perfetto (100)
+            # If target is 0, any value >= 0 is a perfect match (100)
             score = pd.Series(100.0, index=series.index)
             if op == ">":
                 score = score.mask(vals <= 0, 0.0)
             
     elif op in ["<=", "<"]:
         if T > 0:
-            # Formula: 150 - (valore / T * 100) -> a T dà 50, a T/2 dà 100
+            # Formula: 150 - (value / T * 100) -> at T gives 50, at T/2 gives 100
             score = (150 - (vals / T * 100)).clip(0, 100)
             
-            # Gestione esclusività
+            # Exclusivity handling
             if op == "<" or exclusive:
                 score = score.mask(vals >= T, 0.0)
             else: # <=
                 score = score.mask(vals > T, 0.0)
         else:
-            # Se il target è 0, solo valori <= 0 (quindi 0) sono validi
+            # If target is 0, only values <= 0 (so 0) are valid
             score = (vals <= 0).astype(float) * 100.0
     else:
-        # Fallback per uguaglianza se non gestito diversamente
+        # Fallback for equality if not handled otherwise
         score = (vals == T).astype(float) * 100.0
         
     return score.round(1)
@@ -79,26 +79,26 @@ def calculate_discrete_score(
     preferred_values: List[Any]
 ) -> pd.Series:
     """
-    Calcola un punteggio tra 0 e 100 per variabili discrete (categoriche/ordinali).
+    Calculates a score between 0 and 100 for discrete variables (categorical/ordinal).
     
-    Regole:
-    - Scelta singola: Match perfetto = 100 punti, altrimenti 0.
-    - Scelte multiple (ordinate):
-        - Prima scelta (Best): 100 punti
-        - Ultima scelta (Minimo accettabile): 50 punti
-        - Intermedie: scalo lineare tra 100 e 50.
+    Rules:
+    - Single choice: Perfect match = 100 points, otherwise 0.
+    - Multiple choices (ordered):
+        - First choice (Best): 100 points
+        - Last choice (Minimum acceptable): 50 points
+        - Intermediate: linear scale between 100 and 50.
         
     Args:
-        series: Serie pandas di valori (stringhe, tipologie, classi energetiche).
-        preferred_values: Lista di valori accettati, ordinati per preferenza decrescente.
+        series: Pandas series of values (strings, typologies, energy classes).
+        preferred_values: List of accepted values, ordered by decreasing preference.
         
     Returns:
-        pd.Series: Punteggi calcolati.
+        pd.Series: Calculated scores.
     """
     if not preferred_values:
         return pd.Series(0.0, index=series.index)
-        
-    # Pulizia input
+    
+    # Input cleaning
     vals_clean = series.astype(str).str.lower().str.strip()
     target_list = [str(v).lower().strip().strip("'\"") for v in preferred_values]
     
@@ -106,21 +106,21 @@ def calculate_discrete_score(
     mapping = {}
     
     if n_target == 1:
-        # Scelta singola = Match perfetto 100
+        # Single choice = Perfect match 100
         mapping[target_list[0]] = 100.0
     else:
         for idx, t in enumerate(target_list):
-            # Formula: Prima scelta (idx=0) = 100, Ultima (idx=n-1) = 50
+            # Formula: First choice (idx=0) = 100, Last (idx=n-1) = 50
             score = round(100.0 - (idx / (n_target - 1) * 50.0), 1)
             mapping[t] = score
             
     def get_score(v):
         v_str = str(v).lower().strip()
-        # Case 1: Match esatto nel dizionario
+        # Case 1: Exact match in dictionary
         if v_str in mapping:
             return mapping[v_str]
         
-        # Case 2: Match parziale (se il valore nel DB contiene o è contenuto in uno dei target)
+        # Case 2: Partial match (if value in DB contains or is contained in one of the targets)
         for t, s in mapping.items():
             if t in v_str or v_str in t:
                 return s

@@ -242,26 +242,26 @@ async def get_energy_detail(filename: str):
         energy_total_points=safe_int(r.get("energy_total_points")),
         energy_raw_score=safe_int(r.get("energy_score")),
         # Energy cost analysis (calculated)
-        energy_score=score_details.get("ape_score") if score_details else None,
+        energy_score=score_details.get("energy_score") if score_details else None,
         kwh_per_sqm=score_details.get("kwh_per_sqm") if score_details else None,
         annual_cost_estimate=(
-            score_details.get("costo_annuo_euro") if score_details else None
+            score_details.get("annual_cost_estimate") if score_details else None
         ),
         cost_per_sqm_year=(
-            score_details.get("costo_per_mq_anno") if score_details else None
+            score_details.get("cost_per_sqm_year") if score_details else None
         ),
         average_kwh_sqm_comparison=(
-            score_details.get("confronto", {}).get("media_kwh_mq")
+            score_details.get("comparison", {}).get("average_kwh_sqm")
             if score_details
             else None
         ),
         usage_type_comparison=(
-            score_details.get("confronto", {}).get("tipo_uso")
+            score_details.get("comparison", {}).get("usage_type")
             if score_details
             else None
         ),
         percentage_difference_comparison=(
-            score_details.get("confronto", {}).get("differenza_percentuale")
+            score_details.get("comparison", {}).get("percentage_difference")
             if score_details
             else None
         ),

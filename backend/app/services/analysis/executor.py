@@ -51,7 +51,7 @@ def execute_sql_query(sql_query, pd_data, dataset_path=None):
                 try:
                     # Create view for base data
                     con.execute(
-                        f"CREATE VIEW base_immobili AS SELECT * FROM '{dataset_path}'"
+                        f"CREATE VIEW base_properties AS SELECT * FROM '{dataset_path}'"
                     )
 
                     # Check for APE data and join if available
@@ -71,7 +71,7 @@ def execute_sql_query(sql_query, pd_data, dataset_path=None):
                             # Construct join query to replicate load_and_merge_data logic
                             # We cast ID to VARCHAR to ensure matching works
                             join_query = """
-                            CREATE VIEW IMMOBILI AS 
+                            CREATE VIEW PROPERTIES AS 
                             SELECT b.*, 
                                    COALESCE(a.energy_score, 0) as energy_score,
                                    COALESCE(a.energy_total_points, 0) as energy_total_points,
@@ -79,7 +79,7 @@ def execute_sql_query(sql_query, pd_data, dataset_path=None):
                                    COALESCE(a.energy_score_plant, 0) as energy_score_plant,
                                    COALESCE(a.energy_score_envelope, 0) as energy_score_envelope,
                                    COALESCE(a.energy_score_renewables, 0) as energy_score_renewables
-                            FROM base_immobili b
+                            FROM base_properties b
                             LEFT JOIN ape_data a ON CAST(b.id AS VARCHAR) = CAST(a.id AS VARCHAR)
                             """
                             con.execute(join_query)
@@ -87,12 +87,12 @@ def execute_sql_query(sql_query, pd_data, dataset_path=None):
                             # If no ID in APE data, just alias base table (skip join)
                             # This matches the behavior of pandas load_and_merge_data which skips merge if 'id' missing
                             con.execute(
-                                "CREATE VIEW IMMOBILI AS SELECT * FROM base_immobili"
+                                "CREATE VIEW PROPERTIES AS SELECT * FROM base_properties"
                             )
                     else:
                         # If no APE data, just alias base table
                         con.execute(
-                            "CREATE VIEW IMMOBILI AS SELECT * FROM base_immobili"
+                            "CREATE VIEW PROPERTIES AS SELECT * FROM base_properties"
                         )
 
                     # Pre-check SQL syntax with EXPLAIN
@@ -112,7 +112,7 @@ def execute_sql_query(sql_query, pd_data, dataset_path=None):
                 error_msg = "No valid dataset provided for SQL execution"
                 return pd.DataFrame(), error_msg
 
-            con.register("IMMOBILI", pd_data)
+            con.register("PROPERTIES", pd_data)
             
             # Pre-check SQL syntax with EXPLAIN
             sql_query = sql_query.strip().rstrip(';')

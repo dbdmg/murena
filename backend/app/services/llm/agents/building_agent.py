@@ -124,16 +124,16 @@ class BuildingAgent(BaseAgent):
         weights_count = 0
         transparency_cols = []
 
-        # 1. Ranking per Tipologia (se presente)
+        # 1. Ranking by Typology (if present)
         if ranked_typologies:
             weights_count += 1
             # Use centralized utility for typologies
-            typ_scores = calculate_discrete_score(df_ranked["tipologia_bene_immobile"], ranked_typologies)
+            typ_scores = calculate_discrete_score(df_ranked["property_type"], ranked_typologies)
             df_ranked["building_typology_score"] = typ_scores
             total_scores += typ_scores
             transparency_cols.append("building_typology_score")
 
-        # 2. Ranking per Requisiti Tecnici (es. superficie_di_riferimento_mq)
+        # 2. Ranking by Technical Requirements (e.g. superficie_di_riferimento_mq)
         if requirements:
             technical_score_sum = pd.Series(0.0, index=df_ranked.index)
             technical_req_count = 0
@@ -143,13 +143,13 @@ class BuildingAgent(BaseAgent):
                 target_val = req.get("value")
                 op = str(req.get("operator", "==")).upper()
                 
-                if not col or col not in df_ranked.columns or col == "tipologia_bene_immobile":
+                if not col or col not in df_ranked.columns or col == "property_type":
                     continue
                 
                 technical_req_count += 1
                 series = pd.to_numeric(df_ranked[col], errors="coerce").fillna(0)
                 
-                # Usa l'utilità centralizzata per variabili continue
+                # Use centralized utility for continuous variables
                 try:
                     T = float(target_val) if target_val is not None else 1.0
                     is_numeric_req = True
@@ -198,7 +198,7 @@ class BuildingAgent(BaseAgent):
             df_ranked["building_score"] = 100.0 if not (ranked_typologies or requirements) else 0.0
 
         # Combine all requested columns and deduplicate while preserving order
-        all_requested_cols = ["id", "building_score", "tipologia_bene_immobile"] + transparency_cols
+        all_requested_cols = ["id", "building_score", "property_type"] + transparency_cols
         unique_cols = []
         for c in all_requested_cols:
             if c not in unique_cols and c in df_ranked.columns:

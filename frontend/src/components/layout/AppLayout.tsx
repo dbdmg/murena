@@ -54,15 +54,15 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
     };
 
     return (
-        <div className="min-h-screen w-full relative bg-[#0a0c10] text-gray-200 overflow-hidden">
+        <div className="min-h-screen w-full relative bg-(--bg-main) text-(--text-primary) overflow-hidden tracking-tight">
             {/* Ambient Background Effects */}
             <div className="fixed top-[-20%] left-[-10%] w-[600px] h-[600px] bg-emerald-600/10 rounded-full blur-[150px] pointer-events-none z-0" />
-            <div className="fixed bottom-[-20%] right-[-10%] w-[500px] h-[500px] bg-green-500/5 rounded-full blur-[120px] pointer-events-none z-0" />
+            <div className="fixed bottom-[-20%] right-[-10%] w-[500px] h-[500px] bg-blue-500/5 rounded-full blur-[120px] pointer-events-none z-0" />
             <div className="fixed top-[40%] right-[20%] w-[300px] h-[300px] bg-purple-500/5 rounded-full blur-[100px] pointer-events-none z-0" />
 
             {/* Sidebar Navigation - Fixed position */}
             <motion.aside
-                className="fixed left-0 top-0 h-screen z-20 flex flex-col border-r border-white/5 bg-[#0f1218]/80 backdrop-blur-xl"
+                className="fixed left-0 top-0 h-screen z-20 flex flex-col border-r border-(--border-light) bg-(--glass-bg) backdrop-blur-xl"
                 initial={false}
                 animate={{ width: isExpanded ? 240 : 72 }}
                 transition={{ duration: 0.2, ease: 'easeOut' }}

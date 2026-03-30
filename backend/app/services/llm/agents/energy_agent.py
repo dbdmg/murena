@@ -145,7 +145,7 @@ class EnergyAgent(BaseAgent):
 
         df_ranked = df.copy()
         
-        # 1. Se abbiamo requisiti dinamici dall'LLM (filtering), usiamoli per calcolare lo score
+        # 1. If we have dynamic requirements from the LLM (filtering), use them to calculate the score
         if requirements:
             total_scores = pd.Series(0.0, index=df_ranked.index)
             valid_req_count = 0
@@ -164,7 +164,7 @@ class EnergyAgent(BaseAgent):
                 used_columns.add(col)
                 
                 # Special handling for energy class (categorical)
-                if col == "classe_energetica_ape":
+                if col == "energy_class":
                     # Definitive ranking order: A4 is best (Rank 1), G is worst
                     classes_order = ["A4", "A3", "A2", "A1", "B", "C", "D", "E", "F", "G"]
                     
@@ -196,7 +196,7 @@ class EnergyAgent(BaseAgent):
                     if not target_set and target_val:
                          target_set = [str(target_val).upper().strip()]
 
-                    # Usa l'utilità centralizzata per variabili discrete
+                    # Use centralized utility for discrete variables
                     req_score = calculate_discrete_score(df_ranked[col], target_set)
                     
                     # Store transparency metadata
@@ -208,7 +208,7 @@ class EnergyAgent(BaseAgent):
                     vals_raw = pd.to_numeric(df_ranked[col], errors="coerce")
                     is_missing = vals_raw.isna()
                     
-                    # Usa l'utilità centralizzata per variabili continue
+                    # Use centralized utility for continuous variables
                     if op in [">=", ">", "<=", "<"]:
                         exclusive = req.get("exclusive", False)
                         req_score = calculate_continuous_score(vals_raw, target_val, op, exclusive)
@@ -230,7 +230,7 @@ class EnergyAgent(BaseAgent):
                         else:
                             req_score = (vals == target_num).astype(float) * 100
                     
-                    # Assicura 0 per valori mancanti
+                    # Ensure 0 for missing values
                     req_score = req_score.where(~is_missing, 0)
                 
                 col_name = f"energy_partial_score_{col}"

@@ -124,7 +124,7 @@ class RegulatoryAgent(BaseAgent):
     def _run_filtering(self, query: str, available_columns: List[str] = None, statistics: dict = None) -> RegulatoryAgentResult:
         regulatory_docs, sources, images = load_regulatory_documents()
         
-        # Inseriamo le colonne disponibili nel prompt
+        # Insert available columns into the prompt
         # Priority to specifically passed available_columns, fallback to constants
         cols_list = available_columns or REGULATORY_AGENT_COLUMNS
         columns_str = "\n".join([f"- `{col}`" for col in cols_list]) if cols_list else "N/D"

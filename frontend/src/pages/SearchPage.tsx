@@ -2,11 +2,10 @@
  * SearchPage - AI Command Center Home
  *
  * Main search interface with:
- * - "NEURAL ENGINE READY" badge
- * - "Launch New Intelligence Agent" heading
- * - Auto-expanding Command Bar
- * - Suggested queries
- * - Recent History section
+ * - Refined glassmorphism Command Bar
+ * - Design-token based styling
+ * - Decoupled HistoryItem component
+ * - Suggestion system
  */
 
 import React, { useState, useRef, useEffect } from 'react';
@@ -16,25 +15,16 @@ import {
     Search,
     ArrowRight,
     Clock,
-    CheckCircle2,
     Loader2,
-    XCircle,
-    Building2,
 } from 'lucide-react';
 import { useAnalysis } from '../hooks/useAnalysis';
 import { useSettings } from '../contexts/SettingsContext';
 import { translations } from '../utils/translations';
 import { analysisApi } from '../api/endpoints/analysis';
 import type { AnalysisHistoryItem } from '../api/types';
-import { QueryTooltip } from '../components/common/QueryTooltip';
+import { HistoryItem } from '../components/search/HistoryItem';
 
-const SUGGESTED_QUERIES_IT = [
-    'Uffici vicino a Porta Nuova con classe energetica A',
-    'Immobili di 200mq vicino al Politecnico',
-    'Negozi in centro città adatti a ristorante',
-];
-
-const SUGGESTED_QUERIES_EN = [
+const SUGGESTED_QUERIES = [
     'Offices near Porta Nuova with energy class A',
     'Properties of 200sqm near Polytechnic',
     'Shops in city center suitable for restaurant',
@@ -55,7 +45,7 @@ export const SearchPage: React.FC = () => {
     const { startAnalysis, loadDemo, status, runId, isLoading } = useAnalysis();
 
     const t = translations[language];
-    const suggestions = language === 'it' ? SUGGESTED_QUERIES_IT : SUGGESTED_QUERIES_EN;
+    const suggestions = SUGGESTED_QUERIES;
 
     // Auto-resize textarea
     useEffect(() => {
@@ -73,7 +63,6 @@ export const SearchPage: React.FC = () => {
                     analysisApi.getHistory(10),
                     analysisApi.getDemos().catch(() => []),
                 ]);
-                // Limit to 3 most recent runs across all statuses
                 setRecentHistory(history.slice(0, 3));
                 setAvailableDemos(demos);
             } catch (err) {
@@ -85,7 +74,7 @@ export const SearchPage: React.FC = () => {
         fetchData();
     }, []);
 
-    // Navigate to processing when analysis starts (both real and demo runs)
+    // Navigate to processing when analysis starts
     useEffect(() => {
         if (status === 'processing' && runId) {
             navigate(`/processing/${runId}`);
@@ -98,11 +87,9 @@ export const SearchPage: React.FC = () => {
 
         try {
             if (demoMode && availableDemos.length > 0) {
-                // In demo mode, load a pre-computed demo
                 const id = await loadDemo(availableDemos[0]);
                 navigate(`/processing/${id}`);
             } else {
-                // Pass settings to the analysis
                 const id = await startAnalysis({
                     query: query.trim(),
                     llm_limit: llmLimit,
@@ -121,7 +108,6 @@ export const SearchPage: React.FC = () => {
     };
 
     const handleHistoryClick = (item: AnalysisHistoryItem) => {
-        // Navigate to map with this run's results
         navigate(`/map?run_id=${item.run_id}`);
     };
 
@@ -133,21 +119,20 @@ export const SearchPage: React.FC = () => {
     };
 
     return (
-        <div className="min-h-full relative flex flex-col items-center justify-center p-8 overflow-hidden">
-            {/* Background Image */}
+        <div className="min-h-full relative flex flex-col items-center justify-center p-8 overflow-hidden bg-(--bg-main)">
+            {/* Background Image with refined layer */}
             <div
-                className="absolute inset-0 z-0"
+                className="absolute inset-0 z-0 opacity-40 scale-105 pointer-events-none"
                 style={{
                     backgroundImage: 'url(/backgrounds/buildings.jpg)',
                     backgroundSize: 'cover',
                     backgroundPosition: 'center bottom',
                     backgroundRepeat: 'no-repeat',
-                    opacity: 0.5,
                 }}
             />
-            {/* Gradient overlay for text readability */}
-            <div className="absolute inset-0 z-0 bg-linear-to-b from-[#0a0d12] via-[#0a0d12]/80 to-[#0a0d12]/95" />
-            <div className="absolute inset-0 z-0 bg-linear-to-t from-[#0a0d12] via-transparent to-transparent" />
+            {/* Gradient overlays with design tokens */}
+            <div className="absolute inset-0 z-0 bg-linear-to-b from-(--bg-main) via-(--bg-main)/90 to-(--bg-main)/95 pointer-events-none" />
+            <div className="absolute inset-0 z-0 bg-linear-to-t from-(--bg-main) via-transparent to-transparent opacity-80 pointer-events-none" />
 
             {/* Main Content */}
             <div className="w-full max-w-3xl mx-auto relative z-10">
@@ -156,12 +141,10 @@ export const SearchPage: React.FC = () => {
                 <motion.div
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="flex justify-center mb-8"
+                    className="flex justify-center mb-10"
                 >
-                    <img src={murenaLogo217} alt="Murena" className="w-[290px] sm:w-[340px] h-auto max-w-[84vw]" />
+                    <img src={murenaLogo217} alt="Murena" className="w-[300px] h-auto" />
                 </motion.div>
-
-
 
                 {/* Command Bar */}
                 <motion.form
@@ -169,22 +152,20 @@ export const SearchPage: React.FC = () => {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.3 }}
                     onSubmit={handleSubmit}
-                    className="relative mb-8"
+                    className="relative mb-10"
                 >
                     <div className={`
-                        relative bg-[#0f1218]/80 backdrop-blur-xl rounded-2xl border transition-all duration-300 overflow-hidden
+                        relative bg-(--glass-bg) backdrop-blur-2xl rounded-2xl border transition-all duration-500 overflow-hidden
                         ${isFocused
-                            ? 'border-emerald-500/50 shadow-lg shadow-emerald-500/20'
-                            : 'border-white/10 hover:border-white/20'
+                            ? 'border-(--accent-cyan)/50 ring-4 ring-(--accent-cyan)/10 shadow-2xl scale-[1.01]'
+                            : 'border-(--border-light) hover:border-(--border-light)/30'
                         }
                     `}>
-                        {/* Search Icon */}
-                        <div className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-500">
+                        <div className="absolute left-6 top-1/2 -translate-y-1/2 text-(--text-tertiary)">
                             <Search className="w-5 h-5" />
                         </div>
 
                         <div className="flex items-stretch">
-                            {/* Textarea */}
                             <textarea
                                 ref={textareaRef}
                                 value={query}
@@ -195,40 +176,34 @@ export const SearchPage: React.FC = () => {
                                 placeholder={t.search.placeholder}
                                 rows={1}
                                 className="
-                                    flex-1 bg-transparent text-white placeholder-gray-500
-                                    pl-14 pr-4 py-4 text-base resize-none outline-none
-                                    min-h-[56px] max-h-[200px]
-                                    whitespace-pre-wrap break-words [overflow-wrap:anywhere]
-                                    overflow-y-auto overflow-x-hidden
+                                    flex-1 bg-transparent text-(--text-primary) placeholder-(--text-tertiary)
+                                    pl-16 pr-6 py-6 text-lg font-medium resize-none outline-none
+                                    min-h-[72px] max-h-[200px]
                                 "
                                 disabled={isLoading}
                             />
 
-                            {/* Submit Button (in flow, no overlap) */}
-                            <div className="shrink-0 pr-3 pl-2 flex items-center">
+                            <div className="shrink-0 pr-4 pl-2 flex items-center">
                                 <motion.button
                                     type="submit"
                                     disabled={!query.trim() || isLoading}
-                                    whileHover={{ scale: 1.02 }}
-                                    whileTap={{ scale: 0.98 }}
+                                    whileHover={{ scale: 1.05 }}
+                                    whileTap={{ scale: 0.95 }}
                                     className={`
-                                        flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium text-sm whitespace-nowrap
-                                        transition-all duration-200
+                                        flex items-center gap-3 px-6 py-3 rounded-xl font-bold text-sm tracking-wide uppercase
+                                        transition-all duration-300
                                         ${query.trim() && !isLoading
-                                            ? 'bg-linear-to-r from-emerald-600 to-green-500 text-white shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40'
-                                            : 'bg-white/5 text-gray-500 cursor-not-allowed'
+                                            ? 'bg-linear-to-r from-emerald-600 to-cyan-600 text-white shadow-lg shadow-emerald-500/30'
+                                            : 'bg-white/5 text-(--text-tertiary) cursor-not-allowed'
                                         }
                                     `}
                                 >
                                     {isLoading ? (
-                                        <>
-                                            <Loader2 className="w-4 h-4 animate-spin" />
-                                            <span>{t.search.loading}</span>
-                                        </>
+                                        <Loader2 className="w-5 h-5 animate-spin" />
                                     ) : (
                                         <>
                                             <span>{t.search.submit}</span>
-                                            <ArrowRight className="w-4 h-4" />
+                                            <ArrowRight className="w-5 h-5" />
                                         </>
                                     )}
                                 </motion.button>
@@ -237,38 +212,19 @@ export const SearchPage: React.FC = () => {
                     </div>
                 </motion.form>
 
-                {/* Demo Warning - Elegant Glass Style below search */}
-                {demoMode && (
-                    <motion.div
-                        initial={{ opacity: 0, y: -10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="flex items-center justify-center gap-2 mb-8"
-                    >
-                        <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-900/20 border border-emerald-500/20 backdrop-blur-md shadow-lg shadow-emerald-900/10">
-                            <span className="relative flex h-2 w-2">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                            </span>
-                            <span className="text-xs font-medium text-emerald-300 tracking-wide">
-                                {t.search.demoMode} <span className="text-emerald-500/70 mx-1">|</span> {t.search.demoModeDesc}
-                            </span>
-                        </div>
-                    </motion.div>
-                )}
-
                 {/* Suggestions */}
                 <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.4 }}
-                    className="flex flex-wrap items-center justify-center gap-3 mb-16"
+                    className="flex flex-wrap items-center justify-center gap-4 mb-20"
                 >
-                    <span className="text-sm text-gray-500">{t.search.suggested}</span>
+                    <span className="text-sm text-(--text-tertiary) font-medium uppercase tracking-widest">{t.search.suggested}</span>
                     {suggestions.map((suggestion, i) => (
                         <button
                             key={i}
                             onClick={() => handleSuggestionClick(suggestion)}
-                            className="text-sm text-emerald-400/80 hover:text-emerald-300 transition-colors"
+                            className="text-sm font-semibold text-emerald-400/80 hover:text-emerald-300 hover:underline decoration-emerald-500/30 underline-offset-4 transition-all"
                         >
                             {suggestion}
                         </button>
@@ -280,107 +236,37 @@ export const SearchPage: React.FC = () => {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.5 }}
+                    className="space-y-6"
                 >
-                    <div className="flex items-center gap-2 mb-4">
-                        <Clock className="w-4 h-4 text-gray-500" />
-                        <h3 className="text-sm font-medium text-gray-400">{t.search.recentHistory}</h3>
-                        <span className="text-xs text-gray-600">
+                    <div className="flex items-center justify-between px-2">
+                        <div className="flex items-center gap-3">
+                            <Clock className="w-4 h-4 text-emerald-500/60" />
+                            <h3 className="text-xs font-bold uppercase tracking-widest text-(--text-tertiary)">{t.search.recentHistory}</h3>
+                        </div>
+                        <span className="text-[10px] font-bold text-gray-700 uppercase tracking-tighter">
                             {recentHistory.length > 0 && `${recentHistory.length} ${t.search.found}`}
                         </span>
                     </div>
 
                     {isLoadingHistory ? (
-                        <div className="flex items-center justify-center py-8">
-                            <Loader2 className="w-5 h-5 text-gray-500 animate-spin" />
+                        <div className="flex items-center justify-center py-16">
+                            <Loader2 className="w-6 h-6 text-emerald-500 animate-spin" />
                         </div>
                     ) : recentHistory.length === 0 ? (
-                        <div className="text-center py-8 text-gray-500 text-sm">
+                        <div className="text-center py-16 text-(--text-tertiary) text-sm bg-white/5 rounded-2xl border border-dashed border-(--border-light)">
                             {t.search.noHistory}
                         </div>
                     ) : (
-                        <div className="grid gap-3">
+                        <div className="grid gap-4">
                             {recentHistory.map((item, i) => (
-                                <motion.button
+                                <HistoryItem
                                     key={item.run_id}
-                                    initial={{ opacity: 0, x: -20 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    transition={{ delay: 0.1 * i }}
-                                    onClick={() => handleHistoryClick(item)}
-                                    className="
-                                        w-full p-4 rounded-xl bg-[#12151a]/60 border border-white/5
-                                        hover:bg-[#12151a] hover:border-white/10
-                                        transition-all duration-200 text-left group
-                                        overflow-hidden
-                                    "
-                                >
-                                    <div className="flex items-start justify-between gap-4">
-                                        <div className="flex-1 min-w-0">
-                                            <div className="flex items-center gap-2 mb-1.5">
-                                                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium border ${item.status === 'completed'
-                                                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                                                    : item.status === 'failed'
-                                                        ? 'bg-red-500/10 text-red-500 border-red-500/20'
-                                                        : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                                                    }`}>
-                                                    {item.status === 'completed' ? (
-                                                        <>
-                                                            <CheckCircle2 className="w-3 h-3" />
-                                                            {t.search.status.completed}
-                                                        </>
-                                                    ) : item.status === 'failed' ? (
-                                                        <>
-                                                            <XCircle className="w-3 h-3" />
-                                                            {t.search.status.failed}
-                                                        </>
-                                                    ) : (
-                                                        <>
-                                                            <Loader2 className="w-3 h-3 animate-spin" />
-                                                            {t.search.status.processing}
-                                                        </>
-                                                    )}
-                                                </span>
-                                                <span className="text-xs text-gray-500">
-                                                    {new Date(item.created_at).toLocaleDateString(language === 'it' ? 'it-IT' : 'en-US', {
-                                                        day: 'numeric',
-                                                        month: 'short',
-                                                        hour: '2-digit',
-                                                        minute: '2-digit',
-                                                    })}
-                                                </span>
-                                            </div>
-                                            <QueryTooltip text={item.query}>
-                                                <p
-                                                    className={`text-sm font-medium group-hover:text-emerald-300 transition-colors break-words [overflow-wrap:anywhere] ${item.status === 'failed' ? 'text-gray-400' : 'text-white'}`}
-                                                    style={{
-                                                        display: '-webkit-box',
-                                                        WebkitLineClamp: 2,
-                                                        WebkitBoxOrient: 'vertical',
-                                                        overflow: 'hidden',
-                                                    }}
-                                                >
-                                                    {item.query}
-                                                </p>
-                                            </QueryTooltip>
-                                            {item.status === 'completed' && item.buildings_count !== undefined && (
-                                                <div className="flex items-center gap-1 mt-1 text-xs text-gray-500">
-                                                    <Building2 className="w-3 h-3" />
-                                                    <span>{item.buildings_count} {t.search.propertyFound}</span>
-                                                </div>
-                                            )}
-                                            {item.status === 'failed' && (
-                                                <div className="flex items-center gap-1 mt-1 text-xs text-red-400/60 font-medium">
-                                                    <span>{t.search.error}</span>
-                                                </div>
-                                            )}
-                                            {item.status === 'processing' && (
-                                                <div className="flex items-center gap-1 mt-1 text-xs text-emerald-400/60 font-medium">
-                                                    <span>{t.search.processingDesc}</span>
-                                                </div>
-                                            )}
-                                        </div>
-                                        <ArrowRight className="w-4 h-4 text-gray-500 group-hover:text-emerald-400 group-hover:translate-x-1 transition-all" />
-                                    </div>
-                                </motion.button>
+                                    item={item}
+                                    index={i}
+                                    language={language}
+                                    translations={translations}
+                                    onClick={handleHistoryClick}
+                                />
                             ))}
                         </div>
                     )}

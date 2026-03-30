@@ -23,12 +23,12 @@ logger = logging.getLogger(__name__)
 
 # Energy cost coefficients (€/unit) from COSTI_ENERGETICI
 ENERGY_COSTS = {
-    "energia_elettrica": 0.25,  # €/kWh
-    "gas_naturale": 0.87,  # €/Smc
-    "gpl": 1.63,  # €/L
-    "gasolio": 1.70,  # €/L
-    "teleriscaldamento": 0.09,  # €/kWh
-    "solare_eolico": 0.00,  # €/kWh (free)
+    "electricity": 0.25,  # €/kWh
+    "natural_gas": 0.87,  # €/Smc
+    "lpg": 1.63,  # €/L
+    "diesel": 1.70,  # €/L
+    "district_heating": 0.09,  # €/kWh
+    "solar_wind": 0.00,  # €/kWh (free)
     "default": 0.25,  # Default to electricity rate
 }
 

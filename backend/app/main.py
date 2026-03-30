@@ -9,6 +9,8 @@ import logging
 
 from app.core.config import settings
 from app.api.v1.router import api_router
+from app.core.init_app import startup_event, shutdown_event
+from app.core.exceptions import setup_exception_handlers
 
 # Configure logging
 logging.basicConfig(
@@ -22,79 +24,11 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     """
     Lifecycle manager for the application.
-    Handles startup and shutdown events.
+    Handles startup and shutdown events via modularized functions.
     """
-    # Startup
-    logger.info(f"Starting {settings.APP_NAME} v{settings.APP_VERSION}")
-    logger.info(f"Environment: {'Development' if settings.DEBUG else 'Production'}")
-
-    # Initialize Database
-    try:
-        from app.database.connection import init_db, SessionLocal
-        from app.repositories import UserRepository
-        from app.core import security
-
-        init_db()
-        logger.info("Database initialized")
-
-        # Create default admin user
-        db = SessionLocal()
-        try:
-            user_repo = UserRepository(db)
-            if not user_repo.get_by_username("admin"):
-                user_repo.create_user(
-                    username="admin",
-                    password_hash=security.get_password_hash("admin123"),
-                    email="admin@realestate-ai.example",
-                )
-                logger.info("Default admin user created")
-        except Exception as e:
-            logger.error(f"Error creating admin user: {e}")
-        finally:
-            db.close()
-
-    except Exception as e:
-        logger.error(f"Database initialization failed: {e}")
-
-    # Preload dataset and indexed cache for fast first request
-    try:
-        import asyncio
-        from app.services.real_estate_service import RealEstateService
-        from app.data.loaders import load_and_merge_data
-
-        dataset_path = settings.dataset_options.get("full")
-        if dataset_path:
-            logger.info(f"Preloading dataset from {dataset_path}...")
-
-            # Load dataset
-            df = load_and_merge_data(dataset_path)
-            RealEstateService._dataset_cache["full"] = df
-            logger.info(f"Dataset preloaded: {len(df)} rows")
-
-            # Build indexed cache for O(1) lookups (same format as _load_dataset)
-            if "id" in df.columns:
-                logger.info("Building indexed cache...")
-                df_indexed = df.copy()
-                df_indexed["id_str"] = df_indexed["id"].astype(str)
-                df_indexed = df_indexed.drop_duplicates(subset=["id_str"])
-                df_indexed.set_index("id_str", inplace=True)
-                RealEstateService._dataset_indexed_cache["full"] = df_indexed
-                logger.info(f"Indexed cache ready: {len(df_indexed)} entries")
-
-            # Update database metadata dynamically
-            try:
-                from app.data.metadata_manager import MetadataManager
-                meta_manager = MetadataManager()
-                meta_manager.update_metadata(df)
-            except Exception as e:
-                logger.warning(f"Metadata update failed: {e}")
-    except Exception as e:
-        logger.warning(f"Dataset preloading failed (will load on first request): {e}")
-
+    await startup_event()
     yield
-
-    # Shutdown
-    logger.info("Shutting down application...")
+    await shutdown_event()
 
 
 # Create FastAPI application
@@ -106,6 +40,9 @@ app = FastAPI(
     redoc_url="/redoc" if settings.DEBUG else None,
     lifespan=lifespan,
 )
+
+# Setup exception handlers
+setup_exception_handlers(app)
 
 # Configure CORS
 app.add_middleware(

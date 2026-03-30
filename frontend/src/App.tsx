@@ -1,10 +1,12 @@
-import { type ReactNode, Suspense, lazy } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Suspense, lazy } from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { AuthProvider } from './contexts/AuthContext';
 import { SettingsProvider } from './contexts/SettingsContext';
 import { MapProvider } from './contexts/MapContext';
 import { AppLayout } from './components/layout/AppLayout';
+import { ProtectedRoute } from './components/common/ProtectedRoute';
+import { PageLoader } from './components/common/PageLoader';
 
 // Lazy load pages
 const LoginPage = lazy(() => import('./pages/LoginPage').then(module => ({ default: module.LoginPage })));
@@ -15,36 +17,15 @@ const SettingsPage = lazy(() => import('./pages/SettingsPage').then(module => ({
 const HistoryPage = lazy(() => import('./pages/HistoryPage').then(module => ({ default: module.HistoryPage })));
 
 // Create Query Client
-const queryClient = new QueryClient();
-
-// Protected Route Component
-const ProtectedRoute = ({ children }: { children: ReactNode }) => {
-    const { isAuthenticated, isLoading } = useAuth();
-
-    if (isLoading) {
-        return (
-            <div className="min-h-screen bg-[#0a0c10] flex items-center justify-center">
-                <div className="flex flex-col items-center gap-3">
-                    <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-                    <span className="text-gray-500 text-sm">Caricamento...</span>
-                </div>
-            </div>
-        );
-    }
-
-    if (!isAuthenticated) {
-        return <Navigate to="/login" replace />;
-    }
-
-    return <>{children}</>;
-};
-
-// Global Loading Fallback
-const PageLoader = () => (
-    <div className="h-full w-full flex items-center justify-center bg-[#0a0c10]">
-        <div className="w-8 h-8 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin" />
-    </div>
-);
+const queryClient = new QueryClient({
+    defaultOptions: {
+        queries: {
+            refetchOnWindowFocus: false,
+            retry: 1,
+            staleTime: 5 * 60 * 1000, // 5 minutes
+        },
+    },
+});
 
 function App() {
     return (

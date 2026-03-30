@@ -55,19 +55,30 @@ python backend/run_app.py
 
 This script automatically verifies the availability of datasets. If missing, it executes the generation pipeline to build the analytical Parquet files from source data before starting the FastAPI server (port 8000) and the Vite development server.
 
-### 2. Research evaluation
-To replicate the experimental results and benchmarks described in the paper:
+## Usage
+
+### 1. Research evaluation & Reproduction
+To replicate the experimental results and benchmarks described in the paper (ECML PKDD 2026):
 
 ```bash
+# To reproduce Table 1 (Routing, Ranking, Qualitative)
+python backend/experiments/reproduce_results.py --table 1
+
+# To reproduce Table 2 (Structural SQL Comparison)
+python backend/experiments/reproduce_results.py --table 2
+
+# To generate a comprehensive Markdown report from all available logs
 python backend/run_experiments.py --type all
 ```
 
-Similar to the main application, this script ensures all database dependencies are initialized before running the benchmarks.
+The evaluation suite uses the following terminology consistent with the paper:
+- **$\mathcal{Q}_{\mathrm{comb}}$** ($N=486$): Combinatorial query set for agent routing performance.
+- **$\mathcal{Q}_{\mathrm{full}}$** ($N=64$): Full agent activation set for ablation and structural comparison.
+- **PMR** (Perfect Mapping Rate): Accuracy of exact agent routing activation.
 
-The evaluation suite computes metrics for:
-- **Agent recall**: Accuracy of specialized agent activation.
-- **Ranking stability**: Intersection over Union (IoU) across varied query complexities.
-- **Inference latency**: Performance overhead of the multi-agent pipeline.
+---
+*Anonymized for blind review - ECML PKDD 2026*
+---
 
 ## User management
 

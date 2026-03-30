@@ -54,7 +54,7 @@ def _label_for_step_key(key: str) -> str:
 
     if key.startswith("sql_generation_retry_"):
         suffix = key.replace("sql_generation_retry_", "")
-        return f"Generazione SQL (retry {suffix})"
+        return f"SQL generation (retry {suffix})"
 
     return key.replace("_", " ")
 

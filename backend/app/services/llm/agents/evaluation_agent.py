@@ -84,7 +84,7 @@ class EvaluationAgent(BaseAgent):
         if not query:
             query = original_query
 
-        # Conteggio immobili in input per verifica output (retry logic)
+        # Input properties count for output verification (retry logic)
         try:
             input_estates = json.loads(estates_data or "[]")
             expected_count = len(input_estates) if isinstance(input_estates, list) else 0
@@ -92,7 +92,7 @@ class EvaluationAgent(BaseAgent):
             input_estates = []
             expected_count = 0
 
-        logger.info(f"EvaluationAgent in esecuzione su {expected_count} immobili.")
+        logger.info(f"EvaluationAgent running on {expected_count} properties.")
 
         # Format user prompt with variables
         user_text = self.render_template(
@@ -124,7 +124,7 @@ class EvaluationAgent(BaseAgent):
                     },
                 )
 
-                # Gestione dell'output grezzo per il record finale
+                # Handle raw output for the final record
                 if hasattr(result, "content"):
                     raw_text = result.content
                 elif hasattr(result, "model_dump_json"):
@@ -144,8 +144,8 @@ class EvaluationAgent(BaseAgent):
                             eval_list = EvaluationList(evaluations=result["evaluations"])
                 
                 if not eval_list:
-                    # Se non abbiamo un EvaluationList/dict, proviamo ad estrarlo dal testo grezzo
-                    # Questo è fondamentale per modelli OSS che non supportano bene function_calling
+                    # If we don't have an EvaluationList/dict, try extracting it from raw text
+                    # This is fundamental for OSS models that don't support function_calling well
                     from app.utils.json_parser import safe_extract_json
                     text_to_parse = ""
                     if hasattr(result, "content"): # Se è un messaggio (BaseMessage)
@@ -159,28 +159,28 @@ class EvaluationAgent(BaseAgent):
                 if eval_list:
                     results = eval_list.evaluations
                     
-                    # Verifica quantitativa: abbiamo ricevuto tutti i record attesi?
+                    # Quantitative check: did we receive all expected records?
                     is_complete = len(results) >= expected_count
                     
-                    # Verifica qualitativa: se abbiamo record, sono effettivamente compilati?
-                    # Spesso gli LLM restituiscono JSON validi ma con stringhe vuote o liste vuote in caso di errore silente.
+                    # Qualitative check: if we have records, are they actually filled?
+                    # LLMs often return valid JSON but with empty strings or empty lists in case of silent error.
                     if is_complete and expected_count > 0:
-                        # Controlliamo la qualità di ogni record (l'agente di solito lavora in batch da 1)
+                        # Check the quality of each record (the agent usually works in batches of 1)
                         for eval_item in results:
-                            # Se mancano testo di valutazione o i punti chiave, consideriamo il record incompleto
+                            # If evaluation text or key points are missing, consider the record incomplete
                             if not eval_item.evaluation_text or len(eval_item.pros) == 0 or len(eval_item.cons) == 0:
                                 is_complete = False
-                                logger.warning(f"L'EvaluationAgent ha restituito record con dati mancanti per ID {eval_item.id} (tentativo {attempt + 1}/{max_retries}).")
+                                logger.warning(f"EvaluationAgent returned records with missing data for ID {eval_item.id} (attempt {attempt + 1}/{max_retries}).")
                                 break
                     
                     if is_complete:
-                        result = eval_list # Assicuriamo che 'result' sia l'oggetto validato per il prosieguo
+                        result = eval_list # Ensure 'result' is the validated object for the next steps
                         break
                     elif len(results) < expected_count:
-                        logger.warning(f"L'EvaluationAgent ha restituito solo {len(results)} record su {expected_count} attesi (tentativo {attempt + 1}/{max_retries}).")
+                        logger.warning(f"EvaluationAgent returned only {len(results)} records out of {expected_count} expected (attempt {attempt + 1}/{max_retries}).")
                 else:
                     if expected_count > 0:
-                         logger.warning(f"L'EvaluationAgent non ha restituito una struttura valida (tentativo {attempt + 1}/{max_retries}).")
+                         logger.warning(f"EvaluationAgent did not return a valid structure (attempt {attempt + 1}/{max_retries}).")
                     else:
                         break
 

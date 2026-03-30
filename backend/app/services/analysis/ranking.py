@@ -4,22 +4,22 @@ import os
 from typing import Dict
 
 
-# Path al file degli amenity scores
+# Path to the amenity scores file
 AMENITY_SCORES_PATH = os.path.join(
     os.path.dirname(__file__),
     '../../../notebooks/04_scoring/immobili_amenity_scores_aggregated.parquet'
 )
 
-# Cache globale per il DataFrame degli amenity scores
+# Global cache for the amenity scores DataFrame
 _amenity_scores_cache = None
 
 
 def load_amenity_scores() -> pd.DataFrame:
     """
-    Carica gli amenity scores dal Parquet e li tiene in cache.
+    Loads amenity scores from Parquet and keeps them in cache.
     
     Returns:
-        DataFrame con colonne: immobile_id, amenity, score, percentile
+        DataFrame with columns: immobile_id, amenity, score, percentile
     """
     global _amenity_scores_cache
     
@@ -27,7 +27,7 @@ def load_amenity_scores() -> pd.DataFrame:
         if os.path.exists(AMENITY_SCORES_PATH):
             _amenity_scores_cache = pd.read_parquet(AMENITY_SCORES_PATH)
         else:
-            # Fallback: dataset vuoto se il file non esiste
+            # Fallback: empty dataset if the file does not exist
             _amenity_scores_cache = pd.DataFrame(columns=['immobile_id', 'amenity', 'score', 'percentile'])
     
     return _amenity_scores_cache
@@ -35,11 +35,11 @@ def load_amenity_scores() -> pd.DataFrame:
 
 def haversine_vectorized(lat1_series, lon1_series, lat2_scalar, lon2_scalar):
     """
-    Calcola la distanza Haversine in km in modo vettoriale (Pandas Series / Numpy arrays).
+    Calculates Haversine distance in km in a vectorized way (Pandas Series / Numpy arrays).
     """
-    R = 6371  # Raggio Terra in km
+    R = 6371  # Earth radius in km
 
-    # Converti in radianti
+    # Convert to radians
     lat1 = np.radians(lat1_series)
     lon1 = np.radians(lon1_series)
     lat2 = np.radians(lat2_scalar)
@@ -67,38 +67,38 @@ def calculate_ranking_score(
     property_technical_weight: float = 0.0,
 ) -> pd.DataFrame:
     """
-    Calcola uno score di ranking per ogni immobile basato su POI, APE e Distanza.
+    Calculates a ranking score for each property based on POI, APE, and Distance.
     
-    Utilizza gli amenity scores granulari dal file CSV pre-calcolato per una 
-    valutazione più precisa basata sulle amenity specifiche selezionate.
+    Uses granular amenity scores from the pre-calculated CSV for a 
+    more precise evaluation based on specific selected amenities.
 
     Args:
-        df: DataFrame con i dati immobiliari.
-        poi_weights: Dizionario con pesi per categoria POI (0-1). Usato come fallback.
-        amenity_weights: Dizionario {categoria: {amenity: peso}} per amenity specifiche.
-        user_location: Tuple (lat, lon) opzionale per calcolo distanza.
-        search_radius_km: Raggio di ricerca in km (default 5.0).
-        ape_weight: Peso dello score APE nel totale (0-1).
-        poi_weight_factor: Peso complessivo dei POI nel totale (0-1).
-        distance_weight: Peso della distanza nel totale (0-1).
+        df: DataFrame with real estate data.
+        poi_weights: Dictionary with weights for POI category (0-1). Used as fallback.
+        amenity_weights: Dictionary {category: {amenity: weight}} for specific amenities.
+        user_location: Optional (lat, lon) tuple for distance calculation.
+        search_radius_km: Search radius in km (default 5.0).
+        ape_weight: Weight of the APE score in total (0-1).
+        poi_weight_factor: Total weight of POIs in total (0-1).
+        distance_weight: Weight of distance in total (0-1).
 
     Returns:
-        DataFrame con colonna aggiuntiva 'ranking_score' ordinato.
+        DataFrame with an additional 'ranking_score' column, sorted.
     """
     if df is None or df.empty:
         return df
 
-    # Copia per non modificare l'originale in place se non voluto
+    # Copy to avoid modifying the original in-place if not desired
     df = df.copy()
 
-    # 1. Calcolo Score POI
+    # 1. POI Score Calculation
     if "poi_score" in df.columns:
         poi_score_norm = pd.to_numeric(df["poi_score"], errors="coerce").fillna(0) / 100
     else:
         # Fallback legacy
         poi_score_norm = _calculate_poi_score_granular(df, amenity_weights, poi_weights)
 
-    # 2. Calcolo Score APE
+    # 2. APE Score Calculation
     if "ape_score" in df.columns:
         ape_score_norm = pd.to_numeric(df["ape_score"], errors="coerce").fillna(0) / 100
     elif "ape_score_total" in df.columns:
@@ -108,7 +108,7 @@ def calculate_ranking_score(
     else:
         ape_score_norm = 0.0
 
-    # 3. Calcolo Score Distanza (se user_location o location_score c'è)
+    # 3. Distance Score Calculation (if user_location or location_score exists)
     dist_score_norm = 0.0
     w_dist = 0.0
 
@@ -117,28 +117,28 @@ def calculate_ranking_score(
         w_dist = distance_weight
     elif user_location:
         user_lat, user_lon = user_location
-        # Assicuriamoci che le colonne lat/lon esistano
-        if "latitudine" in df.columns and "longitudine" in df.columns:
-            lats = pd.to_numeric(df["latitudine"], errors="coerce")
-            lons = pd.to_numeric(df["longitudine"], errors="coerce")
+        # Ensure lat/lon columns exist
+        if "latitude" in df.columns and "longitude" in df.columns:
+            lats = pd.to_numeric(df["latitude"], errors="coerce")
+            lons = pd.to_numeric(df["longitude"], errors="coerce")
             dists = haversine_vectorized(lats, lons, user_lat, user_lon)
             df["distanza_km"] = dists
             max_dist = min(search_radius_km * 0.6, 10.0)
             dist_score_norm = (1 - (dists / max_dist)).clip(0, 1)
             w_dist = distance_weight
     
-    # 4. Score Normativo (se presente)
+    # 4. Regulatory Score (if present)
     normative_score_norm = 0.0
     if "normative_score" in df.columns:
         normative_score_norm = pd.to_numeric(df["normative_score"], errors="coerce").fillna(0) / 100
     
-    # 5. Score Property Technical (se presente)
+    # 5. Property Technical Score (if present)
     property_technical_score_norm = 0.0
     if "property_technical_score" in df.columns:
         property_technical_score_norm = pd.to_numeric(df["property_technical_score"], errors="coerce").fillna(0) / 100
 
-    # 6. Normalizzazione pesi
-    # Sommiamo i pesi solo se le relative colonne di score sono state popolate
+    # 6. Weight Normalization
+    # Sum weights only if the relative score columns are populated
     active_normative_weight = normative_weight if "normative_score" in df.columns else 0
     active_property_technical_weight = property_technical_weight if "property_technical_score" in df.columns else 0
     active_ape_weight = ape_weight if "ape_score" in df.columns else (ape_weight if "ape_score_total" in df.columns else 0)
@@ -154,7 +154,7 @@ def calculate_ranking_score(
     else:
         w_ape, w_poi, w_dist_final, w_normative, w_property_technical = 0.2, 0.2, 0.2, 0.2, 0.2
 
-    # 7. Score Totale
+    # 7. Total Score
     final_score = (
         (poi_score_norm * w_poi) + 
         (ape_score_norm * w_ape) + 
@@ -165,7 +165,7 @@ def calculate_ranking_score(
 
     df["final_ranking_score"] = final_score
 
-    # Ordina decrescente per score, poi crescente per distanza (se disponibile)
+    # Sort descending by score, then ascending by distance (if available)
     if "distanza_km" in df.columns:
         return df.sort_values(["final_ranking_score", "distanza_km"], ascending=[False, True])
     else:
@@ -178,43 +178,43 @@ def _calculate_poi_score_granular(
     poi_weights: dict = None
 ) -> pd.Series:
     """
-    Calcola lo score POI granulare usando gli amenity scores dal CSV.
+    Calculates granular POI score using amenity scores from the CSV.
     
     Args:
-        df: DataFrame degli immobili
-        amenity_weights: Dizionario {categoria: {amenity: peso}}
-        poi_weights: Fallback con pesi per categoria
+        df: Properties DataFrame
+        amenity_weights: Dictionary {category: {amenity: weight}}
+        poi_weights: Fallback with per-category weights
     
     Returns:
-        Series con score POI normalizzati (0-1) per ogni immobile
+        Series with normalized POI scores (0-1) for each property
     """
-    # Se non ci sono amenity_weights, usa il metodo legacy con le colonne aggregate
+    # If no amenity_weights, use legacy method with aggregated columns
     if not amenity_weights or all(not v for v in amenity_weights.values()):
         return _calculate_poi_score_legacy(df, poi_weights or {})
     
-    # Carica gli amenity scores
+    # Load amenity scores
     amenity_scores_df = load_amenity_scores()
     
     if amenity_scores_df.empty:
-        # Fallback al metodo legacy se il CSV non è disponibile
+        # Fallback to legacy method if CSV is not available
         return _calculate_poi_score_legacy(df, poi_weights or {})
     
-    # Filtra solo gli immobili presenti nel DataFrame di input
-    # Assicurati che i tipi siano coerenti per il confronto (converti a stringa se necessario)
+    # Filter only properties present in the input DataFrame
+    # Ensure types are consistent for comparison (convert to string if necessary)
     immobile_ids = df['id'].astype(str).values
     relevant_scores = amenity_scores_df[amenity_scores_df['immobile_id'].astype(str).isin(immobile_ids)]
     
     if relevant_scores.empty:
-        # Nessuno score trovato, usa metodo legacy
+        # No scores found, use legacy method
         return _calculate_poi_score_legacy(df, poi_weights or {})
     
-    # Crea un dizionario per accumulare gli score per immobile
+    # Create a dictionary to accumulate scores per property
     immobile_poi_scores = {}
     
-    # Somma totale dei pesi per normalizzazione
+    # Total sum of weights for normalization
     total_weight = 0.0
     
-    # Itera sulle categorie e amenity con peso > 0
+    # Iterate over categories and amenities with weight > 0
     for category, amenities_dict in amenity_weights.items():
         for amenity, weight in amenities_dict.items():
             if weight > 0:
@@ -223,28 +223,28 @@ def _calculate_poi_score_granular(
                 # Filtra gli score per questa amenity
                 amenity_data = relevant_scores[relevant_scores['amenity'] == amenity]
                 
-                # Accumula gli score pesati per ogni immobile
+                # Accumulate weighted scores for each property
                 for _, row in amenity_data.iterrows():
-                    immobile_id = str(row['immobile_id'])  # Converti a stringa per coerenza
-                    score = row['score']  # Score raw (non percentile)
+                    immobile_id = str(row['immobile_id'])  # Convert to string for consistency
+                    score = row['score']  # Raw score (not percentile)
                     
                     if immobile_id not in immobile_poi_scores:
                         immobile_poi_scores[immobile_id] = 0.0
                     
-                    # Aggiungi lo score pesato
+                    # Add weighted score
                     immobile_poi_scores[immobile_id] += score * weight
     
-    # Normalizza dividendo per il peso totale
+    # Normalize by dividing by total weight
     if total_weight > 0:
         for immobile_id in immobile_poi_scores:
             immobile_poi_scores[immobile_id] /= total_weight
     
-    # Crea una Series allineata con il DataFrame di input
-    # Converti df['id'] a stringa per matchare con le chiavi del dizionario
+    # Create a Series aligned with input DataFrame
+    # Convert df['id'] to string to match dictionary keys
     poi_scores = df['id'].astype(str).map(immobile_poi_scores).fillna(0.0)
     
-    # Normalizza gli score a 0-1
-    # Gli score raw possono variare, quindi usiamo una normalizzazione min-max
+    # Normalize scores to 0-1
+    # Raw scores can vary, so we use min-max normalization
     if poi_scores.max() > 0:
         poi_score_norm = (poi_scores - poi_scores.min()) / (poi_scores.max() - poi_scores.min())
     else:
@@ -255,35 +255,44 @@ def _calculate_poi_score_granular(
 
 def _calculate_poi_score_legacy(df: pd.DataFrame, poi_weights: dict) -> pd.Series:
     """
-    Calcola lo score POI usando il metodo legacy con le colonne aggregate.
+    Calculates POI score using legacy method with aggregated columns.
     
     Args:
-        df: DataFrame degli immobili
-        poi_weights: Dizionario con pesi per categoria POI (0-1)
+        df: Properties DataFrame
+        poi_weights: Dictionary with weights for POI category (0-1)
     
     Returns:
-        Series con score POI normalizzati (0-1) per ogni immobile
+        Series with normalized POI scores (0-1) for each property
     """
-    poi_cols = ["sanita", "mobilita", "verde", "sport", "commerciale", "educazione"]
+    poi_cols = ["healthcare", "mobility", "green", "sport", "commercial", "education"]
     
-    # Normalizza pesi POI (somma = 1)
+    # Normalize POI weights (sum = 1)
     total_poi_weight = sum(poi_weights.values())
     if total_poi_weight == 0:
-        # Se tutti i pesi sono 0, diamo peso uguale (o 0)
+        # If all weights are 0, give equal weight (or 0)
         norm_poi_weights = {k: 1 / 6 for k in poi_cols}
     else:
-        norm_poi_weights = {k: v / total_poi_weight for k, v in poi_weights.items()}
+        # Map input weights (Italian) to normalized weights (English)
+        mapping = {
+            "sanita": "healthcare",
+            "mobilita": "mobility",
+            "verde": "green",
+            "sport": "sport",
+            "commerciale": "commercial",
+            "educazione": "education"
+        }
+        norm_poi_weights = {mapping.get(k, k): v / total_poi_weight for k, v in poi_weights.items()}
     
-    # Calcola weighted sum dei POI (scala 1-5)
+    # Calculate weighted POI sum (scale 1-5)
     poi_score_series = pd.Series(0.0, index=df.index)
     
     for col in poi_cols:
         if col in df.columns:
-            # Converte in numerico, gestisce NaN mettendo 1 (punteggio minimo)
+            # Convert to numeric, handle NaN by setting 1 (minimum score)
             col_values = pd.to_numeric(df[col], errors="coerce").fillna(1)
             poi_score_series += col_values * norm_poi_weights.get(col, 0)
     
-    # Normalizza POI score a 0-1 (da 1-5) -> (val - 1) / 4
+    # Normalize POI score to 0-1 (from 1-5) -> (val - 1) / 4
     poi_score_norm = (poi_score_series - 1) / 4
     
     return poi_score_norm.clip(0, 1)

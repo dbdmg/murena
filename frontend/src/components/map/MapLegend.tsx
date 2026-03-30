@@ -32,7 +32,7 @@ export const MapLegend: React.FC<MapLegendProps> = ({ className = '', hasSearchL
                         }
                     `}
                 >
-                    <span className="font-medium">Legenda</span>
+                    <span className="font-medium">Legend</span>
                 </button>
             </div>
 
@@ -48,7 +48,7 @@ export const MapLegend: React.FC<MapLegendProps> = ({ className = '', hasSearchL
                     >
                         <div className="bg-slate-900/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl shadow-black/50 p-4 min-w-[220px]">
                             <div className="text-[10px] text-slate-500 uppercase mb-3 font-semibold tracking-wider">
-                                Tipologie Markers
+                                Marker Types
                             </div>
                             <div className="space-y-3">
                                 {hasSearchLocation && (
@@ -59,7 +59,7 @@ export const MapLegend: React.FC<MapLegendProps> = ({ className = '', hasSearchL
                                                     <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
                                                 </svg>
                                             </div>
-                                            <span className="text-xs text-slate-300">Location Cercata</span>
+                                            <span className="text-xs text-slate-300">Searched Location</span>
                                         </div>
                                         <div className="w-full h-px bg-white/5 my-2" />
                                     </>
@@ -70,7 +70,7 @@ export const MapLegend: React.FC<MapLegendProps> = ({ className = '', hasSearchL
                                 </div>
                                 <div className="flex items-center gap-3">
                                     <div className="w-4 h-4 rounded-full bg-linear-to-br from-teal-400 to-cyan-600 border border-white/40 shadow-sm shadow-cyan-500/40 shrink-0" />
-                                    <span className="text-xs text-slate-300">Risultati ricerca</span>
+                                    <span className="text-xs text-slate-300">Search Results</span>
                                 </div>
                                 <div className="flex items-center gap-3">
                                     <div className="w-5 h-5 rounded-full bg-linear-to-br from-amber-300 via-yellow-400 to-orange-400 border border-white/50 shadow-md shadow-amber-500/40 shrink-0 flex items-center justify-center">
@@ -81,7 +81,7 @@ export const MapLegend: React.FC<MapLegendProps> = ({ className = '', hasSearchL
                                 <div className="w-full h-px bg-white/5 my-2" />
                                 <div className="flex items-center gap-3">
                                     <div className="w-4 h-4 rounded-full bg-linear-to-br from-emerald-400 via-teal-400 to-emerald-500 ring-2 ring-emerald-400/40 animate-pulse shrink-0 border border-white/40" />
-                                    <span className="text-xs text-slate-300">Selezionato</span>
+                                    <span className="text-xs text-slate-300">Selected</span>
                                 </div>
                             </div>
                         </div>

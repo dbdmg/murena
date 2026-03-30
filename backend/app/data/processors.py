@@ -19,69 +19,69 @@ from app.core.config import settings
 MINUTES_PER_KM_WALKING = settings.MINUTES_PER_KM_WALKING
 
 # APE XML parsing constants (from expert slides)
-MAPPING_QUALITA_INVOLUCRO = {"0": "Sorridente", "1": "Basita/o", "2": "Triste"}
+MAPPING_QUALITA_INVOLUCRO = {"0": "Smiling", "1": "Neutral/Amazed", "2": "Sad"}
 
 MAPPING_IMPIANTI = {
-    "0": "Caldaia standard",
-    "1": "Caldaia a condensazione",
-    "2": "Stufa o caminetto",
-    "3": "Riscaldamento elettrico",
-    "4": "Pompa di calore",
-    "5": "Pompa di calore",
-    "6": "Pompa di calore",
-    "7": "Pompa di calore",
-    "8": "Pompa di calore",
-    "9": "Pompa di calore",
-    "10": "Pompa di calore",
-    "11": "Pompa di calore",
-    "12": "Pompa di calore",
-    "13": "Pompa di calore",
-    "14": "Pompa di calore",
-    "15": "Pompa di calore",
-    "16": "Impianto solare termico",
-    "17": "Impianto fotovoltaico",
-    "18": "Cogeneratore",
-    "19": "Teleriscaldamento",
-    "32": "Scalda-acqua a gas",
-    "33": "Scalda-acqua a gas",
-    "34": "Scalda-acqua a pompa di calore",
-    "35": "Scalda-acqua a pompa di calore",
-    "36": "Boiler elettrico",
+    "0": "Standard boiler",
+    "1": "Condensing boiler",
+    "2": "Stove or fireplace",
+    "3": "Electric heating",
+    "4": "Heat pump",
+    "5": "Heat pump",
+    "6": "Heat pump",
+    "7": "Heat pump",
+    "8": "Heat pump",
+    "9": "Heat pump",
+    "10": "Heat pump",
+    "11": "Heat pump",
+    "12": "Heat pump",
+    "13": "Heat pump",
+    "14": "Heat pump",
+    "15": "Heat pump",
+    "16": "Solar thermal system",
+    "17": "Photovoltaic system",
+    "18": "Cogenerator",
+    "19": "District heating",
+    "32": "Gas water heater",
+    "33": "Gas water heater",
+    "34": "Heat pump water heater",
+    "35": "Heat pump water heater",
+    "36": "Electric boiler",
 }
 
 VETTORI_XPATHS = {
-    "Energia elettrica da rete": "//ape:prestazioneImpianti/ape:energiaElettricaRete/ape:consumoAnnuo",
-    "Gas naturale": "//ape:prestazioneImpianti/ape:gasNaturale/ape:consumoAnnuo",
-    "GPL": "//ape:prestazioneImpianti/ape:gpl/ape:consumoAnnuo",
-    "Carbone": "//ape:prestazioneImpianti/ape:carbone/ape:consumoAnnuo",
-    "Gasolio": "//ape:prestazioneImpianti/ape:gasolio/ape:consumoAnnuo",
-    "Olio combustibile": "//ape:prestazioneImpianti/ape:olioCombustibile/ape:consumoAnnuo",
-    "Biomasse solide": "//ape:prestazioneImpianti/ape:biomasseSolide/ape:consumoAnnuo",
-    "Biomasse liquide": "//ape:prestazioneImpianti/ape:biomasseLiquide/ape:consumoAnnuo",
-    "Biomasse gassose": "//ape:prestazioneImpianti/ape:biomasseGassose/ape:consumoAnnuo",
-    "Solare fotovoltaico": "//ape:prestazioneImpianti/ape:solareFotovoltaico/ape:consumoAnnuo",
-    "Solare termico": "//ape:prestazioneImpianti/ape:solareTermico/ape:consumoAnnuo",
-    "Eolico": "//ape:prestazioneImpianti/ape:eolico/ape:consumoAnnuo",
-    "Teleriscaldamento": "//ape:prestazioneImpianti/ape:teleriscaldamento/ape:consumoAnnuo",
-    "Teleraffrescamento": "//ape:prestazioneImpianti/ape:teleraffrescamento/ape:consumoAnnuo",
+    "Grid electricity": "//ape:prestazioneImpianti/ape:energiaElettricaRete/ape:consumoAnnuo",
+    "Natural gas": "//ape:prestazioneImpianti/ape:gasNaturale/ape:consumoAnnuo",
+    "LPG": "//ape:prestazioneImpianti/ape:gpl/ape:consumoAnnuo",
+    "Coal": "//ape:prestazioneImpianti/ape:carbone/ape:consumoAnnuo",
+    "Diesel": "//ape:prestazioneImpianti/ape:gasolio/ape:consumoAnnuo",
+    "Heating oil": "//ape:prestazioneImpianti/ape:olioCombustibile/ape:consumoAnnuo",
+    "Solid biomass": "//ape:prestazioneImpianti/ape:biomasseSolide/ape:consumoAnnuo",
+    "Liquid biomass": "//ape:prestazioneImpianti/ape:biomasseLiquide/ape:consumoAnnuo",
+    "Gaseous biomass": "//ape:prestazioneImpianti/ape:biomasseGassose/ape:consumoAnnuo",
+    "Photovoltaic solar": "//ape:prestazioneImpianti/ape:solareFotovoltaico/ape:consumoAnnuo",
+    "Thermal solar": "//ape:prestazioneImpianti/ape:solareTermico/ape:consumoAnnuo",
+    "Wind": "//ape:prestazioneImpianti/ape:eolico/ape:consumoAnnuo",
+    "District heating": "//ape:prestazioneImpianti/ape:teleriscaldamento/ape:consumoAnnuo",
+    "District cooling": "//ape:prestazioneImpianti/ape:teleraffrescamento/ape:consumoAnnuo",
 }
 
 VETTORI_PCI = {
-    "Gas naturale": 9.94,
-    "GPL": 12.778,
-    "Carbone": 7.917,
-    "Gasolio": 11.87,
-    "Olio combustibile": 11.75,
-    "Biomasse solide": 4.67,
-    "Biomasse liquide": 7.5,
-    "Biomasse gassose": 6.4,
+    "Natural gas": 9.94,
+    "LPG": 12.778,
+    "Coal": 7.917,
+    "Diesel": 11.87,
+    "Heating oil": 11.75,
+    "Solid biomass": 4.67,
+    "Liquid biomass": 7.5,
+    "Gaseous biomass": 6.4,
 }
 
 
 def process_population_data(geojson_data, csv_path):
     """
-    Carica i dati della popolazione dal CSV, li pulisce e li unisce al GeoJSON
-    delle zone urbanistiche usando il codice della zona come chiave.
+    Loads population data from CSV, cleans it, and joins it with the GeoJSON
+    of urbanistic zones using the zone code as key.
 
     Args:
         geojson_data: GeoJSON features dict
@@ -108,7 +108,7 @@ def process_population_data(geojson_data, csv_path):
 
         if not zona_col:
             print(
-                f"Colonna zona_urbanistica non trovata nel CSV. Colonne disponibili: {list(df_pop.columns)}"
+                f"Urban zone column not found in CSV. Available columns: {list(df_pop.columns)}"
             )
             return geojson_data, []
 
@@ -147,7 +147,7 @@ def process_population_data(geojson_data, csv_path):
 
         return geojson_data, age_cols
     except Exception as e:
-        print(f"ERRORE nell'elaborazione dei dati della popolazione: {e}")
+        print(f"ERROR in processing population data: {e}")
         return geojson_data, []
 
 
@@ -162,9 +162,9 @@ def calculate_travel_times_df(
     input_df: pd.DataFrame, location_details: list, routing_mode: str = "walk"
 ) -> pd.DataFrame:
     """
-    Calcola la distanza in km tra ciascun immobile e i POI selezionati.
-    Usa il RoutingService (OSM/Pandana) se disponibile per distanze reali,
-    altrimenti fallback su Haversine.
+    Calculates the distance in km between each property and selected POIs.
+    Uses RoutingService (OSM/Pandana) if available for real distances,
+    otherwise falls back to Haversine.
     """
     # from app.services.routing import get_router  # TODO: Implement routing service
     from app.utils.helpers import haversine_km
@@ -175,7 +175,7 @@ def calculate_travel_times_df(
     df_processed = input_df.copy()
     df_processed["poi_riferimento"] = None
     df_processed["distanza_km"] = np.nan
-    df_processed["tempo_minuti"] = np.nan  # Aggiungo anche il tempo stimato
+    df_processed["tempo_minuti"] = np.nan  # Added estimated time
 
     # Ensure coordinates are float
     if "latitudine" in df_processed.columns and "longitudine" in df_processed.columns:
@@ -188,7 +188,10 @@ def calculate_travel_times_df(
     else:
         return df_processed
 
-    # Normalizza i POI forniti dall'utente (lista di [nome, lat, lon])
+    if not valid_mask.any():
+        return df_processed
+ 
+    # Normalize user-provided POIs (list of [name, lat, lon])
     valid_locations = []
     for loc in location_details or []:
         if not isinstance(loc, (list, tuple)) or len(loc) < 3:
@@ -213,9 +216,9 @@ def calculate_travel_times_df(
     # except Exception as e:
     #     print(f"Routing init warning: {e}")
 
-    # Logica di calcolo:
-    # Per ogni POI, calcoliamo la distanza vettoriale da TUTTI gli immobili
-    # Manteniamo per ogni immobile la distanza MINIMA verso uno dei POI selezionati
+    # Calculation logic:
+    # For each POI, we calculate vector distance from ALL properties
+    # We maintain the MINIMUM distance for each property to one of the selected POIs
 
     # Inizializza colonne per il minimo
     min_distances = pd.Series(
@@ -250,7 +253,7 @@ def calculate_travel_times_df(
                 # Convert to km
                 current_distances = d_meters / 1000.0
 
-                # Sostituisci inf con nan per gestione
+                # Replace inf with nan for handling
                 current_distances = current_distances.replace(
                     [float("inf"), np.inf], np.nan
                 )
@@ -283,9 +286,9 @@ def calculate_travel_times_df(
         # Logic to update minimum
         mask_better = dist_series < min_distances[valid_mask]
         # We need to update min_distances where mask_better is true in the valid subset
-        # This is a bit tricky with pandas indexing, so we iterate or use combining
-
-        # Let's use a temp updates series
+        # This is a bit tricky with pandas indexing, so we update via assignment
+ 
+        # Use simple updates series
         update_indices = mask_better[mask_better].index
         min_distances.loc[update_indices] = dist_series.loc[update_indices]
         best_pois.loc[update_indices] = name
@@ -689,11 +692,11 @@ def _guess_image_mime(b64: str) -> str:
 
 def extract_ape_image_b64(xml_text: str):
     """
-    Ritorna (mime, base64) della prima immagine plausibile trovata nell'XML, se presente.
-
+    Returns (mime, base64) of the first plausible image found in the XML, if any.
+ 
     Args:
         xml_text: XML content as string
-
+ 
     Returns:
         tuple: (mime_type, base64_string) or None
     """
@@ -714,7 +717,7 @@ def extract_ape_image_b64(xml_text: str):
                 if len(txt) > 100:  # likely base64
                     return _guess_image_mime(txt), txt
     except Exception as e:
-        print(f"Estrazione immagine APE: {type(e).__name__}: {e}")
+        print(f"APE image extraction error: {type(e).__name__}: {e}")
     return None
 
 
@@ -782,19 +785,19 @@ def calculate_ape_score(ape_df: pd.DataFrame) -> pd.DataFrame:
 
     # 3. Envelope Score (1-5, based on winter quality)
     quality = df["qualita_invernale"].astype(str).str.lower()
-
+ 
     conditions_env = [
-        quality.str.contains("sorridente", na=False),  # High quality -> 5
-        quality.str.contains("basita|neutr", regex=True, na=False),  # Medium -> 3
+        quality.str.contains("smiling|sorridente", na=False),  # High quality -> 5
+        quality.str.contains("basita|neutr|amazed", regex=True, na=False),  # Medium -> 3
     ]
     choices_env = [5, 3]
     df["energy_score_envelope"] = np.select(conditions_env, choices_env, default=1)
 
     # 4. Renewables Score (2-5 scale)
     renewables = df["fonti_rinnovabili"].astype(str).str.lower()
-    # Check for 'si' or 'sì' -> 5, else -> 2
+    # Check for 'si' or 'sì' or 'yes' -> 5, else -> 2
     df["energy_score_renewables"] = np.where(
-        renewables.str.contains(r"s[iì]", regex=True, na=False), 5, 2
+        renewables.str.contains(r"s[iì]|yes", regex=True, na=False), 5, 2
     )
 
     # Total Calculation (Max 20, Min 6)

@@ -40,10 +40,10 @@ type SortOption = 'score' | 'surface' | 'energy' | 'address';
 const ITEMS_PER_PAGE = 20;
 
 const SORT_OPTIONS: { value: SortOption; label: string; icon: React.ReactNode }[] = [
-    { value: 'score', label: 'Score AI', icon: <Zap className="w-3.5 h-3.5" /> },
-    { value: 'surface', label: 'Superficie', icon: <Building2 className="w-3.5 h-3.5" /> },
-    { value: 'energy', label: 'Classe Energia', icon: <Zap className="w-3.5 h-3.5" /> },
-    { value: 'address', label: 'Indirizzo', icon: <MapPin className="w-3.5 h-3.5" /> },
+    { value: 'score', label: 'AI Score', icon: <Zap className="w-3.5 h-3.5" /> },
+    { value: 'surface', label: 'Surface', icon: <Building2 className="w-3.5 h-3.5" /> },
+    { value: 'energy', label: 'Energy Class', icon: <Zap className="w-3.5 h-3.5" /> },
+    { value: 'address', label: 'Address', icon: <MapPin className="w-3.5 h-3.5" /> },
 ];
 
 const ENERGY_CLASS_ORDER = ['A4', 'A3', 'A2', 'A1', 'B', 'C', 'D', 'E', 'F', 'G'];
@@ -175,8 +175,8 @@ export const ResultsSidebar: React.FC<ResultsSidebarProps> = ({
                                 <Layers className="w-4 h-4 text-emerald-400" />
                             </div>
                             <div>
-                                <h3 className="text-sm font-semibold text-white">Risultati</h3>
-                                <span className="text-xs text-gray-500">{sortedMarkers.length} immobili</span>
+                                <h3 className="text-sm font-semibold text-white">Results</h3>
+                                <span className="text-xs text-gray-500">{sortedMarkers.length} properties</span>
                             </div>
                         </div>
                         <button
@@ -194,7 +194,7 @@ export const ResultsSidebar: React.FC<ResultsSidebarProps> = ({
                             <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-500" />
                             <input
                                 type="text"
-                                placeholder="Cerca indirizzo o ID..."
+                                placeholder="Search address or ID..."
                                 value={searchQuery}
                                 onChange={(e) => {
                                     setSearchQuery(e.target.value);
@@ -219,7 +219,7 @@ export const ResultsSidebar: React.FC<ResultsSidebarProps> = ({
                                 className="flex items-center gap-2 w-full px-3 py-2 bg-white/5 hover:bg-white/10 rounded-lg text-sm text-gray-300 transition-colors"
                             >
                                 <ArrowUpDown className="w-4 h-4 text-gray-500" />
-                                <span>Ordina per: <span className="text-white font-medium">
+                                <span>Sort by: <span className="text-white font-medium">
                                     {SORT_OPTIONS.find(o => o.value === sortBy)?.label}
                                 </span></span>
                             </button>
@@ -247,7 +247,7 @@ export const ResultsSidebar: React.FC<ResultsSidebarProps> = ({
                                             {option.icon}
                                             <span>{option.label}</span>
                                             {option.value === 'score' && !hasActiveRun && (
-                                                <span className="text-xs text-gray-500 ml-auto">(richiede run)</span>
+                                                <span className="text-xs text-gray-500 ml-auto">(requires run)</span>
                                             )}
                                             {sortBy === option.value && <Check className="w-3 h-3 ml-auto" />}
                                         </button>
@@ -261,7 +261,7 @@ export const ResultsSidebar: React.FC<ResultsSidebarProps> = ({
                     <div className="flex-1 overflow-y-auto">
                         {paginatedMarkers.length === 0 ? (
                             <div className="flex items-center justify-center h-32 text-gray-500 text-sm">
-                                Nessun risultato
+                                No results
                             </div>
                         ) : (
                             <div className="p-2 space-y-2">
@@ -337,7 +337,7 @@ export const ResultsSidebar: React.FC<ResultsSidebarProps> = ({
 
                                                 {marker.energy_class && (
                                                     <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${getEnergyClassColor(marker.energy_class)}`}>
-                                                        Classe {marker.energy_class}
+                                                        Class {marker.energy_class}
                                                     </span>
                                                 )}
 
@@ -366,7 +366,7 @@ export const ResultsSidebar: React.FC<ResultsSidebarProps> = ({
                             </button>
 
                             <span className="text-xs text-gray-400">
-                                Pagina <span className="text-white font-medium">{currentPage}</span> di {totalPages}
+                                Page <span className="text-white font-medium">{currentPage}</span> of {totalPages}
                             </span>
 
                             <button

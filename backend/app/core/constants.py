@@ -56,10 +56,10 @@ BUILDING_AGENT_COLUMNS: List[str] = [
     "construction_period",
     "id",
     "codice_comune",
-    "foglio",
-    "particella",
-    "subalterno",
-    "numero_immobili_per_catasto",
+    "cadastral_sheet",
+    "cadastral_parcel",
+    "cadastral_subaltern",
+    "cadastral_units_count",
     "surface_area",
 ]
 
@@ -67,6 +67,8 @@ BUILDING_AGENT_COLUMNS: List[str] = [
 REGULATORY_AGENT_COLUMNS: List[str] = [
     "surface_area",
     "property_type",
+    "legal_nature",
+    "cultural_constraint",
 ]
 
 # Columns for Proximity agent
@@ -128,7 +130,19 @@ COLUMN_MAPPING: Dict[str, str] = {
     "finalita": "purpose",
     "classe_energetica_ape": "energy_class",
     "latitudine": "latitude",
-    "longitudine": "longitude"
+    "longitudine": "longitude",
+    "natura_giuridica_del_bene": "legal_nature",
+    "vincolo_culturale_paesaggistico": "cultural_constraint",
+    "lista_file_ape": "energy_files",
+    "numero_immobili_per_catasto": "cadastral_units_count",
+    "distanza_km": "distance_km",
+    "motivazione": "description",
+    "tipo_detenzione_a_terzi": "third_party_tenure_type",
+    "data_decorrenza": "effective_date",
+    "canone_annuale": "annual_rent",
+    "foglio": "cadastral_sheet",
+    "particella": "cadastral_parcel",
+    "subalterno": "cadastral_subaltern",
 }
 
 # Global object containing updated runtime metadata
@@ -159,9 +173,9 @@ def update_runtime_metadata(df):
         DB_METADATA["filterable_columns"] = [c for c in SQL_FILTERABLE_COLUMNS if c in df_columns]
         
         # Lists of columns to analyze
-        categorical = ["codice_comune", "tipologia_bene_immobile", "epoca_costruzione", "classe_energetica_ape"]
+        categorical = ["codice_comune", "property_type", "construction_period", "energy_class"]
         numerical = [
-            "superficie_di_riferimento_mq", "energy_score_total", 
+            "surface_area", "energy_score_total", 
             "healthcare", "mobility", "green", "sport", "commercial", "education"
         ]
         
