@@ -280,7 +280,8 @@ def load_static_data():
         pd.DataFrame: Station data
     """
     try:
-        return pd.read_csv("data/datasets/station_dataframe.csv")
+        from app.core.config import settings
+        return pd.read_csv(settings.STATIONS_CSV)
     except FileNotFoundError:
         logger.warning("Station file not found.")
         return pd.DataFrame(columns=["Lat", "Lon", "Linea", "Nome"])

@@ -126,37 +126,33 @@ class Settings(BaseSettings):
     NOMINATIM_USER_AGENT: str = "MURENA/1.0"
 
     # ==========================================================================
-    # File Paths (relative to backend/ directory)
-    DATA_DIR: str = "data/datasets"
-    STATIC_DIR: str = "data/static_data"
-    ENERGY_DIR: str = "data/energy_data"
-    META_DIR: str = "data/metadata"
-    RUNS_DIR: str = "data/runs"
-    AGENT_LOGS_DIR: str = "data/agent_logs"
+    # File Paths (relative to backend/ directory, MUST be defined in .env)
+    DATA_DIR: str
+    STATIC_DIR: str
+    ENERGY_DIR: str
+    META_DIR: str
+    RUNS_DIR: str
+    AGENT_LOGS_DIR: str
 
     # Energy specific paths
-    ENERGY_MATCH_DIR: str = "data/energy_data/MATCH"
-    PLOT_DIR: str = "data/energy_data/metadata/plots_inverted"
+    ENERGY_MATCH_DIR: str
+    PLOT_DIR: str
 
     # Dataset paths
-    DATASET_FULL: str = (
-        "data/metadata/immobili_with_meta_and_ape_full_cleaned.parquet"
-    )
-    IMMOBILI_MAPPING_PATH: str = os.path.normpath("notebooks/02_quotazione/mapping_immobili.csv")
-    QIP_VALORI_PATH: str = "notebooks/02_quotazione/QIP_1303437_1_20251_VALORI.csv"
-    QIP_MAPPING_PATH: str = "notebooks/02_quotazione/mapping_qip.csv"
-    ZONE_OMI_PROVINCIA_TORINO_GEOJSON: str = "data/static_data/zone_omi_provincia_torino.geojson.zip"
-    IMMOBILI_QUOTAZIONE_PATH: str = "notebooks/02_quotazione/quotazione_immobili.csv"
-    ZONE_GRUPPO_QUOTAZIONI_PATH: str = "notebooks/02_quotazione/zone_gruppo_quotazioni.csv"
-    MISSING_QUOTAZIONI_IDS_PATH: str = "notebooks/02_quotazione/missing_quotazioni_ids.csv"
-    ENERGY_DETAILED_DATA_PATH: str = "data/metadata/ape_detailed_data.parquet"
+    DATASET_FULL: str
+    IMMOBILI_MAPPING_PATH: str
+    QIP_VALORI_PATH: str
+    QIP_MAPPING_PATH: str
+    ZONE_OMI_PROVINCIA_TORINO_GEOJSON: str
+    IMMOBILI_QUOTAZIONE_PATH: str
+    ZONE_GRUPPO_QUOTAZIONI_PATH: str
+    MISSING_QUOTAZIONI_IDS_PATH: str
+    ENERGY_DETAILED_DATA_PATH: str
 
     # Static data
-    STATIONS_CSV: str = "data/datasets/station_dataframe.csv"
-    ZONE_OMI_GEOJSON: str = "data/static_data/omi_zones.geojson"
-    ZONE_URBANISTICHE_GEOJSON: str = (
-        "data/static_data/rome_urban_zones.geojson"
-    )
+    STATIONS_CSV: str
+    ZONE_OMI_GEOJSON: str
+    ZONE_URBANISTICHE_GEOJSON: str
 
     TORINO_LAT: float = 45.116177
     TORINO_LON: float = 7.742615
@@ -210,7 +206,19 @@ class Settings(BaseSettings):
 
 
 # Global settings instance
-settings = Settings()
+try:
+    settings = Settings()
+except Exception as e:
+    import sys
+    print("\n" + "="*80)
+    print("ERRORE DI CONFIGURAZIONE (Environment Variables)")
+    print("="*80)
+    print("Una o più variabili d'ambiente richieste non sono state trovate nel file .env")
+    print("o nell'ambiente di sistema.")
+    print("\nDettagli dell'errore:")
+    print(str(e))
+    print("="*80 + "\n")
+    sys.exit(1)
 
 # Export agent-specific settings
 class DynamicAgentModels(dict):

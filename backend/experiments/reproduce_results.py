@@ -11,9 +11,12 @@ sys.path.append(str(Path(__file__).resolve().parent))
 from metrics import analyze_activation, analyze_ranking_differentiation, analyze_ranking_consistency, analyze_performance, evaluate_with_judge
 from results_formatter import format_table_1, format_table_2
 
+from dotenv import load_dotenv
+load_dotenv(Path(__file__).resolve().parent.parent / ".env")
+
 # Configuration
-RESULTS_ROOT = Path("backend/tests/results") # Where the previous test_suite.py saved results
-METADATA_DIR = Path("backend/experiments/data/metadata")
+RESULTS_ROOT = Path(os.environ.get("RESULTS_ROOT", "backend/tests/results"))
+METADATA_DIR = Path(os.environ.get("EXPERIMENT_METADATA_DIR", "backend/experiments/data/metadata"))
 
 def get_model_results(model: str) -> Dict[str, Any]:
     """Helper to load all metrics for a given model from existing result directories."""

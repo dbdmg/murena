@@ -15,6 +15,15 @@ try:
 except ImportError:
     BallTree = None
 
+import sys
+from pathlib import Path
+# Add backend to path to import utils
+_backend_path = Path(__file__).resolve().parent.parent.parent
+sys.path.append(str(_backend_path))
+from dotenv import load_dotenv
+load_dotenv(_backend_path / ".env")
+from app.utils.helpers import require_env
+
 try:
     from shapely.geometry import Point
     import geopandas as gpd
@@ -26,11 +35,11 @@ warnings.filterwarnings("ignore", category=UserWarning)
 warnings.filterwarnings("ignore", category=FutureWarning)
 
 # --- CONFIGURATION ---
-# Use environment variable for data path or a generic placeholder
-PATH_XML = os.environ.get("APE_XML_PATH", "./merged_xml_data")
-TARGET_CITY = os.environ.get("TARGET_CITY", "Torino")
-TARGET_PROVINCE = os.environ.get("TARGET_PROVINCE", "TO")
-TARGET_COMUNE_CODE = os.environ.get("TARGET_COMUNE_CODE", "L219")
+# Use require_env to ensure these are present and signal errors if not
+PATH_XML = require_env("APE_XML_PATH")
+TARGET_CITY = require_env("TARGET_CITY")
+TARGET_PROVINCE = require_env("TARGET_PROVINCE")
+TARGET_COMUNE_CODE = require_env("TARGET_COMUNE_CODE")
 
 # --- CONSTANTS AND MAPPING ---
 
@@ -341,7 +350,7 @@ def init_geocoder_globals():
     global POOL_GEOCODER
     if POOL_GEOCODER is not None: return
     # Path del file OSM (aggiornare se necessario)
-    pbf_path = "/home/mdeluca/nord-ovest-latest.osm.pbf"
+    pbf_path = require_env("OSM_PBF_PATH")
     if os.path.exists(pbf_path):
         try:
             POOL_GEOCODER = OSMGeocodingService(pbf_path)
@@ -353,7 +362,7 @@ def init_amenity_globals():
     global POOL_POI_TREE, POOL_POI_META, POOL_CATEGORIES, POOL_CAT_AMENITIES
     if POOL_POI_TREE is not None: return
     
-    poi_path = "/home/mdeluca/real-estate-ai/backend/notebooks/01_pois/pois_by_category.json"
+    poi_path = require_env("POI_PATH")
     if not os.path.exists(poi_path):
         print(f"Warning: POI file not found at {poi_path}")
         return

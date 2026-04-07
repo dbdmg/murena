@@ -18,6 +18,24 @@ import unidecode
 
 # Import get_coordinates inside functions to avoid circular import
 
+def require_env(name: str) -> str:
+    """
+    Returns the value of an environment variable or raises an error if not found.
+    
+    Args:
+        name: Name of the environment variable
+        
+    Returns:
+        str: Value of the variable
+        
+    Raises:
+        RuntimeError: If variable is not found
+    """
+    val = os.getenv(name)
+    if val is None:
+        raise RuntimeError(f"MISSING CONFIG ERROR: Environment variable '{name}' was requested but not found in the environment. Please check your .env file or environment settings (path: {os.path.abspath('.env')}).")
+    return val
+
 
 def slugify(text):
     """
