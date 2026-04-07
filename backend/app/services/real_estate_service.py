@@ -20,10 +20,10 @@ from app.core.config import settings
 from app.data.loaders import load_and_merge_data
 from app.models.requests import BuildingFilters
 from app.models.responses import (
-    APEScores,
+    EnergyScores,
     BuildingResponse,
     Coordinates,
-    POIScores,
+    ProximityScores,
     SubProperty,
 )
 from app.utils.logger import logger
@@ -273,7 +273,6 @@ class RealEstateService:
         # Note: 'meta' option removed - use 'full' as single source of truth
         dataset_paths = {
             "full": settings.DATASET_FULL,
-            "ape": settings.APE_DETAILED_DATA_PATH,
         }
         return dataset_paths.get(dataset_key.lower())
 
@@ -426,23 +425,12 @@ class RealEstateService:
 
         # Filter by is_meta_immobile
         if filters.is_meta_immobile is not None:
-            meta_col = None
-            if "meta_building" in result.columns:
-                meta_col = "meta_building"
-            elif "meta_immobile" in result.columns:
-                meta_col = "meta_immobile"
-            elif "is_meta" in result.columns:
-                meta_col = "is_meta"
-
-            if meta_col:
+            meta_col = "is_meta_estate" if "is_meta_estate" in result.columns else "is_meta"
+            if meta_col in result.columns:
                 if filters.is_meta_immobile:
-                    # Only meta buildings
                     result = result[result[meta_col] == True]
                 else:
-                    # Only non-meta buildings
-                    result = result[
-                        (result[meta_col] == False) | (result[meta_col].isna())
-                    ]
+                    result = result[(result[meta_col] == False) | (result[meta_col].isna())]
 
 
         return result
@@ -511,13 +499,13 @@ class RealEstateService:
         # Extract energy scores if available
         energy_scores = None
         energy_score_cols = {
-            "total": ["energy_score"],
+            "total": ["energy_score_total", "energy_score"],
             "class_score": ["energy_score_class"],
             "system_score": ["energy_score_plant"],
             "envelope_score": ["energy_score_envelope"],
             "renewables_score": ["energy_score_renewables"],
         }
-
+        
         energy_data = {}
         for key, cols in energy_score_cols.items():
             value = safe_get(cols[0], alternatives=cols[1:] if len(cols) > 1 else [])
@@ -528,7 +516,7 @@ class RealEstateService:
                     energy_data[key] = int(value) if not pd.isna(value) else 0
 
         if energy_data and "total" in energy_data:
-            energy_scores = APEScores(
+            energy_scores = EnergyScores(
                 total=energy_data.get("total", 0.0),
                 class_score=energy_data.get("class_score", 0),
                 system_score=energy_data.get("system_score", 0),
@@ -539,14 +527,14 @@ class RealEstateService:
         # Extract POI scores if available
         poi_scores = None
         poi_columns = {
-            "health": ["healthcare"],
+            "healthcare": ["healthcare"],
             "mobility": ["mobility"],
-            "green": ["greenery"],
+            "greenery": ["green", "greenery"],
             "education": ["education"],
-            "shopping": ["commerce"],
+            "commerce": ["commercial", "commerce"],
             "sport": ["sport"],
         }
-
+        
         poi_data = {}
         for key, cols in poi_columns.items():
             value = safe_get(cols[0], alternatives=cols[1:] if len(cols) > 1 else [])
@@ -554,7 +542,7 @@ class RealEstateService:
                 poi_data[key] = float(value)
 
         if poi_data:
-            poi_scores = POIScores(**poi_data)
+            poi_scores = ProximityScores(**poi_data)
 
         # Parse APE files list
         def parse_ape_list(val):
@@ -621,22 +609,10 @@ class RealEstateService:
                                     if isinstance(sub_row, pd.DataFrame):
                                         sub_row = sub_row.iloc[0]
 
-                                    if (
-                                        "superficie_di_riferimento_mq" in sub_row.index
-                                        and pd.notna(
-                                            sub_row["superficie_di_riferimento_mq"]
-                                        )
-                                    ):
-                                        sub_prop.surface_area = float(
-                                            sub_row["superficie_di_riferimento_mq"]
-                                        )
-                                    if (
-                                        "tipologia_bene_immobile" in sub_row.index
-                                        and pd.notna(sub_row["tipologia_bene_immobile"])
-                                    ):
-                                        sub_prop.property_type = str(
-                                            sub_row["tipologia_bene_immobile"]
-                                        )
+                                    if "surface_area" in sub_row.index and pd.notna(sub_row["surface_area"]):
+                                        sub_prop.surface_area = float(sub_row["surface_area"])
+                                    if "property_type" in sub_row.index and pd.notna(sub_row["property_type"]):
+                                        sub_prop.property_type = str(sub_row["property_type"])
                                 except Exception as e:
                                     # Fallback or ignore error for single item
                                     pass
@@ -668,29 +644,18 @@ class RealEstateService:
             "omi_zone": safe_get("omi_zone"),
             "is_evaluated": bool(safe_get("is_evaluated", default=False)),
             "is_match": bool(safe_get("is_match", default=True)),
-            "meta_building": self._str_to_bool(safe_get("is_meta", default=False)),
-            "meta_immobile": self._str_to_bool(safe_get("is_meta", default=False)),
+            "meta_building": self._str_to_bool(safe_get("is_meta_estate", alternatives=["is_meta"], default=False)),
             "annual_rent": safe_get("annual_rent"),
-            "tipo_detenzione_a_terzi": safe_get("tipo_detenzione_a_terzi", default=None),
-            "numero_immobili_per_catasto": safe_get(
-                "numero_immobili_per_catasto", default=None
-            ),
-            "id_list": (
-                str(safe_get("id_list", default="")) if safe_get("id_list") else None
-            ),
+            "effective_date": safe_get("effective_date"),
+            "cadastral_units_count": safe_get("cadastral_units_count", default=None),
+            "id_list": (str(safe_get("id_list", default="")) if safe_get("id_list") else None),
             "sub_properties": sub_properties,
-            "ape_scores": energy_scores,
-            "poi_scores": poi_scores,
-            "ape_files": ape_files,
+            "energy_scores": energy_scores,
+            "proximity_scores": poi_scores,
+            "energy_files": ape_files,
             "distance_km": safe_get("distance_km"),
-            "poi_reference": safe_get("poi_reference"),
-            "epglnren_ape": safe_get("epglnren_ape", default=None),
-            "classe_energetica_ape": safe_get("energy_class"),
-            "energy_score": safe_get("energy_score"),
-            "tipologia_bene_immobile": safe_get("property_type"),
-            "superficie_di_riferimento_mq": safe_get("surface_area"),
-            "epoca_costruzione": safe_get("construction_year"),
-            "greenery": safe_get("greenery"),
+            "proximity_reference": safe_get("proximity_reference"),
+            "greenery": safe_get("green", alternatives=["greenery"]),
             "mobility": safe_get("mobility"),
             "education": safe_get("education"),
         }
@@ -711,8 +676,8 @@ class RealEstateService:
         val = safe_get("cadastral_parcel", alternatives=["particella"])
         res_data["cadastral_parcel"] = str(val) if val is not None else None
         
-        # data_decorrenza (The specific field that caused the error)
-        val = safe_get("data_decorrenza")
-        res_data["data_decorrenza"] = str(val) if val is not None else None
+        # effective_date
+        val = safe_get("effective_date")
+        res_data["effective_date"] = str(val) if val is not None else None
         
         return BuildingResponse(**res_data)

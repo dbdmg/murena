@@ -15,13 +15,21 @@ from app.utils.logger import logger
 
 # Create database engine
 # pool_pre_ping=True ensures connections are checked before use
-engine = create_engine(
-    settings.DATABASE_URL,
-    pool_pre_ping=True,
-    pool_size=settings.DATABASE_POOL_SIZE,
-    max_overflow=settings.DATABASE_MAX_OVERFLOW,
-    echo=settings.DEBUG,  # Log SQL queries in debug mode
-)
+is_sqlite = settings.DATABASE_URL.startswith("sqlite")
+engine_kwargs = {
+    "echo": settings.DEBUG,
+    "pool_pre_ping": True,
+}
+
+if is_sqlite:
+    # SQLite-specific arguments
+    engine_kwargs["connect_args"] = {"check_same_thread": False}
+else:
+    # Postgres/Standard arguments
+    engine_kwargs["pool_size"] = settings.DATABASE_POOL_SIZE
+    engine_kwargs["max_overflow"] = settings.DATABASE_MAX_OVERFLOW
+
+engine = create_engine(settings.DATABASE_URL, **engine_kwargs)
 
 # Create session factory
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

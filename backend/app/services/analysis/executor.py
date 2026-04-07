@@ -17,7 +17,6 @@ import pandas as pd
 
 from app.core.config import settings
 
-APE_DETAILED_DATA_PATH = settings.APE_DETAILED_DATA_PATH
 
 # Switch to GraphOrchestratorAgent
 from app.services.llm.agents.graph_agent import GraphOrchestratorAgent
@@ -54,46 +53,7 @@ def execute_sql_query(sql_query, pd_data, dataset_path=None):
                         f"CREATE VIEW base_properties AS SELECT * FROM '{dataset_path}'"
                     )
 
-                    # Check for APE data and join if available
-                    if os.path.exists(
-                        APE_DETAILED_DATA_PATH
-                    ) and APE_DETAILED_DATA_PATH.endswith(".parquet"):
-                        con.execute(
-                            f"CREATE VIEW ape_data AS SELECT * FROM '{APE_DETAILED_DATA_PATH}'"
-                        )
-
-                        # Check if 'id' column exists in ape_data
-                        ape_cols = [
-                            c[0] for c in con.execute("DESCRIBE ape_data").fetchall()
-                        ]
-
-                        if "id" in ape_cols:
-                            # Construct join query to replicate load_and_merge_data logic
-                            # We cast ID to VARCHAR to ensure matching works
-                            join_query = """
-                            CREATE VIEW PROPERTIES AS 
-                            SELECT b.*, 
-                                   COALESCE(a.energy_score, 0) as energy_score,
-                                   COALESCE(a.energy_total_points, 0) as energy_total_points,
-                                   COALESCE(a.energy_score_class, 0) as energy_score_class,
-                                   COALESCE(a.energy_score_plant, 0) as energy_score_plant,
-                                   COALESCE(a.energy_score_envelope, 0) as energy_score_envelope,
-                                   COALESCE(a.energy_score_renewables, 0) as energy_score_renewables
-                            FROM base_properties b
-                            LEFT JOIN ape_data a ON CAST(b.id AS VARCHAR) = CAST(a.id AS VARCHAR)
-                            """
-                            con.execute(join_query)
-                        else:
-                            # If no ID in APE data, just alias base table (skip join)
-                            # This matches the behavior of pandas load_and_merge_data which skips merge if 'id' missing
-                            con.execute(
-                                "CREATE VIEW PROPERTIES AS SELECT * FROM base_properties"
-                            )
-                    else:
-                        # If no APE data, just alias base table
-                        con.execute(
-                            "CREATE VIEW PROPERTIES AS SELECT * FROM base_properties"
-                        )
+                    con.execute("CREATE VIEW PROPERTIES AS SELECT * FROM base_properties")
 
                     # Pre-check SQL syntax with EXPLAIN
                     sql_query = sql_query.strip().rstrip(';')

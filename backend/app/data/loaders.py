@@ -129,49 +129,6 @@ def load_and_merge_data(file_path):
         logger.error(f"Generic load error: {e}")
         return None
 
-    # Merge with energy scores if available
-    try:
-        from app.core.config import settings
-        from app.core.constants import COLUMN_MAPPING
-
-        APE_DETAILED_DATA_PATH = settings.APE_DETAILED_DATA_PATH
-
-        energy_df = load_ape_detailed_data(APE_DETAILED_DATA_PATH)
-        if energy_df is not None and "id" in energy_df.columns:
-            # Ensure ID is string for merging
-            energy_df["id"] = energy_df["id"].astype(str)
-
-            # Define score columns to merge (now in English from processors.py)
-            score_cols = [
-                "id",
-                "energy_score",
-                "energy_total_points",
-                "energy_score_class",
-                "energy_score_plant",
-                "energy_score_envelope",
-                "energy_score_renewables",
-            ]
-
-            # Check if columns exist
-            cols_to_merge = [c for c in score_cols if c in energy_df.columns]
-
-            if len(cols_to_merge) > 1:
-                pd_data = pd.merge(pd_data, energy_df[cols_to_merge], on="id", how="left")
-
-                # Fill NaNs for scores with 0
-                for col in cols_to_merge:
-                    if col != "id":
-                        pd_data[col] = pd_data[col].fillna(0)
-
-        # Apply global column renaming (MURENA alignment)
-        mapping_to_apply = {k: v for k, v in COLUMN_MAPPING.items() if k in pd_data.columns}
-        if mapping_to_apply:
-            logger.info(f"Renaming {len(mapping_to_apply)} columns to English nomenclature")
-            pd_data = pd_data.rename(columns=mapping_to_apply)
-
-    except Exception as e:
-        logger.warning(f"Error merging or renaming energy scores: {e}")
-
     return pd_data
 
 

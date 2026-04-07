@@ -3,14 +3,19 @@ import sys
 import subprocess
 import argparse
 import time
+import shutil
 from pathlib import Path
 from getpass import getpass
+from dotenv import load_dotenv
 
 # Add backend to sys.path
 backend_dir = Path(__file__).resolve().parent
 root_dir = backend_dir.parent
 if str(backend_dir) not in sys.path:
     sys.path.insert(0, str(backend_dir))
+
+# Load environment variables
+load_dotenv(backend_dir / ".env")
 
 def check_prerequisites():
     """Check if basic requirements are met."""
@@ -22,37 +27,59 @@ def check_prerequisites():
 def init_data():
     """Initialize datasets if they are missing."""
     metadata_dir = backend_dir / "data" / "metadata"
-    data_path = metadata_dir / "immobili_with_meta_and_ape_full_cleaned.parquet"
-    ape_path = metadata_dir / "ape_detailed_data.parquet"
+    data_path = metadata_dir / "estates.parquet"
     
-    if not data_path.exists() or not ape_path.exists():
+    if not data_path.exists():
         print("Dataset not found or incomplete. Starting initialization...")
         
-        create_immobili = metadata_dir / "create_immobili_dataset.py"
-        create_energy = metadata_dir / "create_energy_dataset.py"
+        create_estate_dataset = metadata_dir / "create_estate_dataset.py"
+        create_pois = metadata_dir / "pois_download.py"
+        
+        # Get POI path from env
+        poi_path_str = os.getenv("POI_PATH", "data/metadata/pois_by_category.json")
+        poi_path = Path(poi_path_str)
+        if not poi_path.is_absolute():
+            if poi_path_str.startswith("backend/"):
+                poi_path = backend_dir.parent / poi_path
+            else:
+                poi_path = backend_dir / poi_path
         
         env = os.environ.copy()
         env["PYTHONPATH"] = str(backend_dir)
 
-        if not ape_path.exists() and create_energy.exists():
-            print(f"[*] Running {create_energy.name}...")
-            subprocess.run([sys.executable, str(create_energy)], cwd=str(backend_dir), env=env, check=True)
+        if not poi_path.exists() and create_pois.exists():
+            print(f"[*] Running {create_pois.name}...")
+            subprocess.run([sys.executable, str(create_pois)], cwd=str(backend_dir), env=env, check=True)
+
+        if not data_path.exists() and create_estate_dataset.exists():
+            print(f"[*] Running {create_estate_dataset.name}...")
+            subprocess.run([sys.executable, str(create_estate_dataset)], cwd=str(backend_dir), env=env, check=True)
             
-        if not data_path.exists() and create_immobili.exists():
-            print(f"[*] Running {create_immobili.name}...")
-            subprocess.run([sys.executable, str(create_immobili)], cwd=str(backend_dir), env=env, check=True)
-            
-        if data_path.exists() and ape_path.exists():
+        if data_path.exists():
             print("Success: Datasets initialized.")
         else:
             print("Warning: Initialization scripts failed to create files. Please verify source data.")
+
+def reset_database():
+    """Delete the existing SQLite database to force re-initialization."""
+    db_url = os.getenv("DATABASE_URL", "sqlite:///./data/database/users.db")
+    if db_url.startswith("sqlite:///"):
+        db_path_str = db_url.replace("sqlite:///", "")
+        db_path = backend_dir / db_path_str
+        if db_path.exists():
+            print(f"[*] Resetting database: {db_path}...")
+            try:
+                os.remove(db_path)
+                print("Database deleted successfully.")
+            except Exception as e:
+                print(f"Error deleting database: {e}")
 
 def start_backend():
     """Start the FastAPI backend server."""
     print("Starting MURENA Backend...")
     try:
         subprocess.Popen([
-            "uvicorn", "app.main:app", 
+            sys.executable, "-m", "uvicorn", "app.main:app", 
             "--host", "0.0.0.0", 
             "--port", "8000", 
             "--reload"
@@ -66,6 +93,11 @@ def start_frontend():
     frontend_dir = root_dir / "frontend"
     if not frontend_dir.exists():
         print("Warning: frontend directory not found. Skipping frontend start.")
+        return
+
+    # Check if npm exists in the path
+    if not shutil.which("npm"):
+        print("Warning: 'npm' command not found. Node.js is required for the frontend. Skipping frontend start.")
         return
 
     print("Starting MURENA Frontend...")
@@ -151,6 +183,9 @@ def main():
         return
 
     print("=== MURENA Application Launcher ===")
+    
+    # Always reset database as requested
+    reset_database()
     
     if not args.skip_init:
         init_data()

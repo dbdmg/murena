@@ -1,9 +1,5 @@
-"""
-Initialization logic for the FastAPI application.
-Handles database setup, seed data, and dataset preloading.
-"""
-
 import logging
+import os
 from fastapi import FastAPI
 from app.core.config import settings
 from app.database.connection import init_db, SessionLocal
@@ -17,6 +13,14 @@ logger = logging.getLogger(__name__)
 
 def initialize_database():
     """Initialize database and create default admin user."""
+    # Ensure database directory exists for SQLite
+    if settings.DATABASE_URL.startswith("sqlite"):
+        db_path = settings.DATABASE_URL.replace("sqlite:///", "")
+        db_dir = os.path.dirname(db_path)
+        if db_dir and not os.path.exists(db_dir):
+            logger.info(f"Creating database directory: {db_dir}")
+            os.makedirs(db_dir, exist_ok=True)
+
     try:
         init_db()
         logger.info("Database initialized")
@@ -28,7 +32,7 @@ def initialize_database():
             if not user_repo.get_by_username("admin"):
                 user_repo.create_user(
                     username="admin",
-                    password_hash=security.get_password_hash("admin123"),
+                    password_hash=security.get_password_hash("admin"),
                     email="admin@realestate-ai.example",
                 )
                 logger.info("Default admin user created")

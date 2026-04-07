@@ -17,9 +17,23 @@ except ImportError:
 
 import sys
 from pathlib import Path
-# Add backend to path to import utils
-_backend_path = Path(__file__).resolve().parent.parent.parent
-sys.path.append(str(_backend_path))
+
+# Add backend and script directory to path
+_script_dir = Path(__file__).resolve().parent
+_backend_path = _script_dir.parent.parent
+if str(_backend_path) not in sys.path:
+    sys.path.append(str(_backend_path))
+if str(_script_dir) not in sys.path:
+    sys.path.append(str(_script_dir))
+
+# Import amenity configurations
+try:
+    from amenities_config import CATEGORIES, CATEGORY_AMENITIES
+except ImportError:
+    print("Warning: Could not import configs from amenities_config.py from " + str(_script_dir))
+    CATEGORIES = []
+    CATEGORY_AMENITIES = {}
+
 from dotenv import load_dotenv
 load_dotenv(_backend_path / ".env")
 from app.utils.helpers import require_env
@@ -228,9 +242,9 @@ def map_impianto_score(impianto_desc):
     if not isinstance(impianto_desc, str):
         return 1
     desc = impianto_desc.lower()
-    if "pompa di calore" in desc or "teleriscaldamento" in desc:
+    if "heat pump" in desc or "district heating" in desc:
         return 5
-    if "condensazione" in desc or "biomassa" in desc:
+    if "condensing" in desc or "biomass" in desc:
         return 3
     return 1
 
@@ -238,16 +252,16 @@ def map_involucro_score(qualita):
     if not isinstance(qualita, str):
         return 1
     q = qualita.lower()
-    if "sorridente" in q:
+    if "good" in q:
         return 5
-    if "basita" in q:
+    if "neutral" in q:
         return 3
-    if "triste" in q:
+    if "poor" in q:
         return 1
     return 1
 
 def map_rinnovabili_score(rinnovabile_val):
-    if rinnovabile_val in [True, "Sì", "Si", "true", 1]:
+    if rinnovabile_val in [True, "Yes", "Sì", "Si", "true", 1]:
         return 5
     return 1
 
@@ -262,31 +276,31 @@ def map_classe_score(classe_val):
     return 1
 
 VETTORI_XPATHS = {
-    'Energia elettrica da rete': '//ape:prestazioneImpianti/ape:energiaElettricaRete/ape:consumoAnnuo',
-    'Gas naturale': '//ape:prestazioneImpianti/ape:gasNaturale/ape:consumoAnnuo',
-    'GPL': '//ape:prestazioneImpianti/ape:gpl/ape:consumoAnnuo',
-    'Carbone': '//ape:prestazioneImpianti/ape:carbone/ape:consumoAnnuo',
-    'Gasolio': '//ape:prestazioneImpianti/ape:gasolio/ape:consumoAnnuo',
-    'Olio combustibile': '//ape:prestazioneImpianti/ape:olioCombustibile/ape:consumoAnnuo',
-    'Biomasse solide': '//ape:prestazioneImpianti/ape:biomasseSolide/ape:consumoAnnuo',
-    'Biomasse liquide': '//ape:prestazioneImpianti/ape:biomasseLiquide/ape:consumoAnnuo',
-    'Biomasse gassose': '//ape:prestazioneImpianti/ape:biomasseGassose/ape:consumoAnnuo',
-    'Solare fotovoltaico': '//ape:prestazioneImpianti/ape:solareFotovoltaico/ape:consumoAnnuo',
-    'Solare termico': '//ape:prestazioneImpianti/ape:solareTermico/ape:consumoAnnuo',
-    'Eolico': '//ape:prestazioneImpianti/ape:eolico/ape:consumoAnnuo',
-    'Teleriscaldamento': '//ape:prestazioneImpianti/ape:teleriscaldamento/ape:consumoAnnuo',
-    'Teleraffrescamento': '//ape:prestazioneImpianti/ape:teleraffrescamento/ape:consumoAnnuo'
+    'Electricity from grid': '//ape:prestazioneImpianti/ape:energiaElettricaRete/ape:consumoAnnuo',
+    'Natural gas': '//ape:prestazioneImpianti/ape:gasNaturale/ape:consumoAnnuo',
+    'LPG': '//ape:prestazioneImpianti/ape:gpl/ape:consumoAnnuo',
+    'Coal': '//ape:prestazioneImpianti/ape:carbone/ape:consumoAnnuo',
+    'Diesel': '//ape:prestazioneImpianti/ape:gasolio/ape:consumoAnnuo',
+    'Fuel oil': '//ape:prestazioneImpianti/ape:olioCombustibile/ape:consumoAnnuo',
+    'Solid biomass': '//ape:prestazioneImpianti/ape:biomasseSolide/ape:consumoAnnuo',
+    'Liquid biomass': '//ape:prestazioneImpianti/ape:biomasseLiquide/ape:consumoAnnuo',
+    'Gaseous biomass': '//ape:prestazioneImpianti/ape:biomasseGassose/ape:consumoAnnuo',
+    'Solar photovoltaic': '//ape:prestazioneImpianti/ape:solareFotovoltaico/ape:consumoAnnuo',
+    'Solar thermal': '//ape:prestazioneImpianti/ape:solareTermico/ape:consumoAnnuo',
+    'Wind': '//ape:prestazioneImpianti/ape:eolico/ape:consumoAnnuo',
+    'District heating': '//ape:prestazioneImpianti/ape:teleriscaldamento/ape:consumoAnnuo',
+    'District cooling': '//ape:prestazioneImpianti/ape:teleraffrescamento/ape:consumoAnnuo'
 }
 
 VETTORI_PCI = {
-    'Gas naturale': 9.94,
-    'GPL': 12.778,
-    'Carbone': 7.917,
-    'Gasolio': 11.87,
-    'Olio combustibile': 11.75,
-    'Biomasse solide': 4.67,
-    'Biomasse liquide': 7.5,
-    'Biomasse gassose': 6.4
+    'Natural gas': 9.94,
+    'LPG': 12.778,
+    'Coal': 7.917,
+    'Diesel': 11.87,
+    'Fuel oil': 11.75,
+    'Solid biomass': 4.67,
+    'Liquid biomass': 7.5,
+    'Gaseous biomass': 6.4
 }
 
 # --- AMENITY CONFIGURATION ---
@@ -362,9 +376,18 @@ def init_amenity_globals():
     global POOL_POI_TREE, POOL_POI_META, POOL_CATEGORIES, POOL_CAT_AMENITIES
     if POOL_POI_TREE is not None: return
     
-    poi_path = require_env("POI_PATH")
-    if not os.path.exists(poi_path):
-        print(f"Warning: POI file not found at {poi_path}")
+    # Fix: Resolve POI_PATH reliably
+    poi_path_str = require_env("POI_PATH")
+    poi_path = Path(poi_path_str)
+    
+    if not poi_path.is_absolute():
+        if poi_path_str.startswith("backend/"):
+            poi_path = _backend_path.parent / poi_path
+        else:
+            poi_path = _backend_path / poi_path
+    
+    if not poi_path.exists():
+        print(f"Warning: POI file not found at {poi_path} (Resolved from: {poi_path_str})")
         return
 
     try:
@@ -376,12 +399,19 @@ def init_amenity_globals():
         
         # Normalizza nomi categorie per uniformità con il resto dell'app
         cat_map = {
-            'sanità': 'sanita',
-            'mobilità': 'mobilita',
-            'verde': 'verde',
+            'sanità': 'healthcare',
+            'sanita': 'healthcare',
+            'healthcare': 'healthcare',
+            'mobilità': 'mobility',
+            'mobilita': 'mobility',
+            'mobility': 'mobility',
+            'verde': 'green',
+            'green': 'green',
             'sport': 'sport',
-            'commerciale': 'commerciale',
-            'educazione': 'educazione'
+            'commerciale': 'commercial',
+            'commercial': 'commercial',
+            'educazione': 'education',
+            'education': 'education'
         }
         
         POOL_CATEGORIES = sorted([cat_map.get(k, k) for k in pois_by_cat.keys()])
@@ -516,75 +546,75 @@ def parse_ape_xml(xml_text: str) -> dict:
         tolower = "translate(local-name(),'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz')"
 
         # General data
-        data['indirizzo'] = xs(['//ape:datiGenerali/ape:indirizzo','//ape:datiCalcolo/ape:datiGenerali/ape:indirizzo'])
-        data['civico'] = xs([
+        data['address'] = xs(['//ape:datiGenerali/ape:indirizzo','//ape:datiCalcolo/ape:datiGenerali/ape:indirizzo'])
+        data['house_number'] = xs([
             '//ape:datiGenerali/ape:datiIdentificativi/ape:numeroCivico',
             '//ape:datiGenerali/ape:datiIdentificativi/ape:civico',
             '//ape:datiCalcolo/ape:datiGenerali/ape:civico',
             '//ape:civico'
         ])
-        data['comune'] = xs(['//ape:datiGenerali/ape:datiExtra/ape:comune','//ape:datiCalcolo/ape:datiGenerali/ape:comune'])
-        data['zona_climatica'] = xs(['//ape:datiGenerali/ape:zonaClimatica','//ape:datiCalcolo/ape:datiGenerali/ape:zonaClimatica'])
-        data['anno_costruzione'] = xs(['//ape:datiGenerali/ape:annoCostruzione','//ape:datiGenerali/ape:datiIdentificativi/ape:annoCostruzione'])
-        data['lat'] = xs([
+        data['city'] = xs(['//ape:datiGenerali/ape:datiExtra/ape:comune','//ape:datiCalcolo/ape:datiGenerali/ape:comune'])
+        data['climate_zone'] = xs(['//ape:datiGenerali/ape:zonaClimatica','//ape:datiCalcolo/ape:datiGenerali/ape:zonaClimatica'])
+        data['construction_period'] = xs(['//ape:datiGenerali/ape:annoCostruzione','//ape:datiGenerali/ape:datiIdentificativi/ape:annoCostruzione'])
+        data['latitude'] = xs([
             '//ape:datiGenerali/ape:LatitudineGIS',
             '//ape:datiCalcolo/ape:datiGenerali/ape:latitudineGIS',
             '//ape:latitudineGIS'
         ])
-        data['lon'] = xs([
+        data['longitude'] = xs([
             '//ape:datiGenerali/ape:LongitudineGIS',
             '//ape:datiCalcolo/ape:datiGenerali/ape:longitudineGIS',
             '//ape:longitudineGIS'
         ])
-        data['superficie'] = sxp('//ape:datiGenerali/ape:datiIdentificativi/ape:superficieUtileRiscaldata')
-        data['data_emissione'] = sxp('//ape:dataEmissione')
-        data['destinazione_uso_cod'] = sxp('//ape:datiGenerali/ape:destinazioneUso')
-        data['classificazione_dpr412_cod'] = sxp('//ape:datiGenerali/ape:classificazioneDPR412')
-        data['tipologia_bene_immobile'] = MAPPING_DPR412.get(data['classificazione_dpr412_cod'])
-        data['oggetto_attestato_cod'] = sxp('//ape:datiGenerali/ape:oggettoAttestato')
-        data['tipologia_edilizia_cod'] = sxp('//ape:datiExtra/ape:tipologiaEdilizia')
-        data['piano'] = xs(['//ape:datiGenerali/ape:piano','//ape:datiFabbricato//ape:piano'])
+        data['surface'] = sxp('//ape:datiGenerali/ape:datiIdentificativi/ape:superficieUtileRiscaldata')
+        data['issue_date'] = sxp('//ape:dataEmissione')
+        data['use_destination_code'] = sxp('//ape:datiGenerali/ape:destinazioneUso')
+        data['dpr412_class_code'] = sxp('//ape:datiGenerali/ape:classificazioneDPR412')
+        data['property_type'] = MAPPING_DPR412.get(data['dpr412_class_code'])
+        data['attestation_object_code'] = sxp('//ape:datiGenerali/ape:oggettoAttestato')
+        data['building_typology_code'] = sxp('//ape:datiExtra/ape:tipologiaEdilizia')
+        data['floor'] = xs(['//ape:datiGenerali/ape:piano','//ape:datiFabbricato//ape:piano'])
 
         # Performance
-        data['classe_energetica'] = sxp('//ape:prestazioneGlobale/ape:prestazioneEnergeticaGlobale/ape:classificazione/ape:classeEnergetica')
+        data['energy_class'] = sxp('//ape:prestazioneGlobale/ape:prestazioneEnergeticaGlobale/ape:classificazione/ape:classeEnergetica')
         data['epglnren'] = sxp('//ape:prestazioneGlobale/ape:prestazioneEnergeticaGlobale/ape:classificazione/ape:epglnren')
         data['epglren'] = sxp('//ape:prestazioneImpianti/ape:epglren')
-        data['emissioni_co2'] = sxp('//ape:prestazioneImpianti/ape:emissioniCO2')
+        data['co2_emissions'] = sxp('//ape:prestazioneImpianti/ape:emissioniCO2')
 
         # Services present
-        servizi = []
+        services = []
         if sxp('//ape:datiImpianti/ape:climatizzazioneInvernale/ape:impiantoSimulato') is None:
             if sxp('//ape:datiGenerali/ape:serviziEnergeticiPresenti/ape:climatizzazioneInvernale') == 'true':
-                servizi.append('Heating')
+                services.append('Heating')
         if sxp('//ape:datiImpianti/ape:produzioneACS/ape:impiantoSimulato') is None:
             if sxp('//ape:datiGenerali/ape:serviziEnergeticiPresenti/ape:produzioneAcquaCaldaSanitaria') == 'true':
-                servizi.append('DHW')
+                services.append('DHW')
 
         for tag, label in [('climatizzazioneEstiva', 'Cooling'),('ventilazioneMeccanica', 'Ventilation'),('illuminazione', 'Lighting'),('trasportoPersoneCose', 'Elevators/Transport')]:
             v = sxp(f'//ape:datiGenerali/ape:serviziEnergeticiPresenti/ape:{tag}')
-            if v and v.lower() == 'true': servizi.append(label)
-        data['servizi_presenti'] = servizi
+            if v and v.lower() == 'true': services.append(label)
+        data['services_present'] = services
         
         # Energy Carrier
-        consumi_kwh = {}
-        for nome, path_xp in VETTORI_XPATHS.items():
+        consumptions_kwh = {}
+        for name, path_xp in VETTORI_XPATHS.items():
             c_str = sxp(path_xp)
             if c_str:
                 try:
                     c_val = float(c_str.replace(',', '.'))
-                    if nome in VETTORI_PCI: c_val *= VETTORI_PCI[nome]
-                    consumi_kwh[nome] = c_val
+                    if name in VETTORI_PCI: c_val *= VETTORI_PCI[name]
+                    consumptions_kwh[name] = c_val
                 except: continue
-        data['vettore_energetico_principale'] = sorted(consumi_kwh.items(), key=lambda x: x[1], reverse=True)[0][0] if consumi_kwh else None
+        data['main_energy_carrier'] = sorted(consumptions_kwh.items(), key=lambda x: x[1], reverse=True)[0][0] if consumptions_kwh else None
 
-        # Catasto
-        cat = {'codice_catastale': None, 'foglio': None, 'particella': None, 'subalterno': None}
+        # Cadastral data
+        cad_data = {'comune_code': None, 'cadastral_sheet': None, 'cadastral_parcel': None, 'cadastral_subaltern': None}
         node = root.xpath('.//ape:datiCatastali', namespaces=ns)
         if node:
             n = node[0]
-            cat['codice_catastale'] = n.xpath('string(ape:codiceCatastale)', namespaces=ns).strip() or None
-            cat['foglio'] = n.xpath('string(ape:foglio)', namespaces=ns).strip() or None
-            cat['particella'] = n.xpath('string(ape:particella)', namespaces=ns).strip() or None
+            cad_data['comune_code'] = n.xpath('string(ape:codiceCatastale)', namespaces=ns).strip() or None
+            cad_data['cadastral_sheet'] = n.xpath('string(ape:foglio)', namespaces=ns).strip() or None
+            cad_data['cadastral_parcel'] = n.xpath('string(ape:particella)', namespaces=ns).strip() or None
             
             # Complex subaltern extraction (subDA, subA)
             def _clr_sub(s):
@@ -597,18 +627,18 @@ def parse_ape_xml(xml_text: str) -> dict:
             
             if subDA and subA:
                 if subDA == subA:
-                    cat['subalterno'] = subDA
+                    cad_data['cadastral_subaltern'] = subDA
                 else:
-                    cat['subalterno'] = f"{subDA},{subA}"
+                    cad_data['cadastral_subaltern'] = f"{subDA},{subA}"
             elif subDA:
-                cat['subalterno'] = subDA
+                cad_data['cadastral_subaltern'] = subDA
             elif subA:
-                cat['subalterno'] = subA
-        data.update(cat)
+                cad_data['cadastral_subaltern'] = subA
+        data.update(cad_data)
 
         # Building envelope quality
-        data['qualita_invernale'] = MAPPING_QUALITA_INVOLUCRO.get(sxp('//ape:prestazioneGlobale/ape:prestazioneEnergeticaFabbricato/ape:inverno'))
-        data['qualita_estiva'] = MAPPING_QUALITA_INVOLUCRO.get(sxp('//ape:prestazioneGlobale/ape:prestazioneEnergeticaFabbricato/ape:estate'))
+        data['envelope_winter_quality'] = MAPPING_QUALITA_INVOLUCRO.get(sxp('//ape:prestazioneGlobale/ape:prestazioneEnergeticaFabbricato/ape:inverno'))
+        data['envelope_summer_quality'] = MAPPING_QUALITA_INVOLUCRO.get(sxp('//ape:prestazioneGlobale/ape:prestazioneEnergeticaFabbricato/ape:estate'))
         
         # Plants/Systems
         def get_inf(paths):
@@ -628,8 +658,8 @@ def parse_ape_xml(xml_text: str) -> dict:
         }
 
         # Renewable Sources
-        val_fv = float(sxp(VETTORI_XPATHS['Solare fotovoltaico']) or 0)
-        val_st = float(sxp(VETTORI_XPATHS['Solare termico']) or 0)
+        val_fv = float(sxp(VETTORI_XPATHS['Solar photovoltaic']) or 0)
+        val_st = float(sxp(VETTORI_XPATHS['Solar thermal']) or 0)
         data['fonti_rinnovabili'] = 'Yes' if (val_fv > 0 or val_st > 0) else 'No'
 
         # Improvements
@@ -668,58 +698,71 @@ def process_single_xml(fname: str) -> dict:
             # Try to geocode if we have an address
             if indirizzo:
                 geo_res = POOL_GEOCODER.geocode(street=indirizzo, number=civico, city=TARGET_CITY)
-                # If we find a high-quality match or if XML has no coordinates, use OSM
-                if geo_res and (geo_res['score'] >= 450 or lat_xml is None or lat_xml == 0):
-                    res_lat = geo_res['lat']
-                    res_lon = geo_res['lon']
-
         unita = p.get("subalterno") or os.path.splitext(os.path.basename(fname))[0]
+        
+        # Use address components from already parsed dict 'p'
+        address = p.get("address")
+        civic = p.get("house_number")
+        
+        res_lat, res_lon = _to_float(p.get("latitude")), _to_float(p.get("longitude"))
+        
+        # Use geocoder if address is present
+        if address:
+            geo_res = POOL_GEOCODER.geocode(street=address, number=civic, city=TARGET_CITY)
+            if geo_res and geo_res['score'] >= 100:
+                res_lat, res_lon = geo_res['lat'], geo_res['lon']
+
         res = {
-            "lista_file_ape": os.path.basename(fname),
-            "codice_comune": p.get("codice_catastale"),
-            "foglio": p.get("foglio"),
-            "particella": p.get("particella"),
-            "subalterno": p.get("subalterno"),
-            "superficie_di_riferimento_mq": _to_float(p.get("superficie")),
-            "indirizzo": p.get("indirizzo"),
-            "numero_civico": p.get("civico"),
-            "latitudine": res_lat,
-            "longitudine": res_lon,
-            "zona_omi": get_omi_zone(res_lat, res_lon),
-            "tipologia_bene_immobile": p.get("tipologia_bene_immobile"),
-            "epoca_costruzione": p.get("anno_costruzione"),
-            "data_decorrenza": _parse_date(p.get("data_emissione")),
-            "classe_energetica_ape": p.get("classe_energetica"),
-            "epglnren_ape": _to_float(p.get("epglnren")),
-            "epglren_ape": _to_float(p.get("epglren")),
-            "emissioni_co2": _to_float(p.get("emissioni_co2")),
-            "serv_risc": "Heating" in (p.get("servizi_presenti") or []),
-            "serv_acs": "DHW" in (p.get("servizi_presenti") or []),
-            "piano": p.get("piano"),
-            "qualita_invernale": p.get("qualita_invernale"),
-            "qualita_estiva": p.get("qualita_estiva"),
-            "fonti_rinnovabili": p.get("fonti_rinnovabili"),
-            "imp_risc_anno": p.get('impianti', {}).get('Heating', {}).get('anno'),
-            "imp_risc_tipo": p.get('impianti', {}).get('Heating', {}).get('tecnologia'),
-            "imp_acs_anno": p.get('impianti', {}).get('DHW', {}).get('anno'),
-            "imp_acs_tipo": p.get('impianti', {}).get('DHW', {}).get('tecnologia'),
-            "classe_target_ape": p.get("classe_target"),
-            "intervento_payback": _to_float(p.get("tempo_ritorno")),
-            # internal helper for stability
+            "ape_file_list": os.path.basename(fname),
+            "comune_code": p.get("comune_code") or TARGET_COMUNE_CODE,
+            "cadastral_sheet": p.get("cadastral_sheet"),
+            "cadastral_parcel": p.get("cadastral_parcel"),
+            "cadastral_subaltern": p.get("cadastral_subaltern"),
+            "surface_area": _to_float(p.get("surface")),
+            "address": address,
+            "house_number": civic,
+            "latitude": res_lat,
+            "longitude": res_lon,
+            "omi_zone": get_omi_zone(res_lat, res_lon),
+            "property_type": p.get("property_type"),
+            "construction_period": p.get("construction_period"),
+            "effective_date": _parse_date(p.get("issue_date")),
+            "energy_class": p.get("energy_class"),
+            "epglnren": _to_float(p.get("epglnren")),
+            "epglren": _to_float(p.get("epglren")),
+            "co2_emissions": _to_float(p.get("co2_emissions")),
+            "has_heating": "Heating" in (p.get("services_present") or []),
+            "has_dhw": "DHW" in (p.get("services_present") or []),
+            "floor": p.get("floor"),
+            "envelope_winter_quality": p.get("envelope_winter_quality"),
+            "envelope_summer_quality": p.get("envelope_summer_quality"),
+            "renewable_sources": p.get("renewable_sources"),
+            "heating_system_year": p.get('impianti', {}).get('Heating', {}).get('anno'),
+            "heating_system_type": p.get('impianti', {}).get('Heating', {}).get('tecnologia'),
+            "dhw_system_year": p.get('impianti', {}).get('DHW', {}).get('anno'),
+            "dhw_system_type": p.get('impianti', {}).get('DHW', {}).get('tecnologia'),
+            "target_energy_class": p.get("target_energy_class"),
+            "payback_period": _to_float(p.get("payback_period")),
             "_unita": str(unita)
         }
         
-        # Aggiunta Score Amenity
-        scores = get_amenity_scores(res.get("latitudine"), res.get("longitudine"))
+        # Unique ID based on cadastral reference
+        res["id"] = f"{res['comune_code']}_{res['cadastral_sheet']}_{res['cadastral_parcel']}_{res['cadastral_subaltern'] or res['_unita']}"
+        res["is_meta_estate"] = False
+        res["cadastral_units_count"] = 1
+        res["id_list"] = res["id"]
+        
+        # Add Proximity Scores (Amenity)
+        scores = get_amenity_scores(res.get("latitude"), res.get("longitude"))
         res.update(scores)
 
         # Add Energy Scores
-        res["ape_score_classe"] = map_classe_score(res["classe_energetica_ape"])
-        res["ape_score_impianto"] = map_impianto_score(res["imp_risc_tipo"])
-        res["ape_score_involucro"] = map_involucro_score(res["qualita_invernale"])
-        res["ape_score_rinnovabili"] = map_rinnovabili_score(res["fonti_rinnovabili"])
-        res["ape_score_total"] = (res["ape_score_classe"] + res["ape_score_impianto"] + 
-                                  res["ape_score_involucro"] + res["ape_score_rinnovabili"])
+        res["energy_score_class"] = map_classe_score(res["energy_class"])
+        res["energy_score_plant"] = map_impianto_score(res["heating_system_type"])
+        res["energy_score_envelope"] = map_involucro_score(res["envelope_winter_quality"])
+        res["energy_score_renewables"] = map_rinnovabili_score(res["renewable_sources"])
+        res["energy_score_total"] = (res["energy_score_class"] + res["energy_score_plant"] + 
+                                   res["energy_score_envelope"] + res["energy_score_renewables"])
         
         return res
     except Exception as e:
@@ -746,38 +789,37 @@ def _load_ape_df(file_list: List[str]) -> pd.DataFrame:
         for res in results_gen:
             if res is not None:
                 # Apply the filter immediately to minimize memory usage
-                if res.get('codice_comune') == TARGET_COMUNE_CODE:
+                if res.get('comune_code') == TARGET_COMUNE_CODE:
                     all_rows.append(res)
 
     return pd.DataFrame(all_rows)
 
 def improve_df_coordinates(df: pd.DataFrame) -> pd.DataFrame:
     """Improves DataFrame coordinates via local OSM geocoding."""
-    if df.empty or 'indirizzo' not in df.columns:
+    if df.empty or 'address' not in df.columns:
         return df
     
-    print("Starting coordinate improvement (post-processing)...")
     init_geocoder_globals()
     if not POOL_GEOCODER:
         print("Skipping geocoding: OSM file not found.")
         return df
 
     # Identify unique addresses to reduce load
-    unique_addr = df[['indirizzo', 'numero_civico']].drop_duplicates()
+    unique_addr = df[['address', 'house_number']].drop_duplicates()
     
     # Serial geocoding for stability
     def _geo_worker(row):
-        ind = row['indirizzo']
-        civ = row['numero_civico']
-        if not ind: return None
-        res = POOL_GEOCODER.geocode(street=ind, number=civ, city=TARGET_CITY)
+        addr = row['address']
+        num = row['house_number']
+        if not addr: return None
+        res = POOL_GEOCODER.geocode(street=addr, number=num, city=TARGET_CITY)
         if res:
             # Pre-calculate OMI and Amenity for unique address (optimization)
             new_lat, new_lon = res['lat'], res['lon']
             return {
-                'indirizzo': ind, 'numero_civico': civ, 
+                'address': addr, 'house_number': num, 
                 'lat_osm': new_lat, 'lon_osm': new_lon, 'score': res['score'],
-                'zona_omi': get_omi_zone(new_lat, new_lon),
+                'omi_zone': get_omi_zone(new_lat, new_lon),
                 'amenities': get_amenity_scores(new_lat, new_lon)
             }
         return None
@@ -791,30 +833,33 @@ def improve_df_coordinates(df: pd.DataFrame) -> pd.DataFrame:
     geo_map = {}
     for r in geo_results:
         if r:
-            geo_map[(r['indirizzo'], r['numero_civico'])] = r
+            geo_map[(r['address'], r['house_number'])] = r
     
     # Update DataFrame with stats
     stats = {"updated": 0, "missing_filled": 0}
 
     def _update_row(row):
-        key = (row['indirizzo'], row['numero_civico'])
-        lat_xml = row.get('latitudine')
-        lon_xml = row.get('longitudine')
+        key = (row['address'], row['house_number'])
+        lat_xml = row.get('latitude')
+        lon_xml = row.get('longitude')
         
-        if key in geo_map:
-            match = geo_map[key]
-            is_missing = lat_xml is None or lat_xml == 0 or (isinstance(lat_xml, float) and np.isnan(lat_xml))
+        match = geo_map.get(key)
+        if match:
+            is_missing = lat_xml is None or (isinstance(lat_xml, float) and np.isnan(lat_xml))
             
-            if match['score'] >= 450 or is_missing:
-                if is_missing or (abs(lat_xml - match['lat_osm']) > 1e-6 or abs(lon_xml - match['lon_osm']) > 1e-6):
-                    row['latitudine'] = match['lat_osm']
-                    row['longitudine'] = match['lon_osm']
-                    row['zona_omi'] = match['zona_omi']
-                    row.update(match['amenities'])
-                    
-                    stats["updated"] += 1
-                    if is_missing:
-                        stats["missing_filled"] += 1
+            # Update if match is high quality or if XML coords are missing
+            if match['score'] >= 100 or is_missing:
+                row['latitude'] = match['lat_osm']
+                row['longitude'] = match['lon_osm']
+                row['omi_zone'] = match['omi_zone']
+                
+                # Apply amenities scores
+                for cat, val in match['amenities'].items():
+                    row[cat] = val
+                
+                stats["updated"] += 1
+                if is_missing:
+                    stats["missing_filled"] += 1
         return row
 
     # Apply the update
@@ -830,7 +875,20 @@ def improve_df_coordinates(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 if __name__ == "__main__":
-    output_file = "backend/data/FOLDER_META/immobili_with_meta_and_ape_full_cleaned.parquet"
+    # Use environment variable for output path
+    output_file_str = os.getenv("DATASET_FULL", "data/metadata/estates.parquet")
+    output_file = Path(output_file_str)
+    
+    # Resolve relative path against backend root
+    if not output_file.is_absolute():
+        if output_file_str.startswith("backend/"):
+            output_file = _backend_path.parent / output_file
+        else:
+            output_file = _backend_path / output_file
+            
+    # Ensure directory exists
+    output_file.parent.mkdir(parents=True, exist_ok=True)
+    output_file = str(output_file)
     
     # If the file already exists, load it directly without re-processing XMLs
     if os.path.exists(output_file):
@@ -858,16 +916,16 @@ if __name__ == "__main__":
     if not df.empty:
         # Final global sorting (filter already applied during parsing)
         print("Final sorting and cleaning...")
-        if 'data_decorrenza' in df.columns:
-            df = df.dropna(subset=['data_decorrenza'])
-            df['data_decorrenza'] = pd.to_datetime(df['data_decorrenza'])
+        if 'effective_date' in df.columns:
+            df = df.dropna(subset=['effective_date'])
+            df['effective_date'] = pd.to_datetime(df['effective_date'])
             
         sort_cols = []
         sort_asc = []
         if '_unita' in df.columns: 
             sort_cols.append('_unita'); sort_asc.append(True)
-        if 'data_decorrenza' in df.columns: 
-            sort_cols.append('data_decorrenza'); sort_asc.append(False)
+        if 'effective_date' in df.columns: 
+            sort_cols.append('effective_date'); sort_asc.append(False)
         
         if sort_cols:
             df = df.sort_values(sort_cols, ascending=sort_asc).reset_index(drop=True)
@@ -881,66 +939,64 @@ if __name__ == "__main__":
                 df[col] = df[col].rank(pct=True) * 100
                 df[col] = df[col].round(2)
 
-
-        
         # Convert cadastral columns to int
-        for col in ['foglio', 'particella', 'subalterno']:
+        for col in ['cadastral_sheet', 'cadastral_parcel', 'cadastral_subaltern']:
             if col in df.columns:
                 df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0).astype(int)
 
         # 1. Removal of rows without OMI zone
-        if 'zona_omi' in df.columns:
-            df = df.dropna(subset=['zona_omi'])
-            df = df[df['zona_omi'] != ""]
+        if 'omi_zone' in df.columns:
+            df = df.dropna(subset=['omi_zone'])
+            df = df[df['omi_zone'] != ""]
 
         # 2. Filtering for unique cadastral unit (Deduplication)
-        # For each unit (foglio/part/sub), we only take the most recent APE
+        # For each unit (sheet/parcel/subaltern), we only take the most recent APE
         # Since the df is already sorted by descending date, we keep the first row of each group.
-        catasto_cols = ['foglio', 'particella', 'subalterno']
-        if all(c in df.columns for c in catasto_cols):
+        cadastral_cols = ['cadastral_sheet', 'cadastral_parcel', 'cadastral_subaltern']
+        if all(c in df.columns for c in cadastral_cols):
             print("Deduplicating cadastral units (keeping most recent APE and main address)...")
             # Filter first by address consistent with the most recent (as previously requested)
-            if 'indirizzo' in df.columns:
-                df_first_addr = df.groupby(catasto_cols)['indirizzo'].transform('first')
-                df = df[df['indirizzo'] == df_first_addr]
+            if 'address' in df.columns:
+                df_first_addr = df.groupby(cadastral_cols)['address'].transform('first')
+                df = df[df['address'] == df_first_addr]
             
             # Filter by most recent date (taking the head of each group)
-            df = df.sort_values(catasto_cols + ['data_decorrenza'], ascending=[True, True, True, False])
-            df = df.groupby(catasto_cols).head(1).reset_index(drop=True)
+            df = df.sort_values(cadastral_cols + ['effective_date'], ascending=[True, True, True, False])
+            df = df.groupby(cadastral_cols).head(1).reset_index(drop=True)
 
         if '_unita' in df.columns:
             df = df.drop(columns=['_unita'])
 
-        # Removal of technical/intermediate columns as requested
+        # Removal of technical/intermediate columns
         cols_to_drop = [
-            'imp_acs_tipo', 'imp_acs_anno', 'imp_risc_tipo', 'imp_risc_anno', 
-            'fonti_rinnovabili', 'qualita_estiva', 'qualita_invernale', 
-            'piano', 'serv_acs', 'serv_risc', 'intervento_payback'
+            'dhw_system_type', 'dhw_system_year', 'heating_system_type', 'heating_system_year', 
+            'renewable_sources', 'envelope_summer_quality', 'envelope_winter_quality', 
+            'floor', 'has_dhw', 'has_heating', 'payback_period'
         ]
         df = df.drop(columns=[c for c in cols_to_drop if c in df.columns])
             
         # Initialize extra columns and IDs for normal rows (necessary before metaimmobili generation)
         df = df.reset_index(drop=True)
         df['id'] = (df.index + 1).astype(str)
-        df['meta_immobile'] = False
-        df['numero_immobili_per_catasto'] = 1
+        df['is_meta_estate'] = False
+        df['cadastral_units_count'] = 1
         df['id_list'] = None
         
         # Handle XML file columns (list as string format for compatibility)
-        df['lista_file_ape'] = df['lista_file_ape'].apply(lambda x: str([x]) if isinstance(x, str) else "[]")
-        df['list_file_ape_filtered'] = df['lista_file_ape']
-        df['list_file_ape_filtered_parsed'] = df['lista_file_ape']
+        df['ape_file_list'] = df['ape_file_list'].apply(lambda x: str([x]) if isinstance(x, str) else "[]")
+        df['ape_file_list_filtered'] = df['ape_file_list']
+        df['ape_file_list_filtered_parsed'] = df['ape_file_list']
 
-        # Metaimmobili generation (aggregation by foglio/particella)
-        print("Generating metaimmobili (aggregating by foglio/particella)...")
+        # Metaimmobili/Metaestates generation (aggregation by sheet/parcel)
+        print("Generating metaestates (aggregating by cadastral sheet/parcel)...")
         meta_rows = []
-        for (foglio, particella), group in df.groupby(['foglio', 'particella']):
+        for (sheet, parcel), group in df.groupby(['cadastral_sheet', 'cadastral_parcel']):
             if len(group) > 1:
                 # 1. Sum surfaces
-                total_surf = group['superficie_di_riferimento_mq'].sum()
+                total_surf = group['surface_area'].sum()
                 
                 # 2. Most represented typology by sum of surfaces
-                surf_by_tipo = group.groupby('tipologia_bene_immobile')['superficie_di_riferimento_mq'].sum()
+                surf_by_tipo = group.groupby('property_type')['surface_area'].sum()
                 if not surf_by_tipo.empty:
                     chosen_tipo = surf_by_tipo.idxmax()
                     
@@ -950,7 +1006,7 @@ if __name__ == "__main__":
                     # XML file aggregation (union of all group lists)
                     import ast
                     all_xml_files = []
-                    for xml_str in group['lista_file_ape']:
+                    for xml_str in group['ape_file_list']:
                         try:
                             # Converts list string to real list
                             all_xml_files.extend(ast.literal_eval(xml_str))
@@ -960,55 +1016,55 @@ if __name__ == "__main__":
                     
 
                     meta_row = {
-                        'foglio': foglio,
-                        'particella': particella,
-                        'subalterno': 0, # Conventional value for metaimmobile
-                        'superficie_di_riferimento_mq': total_surf,
-                        'tipologia_bene_immobile': chosen_tipo,
+                        'cadastral_sheet': sheet,
+                        'cadastral_parcel': parcel,
+                        'cadastral_subaltern': 0, # Conventional value for metaestate
+                        'surface_area': total_surf,
+                        'property_type': chosen_tipo,
                         'id': f"M{len(meta_rows) + 1:05d}",
-                        'meta_immobile': True,
-                        'numero_immobili_per_catasto': len(group),
+                        'is_meta_estate': True,
+                        'cadastral_units_count': len(group),
                         'id_list': str(orig_ids),
-                        'lista_file_ape': str(all_xml_files),
-                        'list_file_ape_filtered': str(all_xml_files),
-                        'list_file_ape_filtered_parsed': str(all_xml_files)
+                        'ape_file_list': str(all_xml_files),
+                        'ape_file_list_filtered': str(all_xml_files),
+                        'ape_file_list_filtered_parsed': str(all_xml_files)
                     }
 
                     # Specific aggregations independent of typology/surface
                     # 1. Building epoch: most frequent in group
-                    m_epoca = group['epoca_costruzione'].mode()
-                    meta_row['epoca_costruzione'] = m_epoca.iloc[0] if not m_epoca.empty else None
+                    m_epoca = group['construction_period'].mode()
+                    meta_row['construction_period'] = m_epoca.iloc[0] if not m_epoca.empty else None
 
                     # 2. Energy class most represented by sum of surfaces
-                    surf_by_classe = group.groupby('classe_energetica_ape')['superficie_di_riferimento_mq'].sum()
+                    surf_by_classe = group.groupby('energy_class')['surface_area'].sum()
                     if not surf_by_classe.empty:
-                        meta_row['classe_energetica_ape'] = surf_by_classe.idxmax()
+                        meta_row['energy_class'] = surf_by_classe.idxmax()
                     else:
-                        meta_row['classe_energetica_ape'] = None
+                        meta_row['energy_class'] = None
 
                     # 3. Energy scores: group maximums (excluding total and class which we recalculate)
-                    score_cols = [c for c in group.columns if 'score' in c and c not in ['ape_score_total', 'ape_score_classe']]
+                    score_cols = [c for c in group.columns if 'score' in c and c not in ['energy_score_total', 'energy_score_class']]
                     for col in score_cols:
                         meta_row[col] = group[col].max()
                     
                     # Class score recalculation based on chosen class
-                    meta_row['ape_score_classe'] = map_classe_score(meta_row['classe_energetica_ape'])
+                    meta_row['energy_score_class'] = map_classe_score(meta_row['energy_class'])
                     
                     # Recalculate total as sum of individual scores
-                    meta_row['ape_score_total'] = (
-                        (meta_row.get('ape_score_classe') or 0) + 
-                        (meta_row.get('ape_score_impianto') or 0) + 
-                        (meta_row.get('ape_score_involucro') or 0) + 
-                        (meta_row.get('ape_score_rinnovabili') or 0)
+                    meta_row['energy_score_total'] = (
+                        (meta_row.get('energy_score_class') or 0) + 
+                        (meta_row.get('energy_score_plant') or 0) + 
+                        (meta_row.get('energy_score_envelope') or 0) + 
+                        (meta_row.get('energy_score_renewables') or 0)
                     )
 
                     # 4. Consumptions: group minimums
-                    consumo_cols = ['epglnren_ape', 'epglren_ape', 'emissioni_co2']
+                    consumo_cols = ['epglnren', 'epglren', 'co2_emissions']
                     for col in consumo_cols:
                         if col in group.columns:
                             meta_row[col] = group[col].min()
 
-                    # 5. Other properties: group mode (no longer from type-filtered sub_group)
+                    # 5. Other properties: group mode
                     for col in df.columns:
                         if col not in meta_row:
                             m = group[col].mode()
@@ -1016,14 +1072,14 @@ if __name__ == "__main__":
                     
                     meta_rows.append(meta_row)
 
-        # Add metaimmobili at the end of the file
+        # Add metaestates at the end of the file
         if meta_rows:
             df = pd.concat([df, pd.DataFrame(meta_rows)], ignore_index=True)
 
-        # Reorder columns: id, meta_immobile, numero_immobili_per_catasto, id_list and file list first
+        # Reorder columns: id, is_meta_estate, cadastral_units_count, id_list and file list first
         first_cols = [
-            'id', 'meta_immobile', 'numero_immobili_per_catasto', 'id_list',
-            'lista_file_ape', 'list_file_ape_filtered', 'list_file_ape_filtered_parsed'
+            'id', 'is_meta_estate', 'cadastral_units_count', 'id_list',
+            'ape_file_list', 'ape_file_list_filtered', 'ape_file_list_filtered_parsed'
         ]
         cols = first_cols + [c for c in df.columns if c not in first_cols]
         df = df[cols]

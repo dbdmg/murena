@@ -78,7 +78,7 @@ class Settings(BaseSettings):
     OPENAI_MODEL_SMART: str = "gpt-oss-120b"
     OPENAI_API_BASE: Optional[str] = "https://api.institutional-endpoint.edu/v1"
 
-    LLMODEL_CONCURRENCY_LIMITS = {
+    LLMODEL_CONCURRENCY_LIMITS: Dict[str, int] = {
         "gpt-5.4": 2,
         "gpt-oss-120b": 48,
         "gemma3-27b": 48,
@@ -147,7 +147,6 @@ class Settings(BaseSettings):
     IMMOBILI_QUOTAZIONE_PATH: str
     ZONE_GRUPPO_QUOTAZIONI_PATH: str
     MISSING_QUOTAZIONI_IDS_PATH: str
-    ENERGY_DETAILED_DATA_PATH: str
 
     # Static data
     STATIONS_CSV: str
@@ -189,12 +188,10 @@ class Settings(BaseSettings):
     def dataset_options(self) -> Dict[str, str]:
         """Return dataset options mapping.
 
-        Note: Only 'full' is actively used. The 'ape' option points to
-        detailed APE data used by the /ape endpoint.
+        Note: Only 'full' is actively used.
         """
         return {
             "full": self.DATASET_FULL,
-            "energy": self.ENERGY_DETAILED_DATA_PATH,
         }
 
     @property

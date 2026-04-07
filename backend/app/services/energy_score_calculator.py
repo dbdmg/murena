@@ -18,6 +18,7 @@ from scipy import stats
 from pathlib import Path
 from typing import Optional, Dict, Any
 import logging
+from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -56,10 +57,7 @@ class EnergyScoreCalculator:
         """
         self.ape_data_path = (
             ape_data_path
-            or Path(__file__).parent.parent.parent
-            / "data"
-            / "FOLDER_META"
-            / "ape_detailed_data.parquet"
+            or Path(settings.DATASET_FULL)
         )
         self._distributions: Dict[float, Dict[str, float]] = {}
         self._global_distribution: Dict[str, float] = {}
