@@ -14,7 +14,7 @@ from app.core.exceptions import setup_exception_handlers
 
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO,
+    level=settings.LOG_LEVEL.upper(),
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 logger = logging.getLogger(__name__)

@@ -93,21 +93,11 @@ export function useAnalysisProgress(
         // Behavior:
         // 1. If VITE_WS_URL is explicitly set (and not localhost default), use it.
         // 2. If VITE_WS_URL is missing or 'localhost' and we are NOT on localhost, infer from window.location.
-        const defaultLocal = 'ws://localhost:8000';
-
-        if (!rawBase || (rawBase === defaultLocal && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1')) {
+        if (!rawBase) {
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-
-            // Scenario A: Dev mode (port 5173) on remote machine -> assume backend on port 8000
-            if (window.location.port === '5173') {
-                rawBase = `${protocol}//${window.location.hostname}:8000`;
-            }
-            // Scenario B: Production/Docker (port 80/443 or other) -> assume backend proxied on same origin
-            else {
-                rawBase = `${protocol}//${window.location.host}`;
-            }
-        } else if (!rawBase) {
-            rawBase = defaultLocal;
+            // In dev mode, the backend is reachable via the same origin (proxied)
+            // or on the configured backend port if we are on localhost.
+            rawBase = `${protocol}//${window.location.host}`;
         }
 
         if (rawBase.includes('/api/v1/ws')) {

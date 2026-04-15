@@ -15,10 +15,11 @@ def configure_logger():
     logger.remove()
 
     # Add console handler with color
+    # Livello ERROR per mantenere la console pulita come richiesto
     logger.add(
         sys.stderr,
         format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>",
-        level="INFO",
+        level="ERROR",
         colorize=True,
     )
 

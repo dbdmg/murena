@@ -79,6 +79,8 @@ class OrchestratorResult:
     match_count: int = 0
     broker_summary: Optional[str] = None
     agent_trace: Optional[List[Dict[str, Any]]] = field(default_factory=list)
+    relaxation_applied: bool = False
+    relaxation_proposals: List[Dict[str, Any]] = field(default_factory=list)
 
 
 class GraphState(TypedDict):
@@ -132,7 +134,10 @@ class GraphState(TypedDict):
     step_definitions: List[Dict[str, str]]
     steps_state: List[Dict[str, Any]]
     last_retry_reason: Optional[str]
+    relaxation_applied: bool
+    relaxation_proposals: List[Dict[str, Any]]
     use_data_knowledge: bool  # Whether data statistics are passed to agents
+    use_relaxation: bool  # Whether to use query relaxation if 0 results found
 
 
 class GraphOrchestratorAgent(BaseAgent):
@@ -277,6 +282,7 @@ class GraphOrchestratorAgent(BaseAgent):
         metro_graph: Optional[Any] = None,
         disabled_agents: Optional[List[str]] = None,
         use_data_knowledge: bool = True,
+        use_relaxation: bool = True,
         analysis_mode: str = "agent",
         architecture: str = "multiagent",
     ) -> OrchestratorResult:
@@ -353,6 +359,7 @@ class GraphOrchestratorAgent(BaseAgent):
             "architecture": architecture.lower(),
             "disabled_agents": disabled_agents or [],
             "use_data_knowledge": use_data_knowledge,
+            "use_relaxation": use_relaxation,
             "location_payload": [],
             "use_case_str": "",
             "building_result": None,
@@ -383,6 +390,8 @@ class GraphOrchestratorAgent(BaseAgent):
                 for s in step_definitions
             ],
             "last_retry_reason": None,
+            "relaxation_applied": False,
+            "relaxation_proposals": [],
             "sql_history": [],
         }
 

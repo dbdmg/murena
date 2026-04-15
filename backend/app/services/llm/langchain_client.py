@@ -79,7 +79,7 @@ def get_llm(
     """
     # Determina il modello di default dinamicamente dalle impostazioni globali
     if not model_name:
-        model_name = settings.OPENAI_MODEL_FAST
+        model_name = settings.LLM_MODEL
 
     resolved_model = model_name or os.getenv("LLM_MODEL_DEFAULT")
 
@@ -115,7 +115,7 @@ def is_oss_model(model_name: Optional[str] = None) -> bool:
 
     Args:
         model_name: Override the model name to check. If None, the current
-            settings.OPENAI_MODEL_FAST is used.
+            settings.LLM_MODEL is used.
 
     Returns:
         True if the model should use plain text output instead of
@@ -123,7 +123,7 @@ def is_oss_model(model_name: Optional[str] = None) -> bool:
     """
     try:
         from tests.model_config import MODEL_OPTIONS
-        resolved = model_name or settings.OPENAI_MODEL_FAST
+        resolved = model_name or settings.LLM_MODEL
         for cfg in MODEL_OPTIONS.values():
             if cfg["model"] == resolved:
                 return not cfg["supports_structured_output"]
@@ -131,7 +131,7 @@ def is_oss_model(model_name: Optional[str] = None) -> bool:
         pass
 
     # Fallback: heuristic based on model name and endpoint URL.
-    resolved = (model_name or settings.OPENAI_MODEL_FAST or "").lower()
+    resolved = (model_name or settings.LLM_MODEL or "").lower()
     api_base = (settings.OPENAI_API_BASE or "").lower()
     return (
         "oss" in resolved

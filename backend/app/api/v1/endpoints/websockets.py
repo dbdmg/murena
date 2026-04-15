@@ -23,7 +23,7 @@ async def analysis_progress_websocket(websocket: WebSocket, run_id: str):
     - Progress updates during analysis execution
     - Completion message when analysis finishes
 
-    **Connection URL:** `ws://localhost:8000/api/v1/ws/analysis/{run_id}`
+    **Connection URL:** `/api/v1/ws/analysis/{run_id}`
 
     **Message Types:**
 
@@ -50,7 +50,7 @@ async def analysis_progress_websocket(websocket: WebSocket, run_id: str):
 
     **Usage Example (JavaScript):**
     ```javascript
-    const ws = new WebSocket('ws://localhost:8000/api/v1/ws/analysis/abc123');
+    const ws = new WebSocket(`ws://${window.location.host}/api/v1/ws/analysis/abc123`);
 
     ws.onmessage = (event) => {
         const data = JSON.parse(event.data);

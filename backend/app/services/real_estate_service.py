@@ -381,13 +381,13 @@ class RealEstateService:
             result = result[result["is_evaluated"] == filters.is_evaluated]
 
         # Filter by construction eras
-        if filters.epoche_costruzione:
+        if filters.construction_periods:
             epoca_col = "construction_year" if "construction_year" in result.columns else None
 
             if epoca_col:
-                logger.info(f"Filtering by eras: {filters.epoche_costruzione}")
+                logger.info(f"Filtering by eras: {filters.construction_periods}")
                 before_count = len(result)
-                result = result[result[epoca_col].isin(filters.epoche_costruzione)]
+                result = result[result[epoca_col].isin(filters.construction_periods)]
                 logger.info(f"Era filter: {before_count} -> {len(result)} buildings")
 
         # Filter by property types
@@ -399,8 +399,8 @@ class RealEstateService:
                 lower_types = [t.lower() for t in filters.property_types]
                 result = result[result[type_col].str.lower().isin(lower_types)]
 
-        # Filter by utilizzo_bene (string matching)
-        if filters.utilizzo_bene:
+        # Filter by asset_utilization (string matching)
+        if filters.asset_utilization:
             utilizzo_col = None
             if "utilizzo_del_bene" in result.columns:
                 utilizzo_col = "utilizzo_del_bene"
@@ -408,11 +408,11 @@ class RealEstateService:
                 utilizzo_col = "utilizzo"
 
             if utilizzo_col:
-                lower_vals = [v.lower() for v in filters.utilizzo_bene]
+                lower_vals = [v.lower() for v in filters.asset_utilization]
                 result = result[result[utilizzo_col].str.lower().isin(lower_vals)]
 
-        # Filter by vincolo_culturale (string matching)
-        if filters.vincolo_culturale:
+        # Filter by cultural_constraints (string matching)
+        if filters.cultural_constraints:
             vincolo_col = None
             if "vincolo_culturale_paesaggistico" in result.columns:
                 vincolo_col = "vincolo_culturale_paesaggistico"
@@ -420,14 +420,14 @@ class RealEstateService:
                 vincolo_col = "vincolo"
 
             if vincolo_col:
-                lower_vals = [v.lower() for v in filters.vincolo_culturale]
+                lower_vals = [v.lower() for v in filters.cultural_constraints]
                 result = result[result[vincolo_col].str.lower().isin(lower_vals)]
 
-        # Filter by is_meta_immobile
-        if filters.is_meta_immobile is not None:
+        # Filter by is_meta_building
+        if filters.is_meta_building is not None:
             meta_col = "is_meta_estate" if "is_meta_estate" in result.columns else "is_meta"
             if meta_col in result.columns:
-                if filters.is_meta_immobile:
+                if filters.is_meta_building:
                     result = result[result[meta_col] == True]
                 else:
                     result = result[(result[meta_col] == False) | (result[meta_col].isna())]
