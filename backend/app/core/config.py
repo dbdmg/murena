@@ -6,6 +6,11 @@ Merged constants from original app/config.py
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import List, Dict, Optional
 import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env file explicitly to ensure they are available in os.environ
+env_path = os.path.join(os.path.dirname(__file__), "../../.env")
+load_dotenv(env_path)
 
 
 class Settings(BaseSettings):
@@ -90,17 +95,20 @@ class Settings(BaseSettings):
         Args:
             model_type: The identifier for the LLM flavor to use.
         """
+        # Ensure latest env vars are loaded (avoids issues with subprocesses/caching)
+        base_url = os.environ.get("OPENAI_API_BASE")
+        
         if model_type == "gpt-oss-120b":
-            self.LLM_MODEL = "gpt-oss-120b"
-            self.OPENAI_API_BASE = "https://api.institutional-endpoint.edu/v1"
-            self.OPENAI_API_KEY = self.INSTITUTIONAL_LLM_API_KEY
+            self.LLM_MODEL = "gemma-4"
+            self.OPENAI_API_BASE = base_url
+            self.OPENAI_API_KEY = self.INSTITUTIONAL_LLM_API_KEY or "vllm"
         elif model_type == "gemma3-27b":
-            self.LLM_MODEL = "google/gemma-3-27b-it"
-            self.OPENAI_API_BASE = "http://localhost:8000/v1"
+            self.LLM_MODEL = "gemma-4"
+            self.OPENAI_API_BASE = base_url
             self.OPENAI_API_KEY = "vllm"
         elif model_type == "qwen3-8b":
-            self.LLM_MODEL = "Qwen/Qwen3-8B"
-            self.OPENAI_API_BASE = "http://localhost:8001/v1"
+            self.LLM_MODEL = "gemma-4"
+            self.OPENAI_API_BASE = base_url
             self.OPENAI_API_KEY = "vllm"
         elif model_type == "gpt-5.4":
             self.LLM_MODEL = "gpt-5.4"

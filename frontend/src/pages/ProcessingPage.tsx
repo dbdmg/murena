@@ -89,24 +89,25 @@ export const ProcessingPage: React.FC = () => {
 
     // Fetch results on completion
     useEffect(() => {
-        if (progress.isComplete || isComplete) {
+        if ((progress.isComplete || isComplete) && !results) {
             if (!hasFetchedSteps.current && runId) {
-                hasFetchedSteps.current = true;
                 // Fetch final results
                 analysisApi.getResults(runId).then(resultsData => {
-                    if (resultsData.status === 'completed') {
+                    if (resultsData.status === 'completed' || resultsData.status === 'failed') {
+                        hasFetchedSteps.current = true;
                         setResults(resultsData);
                         setBuildingsFound(resultsData.buildings?.length || 0);
                         setBrokerSummary(resultsData.broker_summary || null);
+                        setIsComplete(true);
                     }
                 }).catch(err => console.error('Failed to fetch results:', err));
             }
         }
-    }, [progress.isComplete, isComplete, runId]);
+    }, [progress.isComplete, isComplete, runId, results]);
 
-    // Poll for results if not yet complete
+    // Poll for results if not yet complete OR if signaled complete but results not yet received
     useEffect(() => {
-        if (!runId || isComplete) return;
+        if (!runId || (isComplete && results)) return;
 
         let isCancelled = false;
 
@@ -136,7 +137,7 @@ export const ProcessingPage: React.FC = () => {
             isCancelled = true;
             clearInterval(pollInterval);
         };
-    }, [runId, isComplete]);
+    }, [runId, isComplete, !!results]);
 
     // Auto-scroll to bottom of step list
     useEffect(() => {
@@ -144,21 +145,29 @@ export const ProcessingPage: React.FC = () => {
     }, [logs, progress.steps]);
 
 
+    const DEFAULT_STEPS: ProgressStep[] = [
+        { label: 'Analyzing user request...', state: 'pending' },
+        { label: 'Evaluating technical building characteristics...', state: 'pending' },
+        { label: 'Identifying search geographic area...', state: 'pending' },
+        { label: 'Analyzing building energy performance (EPC)...', state: 'pending' },
+        { label: 'Verifying regulatory compliance...', state: 'pending' },
+        { label: 'Scanning nearby services and amenities...', state: 'pending' },
+        { label: 'Calculating relevance scores...', state: 'pending' },
+        { label: 'Generating qualitative building justifications...', state: 'pending' },
+        { label: 'Synthesizing executive summary...', state: 'pending' },
+    ];
+
     // Determine which steps to show: Structured from backend OR Fallback from logs
     const displaySteps: ProgressStep[] = (progress.steps && progress.steps.length > 0
         ? progress.steps
-        : logs.map(l => ({
-            label: l.message,
-            state: l.status === 'processing' ? 'current' : l.status,
-            detail: l.detail
-        } as ProgressStep)))
-        .filter(s => s.state !== 'pending')
-        .map(s => isComplete ? { ...s, state: 'done' as const } : s)
-        .sort((a, b) => {
-            if (a.state === 'current' && b.state !== 'current') return 1;
-            if (a.state !== 'current' && b.state === 'current') return -1;
-            return 0;
-        });
+        : logs.length > 0 
+            ? logs.map(l => ({
+                label: l.message,
+                state: l.status === 'processing' ? 'current' as const : l.status as any,
+                detail: l.detail
+            }))
+            : DEFAULT_STEPS)
+        .map(s => isComplete ? { ...s, state: 'done' as const } : s);
 
     const handleViewResults = () => {
         navigate(`/map?run_id=${runId}`);

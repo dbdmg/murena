@@ -1,6 +1,12 @@
 import asyncio
 import json
 import itertools
+import threading
+import json
+import copy
+import shutil
+import asyncio
+import argparse
 import logging
 import os
 import sys
@@ -22,9 +28,15 @@ from utils import (
     safe_read_csv, safe_save_csv, safe_update_csv_column, file_lock,
     calculate_iou, calculate_f1, get_activated_agents, 
     calculate_architecture_agreement, extract_sql_columns,
-    get_activated_agents, calculate_f1,
     generate_report
 )
+
+try:
+    import sqlglot
+    from sqlglot import exp
+    HAS_SQLGLOT = True
+except ImportError:
+    HAS_SQLGLOT = False
 
 # --- 1. SETTINGS & ENVIRONMENT SETUP ---
 
@@ -33,6 +45,7 @@ suite_path = current_script_path.parent
 backend_dir = suite_path.parent
 sys.path.append(str(backend_dir))
 from app.utils.json_sanitizer import make_json_safe
+base_dir = backend_dir
 from app.core.config import settings
 from app.services.analysis_service import analysis_service
 from tests.model_config import apply_model_config
@@ -46,8 +59,25 @@ execution_csv_path = results_path / "execution_log.csv"
 RUN_ID = os.environ.get("SYNTHETIC_RUN_ID", f"RUN_{datetime.now().strftime('%Y%m%d_%H%M%S')}")
 os.environ["SYNTHETIC_RUN_ID"] = RUN_ID
 
+class Vlog:
+    def log(self, tag, msg):
+        log_output(f"[{tag}] {msg}")
+
+vlog = Vlog()
+
 # Initialize logging
 setup_logging(RUN_ID, execution_csv_path)
+# --- GLOBAL STATE FOR MONITORING ---
+pending_jobs = set()
+pending_lock = threading.Lock()
+
+def update_pending_job(job_id: str, action: str):
+    """Adds or removes a job ID from the global pending set (thread-safe)."""
+    with pending_lock:
+        if action == "add":
+            pending_jobs.add(job_id)
+        else:
+            pending_jobs.discard(job_id)
 
 def log_output(msg):
     """Centralized log message helper."""
@@ -89,13 +119,51 @@ from app.services.analysis_service import analysis_service
 from app.services.real_estate_service import RealEstateService
 from app.data.loaders import load_and_merge_data
 from app.utils.json_parser import safe_extract_json
-from tests.model_config import apply_model_config
 
-# Patch settings
+
+# Patch settings to use absolute paths relative to backend_dir
 for attr in ["DATASET_FULL", "APE_DETAILED_DATA_PATH", "STATIC_DIR", "DATA_DIR", "APE_DIR", "META_DIR", "AGENT_LOGS_DIR"]:
     val = getattr(settings, attr, None)
     if val and isinstance(val, str) and not os.path.isabs(val):
         setattr(settings, attr, str(backend_dir / val))
+
+def get_data_stats():
+    """Return basic statistical metrics of the dataset for OOD detection."""
+    df = RealEstateService._dataset_cache.get("full")
+    if df is None: return {}
+    stats = {}
+    cols = [
+        "superficie_di_riferimento_mq", "num_locali_omi", "latitudine", "longitudine",
+        "epglnren_ape", "piani_fuori_terra", "anno_costruzione"
+    ]
+    for col in cols:
+        if col in df.columns:
+            try:
+                c_upper = col.upper()
+                stats[c_upper] = {
+                    "min": float(df[col].min()),
+                    "max": float(df[col].max()),
+                    "mean": float(df[col].mean()),
+                    "std": float(df[col].std())
+                }
+            except: pass
+    return stats
+
+async def preload_data():
+    """Initializes the RealEstateService by pre-loading and merging essential datasets."""
+    if not RealEstateService._dataset_cache.get("full"):
+        try:
+            df = load_and_merge_data(settings.DATASET_FULL)
+            if df is not None:
+                RealEstateService._dataset_cache["full"] = df
+                # Build indexed cache
+                df_indexed = df.copy()
+                df_indexed["id_str"] = df_indexed["id"].astype(str)
+                df_indexed = df_indexed.drop_duplicates(subset=["id_str"])
+                df_indexed.set_index("id_str", inplace=True)
+                RealEstateService._dataset_indexed_cache["full"] = df_indexed
+        except Exception as e:
+            print(f"Error preloading data: {e}")
 
 def calculate_sql_iou(sql_a, sql_b, file_a="N/A", file_b="N/A"):
     # This uses extract_sql_columns from analysis_utils
@@ -1090,8 +1158,8 @@ async def sync_sensitivity_with_benchmark(df_sens: pd.DataFrame, df_bench: pd.Da
 async def run_single_model_suite(model: str, max_concurrent: int, limit: int = None):
     """Execution logic for a single model with optimized non-redundant workflow."""
     # Initialize environment
-    pos_json = suite_path / "query_variables_possibilities.json"
-    mapping_json = suite_path / "agent_mapping.json"
+    pos_json = suite_path / "query_parameters.json"
+    mapping_json = suite_path / "agent_ground_truth.json"
     with open(mapping_json) as f: mapping = json.load(f)
     
     await preload_data()
@@ -1239,15 +1307,16 @@ async def run_single_model_suite(model: str, max_concurrent: int, limit: int = N
     
     log_output(f"=== [COMPLETE] Queries for {model} finished. ===")
 
-async def conductor_main(max_concurrent: int, only_analysis: bool = False, limit: int = None):
+async def conductor_main(max_concurrent: int, only_analysis: bool = False, limit: int = None, models: List[str] = None):
     """Main orchestrator that manages model processes and generates final reports."""
-    pos_json = suite_path / "query_variables_possibilities.json"
-    mapping_json = suite_path / "agent_mapping.json"
+    pos_json = suite_path / "query_parameters.json"
+    mapping_json = suite_path / "agent_ground_truth.json"
     with open(mapping_json) as f: mapping = json.load(f)
     await preload_data()
     data_stats = get_data_stats()
 
-    models = ["gpt-oss-120b", "gemma3-27b", "qwen3-8b"]
+    if not models:
+        models = ["gpt-oss-120b", "gemma3-27b", "qwen3-8b"]
     
     # 1. PREPARE SUITES (Only if not in analysis-only mode)
     bench_csv = results_path / "combinatorial_queries_suite.csv"
@@ -1346,6 +1415,7 @@ if __name__ == "__main__":
     parser.add_argument("--only-analysis", action="store_true", help="Only run analysis on existing results")
     parser.add_argument("--max-concurrent", type=int, default=48, help="Max concurrent queries per model")
     parser.add_argument("--limit", type=int, default=None, help="Limit number of queries per model")
+    parser.add_argument("--models", type=str, help="Comma-separated list of models to run")
     args = parser.parse_args()
 
     if args.model:
@@ -1359,290 +1429,6 @@ if __name__ == "__main__":
         asyncio.run(run_single_model_suite(args.model, m_concurrency, limit=args.limit))
     else:
         # Launch the conductor
-        asyncio.run(conductor_main(args.max_concurrent, args.only_analysis, limit=args.limit))
-import json
-import numpy as np
-import pandas as pd
-import re
-from pathlib import Path
-from typing import List, Dict, Any, Set, Optional
+        selected_models = args.models.split(",") if args.models else None
+        asyncio.run(conductor_main(args.max_concurrent, args.only_analysis, limit=args.limit, models=selected_models))
 
-try:
-    import sqlglot
-    from sqlglot import exp
-    HAS_SQLGLOT = True
-except ImportError:
-    HAS_SQLGLOT = False
-
-# --- BASE METRICS ---
-
-def calculate_iou(list_a: List[str], list_b: List[str]) -> float:
-    """Calculates Intersection over Union for two lists."""
-    if not list_a and not list_b: return 1.0
-    set_a, set_b = set(list_a), set(list_b)
-    inter = len(set_a.intersection(set_b))
-    union = len(set_a.union(set_b))
-    return inter / union if union > 0 else 0.0
-
-def calculate_jaccard(list_a: List[str], list_b: List[str]) -> float:
-    """Alias for IoU."""
-    return calculate_iou(list_a, list_b)
-
-def calculate_f1(gt: Set[str], pred: Set[str]) -> Dict[str, float]:
-    """Calculates precision, recall, and f1 score."""
-    if not gt:
-        return {"precision": 0.0, "recall": 0.0, "f1": 0.0}
-    
-    tp = len(gt.intersection(pred))
-    recall = tp / len(gt)
-    precision = tp / len(pred) if pred else 0.0
-    
-    if precision + recall == 0:
-        f1 = 0.0
-    else:
-        f1 = 2 * (precision * recall) / (precision + recall)
-        
-    return {
-        "precision": round(precision, 3),
-        "recall": round(recall, 3),
-        "f1": round(f1, 3)
-    }
-
-# --- SQL ANALYSIS ---
-
-AGENT_COLUMNS = {
-    "property_technical": {
-        "tipologia_bene_immobile", "epoca_costruzione", "id", "codice_comune", 
-        "foglio", "particella", "subalterno", "numero_immobili_per_catasto", 
-        "superficie_di_riferimento_mq"
-    },
-    "location": {
-        "indirizzo", "numero_civico", "latitudine", "longitudine", "zona_omi"
-    },
-    "ape": {
-        "classe_energetica_ape", "epglnren_ape", "classe_target_ape", 
-        "ape_score_classe", "ape_score_impianto", "ape_score_involucro", 
-        "ape_score_rinnovabili", "ape_score_total"
-    },
-    "normative": {
-        "superficie_di_riferimento_mq", "tipologia_bene_immobile"
-    },
-    "poi": {
-        "sanita", "mobilita", "verde", "sport", "commerciale", "educazione"
-    }
-}
-
-COLUMN_TO_AGENTS = {}
-for agent, cols in AGENT_COLUMNS.items():
-    for col in cols:
-        if col not in COLUMN_TO_AGENTS:
-            COLUMN_TO_AGENTS[col] = []
-        COLUMN_TO_AGENTS[col].append(agent)
-
-def extract_sql_columns(sql: str) -> Set[str]:
-    """Extracts column names used in WHERE, JOIN, and HAVING clauses."""
-    if not sql or not HAS_SQLGLOT:
-        return set()
-    try:
-        parsed = sqlglot.parse_one(sql)
-        cols = set()
-        where_clause = parsed.find(exp.Where)
-        if where_clause:
-            for col in where_clause.find_all(exp.Column):
-                cols.add(col.name.lower())
-        for join in parsed.find_all(exp.Join):
-            on_clause = join.find(exp.JoinAnnotation) or join.find(exp.On)
-            if on_clause:
-                for col in on_clause.find_all(exp.Column):
-                    cols.add(col.name.lower())
-        if where_clause:
-            for func in where_clause.find_all(exp.Anonymous) or where_clause.find_all(exp.Func):
-                for arg in func.find_all(exp.Column):
-                    cols.add(arg.name.lower())
-        return cols
-    except Exception:
-        # Fallback heuristic
-        cols = set()
-        sql_lower = sql.lower()
-        for col in COLUMN_TO_AGENTS:
-            if col in sql_lower:
-                where_idx = sql_lower.find("where")
-                if where_idx != -1 and col in sql_lower[where_idx:]:
-                    cols.add(col)
-        return cols
-
-def get_activated_agents(sql: str) -> Set[str]:
-    """Identifies which agents are 'activated' by the columns present in the SQL."""
-    cols = extract_sql_columns(sql)
-    activated = set()
-    for col in cols:
-        if col in COLUMN_TO_AGENTS:
-            for agent in COLUMN_TO_AGENTS[col]:
-                activated.add(agent)
-    return activated
-
-def calculate_architecture_agreement(sql: str, gt_agents: Set[str]) -> float:
-    """Compares activated agents in SQL against ground truth agents."""
-    pred_agents = get_activated_agents(sql)
-    return calculate_iou(list(gt_agents), list(pred_agents))
-import csv
-import io
-import logging
-import threading
-import contextlib
-import fcntl
-from pathlib import Path
-from typing import List, Any, Optional, Dict
-import pandas as pd
-from contextvars import ContextVar
-
-# --- CONTEXT VARIABLES ---
-query_ctx: ContextVar[str] = ContextVar("query_ctx", default="SYSTEM")
-experiment_ctx: ContextVar[str] = ContextVar("experiment_ctx", default="N/A")
-log_dir_ctx: ContextVar[Optional[Path]] = ContextVar("log_dir_ctx", default=None)
-
-def format_csv_line(row: List[Any]) -> str:
-    """Helper to generate a properly quoted CSV line."""
-    output = io.StringIO()
-    writer = csv.writer(output, quoting=csv.QUOTE_ALL, lineterminator="")
-    writer.writerow(row)
-    return output.getvalue()
-
-class CsvLoggingFilter(logging.Filter):
-    def filter(self, record):
-        record.query_id = query_ctx.get()
-        record.experiment_id = experiment_ctx.get()
-        return True
-
-class CsvFormatter(logging.Formatter):
-    def __init__(self, run_id: str, datefmt: Optional[str] = None):
-        super().__init__(datefmt=datefmt)
-        self.run_id = run_id
-
-    def format(self, record):
-        query_id = getattr(record, 'query_id', 'SYSTEM')
-        experiment_id = getattr(record, 'experiment_id', 'N/A')
-        msg = record.getMessage().strip()
-        timestamp = self.formatTime(record, self.datefmt)
-        return format_csv_line([timestamp, self.run_id, experiment_id, query_id, record.levelname, record.name, msg])
-
-class DynamicFolderHandler(logging.Handler):
-    """Routes logs to the specific folder of the active experiment."""
-    def __init__(self, fallback_path: Path):
-        super().__init__()
-        self.fallback_path = fallback_path
-        self._handles = {}
-        self._lock = threading.Lock()
-
-    def _get_target_path(self) -> Path:
-        current_dir = log_dir_ctx.get()
-        if current_dir:
-            return current_dir / "execution.csv"
-        return self.fallback_path
-
-    def emit(self, record):
-        try:
-            target_path = self._get_target_path()
-            msg = self.format(record)
-            
-            with self._lock:
-                if target_path not in self._handles:
-                    target_path.parent.mkdir(parents=True, exist_ok=True)
-                    is_new = not target_path.exists()
-                    f = open(target_path, "a", encoding='utf-8')
-                    if is_new:
-                        f.write(format_csv_line(["timestamp", "run_id", "experiment", "query", "level", "logger", "message"]) + "\n")
-                    self._handles[target_path] = f
-                
-                self._handles[target_path].write(msg + "\n")
-                self._handles[target_path].flush()
-        except Exception:
-            self.handleError(record)
-
-@contextlib.contextmanager
-def file_lock(path: Path):
-    """File lock using fcntl for cross-process synchronization."""
-    lock_path = path.with_suffix(path.suffix + ".lock")
-    if not lock_path.exists():
-        lock_path.touch()
-    
-    with open(lock_path, "r+") as f:
-        fcntl.flock(f, fcntl.LOCK_EX)
-        try:
-            yield
-        finally:
-            fcntl.flock(f, fcntl.LOCK_UN)
-
-def safe_update_csv_column(csv_path: Path, index: int, column: str, value: Any):
-    """Safely updates a single cell in a CSV file across processes."""
-    with file_lock(csv_path):
-        df = pd.read_csv(csv_path)
-        if column not in df.columns:
-            df[column] = 0
-        df.at[index, column] = value
-        df.to_csv(csv_path, index=False)
-
-def safe_read_csv(csv_path: Path) -> pd.DataFrame:
-    """Safely reads a CSV file with a lock."""
-    with file_lock(csv_path):
-        return pd.read_csv(csv_path)
-
-def safe_save_csv(df: pd.DataFrame, csv_path: Path):
-    """Safely saves a CSV file with a lock."""
-    with file_lock(csv_path):
-        df.to_csv(csv_path, index=False)
-
-def setup_logging(run_id: str, execution_csv_path: Path):
-    """Initializes the logging system."""
-    handler = DynamicFolderHandler(fallback_path=execution_csv_path)
-    handler.addFilter(CsvLoggingFilter())
-    handler.setFormatter(CsvFormatter(run_id=run_id, datefmt='%Y-%m-%d %H:%M:%S'))
-    logging.root.addHandler(handler)
-    logging.root.setLevel(logging.INFO)
-from typing import Dict, Any, List
-from pathlib import Path
-
-def generate_report(benchmark_results: Dict[str, Any], sensitivity_results: Dict[str, Any], models: List[str]) -> str:
-    """Generates a comprehensive Markdown report of all experimental results."""
-    report_md = "# Experimental Evaluation Report: Real Estate AI Agentic Framework\n\n"
-    report_md += "This report summarizes the performance, robustness, and architectural fidelity of the multi-agent framework.\n\n"
-    
-    for mod in models:
-        if mod not in benchmark_results: continue
-        
-        report_md += f"## Model: {mod}\n\n"
-        
-        # 1. Architectural Fidelity
-        report_md += "### 1. Architectural Fidelity (Agent Activation)\n"
-        act = benchmark_results[mod].get("activation", {})
-        report_md += f"| Metric | Value |\n| :--- | :---: |\n"
-        report_md += f"| Mean Activation Precision | {act.get('mean_precision', 0):.3f} |\n"
-        report_md += f"| Mean Activation Recall | {act.get('mean_recall', 0):.3f} |\n"
-        report_md += f"| Mean Activation F1 | {act.get('mean_f1', 0):.3f} |\n\n"
-        
-        # 2. Ranking Stability (IoU)
-        report_md += "### 2. Ranking Stability & Consistency\n"
-        iou = benchmark_results[mod].get("iou", {})
-        cons = benchmark_results[mod].get("consistency", {})
-        report_md += f"| Metric | Value |\n| :--- | :---: |\n"
-        report_md += f"| Intra-Model IoU (across trials) | {iou.get('mean_iou', 0):.3f} |\n"
-        report_md += f"| Self-Consistency Rate | {cons.get('consistency_rate', 0):.1%} |\n\n"
-        
-        # 3. Ablation & Sensitivity
-        report_md += "### 3. Component Sensitivity (IoU against All-Enabled)\n"
-        sens = sensitivity_results.get(mod, {}).get("sensitivity", {})
-        report_md += "| Component Disabled | Impact (IoU) |\n| :--- | :---: |\n"
-        for comp, val in sens.items():
-            report_md += f"| {comp.replace('_', ' ').title()} | {val:.3f} |\n"
-        report_md += "\n"
-        
-        # 4. Performance
-        report_md += "### 4. Performance Analysis\n"
-        perf = benchmark_results[mod].get("performance", {})
-        report_md += f"| Metric | Value |\n| :--- | :---: |\n"
-        report_md += f"| Average Latency | {perf.get('mean_ms', 0)/1000:.2f}s |\n"
-        report_md += f"| Sample Size | {perf.get('sample_size', 0)} |\n\n"
-        
-        report_md += "---\n\n"
-        
-    return report_md

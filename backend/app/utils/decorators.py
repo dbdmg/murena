@@ -85,7 +85,11 @@ def handle_agent_error(fallback_value: Any = None):
 
                 # Log with correlation ID and full context
                 logger.error(
-                    f"[{correlation_id}] Error in {agent_name}.{func.__name__}: {e}",
+                    "[{}] Error in {}.{}: {}",
+                    correlation_id,
+                    agent_name,
+                    func.__name__,
+                    e,
                     extra={
                         "correlation_id": correlation_id,
                         "agent_name": agent_name,

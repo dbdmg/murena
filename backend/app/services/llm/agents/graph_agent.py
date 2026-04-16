@@ -81,6 +81,7 @@ class OrchestratorResult:
     agent_trace: Optional[List[Dict[str, Any]]] = field(default_factory=list)
     relaxation_applied: bool = False
     relaxation_proposals: List[Dict[str, Any]] = field(default_factory=list)
+    relaxation_count: int = 0
 
 
 class GraphState(TypedDict):
@@ -136,6 +137,7 @@ class GraphState(TypedDict):
     last_retry_reason: Optional[str]
     relaxation_applied: bool
     relaxation_proposals: List[Dict[str, Any]]
+    relaxation_count: int
     use_data_knowledge: bool  # Whether data statistics are passed to agents
     use_relaxation: bool  # Whether to use query relaxation if 0 results found
 
@@ -229,6 +231,7 @@ class GraphOrchestratorAgent(BaseAgent):
         # Phase 3: Qualitative Evaluation & Strategic Review
         workflow.add_node("evaluate_results", self._evaluate_results)
         workflow.add_node("broker_review", self._broker_review)
+        workflow.add_node("relax_query", self._relax_query)
         workflow.add_node("finalize_results", self._finalize_results)
 
         # Configure workflow edges and entry point
@@ -245,8 +248,10 @@ class GraphOrchestratorAgent(BaseAgent):
                 "retry": "handle_retry",
                 "continue": "enrich_results",
                 "fallback": "fallback_results",
+                "relax": "relax_query",
             },
         )
+        workflow.add_edge("relax_query", "execute_sql")
 
         # Finalization pipeline
         workflow.add_edge("fallback_results", "enrich_results")
@@ -392,6 +397,7 @@ class GraphOrchestratorAgent(BaseAgent):
             "last_retry_reason": None,
             "relaxation_applied": False,
             "relaxation_proposals": [],
+            "relaxation_count": 0,
             "sql_history": [],
         }
 
@@ -444,6 +450,7 @@ class GraphOrchestratorAgent(BaseAgent):
             agent_trace=final_state.get("agent_trace", []),
             relaxation_applied=final_state.get("relaxation_applied", False),
             relaxation_proposals=final_state.get("relaxation_proposals", []),
+            relaxation_count=final_state.get("relaxation_count", 0),
         )
 
 
@@ -1691,6 +1698,7 @@ class GraphOrchestratorAgent(BaseAgent):
         all_proposals = state.get("relaxation_proposals", []) + proposals
 
         return {
+            "sql_query": final_relaxed_sql if applied else sql_query,
             "relaxation_proposals": all_proposals,
             "relax_constraints": True,
             "relaxation_applied": applied,

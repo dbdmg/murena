@@ -57,7 +57,8 @@ def _get_llm_internal(
         model=model_name, 
         api_key=api_key or "sk-dummy", # Fallback for local servers without auth
         temperature=temperature,
-        base_url=openai_api_base
+        base_url=openai_api_base,
+        extra_body={"chat_template_kwargs": {"enable_thinking": False}}
     )
 
 
