@@ -5,7 +5,8 @@ import argparse
 from pathlib import Path
 
 # Add backend to sys.path
-backend_dir = Path(__file__).resolve().parent
+root_dir = Path(__file__).resolve().parent
+backend_dir = root_dir / "backend"
 if str(backend_dir) not in sys.path:
     sys.path.insert(0, str(backend_dir))
 
@@ -48,21 +49,36 @@ def main():
     parser.add_argument("--type", choices=["baseline", "sampled", "all"], default="sampled", help="Experiment type")
     parser.add_argument("--limit", type=int, default=None, help="Number of samples to run")
     parser.add_argument("--export", action="store_true", help="Export results to CSV/JSON")
+    
+    # Model selection flags
+    parser.add_argument("--with-qwen", action="store_true", help="Enable experiments with Qwen3-8B")
+    parser.add_argument("--with-gemma", action="store_true", help="Enable experiments with Gemma3-27b")
+    parser.add_argument("--all-models", action="store_true", help="Enable all available models")
     args = parser.parse_args()
+
+    # Determine which models to run
+    enabled_models = ["gpt-oss-120b"] # Standard reference is always enabled
+    if args.all_models:
+        enabled_models.extend(["gemma3-27b", "qwen3-8b"])
+    else:
+        if args.with_qwen: enabled_models.append("qwen3-8b")
+        if args.with_gemma: enabled_models.append("gemma3-27b")
+    
+    model_args = ["--models", ",".join(enabled_models)]
 
     print("=== MURENA Experiment Runner ===")
     check_prerequisites()
     init_data()
 
     if args.type == "baseline":
-        run_experiment_script("test_suite.py", ["--model", "gpt-5.4"])
+        run_experiment_script("test_suite.py", ["--model", "gpt-5.4"] + model_args)
     elif args.type == "sampled":
         # Sampled mode with a reasonable default if limit is not provided
         limit = args.limit or 20
-        run_experiment_script("test_suite.py", ["--max-concurrent", "10", "--limit", str(limit)])
+        run_experiment_script("test_suite.py", ["--max-concurrent", "10", "--limit", str(limit)] + model_args)
     elif args.type == "all":
         # All mode: no limit passed to test_suite
-        run_experiment_script("test_suite.py")
+        run_experiment_script("test_suite.py", model_args)
 
     print("\nExperiments completed. Results can be found in the results/ directory.")
 

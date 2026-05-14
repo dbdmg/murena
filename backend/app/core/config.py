@@ -6,6 +6,11 @@ Merged constants from original app/config.py
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import List, Dict, Optional
 import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env file explicitly to ensure they are available in os.environ
+env_path = os.path.join(os.path.dirname(__file__), "../../.env")
+load_dotenv(env_path)
 
 
 class Settings(BaseSettings):
@@ -17,7 +22,7 @@ class Settings(BaseSettings):
     APP_NAME: str = "MURENA-API"
     APP_VERSION: str = "1.0.0"
     DEBUG: bool = True
-    LOG_LEVEL: str = "INFO"
+    LOG_LEVEL: str = "ERROR"
 
     # ==========================================================================
     # Server
@@ -74,9 +79,8 @@ class Settings(BaseSettings):
     DEFAULT_LLM_PROVIDER: str = "openai"
 
     # LLM Models
-    OPENAI_MODEL_FAST: str = "gpt-oss-120b"
-    OPENAI_MODEL_SMART: str = "gpt-oss-120b"
-    OPENAI_API_BASE: Optional[str] = "https://api.institutional-endpoint.edu/v1"
+    LLM_MODEL: str = "gpt-oss-120b"
+    OPENAI_API_BASE: Optional[str] = None
 
     LLMODEL_CONCURRENCY_LIMITS: Dict[str, int] = {
         "gpt-5.4": 2,
@@ -91,24 +95,23 @@ class Settings(BaseSettings):
         Args:
             model_type: The identifier for the LLM flavor to use.
         """
+        # Ensure latest env vars are loaded (avoids issues with subprocesses/caching)
+        base_url = os.environ.get("OPENAI_API_BASE")
+        
         if model_type == "gpt-oss-120b":
-            self.OPENAI_MODEL_FAST = "gpt-oss-120b"
-            self.OPENAI_MODEL_SMART = "gpt-oss-120b"
-            self.OPENAI_API_BASE = "https://api.institutional-endpoint.edu/v1"
-            self.OPENAI_API_KEY = self.INSTITUTIONAL_LLM_API_KEY
+            self.LLM_MODEL = "gemma-4"
+            self.OPENAI_API_BASE = base_url
+            self.OPENAI_API_KEY = self.INSTITUTIONAL_LLM_API_KEY or "vllm"
         elif model_type == "gemma3-27b":
-            self.OPENAI_MODEL_FAST = "google/gemma-3-27b-it"
-            self.OPENAI_MODEL_SMART = "google/gemma-3-27b-it"
-            self.OPENAI_API_BASE = "http://localhost:8000/v1"
+            self.LLM_MODEL = "gemma-4"
+            self.OPENAI_API_BASE = base_url
             self.OPENAI_API_KEY = "vllm"
         elif model_type == "qwen3-8b":
-            self.OPENAI_MODEL_FAST = "Qwen/Qwen3-8B"
-            self.OPENAI_MODEL_SMART = "Qwen/Qwen3-8B"
-            self.OPENAI_API_BASE = "http://localhost:8001/v1"
+            self.LLM_MODEL = "gemma-4"
+            self.OPENAI_API_BASE = base_url
             self.OPENAI_API_KEY = "vllm"
         elif model_type == "gpt-5.4":
-            self.OPENAI_MODEL_FAST = "gpt-5.4"
-            self.OPENAI_MODEL_SMART = "gpt-5.4"
+            self.LLM_MODEL = "gpt-5.4"
             self.OPENAI_API_BASE = None # Base OpenAI
 
 
@@ -152,6 +155,7 @@ class Settings(BaseSettings):
     STATIONS_CSV: str
     ZONE_OMI_GEOJSON: str
     ZONE_URBANISTICHE_GEOJSON: str
+    MUNICIPI_GEOJSON: str
 
     TORINO_LAT: float = 45.116177
     TORINO_LON: float = 7.742615
@@ -198,7 +202,7 @@ class Settings(BaseSettings):
     def agent_models(self) -> Dict[str, str]:
         """Return agent-specific model configuration."""
         return {
-            "default": self.OPENAI_MODEL_FAST,
+            "default": self.LLM_MODEL,
         }
 
 

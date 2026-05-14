@@ -199,10 +199,15 @@ class AnalysisService:
                         ),
                     )
 
+                    # Ensure JSON safety for all fields (especially steps_state which might have numpy objects)
+                    update_dict = make_json_safe(update.model_dump())
+                    
                     # Schedule the coroutine on the MAIN event loop (thread-safe).
                     # This ensures WebSocket publish actually runs.
                     def schedule_publish():
-                        asyncio.create_task(progress_manager.publish(run_id, update))
+                        # We use the raw dict here to avoid re-serializing in the publisher if possible,
+                        # but keep the object for internal consistency if needed.
+                        asyncio.create_task(progress_manager.publish(run_id_for_callback, update))
 
                     main_loop.call_soon_threadsafe(schedule_publish)
 
@@ -211,7 +216,10 @@ class AnalysisService:
                         progress_callback(progress_tuple)
 
                 except Exception as e:
-                    logger.error(f"Error in progress callback: {e}", exc_info=True)
+                    logger.error(f"Error in progress callback for run {run_id}: {e}", exc_info=True)
+
+            # Ensure we are using the correct run_id inside the wrapper
+            run_id_for_callback = run_id
 
             # Run analysis in thread pool (since graph_agent is sync)
             logger.info("Running LLM orchestration...")
@@ -234,32 +242,11 @@ class AnalysisService:
 
             logger.info(f"Analysis {run_id} completed successfully")
 
-            # Signal completion to WebSocket subscribers
-            await progress_manager.complete(run_id)
-
             # Convert result to dict format
             return self._format_results(run_id, query, result)
 
         except Exception as e:
             logger.error(f"Analysis {run_id} failed: {e}", exc_info=True)
-
-            # Try to signal error to WebSocket subscribers
-            try:
-                from app.services.progress_manager import progress_manager
-                from app.models.responses import ProgressUpdate
-
-                error_update = ProgressUpdate(
-                    type="progress",
-                    progress=0,
-                    step="error",
-                    detail=f"Analysis failed: {str(e)}",
-                    steps_state=None,
-                )
-                await progress_manager.publish(run_id, error_update)
-                await progress_manager.complete(run_id)
-            except:
-                pass
-
             raise
 
     def _format_results(

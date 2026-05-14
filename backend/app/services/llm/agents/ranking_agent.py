@@ -96,7 +96,7 @@ class RankingAgent(BaseAgent):
                  ranked_agents_list = [RankedAgent(agent_name="property_technical", rank=1)]
             
             # Limit to available agents
-            all_supported = ["location", "normative", "ape", "property_technical", "poi"]
+            all_supported = ["location", "regulatory", "energy", "building", "proximity"]
             valid_agents = [a for a in ranked_agents_list if a.agent_name in all_supported]
 
             # Calculate raw weights: 1.0 / rank (e.g. Rank 1 -> 1.0, Rank 2 -> 0.5)
@@ -123,10 +123,10 @@ class RankingAgent(BaseAgent):
             
             weights = RankingWeights(
                 location=normalized_weights.get("location", 0.0),
-                normative=normalized_weights.get("normative", 0.0),
-                ape=normalized_weights.get("ape", 0.0),
-                property_technical=normalized_weights.get("property_technical", 0.0),
-                poi=normalized_weights.get("poi", 0.0)
+                regulatory=normalized_weights.get("regulatory", 0.0),
+                energy=normalized_weights.get("energy", 0.0),
+                building=normalized_weights.get("building", 0.0),
+                proximity=normalized_weights.get("proximity", 0.0)
             )
 
             # Reconstruct simple list of names for backward compatibility if needed in UI/Logs
@@ -164,19 +164,19 @@ class RankingAgent(BaseAgent):
         
         # Store ranking weights in DF for logging transparency
         df_ranked["ranking_weight_location"] = weights.location
-        df_ranked["ranking_weight_normative"] = weights.normative
-        df_ranked["ranking_weight_ape"] = weights.ape
-        df_ranked["ranking_weight_property_technical"] = weights.property_technical
-        df_ranked["ranking_weight_poi"] = weights.poi
+        df_ranked["ranking_weight_regulatory"] = weights.regulatory
+        df_ranked["ranking_weight_energy"] = weights.energy
+        df_ranked["ranking_weight_building"] = weights.building
+        df_ranked["ranking_weight_proximity"] = weights.proximity
 
         # Calcolo score pesato finale
         # Componenti pesati secondo la posizione nel ranking (già riflesso nei pesi)
         df_ranked["final_ranking_score"] = (
             df_ranked["ranking_weight_location"] * df_ranked.get("location_score", 0.0) +
-            df_ranked["ranking_weight_normative"] * df_ranked.get("normative_score", 0.0) +
-            df_ranked["ranking_weight_ape"] * df_ranked.get("ape_score", 0.0) +
-            df_ranked["ranking_weight_property_technical"] * df_ranked.get("property_technical_score", 0.0) +
-            df_ranked["ranking_weight_poi"] * df_ranked.get("poi_score", 0.0)
+            df_ranked["ranking_weight_regulatory"] * df_ranked.get("regulatory_score", 0.0) +
+            df_ranked["ranking_weight_energy"] * df_ranked.get("energy_score", 0.0) +
+            df_ranked["ranking_weight_building"] * df_ranked.get("building_score", 0.0) +
+            df_ranked["ranking_weight_proximity"] * df_ranked.get("proximity_score", 0.0)
         )
         
         # Create explicit formula column for each property
@@ -188,21 +188,21 @@ class RankingAgent(BaseAgent):
                 loc_score = row.get("location_score", 0.0)
                 components.append(f"{weights.location}*location({loc_score})")
             
-            if weights.normative > 0 and "normative_score" in df_ranked.columns:
-                norm_score = row.get("normative_score", 0.0)
-                components.append(f"{weights.normative}*normative({norm_score})")
+            if weights.regulatory > 0 and "regulatory_score" in df_ranked.columns:
+                reg_score = row.get("regulatory_score", 0.0)
+                components.append(f"{weights.regulatory}*regulatory({reg_score})")
             
-            if weights.ape > 0 and "ape_score" in df_ranked.columns:
-                ape_score = row.get("ape_score", 0.0)
-                components.append(f"{weights.ape}*ape({ape_score})")
+            if weights.energy > 0 and "energy_score" in df_ranked.columns:
+                eng_score = row.get("energy_score", 0.0)
+                components.append(f"{weights.energy}*energy({eng_score})")
             
-            if weights.property_technical > 0 and "property_technical_score" in df_ranked.columns:
-                prop_score = row.get("property_technical_score", 0.0)
-                components.append(f"{weights.property_technical}*property_technical({prop_score})")
+            if weights.building > 0 and "building_score" in df_ranked.columns:
+                bld_score = row.get("building_score", 0.0)
+                components.append(f"{weights.building}*building({bld_score})")
             
-            if weights.poi > 0 and "poi_score" in df_ranked.columns:
-                poi_score = row.get("poi_score", 0.0)
-                components.append(f"{weights.poi}*poi({poi_score})")
+            if weights.proximity > 0 and "proximity_score" in df_ranked.columns:
+                prox_score = row.get("proximity_score", 0.0)
+                components.append(f"{weights.proximity}*proximity({prox_score})")
             
             if components:
                 formula = " + ".join(components) + f" = {row['final_ranking_score']:.1f}"

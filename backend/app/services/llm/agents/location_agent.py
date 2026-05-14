@@ -310,3 +310,13 @@ class LocationAgent(BaseAgent):
 
         return df_ranked[["id", "location_score", "distanza_km", "poi_riferimento", "location_raw_score", "location_partial_score", "location_radius_used_km"]]
 
+    def is_found(self, payload: Any) -> bool:
+        """Helper to check if a location payload contains found locations."""
+        if not payload:
+            return False
+        if isinstance(payload, list):
+            return len(payload) > 0
+        if isinstance(payload, dict):
+            return payload.get("found", False)
+        return False
+

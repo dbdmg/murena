@@ -746,7 +746,12 @@ async def start_analysis(
                     or "Analysis completed",
                     results_count=results_json.get("results_count") or 0,
                 )
+            
+            # Now signal completion to WebSocket subscribers (data is ready in DB)
+            from app.services.progress_manager import progress_manager
+            await progress_manager.complete(run_id)
         except Exception as e:
+            logger.error(f"Analysis task failed for run {run_id}: {e}", exc_info=True)
             with BackgroundSessionLocal() as bg_db:
                 repo = RunRepository(bg_db)
                 repo.update_status(
@@ -755,6 +760,13 @@ async def start_analysis(
                     results=None,
                     status_message=f"Analysis failed: {str(e)}",
                 )
+            
+            # Signal completion even on failure so the frontend knows to stop waiting
+            try:
+                from app.services.progress_manager import progress_manager
+                await progress_manager.complete(run_id)
+            except:
+                pass
 
     background_tasks.add_task(run_analysis_task)
 

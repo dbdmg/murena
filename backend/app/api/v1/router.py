@@ -45,7 +45,7 @@ async def api_root():
             "analysis": "/api/v1/analysis",
             "buildings": "/api/v1/buildings",
             "map": "/api/v1/map",
-            "websocket": "ws://localhost:8000/api/v1/ws/analysis/{run_id}",
+            "websocket": "/api/v1/ws/analysis/{run_id}",
             "health": "/health",
         },
     }

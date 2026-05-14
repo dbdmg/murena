@@ -23,7 +23,7 @@ async def analysis_progress_websocket(websocket: WebSocket, run_id: str):
     - Progress updates during analysis execution
     - Completion message when analysis finishes
 
-    **Connection URL:** `ws://localhost:8000/api/v1/ws/analysis/{run_id}`
+    **Connection URL:** `/api/v1/ws/analysis/{run_id}`
 
     **Message Types:**
 
@@ -50,7 +50,7 @@ async def analysis_progress_websocket(websocket: WebSocket, run_id: str):
 
     **Usage Example (JavaScript):**
     ```javascript
-    const ws = new WebSocket('ws://localhost:8000/api/v1/ws/analysis/abc123');
+    const ws = new WebSocket(`ws://${window.location.host}/api/v1/ws/analysis/abc123`);
 
     ws.onmessage = (event) => {
         const data = JSON.parse(event.data);
@@ -78,17 +78,19 @@ async def analysis_progress_websocket(websocket: WebSocket, run_id: str):
             message_count += 1
 
         # Send final completion message
+        logger.info(f"Analysis {run_id} finished streaming {message_count} progress updates. Sending complete signal.")
         completion_message = {
             "type": "complete",
             "run_id": run_id,
             "message": "Analysis completed successfully",
             "results_url": f"/api/v1/analysis/{run_id}",
         }
-        await websocket.send_json(completion_message)
-
-        logger.info(
-            f"WebSocket completed for run {run_id} " f"({message_count} updates sent)"
-        )
+        
+        try:
+            await websocket.send_json(completion_message)
+            logger.info(f"Completion message sent successfully for run {run_id}")
+        except Exception as send_err:
+            logger.error(f"Failed to send completion message for run {run_id}: {send_err}")
 
     except WebSocketDisconnect:
         logger.info(f"WebSocket disconnected for run: {run_id}")

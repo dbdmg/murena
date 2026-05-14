@@ -8,9 +8,16 @@ from pathlib import Path
 from getpass import getpass
 from dotenv import load_dotenv
 
+def make_link(url, text=None):
+    """Create an OSC 8 terminal link with blue color and underline."""
+    if text is None:
+        text = url
+    # Blue: \033[34m, Underline: \033[4m, Reset: \033[0m
+    return f"\033]8;;{url}\033\\\033[34m\033[4m{text}\033[0m\033]8;;\033\\"
+
 # Add backend to sys.path
-backend_dir = Path(__file__).resolve().parent
-root_dir = backend_dir.parent
+root_dir = Path(__file__).resolve().parent
+backend_dir = root_dir / "backend"
 if str(backend_dir) not in sys.path:
     sys.path.insert(0, str(backend_dir))
 
@@ -48,15 +55,13 @@ def init_data():
         env["PYTHONPATH"] = str(backend_dir)
 
         if not poi_path.exists() and create_pois.exists():
-            print(f"[*] Running {create_pois.name}...")
-            subprocess.run([sys.executable, str(create_pois)], cwd=str(backend_dir), env=env, check=True)
+            subprocess.run([sys.executable, str(create_pois)], cwd=str(backend_dir), env=env, check=True, stdout=subprocess.DEVNULL)
 
         if not data_path.exists() and create_estate_dataset.exists():
-            print(f"[*] Running {create_estate_dataset.name}...")
-            subprocess.run([sys.executable, str(create_estate_dataset)], cwd=str(backend_dir), env=env, check=True)
+            subprocess.run([sys.executable, str(create_estate_dataset)], cwd=str(backend_dir), env=env, check=True, stdout=subprocess.DEVNULL)
             
         if data_path.exists():
-            print("Success: Datasets initialized.")
+            pass
         else:
             print("Warning: Initialization scripts failed to create files. Please verify source data.")
 
@@ -67,23 +72,27 @@ def reset_database():
         db_path_str = db_url.replace("sqlite:///", "")
         db_path = backend_dir / db_path_str
         if db_path.exists():
-            print(f"[*] Resetting database: {db_path}...")
             try:
                 os.remove(db_path)
-                print("Database deleted successfully.")
             except Exception as e:
                 print(f"Error deleting database: {e}")
 
 def start_backend():
     """Start the FastAPI backend server."""
-    print("Starting MURENA Backend...")
     try:
-        subprocess.Popen([
+        port = os.getenv("PORT", "8002")
+        backend_url = f"http://localhost:{port}"
+        print(f"MURENA Backend: {make_link(backend_url)}")
+        
+        uvicorn_cmd = [
             sys.executable, "-m", "uvicorn", "app.main:app", 
             "--host", "0.0.0.0", 
-            "--port", "8000", 
-            "--reload"
-        ], cwd=str(backend_dir))
+            "--reload",
+            "--log-level", "error"
+        ]
+        uvicorn_cmd.extend(["--port", port])
+            
+        subprocess.Popen(uvicorn_cmd, cwd=str(backend_dir), stdout=subprocess.DEVNULL)
     except Exception as e:
         print(f"Failed to start backend: {e}")
         sys.exit(1)
@@ -100,14 +109,38 @@ def start_frontend():
         print("Warning: 'npm' command not found. Node.js is required for the frontend. Skipping frontend start.")
         return
 
-    print("Starting MURENA Frontend...")
+    frontend_port = os.getenv("FRONTEND_PORT", "5173")
+    frontend_url = f"http://localhost:{frontend_port}"
+    print(f"MURENA Frontend: {make_link(frontend_url)}")
     try:
-        # Check if node_modules exists
-        if not (frontend_dir / "node_modules").exists():
-            print("node_modules not found. Running npm install...")
-            subprocess.run(["npm", "install"], cwd=str(frontend_dir), check=True)
+        # Check if npm install is needed
+        package_json = frontend_dir / "package.json"
+        package_lock = frontend_dir / "package-lock.json"
+        node_modules = frontend_dir / "node_modules"
         
-        subprocess.Popen(["npm", "run", "dev"], cwd=str(frontend_dir))
+        install_needed = False
+        vite_bin = frontend_dir / "node_modules" / ".bin" / "vite"
+        
+        if not node_modules.exists() or not vite_bin.exists():
+            install_needed = True
+        elif package_json.exists():
+            # Check if package.json or package-lock.json is newer than node_modules
+            mtime_node_modules = node_modules.stat().st_mtime
+            if package_json.stat().st_mtime > mtime_node_modules:
+                install_needed = True
+            elif package_lock.exists() and package_lock.stat().st_mtime > mtime_node_modules:
+                install_needed = True
+
+        if install_needed:
+            subprocess.run(["npm", "install"], cwd=str(frontend_dir), check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            # Update node_modules timestamp to avoid repeated installs if they were already up to date
+            # but NPM didn't touch the directory timestamp
+            try:
+                node_modules.touch()
+            except Exception:
+                pass
+        
+        subprocess.Popen(["npm", "run", "dev"], cwd=str(frontend_dir), stdout=subprocess.DEVNULL)
     except Exception as e:
         print(f"Failed to start frontend: {e}")
 
@@ -182,7 +215,7 @@ def main():
         delete_user()
         return
 
-    print("=== MURENA Application Launcher ===")
+
     
     # Always reset database as requested
     reset_database()
@@ -196,12 +229,7 @@ def main():
         time.sleep(2)  # Give backend a moment to start
         start_frontend()
 
-    print("\nApplication is starting up.")
-    print("- Backend: http://localhost:8000")
-    print("- API Docs: http://localhost:8000/docs")
-    if not args.backend_only:
-        print("- Frontend: Check terminal for port (usually http://localhost:5173)")
-    print("\nPress Ctrl+C to stop all services.")
+
     
     try:
         # Keep the main process alive until interrupted

@@ -54,6 +54,7 @@ def execute_sql_query(sql_query, pd_data, dataset_path=None):
                     )
 
                     con.execute("CREATE VIEW PROPERTIES AS SELECT * FROM base_properties")
+                    con.execute("CREATE VIEW ESTATES AS SELECT * FROM base_properties")
 
                     # Pre-check SQL syntax with EXPLAIN
                     sql_query = sql_query.strip().rstrip(';')
@@ -73,6 +74,7 @@ def execute_sql_query(sql_query, pd_data, dataset_path=None):
                 return pd.DataFrame(), error_msg
 
             con.register("PROPERTIES", pd_data)
+            con.register("ESTATES", pd_data)
             
             # Pre-check SQL syntax with EXPLAIN
             sql_query = sql_query.strip().rstrip(';')
