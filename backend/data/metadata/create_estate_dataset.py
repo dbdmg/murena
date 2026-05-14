@@ -546,6 +546,7 @@ def parse_ape_xml(xml_text: str) -> dict:
         tolower = "translate(local-name(),'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz')"
 
         # General data
+        data['epc_id'] = sxp('//ape:datiAttestato/ape:codiceIdentificativo')
         data['address'] = xs(['//ape:datiGenerali/ape:indirizzo','//ape:datiCalcolo/ape:datiGenerali/ape:indirizzo'])
         data['house_number'] = xs([
             '//ape:datiGenerali/ape:datiIdentificativi/ape:numeroCivico',
@@ -666,6 +667,24 @@ def parse_ape_xml(xml_text: str) -> dict:
         data['classe_target'] = xs(['//ape:raccomandazioni//ape:classificazioneRaggiungibile/ape:classeEnergetica','//ape:prestazioneGlobale//ape:classeEnergeticaRaggiungibile'])
         data['tempo_ritorno'] = sxp('//ape:raccomandazioni//ape:tempoRitornoInvestimento')
 
+        # Technical building system data (Nominal Power)
+        data["heating_nominal_power"] = sxp("//ape:datiImpianti/ape:climatizzazioneInvernale/ape:impianto/ape:potenzaNominale")
+        data["dhw_nominal_power"] = sxp("//ape:datiImpianti/ape:produzioneACS/ape:impianto/ape:potenzaNominale")
+
+        # Building envelope areas
+        data["opaque_envelope_area"] = sxp("//ape:fabbricato/ape:altriDatiSintetici/ape:superficieOpacaTotale")
+        data["transparent_envelope_area"] = sxp("//ape:fabbricato/ape:altriDatiSintetici/ape:superficieVetrataTotale")
+
+        # Energy needs and limits
+        data["heating_energy_need"] = sxp("//ape:datiFabbricato/ape:ephnd")
+        data["cooling_energy_need"] = sxp("//ape:datiFabbricato/ape:epcnd")
+        data["heating_limit"] = sxp("//ape:datiExtra/ape:ephndLim")
+        data["primary_energy_limit"] = sxp("//ape:datiExtra/ape:EPglnrenRifStandard")
+
+        # Assessor information
+        data["assessor_name"] = sxp("//ape:soggettoCertificatore/ape:nome")
+        data["assessor_surname"] = sxp("//ape:soggettoCertificatore/ape:cognome")
+
     except Exception as e:
         print(f"Parser Error: {e}")
     return data
@@ -743,6 +762,17 @@ def process_single_xml(fname: str) -> dict:
             "dhw_system_type": p.get('impianti', {}).get('DHW', {}).get('tecnologia'),
             "target_energy_class": p.get("target_energy_class"),
             "payback_period": _to_float(p.get("payback_period")),
+            "epc_id": p.get("epc_id"),
+            "heating_nominal_power": _to_float(p.get("heating_nominal_power")),
+            "dhw_nominal_power": _to_float(p.get("dhw_nominal_power")),
+            "opaque_envelope_area": _to_float(p.get("opaque_envelope_area")),
+            "transparent_envelope_area": _to_float(p.get("transparent_envelope_area")),
+            "heating_energy_need": _to_float(p.get("heating_energy_need")),
+            "cooling_energy_need": _to_float(p.get("cooling_energy_need")),
+            "heating_limit": _to_float(p.get("heating_limit")),
+            "primary_energy_limit": _to_float(p.get("primary_energy_limit")),
+            "assessor_name": p.get("assessor_name"),
+            "assessor_surname": p.get("assessor_surname"),
             "_unita": str(unita)
         }
         

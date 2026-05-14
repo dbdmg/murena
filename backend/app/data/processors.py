@@ -348,6 +348,7 @@ def parse_ape_xml(xml_text: str) -> dict:
             return None
 
         # General data
+        data["epc_id"] = sxp("//ape:datiAttestato/ape:codiceIdentificativo")
         data["address"] = xs(
             [
                 "//ape:datiGenerali/ape:indirizzo",
@@ -408,6 +409,32 @@ def parse_ape_xml(xml_text: str) -> dict:
                 "string(//*[contains(translate(local-name(),'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'piano')][1])",
             ]
         )
+
+        # Technical building system data (Nominal Power)
+        data["heating_nominal_power"] = sxp(
+            "//ape:datiImpianti/ape:climatizzazioneInvernale/ape:impianto/ape:potenzaNominale"
+        )
+        data["dhw_nominal_power"] = sxp(
+            "//ape:datiImpianti/ape:produzioneACS/ape:impianto/ape:potenzaNominale"
+        )
+
+        # Building envelope areas
+        data["opaque_envelope_area"] = sxp(
+            "//ape:fabbricato/ape:altriDatiSintetici/ape:superficieOpacaTotale"
+        )
+        data["transparent_envelope_area"] = sxp(
+            "//ape:fabbricato/ape:altriDatiSintetici/ape:superficieVetrataTotale"
+        )
+
+        # Energy needs and limits
+        data["heating_energy_need"] = sxp("//ape:datiFabbricato/ape:ephnd")
+        data["cooling_energy_need"] = sxp("//ape:datiFabbricato/ape:epcnd")
+        data["heating_limit"] = sxp("//ape:datiExtra/ape:ephndLim")
+        data["primary_energy_limit"] = sxp("//ape:datiExtra/ape:EPglnrenRifStandard")
+
+        # Assessor information
+        data["assessor_name"] = sxp("//ape:soggettoCertificatore/ape:nome")
+        data["assessor_surname"] = sxp("//ape:soggettoCertificatore/ape:cognome")
 
         # Main performance indicators
         data["energy_class"] = sxp(
