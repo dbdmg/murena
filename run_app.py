@@ -55,12 +55,10 @@ def init_data():
         env["PYTHONPATH"] = str(backend_dir)
 
         if not poi_path.exists() and create_pois.exists():
-            subprocess.run([sys.executable, str(create_pois)], cwd=str(backend_dir), env=env, check=True)
-
-        input("Press Enter to continue with estate dataset creation...")
+            subprocess.run([sys.executable, str(create_pois)], cwd=str(backend_dir), env=env, check=True, stdout=subprocess.DEVNULL)
 
         if not data_path.exists() and create_estate_dataset.exists():
-            subprocess.run([sys.executable, str(create_estate_dataset)], cwd=str(backend_dir), env=env, check=True, stdout=subprocess.DEVNULL)
+            subprocess.run([sys.executable, str(create_estate_dataset)], cwd=str(backend_dir), env=env, check=True)
             
         if data_path.exists():
             pass
