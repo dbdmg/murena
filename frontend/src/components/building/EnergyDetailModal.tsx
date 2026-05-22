@@ -574,7 +574,9 @@ export const EnergyDetailModal: React.FC<EnergyDetailModalProps> = ({ filename, 
                             )}
 
                             {/* File identifier */}
-                            <p className="text-[10px] text-gray-600 text-center mt-2">{data.file}</p>
+                            <p className="text-[10px] text-gray-600 text-center mt-2">
+                                {data.file.replace(/\.xml$/i, '').split('_')[1] || data.file.replace(/\.xml$/i, '')}
+                            </p>
                         </>
                     )}
                 </div>
