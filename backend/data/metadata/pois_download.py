@@ -62,9 +62,10 @@ if os.path.exists(data_file):
         data = json.load(f)
 else:
     if pois_query:
-        overpass_url = "http://overpass-api.de/api/interpreter"
+        overpass_url = "https://overpass-api.de/api/interpreter"
+        headers = {"User-Agent": "OSM-Extraction-Script/1.2 (https://github.com/openstreetmap)"}
         print("Downloading data from Overpass API... (this might take a while)")
-        response = requests.post(overpass_url, data={'data': pois_query})
+        response = requests.post(overpass_url, data={'data': pois_query}, headers=headers)
 
         if response.status_code == 200:
             data = response.json()
@@ -75,6 +76,7 @@ else:
             print(f"Data saved to {data_file}")
         else:
             print(f"Request error: {response.status_code}")
+            print(f"Response details: {response.text}")
             data = None
     else:
         print("No query available to fetch data.")
