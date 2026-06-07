@@ -206,13 +206,9 @@ export const MapPage: React.FC = () => {
         const fetchInitialData = async () => {
             try {
                 setIsLoading(true);
-                const [configData, municipiData] = await Promise.all([
-                    mapApi.getConfig(),
-                    mapApi.getOverlay('municipi')
-                ]);
+                const configData = await mapApi.getConfig();
 
                 setConfig(configData);
-                setOverlays({ municipi: municipiData });
             } catch (err) {
                 console.error("Error loading map config:", err);
                 setError("Failed to load map data.");
@@ -223,6 +219,28 @@ export const MapPage: React.FC = () => {
 
         fetchInitialData();
     }, []);
+
+    useEffect(() => {
+        if (!layers.showMunicipi || overlays.municipi) {
+            return;
+        }
+
+        const loadMunicipiOverlay = async () => {
+            try {
+                const municipiData = await mapApi.getOverlay('municipi');
+                setOverlays((prev) => ({ ...prev, municipi: municipiData }));
+            } catch (err) {
+                const status = (err as any)?.response?.status;
+                if (status === 404) {
+                    console.warn('Municipi overlay is not available on the backend. Skipping overlay load.');
+                } else {
+                    console.error('Error loading municipi overlay:', err);
+                }
+            }
+        };
+
+        loadMunicipiOverlay();
+    }, [layers.showMunicipi, overlays.municipi]);
 
     // Fetch Zone OMI Only once when toggled
     useEffect(() => {

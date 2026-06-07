@@ -94,10 +94,9 @@ export function useAnalysisProgress(
         // 1. If VITE_WS_URL is explicitly set (and not localhost default), use it.
         // 2. If VITE_WS_URL is missing or 'localhost' and we are NOT on localhost, infer from window.location.
         if (!rawBase) {
-            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            // In dev mode, the backend is reachable via the same origin (proxied)
-            // or on the configured backend port if we are on localhost.
-            rawBase = `${protocol}//${window.location.host}`;
+            // Use a relative URL by default so that the browser can resolve the
+            // socket against the current origin and the Vite dev proxy.
+            return `/api/v1/ws/analysis/${id}`;
         }
 
         if (rawBase.includes('/api/v1/ws')) {
@@ -111,7 +110,7 @@ export function useAnalysisProgress(
             return `${rawBase}/analysis/${id}`;
         }
 
-        // Assume origin
+        // Assume explicit base path to the API root.
         return `${rawBase}/api/v1/ws/analysis/${id}`;
     }, []);
 
@@ -297,7 +296,7 @@ export function useAnalysisProgress(
                 reconnectTimeoutRef.current = null;
             }
         };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [runId, autoConnect]);
 
     return {
