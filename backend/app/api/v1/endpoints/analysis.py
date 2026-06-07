@@ -242,8 +242,8 @@ def _load_demo_artifacts(demo_id: str, limit: int = 50) -> dict:
             city_from_location = first_name.split(",")[-1].strip() or None
 
     from app.models.responses import (
-        APEScores,
-        POIScores,
+        EnergyScores,
+        ProximityScores,
         Coordinates,
         BuildingResponse,
     )
@@ -283,7 +283,7 @@ def _load_demo_artifacts(demo_id: str, limit: int = 50) -> dict:
                 env = _to_int(row.get("ape_score_involucro"))
                 ren = _to_int(row.get("ape_score_rinnovabili"))
                 if None not in {cls, sys_score, env, ren}:
-                    ape_scores = APEScores(
+                    ape_scores = EnergyScores(
                         total=float(ape_total),
                         class_score=cls,
                         system_score=sys_score,
@@ -304,7 +304,7 @@ def _load_demo_artifacts(demo_id: str, limit: int = 50) -> dict:
                 ]
             )
             if poi_any:
-                poi_scores = POIScores(
+                poi_scores = ProximityScores(
                     health=_parse_float(row.get("sanita")),
                     mobility=_parse_float(row.get("mobilita")),
                     green=_parse_float(row.get("verde")),
@@ -350,9 +350,9 @@ def _load_demo_artifacts(demo_id: str, limit: int = 50) -> dict:
                         row.get("numero_immobili_per_catasto")
                     ),
                     id_list=(row.get("id_list") or None),
-                    ape_scores=ape_scores,
-                    poi_scores=poi_scores,
-                    ape_files=ape_files,
+                    energy_scores=ape_scores,
+                    proximity_scores=poi_scores,
+                    energy_files=ape_files,
                     distance_km=_parse_float(row.get("distanza_km")),
                     description=(row.get("motivazione") or None),
                 )
@@ -871,7 +871,7 @@ async def get_analysis(
             # Enrich buildings with missing fields from dataset
             # This handles legacy runs stored before certain fields were implemented
             from app.services.real_estate_service import RealEstateService
-            from app.models.responses import SubProperty, APEScores, POIScores
+            from app.models.responses import SubProperty, EnergyScores, ProximityScores
             from app.data.loaders import load_and_merge_data
 
             real_estate_svc = RealEstateService()
@@ -955,7 +955,7 @@ async def get_analysis(
                                     building.energy_scores = EnergyScores(
                                         total=float(energy_total),
                                         class_score=int(float(cls_score)),
-                                        plant_score=int(float(plant_score)),
+                                        system_score=int(float(plant_score)),
                                         envelope_score=int(float(env_score)),
                                         renewables_score=int(float(ren_score)),
                                     )

@@ -164,11 +164,11 @@ You will receive:
 - Sort conditions from "strictest" (top) to "softest" (bottom) to facilitate relaxation if needed.
 
 4) TRANSLATION RULES
-- **Distance**: If you receive [lat, lon, radius_km] -> `haversine_km(latitude, longitude, {lat}, {lon}) <= {radius_km}`.
+- **Distance**: If you receive [lat, lon, radius_km] -> `haversine_km(latitudine, longitudine, {lat}, {lon}) <= {radius_km}`.
 - **Text**: Use `ILIKE` for flexible text searches if necessary.
 
 5) ORDER BY (FIXED)
-- If a location (lat/lon) is present: `ORDER BY haversine_km(latitude, longitude, {lat}, {lon}) ASC`
+- If a location (lat/lon) is present: `ORDER BY haversine_km(latitudine, longitudine, {lat}, {lon}) ASC`
 - Otherwise: `ORDER BY id ASC`
 
 # OUTPUT (MANDATORY)

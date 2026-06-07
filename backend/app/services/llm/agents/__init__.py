@@ -9,6 +9,7 @@ from app.services.llm.agents.building_agent import BuildingAgent
 from app.services.llm.agents.energy_agent import EnergyAgent
 from app.services.llm.agents.evaluation_agent import EvaluationAgent
 from app.services.llm.agents.broker_agent import BrokerAgent
+from app.services.llm.agents.relaxation_agent import RelaxationAgent
 
 __all__ = [
     "GraphOrchestratorAgent",
@@ -20,4 +21,5 @@ __all__ = [
     "EnergyAgent",
     "EvaluationAgent",
     "BrokerAgent",
+    "RelaxationAgent",
 ]

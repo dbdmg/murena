@@ -231,6 +231,18 @@ class LocationAgent(BaseAgent):
 
     def _run_ranking(self, *, df: pd.DataFrame, places: List[Place]) -> pd.DataFrame:
         """Ranking mode: 0-100 deterministic score calculation based on distance."""
+        if df is not None:
+            if "id" not in df.columns:
+                if df.index.name == "id" or "id" in df.index.names:
+                    df = df.reset_index()
+                else:
+                    df = df.reset_index()
+                    if "index" in df.columns:
+                        df = df.rename(columns={"index": "id"})
+                    elif "id" not in df.columns:
+                        # If still no 'id', use the index values as 'id'
+                        df["id"] = df.index.astype(str)
+
         if df is None or df.empty or not places:
             if df is not None:
                 df["location_score"] = 0

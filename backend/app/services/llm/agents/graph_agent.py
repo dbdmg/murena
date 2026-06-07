@@ -56,6 +56,7 @@ from app.services.llm.agents.schema import (
 from app.services.llm.agents.sql_agent import SQLAgent, _clean_sql
 from app.services.llm.agents.building_agent import BuildingAgent
 from app.services.llm.agents.ranking_agent import RankingAgent
+from app.services.llm.agents.relaxation_agent import RelaxationAgent
 from app.utils.logger import logger
 from app.utils.json_parser import safe_extract_json
 from app.utils.run_json_logger import get_run_logger
@@ -199,6 +200,7 @@ class GraphOrchestratorAgent(BaseAgent):
         self.proximity_agent = proximity_agent or ProximityAgent()
         self.regulatory_agent = regulatory_agent or RegulatoryAgent()
         self.ranking_agent = RankingAgent()
+        self.relaxation_agent = RelaxationAgent()
 
         self.workflow = self._build_graph()
 
@@ -1790,9 +1792,11 @@ class GraphOrchestratorAgent(BaseAgent):
         try:
             if dataset_path:
                 full_df = pd.read_parquet(dataset_path)
+                logger.error(f"DEBUG FALLBACK FILE: columns: {full_df.columns.tolist()}")
                 logger.info(f"Fallback loaded {len(full_df)} rows from dataset file")
             else:
                 full_df = base_dataset.copy()
+                logger.error(f"DEBUG FALLBACK BASE: columns: {full_df.columns.tolist()}")
                 logger.info(f"Fallback using base_dataset ({len(full_df)} rows)")
 
             # Get user location if available for sorting
@@ -1986,6 +1990,9 @@ class GraphOrchestratorAgent(BaseAgent):
         df = state["selected_data"]
         if df is None or df.empty:
             return state
+
+        if "id" not in df.columns and (df.index.name == "id" or "id" in df.index.names):
+            df = df.reset_index()
 
         # Fix: Ensure ID is string for matching with agent results (which use string IDs from JSON)
         if "id" in df.columns:
@@ -2521,8 +2528,12 @@ class GraphOrchestratorAgent(BaseAgent):
         map_df = base_df.copy()
 
         # Normalizza ID per i merge
+        if "id" not in map_df.columns and (map_df.index.name == "id" or "id" in map_df.index.names):
+            map_df = map_df.reset_index()
         if "id" in map_df.columns:
             map_df["id"] = map_df["id"].astype(str)
+        if "id" not in enriched_data.columns and (enriched_data.index.name == "id" or "id" in enriched_data.index.names):
+            enriched_data = enriched_data.reset_index()
         if "id" in enriched_data.columns:
             enriched_data = enriched_data.copy()
             enriched_data["id"] = enriched_data["id"].astype(str)
