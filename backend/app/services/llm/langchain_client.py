@@ -53,13 +53,29 @@ def _get_llm_internal(
             ) from e
 
     print(f"[LLM] Inizializzazione modello {model_name} (Base URL: {openai_api_base or 'Default OpenAI'})")
-    return ChatOpenAI(
-        model=model_name, 
-        api_key=api_key or "sk-dummy", # Fallback for local servers without auth
+    # Only include `chat_template_kwargs` when talking to a compatible local/institutional
+    # API base that expects this non-standard parameter. Official OpenAI endpoints
+    # reject unknown parameters which results in a 400 error.
+    client_kwargs = dict(
+        model=model_name,
+        api_key=api_key or "sk-dummy",  # Fallback for local servers without auth
         temperature=temperature,
         base_url=openai_api_base,
-        extra_body={"chat_template_kwargs": {"enable_thinking": False}}
     )
+
+    safe_bases = ["localhost", "127.0.0.1", "institutional"]
+    include_chat_template = False
+    if openai_api_base:
+        lower_base = openai_api_base.lower()
+        for token in safe_bases:
+            if token in lower_base:
+                include_chat_template = True
+                break
+
+    if include_chat_template:
+        client_kwargs["extra_body"] = {"chat_template_kwargs": {"enable_thinking": False}}
+
+    return ChatOpenAI(**client_kwargs)
 
 
 

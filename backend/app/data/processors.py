@@ -188,6 +188,11 @@ def calculate_travel_times_df(
     else:
         return df_processed
 
+    # Valid lat/lon mask (initialized once after numeric conversion)
+    valid_mask = (
+        df_processed["latitudine"].notna() & df_processed["longitudine"].notna()
+    )
+
     if not valid_mask.any():
         return df_processed
  
@@ -225,14 +230,6 @@ def calculate_travel_times_df(
         [float("inf")] * len(df_processed), index=df_processed.index
     )
     best_pois = pd.Series([None] * len(df_processed), index=df_processed.index)
-
-    # Valid lat/lon mask
-    valid_mask = (
-        df_processed["latitudine"].notna() & df_processed["longitudine"].notna()
-    )
-
-    if not valid_mask.any():
-        return df_processed
 
     valid_origins = df_processed[valid_mask]
 

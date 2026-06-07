@@ -31,7 +31,7 @@ export const LoginPage: React.FC = () => {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (err: any) {
             console.error(err);
-            const apiUrl = import.meta.env.VITE_API_URL;
+            const apiUrl = import.meta.env.VITE_API_URL || '/api/v1';
             
             // Handle FastAPI validation errors or standard messages
             const detail = err.response?.data?.detail;
