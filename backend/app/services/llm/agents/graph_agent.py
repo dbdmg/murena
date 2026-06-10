@@ -2086,12 +2086,19 @@ class GraphOrchestratorAgent(BaseAgent):
                 # This avoids running ranking mode for agents with 0 weight
                 active_agents = active_and_found
             else:
-                logger.warning("All active agents returned no requirements. Forcing all weights to 0.0 as requested.")
-                # AZZERAMENTO TOTALE: se nessun agente produce risultati di filtro, i pesi di ranking
-                # per il calcolo devono essere portati matematicamente a 0.0
-                zero_weights_dict = {a: 0.0 for a in ["location", "property_technical", "ape", "poi", "normative"]}
-                weights = RankingWeights(**zero_weights_dict)
-                active_agents = []  # Nessun agente deve girare in modalità ranking part-2
+                logger.warning(
+                    "No active agent returned requirements in filtering. "
+                    "Falling back to uniform weights (0.2 each) so that ranking still runs "
+                    "and properties are scored by their intrinsic qualities."
+                )
+                # FALLBACK UNIFORME: nessun agente ha trovato requisiti specifici
+                # (query generica). Usiamo pesi uniformi e lasciamo girare tutti gli agenti
+                # di ranking in modo da produrre comunque uno score significativo basato
+                # sulle caratteristiche intrinseche degli immobili (classe energetica,
+                # zona, servizi di prossimità, ecc.).
+                uniform_weights_dict = {a: 0.2 for a in ["location", "building", "energy", "proximity", "regulatory"]}
+                weights = RankingWeights(**uniform_weights_dict)
+                active_agents = ["location", "building", "energy", "proximity", "regulatory"]
 
         # Compute global statistics for all relevant columns for ranking
         # This allows agents to normalize scores against the entire dataset instead of the current subset.

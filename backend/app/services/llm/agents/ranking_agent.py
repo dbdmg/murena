@@ -16,6 +16,8 @@ from app.utils.json_parser import safe_extract_json
 from app.services.llm.agents.schema import RankingRanking
 
 
+from app.utils.logger import logger
+
 class RankingAgent(BaseAgent):
     """
     Agente responsabile di definire i pesi (coefficienti) per il sistema di ranking finale
@@ -95,39 +97,54 @@ class RankingAgent(BaseAgent):
                  from app.services.llm.agents.schema import RankedAgent
                  ranked_agents_list = [RankedAgent(agent_name="property_technical", rank=1)]
             
+            # Normalize agent names to support both old and new naming conventions
+            name_mapping = {
+                "normative": "regulatory",
+                "ape": "energy",
+                "property_technical": "building",
+                "poi": "proximity"
+            }
+            for agent_obj in ranked_agents_list:
+                if agent_obj.agent_name in name_mapping:
+                    agent_obj.agent_name = name_mapping[agent_obj.agent_name]
+
             # Limit to available agents
             all_supported = ["location", "regulatory", "energy", "building", "proximity"]
             valid_agents = [a for a in ranked_agents_list if a.agent_name in all_supported]
 
-            # Calculate raw weights: 1.0 / rank (e.g. Rank 1 -> 1.0, Rank 2 -> 0.5)
-            raw_weights = {}
-            for agent_obj in valid_agents:
-                # Safety against rank 0 or negative
-                rank_val = max(1, agent_obj.rank)   
-                raw_weights[agent_obj.agent_name] = 1.0 / rank_val
-            
-            # Normalize to sum = 1.0 across SELECTED agents
-            total_sum = sum(raw_weights.values())
-            normalized_weights = {}
-            
-            if total_sum > 0:
-                normalized_weights = {k: round(v / total_sum, 2) for k, v in raw_weights.items()}
-            
-            # Ensure sum is exactly 1.0 (rounding adjustments)
-            current_sum = sum(normalized_weights.values())
-            diff = round(1.0 - current_sum, 2)
-            if diff != 0 and valid_agents:
-                # Adjust the agent with the highest weight (to minimize relative error)
-                best_agent = max(normalized_weights, key=normalized_weights.get)
-                normalized_weights[best_agent] = round(normalized_weights[best_agent] + diff, 2)
-            
-            weights = RankingWeights(
-                location=normalized_weights.get("location", 0.0),
-                regulatory=normalized_weights.get("regulatory", 0.0),
-                energy=normalized_weights.get("energy", 0.0),
-                building=normalized_weights.get("building", 0.0),
-                proximity=normalized_weights.get("proximity", 0.0)
-            )
+            if not valid_agents:
+                logger.warning("No valid agents found in LLM ranking response. Falling back to uniform weights.")
+                weights = RankingWeights()  # Default 0.2 each
+            else:
+                # Calculate raw weights: 1.0 / rank (e.g. Rank 1 -> 1.0, Rank 2 -> 0.5)
+                raw_weights = {}
+                for agent_obj in valid_agents:
+                    # Safety against rank 0 or negative
+                    rank_val = max(1, agent_obj.rank)   
+                    raw_weights[agent_obj.agent_name] = 1.0 / rank_val
+                
+                # Normalize to sum = 1.0 across SELECTED agents
+                total_sum = sum(raw_weights.values())
+                normalized_weights = {}
+                
+                if total_sum > 0:
+                    normalized_weights = {k: round(v / total_sum, 2) for k, v in raw_weights.items()}
+                
+                # Ensure sum is exactly 1.0 (rounding adjustments)
+                current_sum = sum(normalized_weights.values())
+                diff = round(1.0 - current_sum, 2)
+                if diff != 0 and valid_agents:
+                    # Adjust the agent with the highest weight (to minimize relative error)
+                    best_agent = max(normalized_weights, key=normalized_weights.get)
+                    normalized_weights[best_agent] = round(normalized_weights[best_agent] + diff, 2)
+                
+                weights = RankingWeights(
+                    location=normalized_weights.get("location", 0.0),
+                    regulatory=normalized_weights.get("regulatory", 0.0),
+                    energy=normalized_weights.get("energy", 0.0),
+                    building=normalized_weights.get("building", 0.0),
+                    proximity=normalized_weights.get("proximity", 0.0)
+                )
 
             # Reconstruct simple list of names for backward compatibility if needed in UI/Logs
             ordered_names = [a.agent_name for a in sorted(valid_agents, key=lambda x: x.rank)]
