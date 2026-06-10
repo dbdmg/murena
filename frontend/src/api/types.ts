@@ -104,12 +104,34 @@ export interface MapMarker {
         sport?: number;
     };
     energy_files?: string[];
+    // Italian aliases and fields
+    meta_immobile?: boolean;
+    canone_annuale?: number;
+    tipo_detenzione_a_terzi?: string;
+    data_decorrenza?: string;
+    numero_immobili_per_catasto?: number;
+    ape_scores?: any;
+    poi_scores?: any;
+    ape_files?: string[];
+    // English aliases for BuildingDetail compatibility
+    effective_date?: string;           // alias for data_decorrenza
     // Intelligence Map - AI Evaluation fields
     tier?: MarkerTier; // 1=Background, 2=Search Results, 3=Top Picks
     evaluation_text?: string;
     pros?: string[];
     cons?: string[];
     ranking_score?: number; // AI-computed score for Top Picks ordering
+    location_score?: number;
+    regulatory_score?: number;
+    energy_score?: number;
+    building_score?: number;
+    proximity_score?: number;
+    ranking_weight_location?: number;
+    ranking_weight_regulatory?: number;
+    ranking_weight_energy?: number;
+    ranking_weight_building?: number;
+    ranking_weight_proximity?: number;
+    meta_building?: boolean;
 }
 
 export interface MapConfig {
@@ -154,17 +176,29 @@ export interface BuildingResponse {
     is_evaluated: boolean;
     is_match: boolean;
     is_meta_building: boolean;
+    meta_building?: boolean;
     // New fields
     meta_property?: string;
     annual_rent?: number;
     third_party_tenure_type?: string;
     start_date?: string;
+    effective_date?: string;
     cadastral_units_count?: number;
     id_list?: string;
     energy_scores?: EnergyScores;
     proximity_scores?: ProximityScores;
     distance_km?: number;
     proximity_reference?: string;
+    location_score?: number;
+    regulatory_score?: number;
+    energy_score?: number;
+    building_score?: number;
+    proximity_score?: number;
+    ranking_weight_location?: number;
+    ranking_weight_regulatory?: number;
+    ranking_weight_energy?: number;
+    ranking_weight_building?: number;
+    ranking_weight_proximity?: number;
     // Extended fields
     energy_files?: string[];
     property_type?: string;
@@ -264,6 +298,7 @@ export interface GeminiResponses {
             id: number | string;
             evaluation_text: string;
             score?: number;
+            final_ranking_score?: number;
             pros?: string[];
             cons?: string[];
         }>;
@@ -356,7 +391,6 @@ export interface ProgressUpdate {
     detail: string;
     steps_state?: ProgressStep[];
 }
-
 export interface ProgressComplete {
     type: 'complete';
     run_id: string;
@@ -364,7 +398,12 @@ export interface ProgressComplete {
     results_url: string;
 }
 
-export type WebSocketMessage = ProgressUpdate | ProgressComplete;
+export interface ProgressError {
+    type: 'error';
+    message?: string;
+}
+
+export type WebSocketMessage = ProgressUpdate | ProgressComplete | ProgressError;
 
 // Agent Feedback Types
 export interface AgentFeedbackSubmit {

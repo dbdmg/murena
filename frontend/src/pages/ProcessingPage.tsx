@@ -23,6 +23,7 @@ import { useAnalysisProgress } from '../hooks/useAnalysisProgress';
 import { useSettings } from '../contexts/SettingsContext';
 import { translations } from '../utils/translations';
 import { analysisApi } from '../api/endpoints/analysis';
+import { MarkdownText } from '../components/common/MarkdownText';
 import type { AnalysisResults, ProgressStep } from '../api/types';
 
 interface LogEntry {
@@ -296,7 +297,7 @@ export const ProcessingPage: React.FC = () => {
                             </div>
 
                             <div className="prose prose-invert prose-lg max-w-none text-gray-300 relative z-10">
-                                <p className="leading-relaxed whitespace-pre-wrap">{brokerSummary}</p>
+                                <MarkdownText text={brokerSummary} />
                             </div>
                         </motion.div>
                     )}

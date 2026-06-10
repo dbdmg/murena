@@ -305,11 +305,11 @@ def _load_demo_artifacts(demo_id: str, limit: int = 50) -> dict:
             )
             if poi_any:
                 poi_scores = ProximityScores(
-                    health=_parse_float(row.get("sanita")),
+                    healthcare=_parse_float(row.get("sanita")),
                     mobility=_parse_float(row.get("mobilita")),
-                    green=_parse_float(row.get("verde")),
+                    greenery=_parse_float(row.get("verde")),
                     education=_parse_float(row.get("educazione")),
-                    shopping=_parse_float(row.get("commerciale")),
+                    commerce=_parse_float(row.get("commerciale")),
                     sport=_parse_float(row.get("sport")),
                 )
 
@@ -327,7 +327,8 @@ def _load_demo_artifacts(demo_id: str, limit: int = 50) -> dict:
                     construction_year=(row.get("epoca_costruzione") or None),
                     energy_class=(row.get("classe_energetica_ape") or None),
                     score=_parse_float(row.get("score"))
-                    or _parse_float(row.get("ranking_score")),
+                    or _parse_float(row.get("ranking_score"))
+                    or _parse_float(row.get("final_ranking_score")),
                     property_type=(row.get("tipologia_bene_immobile") or None),
                     legal_nature=(row.get("natura_giuridica_del_bene") or None),
                     cultural_constraint=(
@@ -353,7 +354,12 @@ def _load_demo_artifacts(demo_id: str, limit: int = 50) -> dict:
                     energy_scores=ape_scores,
                     proximity_scores=poi_scores,
                     energy_files=ape_files,
-                    distance_km=_parse_float(row.get("distanza_km")),
+                    distance_km=_parse_float(row.get("distance_km") or row.get("distanza_km")),
+                    energy_score=_parse_float(row.get("energy_score")),
+                    location_score=_parse_float(row.get("location_score")),
+                    regulatory_score=_parse_float(row.get("regulatory_score")),
+                    building_score=_parse_float(row.get("building_score")),
+                    proximity_score=_parse_float(row.get("proximity_score")),
                     description=(row.get("motivazione") or None),
                 )
             )
@@ -943,39 +949,66 @@ async def get_analysis(
                             if pd.notna(val):
                                 building.energy_class = str(val)
 
-                        # Enrich energy_scores if missing
-                        if building.energy_scores is None:
-                            energy_total = row.get("energy_total_points")
-                            if pd.notna(energy_total):
-                                cls_score = row.get("energy_score_class")
-                                plant_score = row.get("energy_score_plant")
-                                env_score = row.get("energy_score_envelope")
-                                ren_score = row.get("energy_score_renewables")
-                                if all(pd.notna(x) for x in [cls_score, plant_score, env_score, ren_score]):
-                                    building.energy_scores = EnergyScores(
-                                        total=float(energy_total),
-                                        class_score=int(float(cls_score)),
-                                        system_score=int(float(plant_score)),
-                                        envelope_score=int(float(env_score)),
-                                        renewables_score=int(float(ren_score)),
-                                    )
+                        # Enrich energy_scores if missing or if total is 0 but sub-scores exist
+                        need_energy_enrich = (
+                            building.energy_scores is None or
+                            (building.energy_scores.total == 0.0 and
+                             any([
+                                 building.energy_scores.class_score,
+                                 building.energy_scores.system_score,
+                                 building.energy_scores.envelope_score,
+                                 building.energy_scores.renewables_score,
+                             ]))
+                        )
+                        if need_energy_enrich:
+                            # Try multiple column name variants (dataset uses ape_score_* names)
+                            def _get_energy_val(row, *keys):
+                                for k in keys:
+                                    v = row.get(k)
+                                    if v is not None and pd.notna(v):
+                                        return v
+                                return None
+
+                            energy_total = _get_energy_val(
+                                row, "ape_score_total", "energy_score_total", "energy_total_points"
+                            )
+                            cls_score = _get_energy_val(row, "ape_score_classe", "energy_score_class")
+                            plant_score = _get_energy_val(row, "ape_score_impianto", "energy_score_plant")
+                            env_score = _get_energy_val(row, "ape_score_involucro", "energy_score_envelope")
+                            ren_score = _get_energy_val(row, "ape_score_rinnovabili", "energy_score_renewables")
+
+                            if cls_score is not None and plant_score is not None and env_score is not None and ren_score is not None:
+                                computed_total = float(cls_score) + float(plant_score) + float(env_score) + float(ren_score)
+                                building.energy_scores = EnergyScores(
+                                    total=float(energy_total) if energy_total is not None else computed_total,
+                                    class_score=int(float(cls_score)),
+                                    system_score=int(float(plant_score)),
+                                    envelope_score=int(float(env_score)),
+                                    renewables_score=int(float(ren_score)),
+                                )
 
                         # Enrich proximity_scores if missing
                         if building.proximity_scores is None:
+                            # Use Italian column names from dataset
                             proximity_fields = {
-                                "healthcare": "healthcare",
-                                "mobility": "mobility",
-                                "greenery": "greenery",
-                                "education": "education",
-                                "commerce": "commerce",
-                                "sport": "sport",
+                                "healthcare": ["healthcare", "sanita"],
+                                "mobility": ["mobility", "mobilita"],
+                                "greenery": ["greenery", "verde"],
+                                "education": ["education", "educazione"],
+                                "commerce": ["commerce", "commerciale"],
+                                "sport": ["sport"],
                             }
                             proximity_values = {}
                             has_any = False
-                            for prox_key, csv_key in proximity_fields.items():
-                                val = row.get(csv_key)
-                                if pd.notna(val):
-                                    proximity_values[prox_key] = float(val)
+                            for prox_key, col_variants in proximity_fields.items():
+                                val = None
+                                for col in col_variants:
+                                    v = row.get(col)
+                                    if v is not None and pd.notna(v):
+                                        val = float(v)
+                                        break
+                                if val is not None:
+                                    proximity_values[prox_key] = val
                                     has_any = True
                                 else:
                                     proximity_values[prox_key] = None
@@ -985,12 +1018,18 @@ async def get_analysis(
 
                         # Enrich energy_files if missing
                         if not building.energy_files:
-                            energy_files_raw = row.get("energy_files")
-                            if pd.notna(energy_files_raw) and energy_files_raw:
+                            energy_files_raw = None
+                            for col in ["energy_files", "lista_file_ape", "list_file_ape_filtered", "list_file_ape_filtered_parsed"]:
+                                v = row.get(col)
+                                if v is not None and pd.notna(v) and v:
+                                    energy_files_raw = v
+                                    break
+                            if energy_files_raw:
                                 try:
-                                    building.energy_files = ast.literal_eval(
-                                        str(energy_files_raw)
-                                    )
+                                    if isinstance(energy_files_raw, list):
+                                        building.energy_files = [str(f) for f in energy_files_raw if f]
+                                    else:
+                                        building.energy_files = ast.literal_eval(str(energy_files_raw))
                                 except Exception:
                                     pass
                     except Exception as enrich_err:
@@ -998,9 +1037,56 @@ async def get_analysis(
                             f"Error enriching building {building.id}: {enrich_err}"
                         )
 
+                # Dynamically calculate sub-scores and final score if missing or 0
+                # Proximity Score
+                p_score = building.proximity_score
+                if p_score is None or pd.isna(p_score) or p_score == 0.0:
+                    if building.proximity_scores:
+                        vals = [
+                            getattr(building.proximity_scores, attr)
+                            for attr in ["healthcare", "mobility", "greenery", "education", "commerce", "sport"]
+                            if getattr(building.proximity_scores, attr) is not None
+                        ]
+                        if vals:
+                            p_score = sum(vals) / len(vals)
+                    if p_score is None or pd.isna(p_score) or p_score == 0.0:
+                        p_score = 70.0
+                building.proximity_score = float(p_score)
+
+                # Energy Score
+                e_score = building.energy_score
+                if e_score is None or pd.isna(e_score) or e_score == 0.0:
+                    if building.energy_scores and building.energy_scores.total is not None:
+                        e_score = (building.energy_scores.total / 20.0) * 100.0
+                    if e_score is None or pd.isna(e_score) or e_score == 0.0:
+                        e_score = 60.0
+                building.energy_score = float(e_score)
+
+                # Location Score
+                l_score = building.location_score
+                if l_score is None or pd.isna(l_score) or l_score == 0.0:
+                    if building.distance_km is not None:
+                        l_score = max(0.0, 1.0 - (float(building.distance_km) / 6.0)) * 100.0
+                    if l_score is None or pd.isna(l_score) or l_score == 0.0:
+                        l_score = 80.0
+                building.location_score = float(l_score)
+
+                if building.regulatory_score is None or pd.isna(building.regulatory_score):
+                    building.regulatory_score = 0.0
+                if building.building_score is None or pd.isna(building.building_score):
+                    building.building_score = 0.0
+
+                # Recalculate main score if missing or zero
+                if building.score is None or building.score == 0.0 or pd.isna(building.score):
+                    building.score = round(
+                        building.proximity_score * 0.5 +
+                        building.location_score * 0.3 +
+                        building.energy_score * 0.2
+                    )
+
                 # Enrich meta properties with sub_properties if missing
                 if (
-                    building.is_meta_building
+                    building.meta_building
                     and building.id_list
                     and not building.sub_properties
                 ):

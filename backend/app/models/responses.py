@@ -122,9 +122,18 @@ class BuildingResponse(BaseModel):
     proximity_reference: Optional[str] = None
     energy_performance_index: Optional[float] = None
     energy_score: Optional[float] = None
+    location_score: Optional[float] = None
+    regulatory_score: Optional[float] = None
+    building_score: Optional[float] = None
+    proximity_score: Optional[float] = None
     greenery: Optional[float] = None
     mobility: Optional[float] = None
     education: Optional[float] = None
+    ranking_weight_location: Optional[float] = None
+    ranking_weight_regulatory: Optional[float] = None
+    ranking_weight_energy: Optional[float] = None
+    ranking_weight_building: Optional[float] = None
+    ranking_weight_proximity: Optional[float] = None
 
     model_config = ConfigDict(from_attributes=True)
 

@@ -185,20 +185,30 @@ export function useIntelligenceMap(
                         is_evaluated: isEvaluated,
                         is_match: b.is_match,
                         meta_building: b.meta_building,
-                        // New metadata fields
-                        meta_immobile: b.meta_immobile,
-                        canone_annuale: b.canone_annuale,
-                        tipo_detenzione_a_terzi: b.tipo_detenzione_a_terzi,
-                        data_decorrenza: b.data_decorrenza,
-                        numero_immobili_per_catasto: b.numero_immobili_per_catasto,
+                        // New metadata fields — Italian aliases
+                        meta_immobile: b.meta_building,
+                        canone_annuale: b.annual_rent,
+                        tipo_detenzione_a_terzi: b.third_party_tenure_type,
+                        data_decorrenza: b.effective_date,
+                        numero_immobili_per_catasto: b.cadastral_units_count,
+                        // English aliases for BuildingDetail compatibility
+                        annual_rent: b.annual_rent,
+                        third_party_tenure_type: b.third_party_tenure_type,
+                        effective_date: b.effective_date,
+                        cadastral_units_count: b.cadastral_units_count,
                         id_list: b.id_list,
+
                         // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         sub_properties: 'sub_properties' in b ? (b as any).sub_properties : undefined,
-                        // Scores and extended info
-                        ape_scores: b.ape_scores,
-                        poi_scores: b.poi_scores,
-                        // Correctly typed fields now
-                        ape_files: b.ape_files,
+                        // Energy & proximity scores — mapped with the same names that BuildingDetail expects
+                        energy_scores: b.energy_scores,
+                        proximity_scores: b.proximity_scores,
+                        // Keep legacy aliases for any code that still reads ape_scores/poi_scores
+                        ape_scores: b.energy_scores,
+                        poi_scores: b.proximity_scores,
+                        // Energy files — use both field names for compatibility
+                        energy_files: b.energy_files,
+                        ape_files: b.energy_files,
                         property_type: b.property_type,
                         legal_nature: b.legal_nature,
                         cultural_constraint: b.cultural_constraint,
@@ -210,7 +220,20 @@ export function useIntelligenceMap(
                         evaluation_text: evalData?.evaluation_text,
                         pros: evalData?.pros,
                         cons: evalData?.cons,
-                        ranking_score: Math.round(evalData?.score ?? b.score ?? 0),
+                        // final_ranking_score is the real backend field; fallback to score for older runs
+                        ranking_score: Math.round(
+                            (evalData?.final_ranking_score ?? evalData?.score ?? b.score) ?? 0
+                        ),
+                        location_score: b.location_score,
+                        regulatory_score: b.regulatory_score,
+                        energy_score: b.energy_score,
+                        building_score: b.building_score,
+                        proximity_score: b.proximity_score,
+                        ranking_weight_location: b.ranking_weight_location,
+                        ranking_weight_regulatory: b.ranking_weight_regulatory,
+                        ranking_weight_energy: b.ranking_weight_energy,
+                        ranking_weight_building: b.ranking_weight_building,
+                        ranking_weight_proximity: b.ranking_weight_proximity,
                     } as MapMarker;
                 });
 

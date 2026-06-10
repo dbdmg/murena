@@ -2296,10 +2296,14 @@ class GraphOrchestratorAgent(BaseAgent):
             "distanza_km",
             # Agent scores
             "ape_score",
+            "energy_score",
             "location_score",
             "normative_score",
+            "regulatory_score",
             "property_technical_score",
+            "building_score",
             "poi_score",
+            "proximity_score",
             # Calculated Score
             "final_ranking_score"
         ]
@@ -2590,17 +2594,30 @@ class GraphOrchestratorAgent(BaseAgent):
                 valutazioni_df["id"] = valutazioni_df["id"].astype(str)
                 evaluated_total = len(valutazioni_df)
 
+                # Keep a backup of deterministic final_ranking_score before merging
+                det_scores = map_df[["id", "final_ranking_score"]].copy() if "final_ranking_score" in map_df.columns else pd.DataFrame(columns=["id", "final_ranking_score"])
+
+                if "final_ranking_score" in map_df.columns:
+                    map_df = map_df.drop(columns=["final_ranking_score"])
+
                 map_df = pd.merge(
                     map_df,
                     valutazioni_df[
-                        ["id", "motivazione", "pro", "contro"]
+                        ["id", "final_ranking_score", "motivazione", "pro", "contro"]
                     ].drop_duplicates("id"),
                     on="id",
                     how="left",
                 )
 
+                # For buildings not evaluated, fall back to the deterministic score
+                if not det_scores.empty:
+                    map_df = pd.merge(map_df, det_scores, on="id", how="left", suffixes=("", "_det"))
+                    if "final_ranking_score_det" in map_df.columns:
+                        map_df["final_ranking_score"] = map_df["final_ranking_score"].fillna(map_df["final_ranking_score_det"])
+                        map_df = map_df.drop(columns=["final_ranking_score_det"])
+
                 map_df["final_ranking_score"] = pd.to_numeric(
-                    map_df.get("final_ranking_score"), errors="coerce"
+                    map_df["final_ranking_score"], errors="coerce"
                 ).fillna(0)
                 map_df["is_evaluated"] = map_df["id"].isin(valutazioni_df["id"])
                 map_df["is_selected_by_llm"] = map_df["final_ranking_score"] >= 60

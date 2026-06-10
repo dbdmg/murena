@@ -1,0 +1,1399 @@
+diff --git a/backend/app/api/v1/endpoints/analysis.py b/backend/app/api/v1/endpoints/analysis.py
+index aaad61c..72c4ee3 100644
+--- a/backend/app/api/v1/endpoints/analysis.py
++++ b/backend/app/api/v1/endpoints/analysis.py
+@@ -305,11 +305,11 @@ def _load_demo_artifacts(demo_id: str, limit: int = 50) -> dict:
+             )
+             if poi_any:
+                 poi_scores = ProximityScores(
+-                    health=_parse_float(row.get("sanita")),
++                    healthcare=_parse_float(row.get("sanita")),
+                     mobility=_parse_float(row.get("mobilita")),
+-                    green=_parse_float(row.get("verde")),
++                    greenery=_parse_float(row.get("verde")),
+                     education=_parse_float(row.get("educazione")),
+-                    shopping=_parse_float(row.get("commerciale")),
++                    commerce=_parse_float(row.get("commerciale")),
+                     sport=_parse_float(row.get("sport")),
+                 )
+ 
+@@ -327,7 +327,8 @@ def _load_demo_artifacts(demo_id: str, limit: int = 50) -> dict:
+                     construction_year=(row.get("epoca_costruzione") or None),
+                     energy_class=(row.get("classe_energetica_ape") or None),
+                     score=_parse_float(row.get("score"))
+-                    or _parse_float(row.get("ranking_score")),
++                    or _parse_float(row.get("ranking_score"))
++                    or _parse_float(row.get("final_ranking_score")),
+                     property_type=(row.get("tipologia_bene_immobile") or None),
+                     legal_nature=(row.get("natura_giuridica_del_bene") or None),
+                     cultural_constraint=(
+@@ -353,7 +354,12 @@ def _load_demo_artifacts(demo_id: str, limit: int = 50) -> dict:
+                     energy_scores=ape_scores,
+                     proximity_scores=poi_scores,
+                     energy_files=ape_files,
+-                    distance_km=_parse_float(row.get("distanza_km")),
++                    distance_km=_parse_float(row.get("distance_km") or row.get("distanza_km")),
++                    energy_score=_parse_float(row.get("energy_score")),
++                    location_score=_parse_float(row.get("location_score")),
++                    regulatory_score=_parse_float(row.get("regulatory_score")),
++                    building_score=_parse_float(row.get("building_score")),
++                    proximity_score=_parse_float(row.get("proximity_score")),
+                     description=(row.get("motivazione") or None),
+                 )
+             )
+@@ -943,39 +949,66 @@ async def get_analysis(
+                             if pd.notna(val):
+                                 building.energy_class = str(val)
+ 
+-                        # Enrich energy_scores if missing
+-                        if building.energy_scores is None:
+-                            energy_total = row.get("energy_total_points")
+-                            if pd.notna(energy_total):
+-                                cls_score = row.get("energy_score_class")
+-                                plant_score = row.get("energy_score_plant")
+-                                env_score = row.get("energy_score_envelope")
+-                                ren_score = row.get("energy_score_renewables")
+-                                if all(pd.notna(x) for x in [cls_score, plant_score, env_score, ren_score]):
+-                                    building.energy_scores = EnergyScores(
+-                                        total=float(energy_total),
+-                                        class_score=int(float(cls_score)),
+-                                        system_score=int(float(plant_score)),
+-                                        envelope_score=int(float(env_score)),
+-                                        renewables_score=int(float(ren_score)),
+-                                    )
++                        # Enrich energy_scores if missing or if total is 0 but sub-scores exist
++                        need_energy_enrich = (
++                            building.energy_scores is None or
++                            (building.energy_scores.total == 0.0 and
++                             any([
++                                 building.energy_scores.class_score,
++                                 building.energy_scores.system_score,
++                                 building.energy_scores.envelope_score,
++                                 building.energy_scores.renewables_score,
++                             ]))
++                        )
++                        if need_energy_enrich:
++                            # Try multiple column name variants (dataset uses ape_score_* names)
++                            def _get_energy_val(row, *keys):
++                                for k in keys:
++                                    v = row.get(k)
++                                    if v is not None and pd.notna(v):
++                                        return v
++                                return None
++
++                            energy_total = _get_energy_val(
++                                row, "ape_score_total", "energy_score_total", "energy_total_points"
++                            )
++                            cls_score = _get_energy_val(row, "ape_score_classe", "energy_score_class")
++                            plant_score = _get_energy_val(row, "ape_score_impianto", "energy_score_plant")
++                            env_score = _get_energy_val(row, "ape_score_involucro", "energy_score_envelope")
++                            ren_score = _get_energy_val(row, "ape_score_rinnovabili", "energy_score_renewables")
++
++                            if cls_score is not None and plant_score is not None and env_score is not None and ren_score is not None:
++                                computed_total = float(cls_score) + float(plant_score) + float(env_score) + float(ren_score)
++                                building.energy_scores = EnergyScores(
++                                    total=float(energy_total) if energy_total is not None else computed_total,
++                                    class_score=int(float(cls_score)),
++                                    system_score=int(float(plant_score)),
++                                    envelope_score=int(float(env_score)),
++                                    renewables_score=int(float(ren_score)),
++                                )
+ 
+                         # Enrich proximity_scores if missing
+                         if building.proximity_scores is None:
++                            # Use Italian column names from dataset
+                             proximity_fields = {
+-                                "healthcare": "healthcare",
+-                                "mobility": "mobility",
+-                                "greenery": "greenery",
+-                                "education": "education",
+-                                "commerce": "commerce",
+-                                "sport": "sport",
++                                "healthcare": ["healthcare", "sanita"],
++                                "mobility": ["mobility", "mobilita"],
++                                "greenery": ["greenery", "verde"],
++                                "education": ["education", "educazione"],
++                                "commerce": ["commerce", "commerciale"],
++                                "sport": ["sport"],
+                             }
+                             proximity_values = {}
+                             has_any = False
+-                            for prox_key, csv_key in proximity_fields.items():
+-                                val = row.get(csv_key)
+-                                if pd.notna(val):
+-                                    proximity_values[prox_key] = float(val)
++                            for prox_key, col_variants in proximity_fields.items():
++                                val = None
++                                for col in col_variants:
++                                    v = row.get(col)
++                                    if v is not None and pd.notna(v):
++                                        val = float(v)
++                                        break
++                                if val is not None:
++                                    proximity_values[prox_key] = val
+                                     has_any = True
+                                 else:
+                                     proximity_values[prox_key] = None
+@@ -985,12 +1018,18 @@ async def get_analysis(
+ 
+                         # Enrich energy_files if missing
+                         if not building.energy_files:
+-                            energy_files_raw = row.get("energy_files")
+-                            if pd.notna(energy_files_raw) and energy_files_raw:
++                            energy_files_raw = None
++                            for col in ["energy_files", "lista_file_ape", "list_file_ape_filtered", "list_file_ape_filtered_parsed"]:
++                                v = row.get(col)
++                                if v is not None and pd.notna(v) and v:
++                                    energy_files_raw = v
++                                    break
++                            if energy_files_raw:
+                                 try:
+-                                    building.energy_files = ast.literal_eval(
+-                                        str(energy_files_raw)
+-                                    )
++                                    if isinstance(energy_files_raw, list):
++                                        building.energy_files = [str(f) for f in energy_files_raw if f]
++                                    else:
++                                        building.energy_files = ast.literal_eval(str(energy_files_raw))
+                                 except Exception:
+                                     pass
+                     except Exception as enrich_err:
+@@ -998,9 +1037,56 @@ async def get_analysis(
+                             f"Error enriching building {building.id}: {enrich_err}"
+                         )
+ 
++                # Dynamically calculate sub-scores and final score if missing or 0
++                # Proximity Score
++                p_score = building.proximity_score
++                if p_score is None or pd.isna(p_score) or p_score == 0.0:
++                    if building.proximity_scores:
++                        vals = [
++                            getattr(building.proximity_scores, attr)
++                            for attr in ["healthcare", "mobility", "greenery", "education", "commerce", "sport"]
++                            if getattr(building.proximity_scores, attr) is not None
++                        ]
++                        if vals:
++                            p_score = sum(vals) / len(vals)
++                    if p_score is None or pd.isna(p_score) or p_score == 0.0:
++                        p_score = 70.0
++                building.proximity_score = float(p_score)
++
++                # Energy Score
++                e_score = building.energy_score
++                if e_score is None or pd.isna(e_score) or e_score == 0.0:
++                    if building.energy_scores and building.energy_scores.total is not None:
++                        e_score = (building.energy_scores.total / 20.0) * 100.0
++                    if e_score is None or pd.isna(e_score) or e_score == 0.0:
++                        e_score = 60.0
++                building.energy_score = float(e_score)
++
++                # Location Score
++                l_score = building.location_score
++                if l_score is None or pd.isna(l_score) or l_score == 0.0:
++                    if building.distance_km is not None:
++                        l_score = max(0.0, 1.0 - (float(building.distance_km) / 6.0)) * 100.0
++                    if l_score is None or pd.isna(l_score) or l_score == 0.0:
++                        l_score = 80.0
++                building.location_score = float(l_score)
++
++                if building.regulatory_score is None or pd.isna(building.regulatory_score):
++                    building.regulatory_score = 0.0
++                if building.building_score is None or pd.isna(building.building_score):
++                    building.building_score = 0.0
++
++                # Recalculate main score if missing or zero
++                if building.score is None or building.score == 0.0 or pd.isna(building.score):
++                    building.score = round(
++                        building.proximity_score * 0.5 +
++                        building.location_score * 0.3 +
++                        building.energy_score * 0.2
++                    )
++
+                 # Enrich meta properties with sub_properties if missing
+                 if (
+-                    building.is_meta_building
++                    building.meta_building
+                     and building.id_list
+                     and not building.sub_properties
+                 ):
+diff --git a/backend/app/models/responses.py b/backend/app/models/responses.py
+index 29f9f5b..675f1e0 100644
+--- a/backend/app/models/responses.py
++++ b/backend/app/models/responses.py
+@@ -122,9 +122,18 @@ class BuildingResponse(BaseModel):
+     proximity_reference: Optional[str] = None
+     energy_performance_index: Optional[float] = None
+     energy_score: Optional[float] = None
++    location_score: Optional[float] = None
++    regulatory_score: Optional[float] = None
++    building_score: Optional[float] = None
++    proximity_score: Optional[float] = None
+     greenery: Optional[float] = None
+     mobility: Optional[float] = None
+     education: Optional[float] = None
++    ranking_weight_location: Optional[float] = None
++    ranking_weight_regulatory: Optional[float] = None
++    ranking_weight_energy: Optional[float] = None
++    ranking_weight_building: Optional[float] = None
++    ranking_weight_proximity: Optional[float] = None
+ 
+     model_config = ConfigDict(from_attributes=True)
+ 
+diff --git a/backend/app/services/analysis/executor.py b/backend/app/services/analysis/executor.py
+index 182ad42..e469f0f 100644
+--- a/backend/app/services/analysis/executor.py
++++ b/backend/app/services/analysis/executor.py
+@@ -55,6 +55,7 @@ def execute_sql_query(sql_query, pd_data, dataset_path=None):
+ 
+                     con.execute("CREATE VIEW PROPERTIES AS SELECT * FROM base_properties")
+                     con.execute("CREATE VIEW ESTATES AS SELECT * FROM base_properties")
++                    con.execute("CREATE VIEW IMMOBILI AS SELECT * FROM base_properties")
+ 
+                     # Pre-check SQL syntax with EXPLAIN
+                     sql_query = sql_query.strip().rstrip(';')
+diff --git a/backend/app/services/analysis/ranking.py b/backend/app/services/analysis/ranking.py
+index b05dba6..9a3eea3 100644
+--- a/backend/app/services/analysis/ranking.py
++++ b/backend/app/services/analysis/ranking.py
+@@ -163,7 +163,7 @@ def calculate_ranking_score(
+         (property_technical_score_norm * w_property_technical)
+     )
+ 
+-    df["final_ranking_score"] = final_score
++    df["final_ranking_score"] = final_score * 100
+ 
+     # Sort descending by score, then ascending by distance (if available)
+     if "distanza_km" in df.columns:
+diff --git a/backend/app/services/llm/agents/energy_agent.py b/backend/app/services/llm/agents/energy_agent.py
+index 5005a33..6b5335e 100644
+--- a/backend/app/services/llm/agents/energy_agent.py
++++ b/backend/app/services/llm/agents/energy_agent.py
+@@ -164,7 +164,7 @@ class EnergyAgent(BaseAgent):
+                 used_columns.add(col)
+                 
+                 # Special handling for energy class (categorical)
+-                if col == "energy_class":
++                if col in ["energy_class", "classe_target_ape", "classe_energetica_ape"]:
+                     # Definitive ranking order: A4 is best (Rank 1), G is worst
+                     classes_order = ["A4", "A3", "A2", "A1", "B", "C", "D", "E", "F", "G"]
+                     
+diff --git a/backend/app/services/llm/agents/graph_agent.py b/backend/app/services/llm/agents/graph_agent.py
+index 0fc55fc..d6f5d49 100644
+--- a/backend/app/services/llm/agents/graph_agent.py
++++ b/backend/app/services/llm/agents/graph_agent.py
+@@ -2296,10 +2296,14 @@ class GraphOrchestratorAgent(BaseAgent):
+             "distanza_km",
+             # Agent scores
+             "ape_score",
++            "energy_score",
+             "location_score",
+             "normative_score",
++            "regulatory_score",
+             "property_technical_score",
++            "building_score",
+             "poi_score",
++            "proximity_score",
+             # Calculated Score
+             "final_ranking_score"
+         ]
+@@ -2590,17 +2594,30 @@ class GraphOrchestratorAgent(BaseAgent):
+                 valutazioni_df["id"] = valutazioni_df["id"].astype(str)
+                 evaluated_total = len(valutazioni_df)
+ 
++                # Keep a backup of deterministic final_ranking_score before merging
++                det_scores = map_df[["id", "final_ranking_score"]].copy() if "final_ranking_score" in map_df.columns else pd.DataFrame(columns=["id", "final_ranking_score"])
++
++                if "final_ranking_score" in map_df.columns:
++                    map_df = map_df.drop(columns=["final_ranking_score"])
++
+                 map_df = pd.merge(
+                     map_df,
+                     valutazioni_df[
+-                        ["id", "motivazione", "pro", "contro"]
++                        ["id", "final_ranking_score", "motivazione", "pro", "contro"]
+                     ].drop_duplicates("id"),
+                     on="id",
+                     how="left",
+                 )
+ 
++                # For buildings not evaluated, fall back to the deterministic score
++                if not det_scores.empty:
++                    map_df = pd.merge(map_df, det_scores, on="id", how="left", suffixes=("", "_det"))
++                    if "final_ranking_score_det" in map_df.columns:
++                        map_df["final_ranking_score"] = map_df["final_ranking_score"].fillna(map_df["final_ranking_score_det"])
++                        map_df = map_df.drop(columns=["final_ranking_score_det"])
++
+                 map_df["final_ranking_score"] = pd.to_numeric(
+-                    map_df.get("final_ranking_score"), errors="coerce"
++                    map_df["final_ranking_score"], errors="coerce"
+                 ).fillna(0)
+                 map_df["is_evaluated"] = map_df["id"].isin(valutazioni_df["id"])
+                 map_df["is_selected_by_llm"] = map_df["final_ranking_score"] >= 60
+diff --git a/backend/app/services/llm/agents/proximity_agent.py b/backend/app/services/llm/agents/proximity_agent.py
+index 5da4dca..a68618c 100644
+--- a/backend/app/services/llm/agents/proximity_agent.py
++++ b/backend/app/services/llm/agents/proximity_agent.py
+@@ -132,7 +132,7 @@ class ProximityAgent(BaseAgent):
+             return ProximityAgentResult(
+                 raw_text=json.dumps(structured_response.model_dump(), ensure_ascii=False),
+                 has_pois=has_pois,
+-                requirements=structured_response.requisiti,
++                requirements=structured_response.requirements,
+                 prompt=PromptRecord(
+                     system=rendered_system_prompt,
+                     user=user_text,
+diff --git a/backend/app/services/llm/agents/schema.py b/backend/app/services/llm/agents/schema.py
+index 99b0bdb..8bf5eef 100644
+--- a/backend/app/services/llm/agents/schema.py
++++ b/backend/app/services/llm/agents/schema.py
+@@ -75,7 +75,7 @@ class SQLResponse(BaseModel):
+ class EvaluationResult(BaseModel):
+     id: Union[int, str] = Field(..., description="Real estate ID")
+     evaluation_text: str = Field(default="", description="Qualitative evaluation text")
+-    final_ranking_score: Optional[int] = Field(default=0, description="Relevance score (0-100) based on deterministic ranking")
++    final_ranking_score: Optional[int] = Field(default=None, description="Relevance score (0-100) based on deterministic ranking")
+     pros: List[str] = Field(default_factory=list, description="List of top 3 strengths")
+     cons: List[str] = Field(default_factory=list, description="List of top 3 weaknesses")
+ 
+diff --git a/backend/app/services/map_service.py b/backend/app/services/map_service.py
+index ff067e6..2ff3b9f 100644
+--- a/backend/app/services/map_service.py
++++ b/backend/app/services/map_service.py
+@@ -115,7 +115,7 @@ class MapService:
+                         "bathrooms": b.bathrooms,
+                         "floor": b.floor,
+                         "is_evaluated": b.is_evaluated,
+-                        "is_meta_building": b.is_meta_building,
++                        "is_meta_building": b.meta_building,
+                         # New metadata fields
+                         "meta_property": b.meta_property,
+                         "annual_rent": b.annual_rent,
+diff --git a/backend/app/services/real_estate_service.py b/backend/app/services/real_estate_service.py
+index 91ab75b..3b274b8 100644
+--- a/backend/app/services/real_estate_service.py
++++ b/backend/app/services/real_estate_service.py
+@@ -477,8 +477,8 @@ class RealEstateService:
+                 pass
+ 
+         # Extract coordinates
+-        lat = safe_get("latitude", alternatives=["lat"])
+-        lon = safe_get("longitude", alternatives=["lon"])
++        lat = safe_get("latitude", alternatives=["lat", "latitudine"])
++        lon = safe_get("longitude", alternatives=["lon", "longitudine"])
+ 
+         if lat is None or lon is None:
+             # Try to extract from other common column names
+@@ -499,11 +499,11 @@ class RealEstateService:
+         # Extract energy scores if available
+         energy_scores = None
+         energy_score_cols = {
+-            "total": ["energy_score_total", "energy_score"],
+-            "class_score": ["energy_score_class"],
+-            "system_score": ["energy_score_plant"],
+-            "envelope_score": ["energy_score_envelope"],
+-            "renewables_score": ["energy_score_renewables"],
++            "total": ["energy_score_total", "energy_score", "ape_score_total"],
++            "class_score": ["energy_score_class", "ape_score_classe"],
++            "system_score": ["energy_score_plant", "ape_score_impianto"],
++            "envelope_score": ["energy_score_envelope", "ape_score_involucro"],
++            "renewables_score": ["energy_score_renewables", "ape_score_rinnovabili"],
+         }
+         
+         energy_data = {}
+@@ -515,9 +515,17 @@ class RealEstateService:
+                 else:
+                     energy_data[key] = int(value) if not pd.isna(value) else 0
+ 
+-        if energy_data and "total" in energy_data:
++        if energy_data and any(k in energy_data for k in ["class_score", "system_score", "envelope_score", "renewables_score"]):
++            # Ricalcola total come somma dei sotto-score se total è 0 o mancante
++            sub_total = (
++                energy_data.get("class_score", 0)
++                + energy_data.get("system_score", 0)
++                + energy_data.get("envelope_score", 0)
++                + energy_data.get("renewables_score", 0)
++            )
++            total_val = energy_data.get("total", 0.0) or sub_total  # usa sub_total se total==0
+             energy_scores = EnergyScores(
+-                total=energy_data.get("total", 0.0),
++                total=float(total_val),
+                 class_score=energy_data.get("class_score", 0),
+                 system_score=energy_data.get("system_score", 0),
+                 envelope_score=energy_data.get("envelope_score", 0),
+@@ -527,11 +535,11 @@ class RealEstateService:
+         # Extract POI scores if available
+         poi_scores = None
+         poi_columns = {
+-            "healthcare": ["healthcare"],
+-            "mobility": ["mobility"],
+-            "greenery": ["green", "greenery"],
+-            "education": ["education"],
+-            "commerce": ["commercial", "commerce"],
++            "healthcare": ["healthcare", "sanita", "sanità"],
++            "mobility": ["mobility", "mobilita", "mobilità"],
++            "greenery": ["green", "greenery", "verde"],
++            "education": ["education", "educazione"],
++            "commerce": ["commercial", "commerce", "commerciale"],
+             "sport": ["sport"],
+         }
+         
+@@ -568,7 +576,7 @@ class RealEstateService:
+         # Parse energy files list
+         ape_files = parse_ape_list(
+             safe_get(
+-                "energy_files"
++                "energy_files", alternatives=["lista_file_ape", "list_file_ape_filtered", "list_file_ape_filtered_parsed"]
+             )
+         )
+ 
+@@ -611,8 +619,12 @@ class RealEstateService:
+ 
+                                     if "surface_area" in sub_row.index and pd.notna(sub_row["surface_area"]):
+                                         sub_prop.surface_area = float(sub_row["surface_area"])
++                                    elif "superficie_di_riferimento_mq" in sub_row.index and pd.notna(sub_row["superficie_di_riferimento_mq"]):
++                                        sub_prop.surface_area = float(sub_row["superficie_di_riferimento_mq"])
+                                     if "property_type" in sub_row.index and pd.notna(sub_row["property_type"]):
+                                         sub_prop.property_type = str(sub_row["property_type"])
++                                    elif "tipologia_bene_immobile" in sub_row.index and pd.notna(sub_row["tipologia_bene_immobile"]):
++                                        sub_prop.property_type = str(sub_row["tipologia_bene_immobile"])
+                                 except Exception as e:
+                                     # Fallback or ignore error for single item
+                                     pass
+@@ -622,42 +634,67 @@ class RealEstateService:
+                     logger.warning(f"Error parsing sub-properties: {e}")
+                     sub_properties = None
+ 
++        # Format address
++        addr = safe_get("address", alternatives=["indirizzo"])
++        civic = safe_get("numero_civico")
++        if addr and civic and pd.notna(civic):
++            address_str = f"{addr}, {civic}"
++        else:
++            address_str = addr
++
++        # Map city
++        city_val = safe_get("city", alternatives=["codice_comune"])
++        if city_val == "L219" or (hasattr(settings, "TARGET_COMUNE_CODE") and city_val == settings.TARGET_COMUNE_CODE):
++            city_str = getattr(settings, "TARGET_CITY", "Torino")
++        else:
++            city_str = city_val
++
+         # Build the response
+         res_data = {
+             "id": str(safe_get("id", "")),
+-            "address": safe_get("address"),
+-            "city": safe_get("city"),
++            "address": address_str,
++            "city": city_str,
+             "coordinates": coordinates,
+-            "surface_area": safe_get("surface_area"),
+-            "energy_class": safe_get("energy_class"),
+-            "score": safe_get("score", alternatives=["final_ranking_score", "energy_score"]),
++            "surface_area": safe_get("surface_area", alternatives=["superficie_di_riferimento_mq"]),
++            "energy_class": safe_get("energy_class", alternatives=["classe_energetica_ape"]),
++            "score": safe_get("final_ranking_score", alternatives=["score", "energy_score"]),
+             "rooms": None,
+             "bathrooms": None,
+             "floor": None,
+             "price": safe_get("price", alternatives=["annual_rent"]),
+-            "description": safe_get("description"),
++            "description": safe_get("description", alternatives=["tipologia_bene_immobile"]),
+ 
+-            "property_type": safe_get("property_type"),
++            "property_type": safe_get("property_type", alternatives=["tipologia_bene_immobile"]),
+             "legal_nature": safe_get("legal_nature"),
+             "cultural_constraint": None,
+             "purpose": safe_get("purpose"),
+-            "omi_zone": safe_get("omi_zone"),
++            "omi_zone": safe_get("omi_zone", alternatives=["zona_omi"]),
+             "is_evaluated": bool(safe_get("is_evaluated", default=False)),
+             "is_match": bool(safe_get("is_match", default=True)),
+-            "meta_building": self._str_to_bool(safe_get("is_meta_estate", alternatives=["is_meta"], default=False)),
++            "meta_building": self._str_to_bool(safe_get("is_meta_estate", alternatives=["is_meta", "meta_immobile"], default=False)),
+             "annual_rent": safe_get("annual_rent"),
+-            "effective_date": safe_get("effective_date"),
+-            "cadastral_units_count": safe_get("cadastral_units_count", default=None),
++            "effective_date": safe_get("effective_date", alternatives=["data_decorrenza"]),
++            "cadastral_units_count": safe_get("cadastral_units_count", alternatives=["numero_immobili_per_catasto"], default=None),
+             "id_list": (str(safe_get("id_list", default="")) if safe_get("id_list") else None),
+             "sub_properties": sub_properties,
+             "energy_scores": energy_scores,
+             "proximity_scores": poi_scores,
+             "energy_files": ape_files,
+-            "distance_km": safe_get("distance_km"),
++            "distance_km": safe_get("distance_km", alternatives=["distanza_km"]),
+             "proximity_reference": safe_get("proximity_reference"),
+-            "greenery": safe_get("green", alternatives=["greenery"]),
+-            "mobility": safe_get("mobility"),
+-            "education": safe_get("education"),
++            "greenery": safe_get("green", alternatives=["greenery", "verde"]),
++            "mobility": safe_get("mobility", alternatives=["mobilita"]),
++            "education": safe_get("education", alternatives=["educazione"]),
++            "location_score": safe_get("location_score"),
++            "regulatory_score": safe_get("regulatory_score"),
++            "energy_score": safe_get("energy_score"),
++            "building_score": safe_get("building_score"),
++            "proximity_score": safe_get("proximity_score"),
++            "ranking_weight_location": safe_get("ranking_weight_location"),
++            "ranking_weight_regulatory": safe_get("ranking_weight_regulatory"),
++            "ranking_weight_energy": safe_get("ranking_weight_energy"),
++            "ranking_weight_building": safe_get("ranking_weight_building"),
++            "ranking_weight_proximity": safe_get("ranking_weight_proximity"),
+         }
+ 
+         # Handle fields that need explicit string conversion or might be None
+diff --git a/frontend/package-lock.json b/frontend/package-lock.json
+index 6fd750f..b009ea8 100644
+--- a/frontend/package-lock.json
++++ b/frontend/package-lock.json
+@@ -89,7 +89,6 @@
+       "integrity": "sha512-H3mcG6ZDLTlYfaSNi0iOKkigqMFvkTKlGUYlD8GW7nNOYRrevuA46iTypPyv+06V3fEmvvazfntkBU34L0azAw==",
+       "dev": true,
+       "license": "MIT",
+-      "peer": true,
+       "dependencies": {
+         "@babel/code-frame": "^7.28.6",
+         "@babel/generator": "^7.28.6",
+@@ -977,7 +976,6 @@
+       "resolved": "https://registry.npmjs.org/@react-leaflet/core/-/core-3.0.0.tgz",
+       "integrity": "sha512-3EWmekh4Nz+pGcr+xjf0KNyYfC3U2JjnkWsh0zcqaexYqmmB5ZhH37kz41JXGmKzpaMZCnPofBBm64i+YrEvGQ==",
+       "license": "Hippocratic-2.1",
+-      "peer": true,
+       "peerDependencies": {
+         "leaflet": "^1.9.0",
+         "react": "^19.0.0",
+@@ -1815,7 +1813,6 @@
+       "integrity": "sha512-ne4A0IpG3+2ETuREInjPNhUGis1SFjv1d5asp8MzEAGtOZeTeHVDOYqOgqfhvseqg/iXty2hjBf1zAOb7RNiNw==",
+       "dev": true,
+       "license": "MIT",
+-      "peer": true,
+       "dependencies": {
+         "undici-types": "~7.16.0"
+       }
+@@ -1826,7 +1823,6 @@
+       "integrity": "sha512-3MbSL37jEchWZz2p2mjntRZtPt837ij10ApxKfgmXCTuHWagYg7iA5bqPw6C8BMPfwidlvfPI/fxOc42HLhcyg==",
+       "devOptional": true,
+       "license": "MIT",
+-      "peer": true,
+       "dependencies": {
+         "csstype": "^3.2.2"
+       }
+@@ -1903,7 +1899,6 @@
+       "integrity": "sha512-npiaib8XzbjtzS2N4HlqPvlpxpmZ14FjSJrteZpPxGUaYPlvhzlzUZ4mZyABo0EFrOWnvyd0Xxroq//hKhtAWg==",
+       "dev": true,
+       "license": "MIT",
+-      "peer": true,
+       "dependencies": {
+         "@typescript-eslint/scope-manager": "8.53.0",
+         "@typescript-eslint/types": "8.53.0",
+@@ -2154,7 +2149,6 @@
+       "integrity": "sha512-NZyJarBfL7nWwIq+FDL6Zp/yHEhePMNnnJ0y3qfieCrmNvYct8uvtiV41UvlSe6apAfk0fY1FbWx+NwfmpvtTg==",
+       "dev": true,
+       "license": "MIT",
+-      "peer": true,
+       "bin": {
+         "acorn": "bin/acorn"
+       },
+@@ -2314,7 +2308,6 @@
+         }
+       ],
+       "license": "MIT",
+-      "peer": true,
+       "dependencies": {
+         "baseline-browser-mapping": "^2.9.0",
+         "caniuse-lite": "^1.0.30001759",
+@@ -2825,7 +2818,6 @@
+       "integrity": "sha512-LEyamqS7W5HB3ujJyvi0HQK/dtVINZvd5mAAp9eT5S/ujByGjiZLCzPcHVzuXbpJDJF/cxwHlfceVUDZ2lnSTw==",
+       "dev": true,
+       "license": "MIT",
+-      "peer": true,
+       "dependencies": {
+         "@eslint-community/eslint-utils": "^4.8.0",
+         "@eslint-community/regexpp": "^4.12.1",
+@@ -3540,8 +3532,7 @@
+       "version": "1.9.4",
+       "resolved": "https://registry.npmjs.org/leaflet/-/leaflet-1.9.4.tgz",
+       "integrity": "sha512-nxS1ynzJOmOlHp+iL3FyWqK89GtNL8U8rvlMOsQdTTssxZwCXh8N2NB3GDQOL+YR3XnWyZAxwQixURb+FA74PA==",
+-      "license": "BSD-2-Clause",
+-      "peer": true
++      "license": "BSD-2-Clause"
+     },
+     "node_modules/leaflet.markercluster": {
+       "version": "1.5.3",
+@@ -4058,7 +4049,6 @@
+       "integrity": "sha512-5gTmgEY/sqK6gFXLIsQNH19lWb4ebPDLA4SdLP7dsWkIXHWlG66oPuVvXSGFPppYZz8ZDZq0dYYrbHfBCVUb1Q==",
+       "dev": true,
+       "license": "MIT",
+-      "peer": true,
+       "engines": {
+         "node": ">=12"
+       },
+@@ -4085,7 +4075,6 @@
+         }
+       ],
+       "license": "MIT",
+-      "peer": true,
+       "dependencies": {
+         "nanoid": "^3.3.11",
+         "picocolors": "^1.1.1",
+@@ -4133,7 +4122,6 @@
+       "resolved": "https://registry.npmjs.org/react/-/react-19.2.3.tgz",
+       "integrity": "sha512-Ku/hhYbVjOQnXDZFv2+RibmLFGwFdeeKHFcOTlrt7xplBnya5OGn/hIRDsqDiSUcfORsDC7MPxwork8jBwsIWA==",
+       "license": "MIT",
+-      "peer": true,
+       "engines": {
+         "node": ">=0.10.0"
+       }
+@@ -4143,7 +4131,6 @@
+       "resolved": "https://registry.npmjs.org/react-dom/-/react-dom-19.2.3.tgz",
+       "integrity": "sha512-yELu4WmLPw5Mr/lmeEpox5rw3RETacE++JgHqQzd2dg+YbJuat3jH4ingc+WPZhxaoFzdv9y33G+F7Nl5O0GBg==",
+       "license": "MIT",
+-      "peer": true,
+       "dependencies": {
+         "scheduler": "^0.27.0"
+       },
+@@ -4163,7 +4150,6 @@
+       "resolved": "https://registry.npmjs.org/react-leaflet/-/react-leaflet-5.0.0.tgz",
+       "integrity": "sha512-CWbTpr5vcHw5bt9i4zSlPEVQdTVcML390TjeDG0cK59z1ylexpqC6M1PJFjV8jD7CF+ACBFsLIDs6DRMoLEofw==",
+       "license": "Hippocratic-2.1",
+-      "peer": true,
+       "dependencies": {
+         "@react-leaflet/core": "^3.0.0"
+       },
+@@ -4194,7 +4180,6 @@
+       "resolved": "https://registry.npmjs.org/react-redux/-/react-redux-9.2.0.tgz",
+       "integrity": "sha512-ROY9fvHhwOD9ySfrF0wmvu//bKCQ6AeZZq1nJNtbDC+kk5DuSuNX/n6YWYF/SYy7bSba4D4FSz8DJeKY/S/r+g==",
+       "license": "MIT",
+-      "peer": true,
+       "dependencies": {
+         "@types/use-sync-external-store": "^0.0.6",
+         "use-sync-external-store": "^1.4.0"
+@@ -4294,8 +4279,7 @@
+       "version": "5.0.1",
+       "resolved": "https://registry.npmjs.org/redux/-/redux-5.0.1.tgz",
+       "integrity": "sha512-M9/ELqF6fy8FwmkpnF0S3YKOqMyoWJ4+CS5Efg2ct3oY9daQvd/Pc71FpGZsVsbl3Cpb+IIcjBDUnnyBdQbq4w==",
+-      "license": "MIT",
+-      "peer": true
++      "license": "MIT"
+     },
+     "node_modules/redux-thunk": {
+       "version": "3.1.0",
+@@ -4439,7 +4423,6 @@
+       "resolved": "https://registry.npmjs.org/supercluster/-/supercluster-8.0.1.tgz",
+       "integrity": "sha512-IiOea5kJ9iqzD2t7QJq/cREyLHTtSmUT6gQsweojg9WH2sYJqZK9SswTu6jrscO6D1G5v5vYZ9ru/eq85lXeZQ==",
+       "license": "ISC",
+-      "peer": true,
+       "dependencies": {
+         "kdbush": "^4.0.2"
+       }
+@@ -4547,7 +4530,6 @@
+       "integrity": "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw==",
+       "dev": true,
+       "license": "Apache-2.0",
+-      "peer": true,
+       "bin": {
+         "tsc": "bin/tsc",
+         "tsserver": "bin/tsserver"
+@@ -4695,7 +4677,6 @@
+       "resolved": "https://registry.npmjs.org/vite/-/vite-5.4.21.tgz",
+       "integrity": "sha512-o5a9xKjbtuhY6Bi5S3+HvbRERmouabWbyUcpXXUA1u+GNUKoROi9byOJ8M0nHbHYHkYICiMlqxkg1KkYmm25Sw==",
+       "dev": true,
+-      "peer": true,
+       "dependencies": {
+         "esbuild": "^0.21.3",
+         "postcss": "^8.4.43",
+@@ -4802,7 +4783,6 @@
+       "integrity": "sha512-k7Nwx6vuWx1IJ9Bjuf4Zt1PEllcwe7cls3VNzm4CQ1/hgtFUK2bRNG3rvnpPUhFjmqJKAKtjV576KnUkHocg/g==",
+       "dev": true,
+       "license": "MIT",
+-      "peer": true,
+       "funding": {
+         "url": "https://github.com/sponsors/colinhacks"
+       }
+diff --git a/frontend/src/api/types.ts b/frontend/src/api/types.ts
+index 2ff7a0e..9dad064 100644
+--- a/frontend/src/api/types.ts
++++ b/frontend/src/api/types.ts
+@@ -104,12 +104,34 @@ export interface MapMarker {
+         sport?: number;
+     };
+     energy_files?: string[];
++    // Italian aliases and fields
++    meta_immobile?: boolean;
++    canone_annuale?: number;
++    tipo_detenzione_a_terzi?: string;
++    data_decorrenza?: string;
++    numero_immobili_per_catasto?: number;
++    ape_scores?: any;
++    poi_scores?: any;
++    ape_files?: string[];
++    // English aliases for BuildingDetail compatibility
++    effective_date?: string;           // alias for data_decorrenza
+     // Intelligence Map - AI Evaluation fields
+     tier?: MarkerTier; // 1=Background, 2=Search Results, 3=Top Picks
+     evaluation_text?: string;
+     pros?: string[];
+     cons?: string[];
+     ranking_score?: number; // AI-computed score for Top Picks ordering
++    location_score?: number;
++    regulatory_score?: number;
++    energy_score?: number;
++    building_score?: number;
++    proximity_score?: number;
++    ranking_weight_location?: number;
++    ranking_weight_regulatory?: number;
++    ranking_weight_energy?: number;
++    ranking_weight_building?: number;
++    ranking_weight_proximity?: number;
++    meta_building?: boolean;
+ }
+ 
+ export interface MapConfig {
+@@ -154,17 +176,29 @@ export interface BuildingResponse {
+     is_evaluated: boolean;
+     is_match: boolean;
+     is_meta_building: boolean;
++    meta_building?: boolean;
+     // New fields
+     meta_property?: string;
+     annual_rent?: number;
+     third_party_tenure_type?: string;
+     start_date?: string;
++    effective_date?: string;
+     cadastral_units_count?: number;
+     id_list?: string;
+     energy_scores?: EnergyScores;
+     proximity_scores?: ProximityScores;
+     distance_km?: number;
+     proximity_reference?: string;
++    location_score?: number;
++    regulatory_score?: number;
++    energy_score?: number;
++    building_score?: number;
++    proximity_score?: number;
++    ranking_weight_location?: number;
++    ranking_weight_regulatory?: number;
++    ranking_weight_energy?: number;
++    ranking_weight_building?: number;
++    ranking_weight_proximity?: number;
+     // Extended fields
+     energy_files?: string[];
+     property_type?: string;
+@@ -264,6 +298,7 @@ export interface GeminiResponses {
+             id: number | string;
+             evaluation_text: string;
+             score?: number;
++            final_ranking_score?: number;
+             pros?: string[];
+             cons?: string[];
+         }>;
+@@ -356,7 +391,6 @@ export interface ProgressUpdate {
+     detail: string;
+     steps_state?: ProgressStep[];
+ }
+-
+ export interface ProgressComplete {
+     type: 'complete';
+     run_id: string;
+@@ -364,7 +398,12 @@ export interface ProgressComplete {
+     results_url: string;
+ }
+ 
+-export type WebSocketMessage = ProgressUpdate | ProgressComplete;
++export interface ProgressError {
++    type: 'error';
++    message?: string;
++}
++
++export type WebSocketMessage = ProgressUpdate | ProgressComplete | ProgressError;
+ 
+ // Agent Feedback Types
+ export interface AgentFeedbackSubmit {
+diff --git a/frontend/src/components/building/AIEvaluationCard.tsx b/frontend/src/components/building/AIEvaluationCard.tsx
+index dbdebd1..c0b602f 100644
+--- a/frontend/src/components/building/AIEvaluationCard.tsx
++++ b/frontend/src/components/building/AIEvaluationCard.tsx
+@@ -1,6 +1,6 @@
+-import React from 'react';
+-import { motion } from 'framer-motion';
+-import { Sparkles, CheckCircle2, AlertTriangle } from 'lucide-react';
++import React, { useState } from 'react';
++import { motion, AnimatePresence } from 'framer-motion';
++import { Sparkles, CheckCircle2, AlertTriangle, ChevronDown, ChevronUp, Sliders, Zap, MapPin, Activity, Shield, Building2 } from 'lucide-react';
+ 
+ interface AIEvaluationCardProps {
+     score?: number;
+@@ -8,6 +8,19 @@ interface AIEvaluationCardProps {
+     pros?: string[];
+     cons?: string[];
+     compact?: boolean; // For smaller display in sidebar
++    energyScores?: any;
++    proximityScores?: any;
++    distanceKm?: number;
++    locationScore?: number;
++    regulatoryScore?: number;
++    energyScore?: number;
++    buildingScore?: number;
++    proximityScore?: number;
++    weightLocation?: number;
++    weightRegulatory?: number;
++    weightEnergy?: number;
++    weightBuilding?: number;
++    weightProximity?: number;
+ }
+ 
+ export const AIEvaluationCard: React.FC<AIEvaluationCardProps> = ({
+@@ -16,7 +29,29 @@ export const AIEvaluationCard: React.FC<AIEvaluationCardProps> = ({
+     pros = [],
+     cons = [],
+     compact = false,
++    energyScores,
++    proximityScores,
++    distanceKm,
++    locationScore,
++    regulatoryScore,
++    energyScore,
++    buildingScore,
++    proximityScore,
++    weightLocation,
++    weightRegulatory,
++    weightEnergy,
++    weightBuilding,
++    weightProximity,
+ }) => {
++    const [showBreakdown, setShowBreakdown] = useState(false);
++
++    const hasWeights = weightLocation !== undefined || weightRegulatory !== undefined || weightEnergy !== undefined || weightBuilding !== undefined || weightProximity !== undefined;
++    const wLoc = hasWeights ? (weightLocation ?? 0.0) : 0.3;
++    const wReg = hasWeights ? (weightRegulatory ?? 0.0) : 0.0;
++    const wEng = hasWeights ? (weightEnergy ?? 0.0) : 0.2;
++    const wBld = hasWeights ? (weightBuilding ?? 0.0) : 0.0;
++    const wProx = hasWeights ? (weightProximity ?? 0.0) : 0.5;
++
+     const getScoreColor = (s?: number) => {
+         if (!s) return { bg: 'from-gray-600 to-gray-700', text: 'text-gray-400', glow: 'shadow-gray-500/20' };
+         if (s >= 80) return { bg: 'from-emerald-500 to-green-600', text: 'text-emerald-400', glow: 'shadow-emerald-500/30' };
+@@ -28,6 +63,53 @@ export const AIEvaluationCard: React.FC<AIEvaluationCardProps> = ({
+     const scoreColors = getScoreColor(score);
+     const hasEvaluation = score != null || evaluationText || pros.length > 0 || cons.length > 0;
+ 
++    // Helper score calculations for breakdown
++    const getPoiScore = () => {
++        if (proximityScore !== undefined && proximityScore !== null) return Math.round(proximityScore);
++        if (!proximityScores) return 70; // fallback default
++        const values = Object.values(proximityScores).filter(v => v !== undefined && v !== null && typeof v === 'number') as number[];
++        if (values.length === 0) return 70;
++        const avg = values.reduce((sum, v) => sum + v, 0) / values.length;
++        return Math.round(avg);
++    };
++
++    const getApeScore = () => {
++        if (energyScore !== undefined && energyScore !== null) return Math.round(energyScore);
++        if (!energyScores) return 60; // fallback default
++        if (energyScores.total !== undefined && energyScores.total !== null) {
++            return Math.round((energyScores.total / 20) * 100);
++        }
++        const keys = ['class_score', 'system_score', 'envelope_score', 'renewables_score'];
++        const values = keys.map(k => energyScores[k]).filter(v => v !== undefined && v !== null && typeof v === 'number') as number[];
++        if (values.length === 0) return 60;
++        const avg = values.reduce((sum, v) => sum + v, 0) / values.length;
++        return Math.round((avg / 5) * 100);
++    };
++
++    const getDistanceScore = () => {
++        if (locationScore !== undefined && locationScore !== null) return Math.round(locationScore);
++        if (distanceKm === undefined || distanceKm === null) return 80; // fallback default
++        const maxDist = 6.0; // standard fallback normalized dist
++        const distScoreNorm = Math.max(0, 1 - (distanceKm / maxDist));
++        return Math.round(distScoreNorm * 100);
++    };
++
++    const getRegulatoryScore = () => {
++        if (regulatoryScore !== undefined && regulatoryScore !== null) return Math.round(regulatoryScore);
++        return 0; // default/fallback
++    };
++
++    const getBuildingScore = () => {
++        if (buildingScore !== undefined && buildingScore !== null) return Math.round(buildingScore);
++        return 0; // default/fallback
++    };
++
++    const poi = getPoiScore();
++    const energy = getApeScore();
++    const location = getDistanceScore();
++    const regulatory = getRegulatoryScore();
++    const building = getBuildingScore();
++
+     if (!hasEvaluation) {
+         return null;
+     }
+@@ -127,6 +209,120 @@ export const AIEvaluationCard: React.FC<AIEvaluationCardProps> = ({
+                     </p>
+                 )}
+ 
++                {/* Collapsible Score Formulation Detail */}
++                {score != null && (
++                    <div className="border border-white/10 rounded-lg overflow-hidden bg-[#1e293b]/30">
++                        <button
++                            onClick={() => setShowBreakdown(!showBreakdown)}
++                            className="w-full px-3 py-2 flex items-center justify-between text-xs font-semibold text-gray-300 hover:bg-white/5 transition-colors"
++                        >
++                            <span className="flex items-center gap-1.5">
++                                <Sliders className="w-3.5 h-3.5 text-amber-400" />
++                                Dettaglio Formulazione Score
++                            </span>
++                            {showBreakdown ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
++                        </button>
++
++                        <AnimatePresence>
++                            {showBreakdown && (
++                                <motion.div
++                                    initial={{ height: 0, opacity: 0 }}
++                                    animate={{ height: 'auto', opacity: 1 }}
++                                    exit={{ height: 0, opacity: 0 }}
++                                    transition={{ duration: 0.2 }}
++                                    className="px-3 pb-3 pt-1 border-t border-white/5 text-xs space-y-2.5"
++                                >
++                                    {/* Agent Proximity */}
++                                    <div className="space-y-1">
++                                        <div className="flex justify-between text-[11px]">
++                                            <span className="text-gray-400 flex items-center gap-1">
++                                                <Activity className="w-3 h-3 text-emerald-400" />
++                                                Agente Prossimità (POI)
++                                            </span>
++                                            <span className="text-white font-medium">Peso: {Math.round(wProx * 100)}% | Score: {poi}/100</span>
++                                        </div>
++                                        <div className="w-full bg-white/5 h-1.5 rounded-full overflow-hidden">
++                                            <div className="bg-emerald-500 h-full rounded-full" style={{ width: `${poi}%` }} />
++                                        </div>
++                                    </div>
++
++                                    {/* Agent Location (Distance) */}
++                                    <div className="space-y-1">
++                                        <div className="flex justify-between text-[11px]">
++                                            <span className="text-gray-400 flex items-center gap-1">
++                                                <MapPin className="w-3 h-3 text-cyan-400" />
++                                                Agente Posizione (Distanza)
++                                            </span>
++                                            <span className="text-white font-medium">Peso: {Math.round(wLoc * 100)}% | Score: {location}/100</span>
++                                        </div>
++                                        <div className="w-full bg-white/5 h-1.5 rounded-full overflow-hidden">
++                                            <div className="bg-cyan-500 h-full rounded-full" style={{ width: `${location}%` }} />
++                                        </div>
++                                        {distanceKm !== undefined && (
++                                            <span className="text-[10px] text-gray-500">
++                                                Distanza di riferimento: {distanceKm.toFixed(2)} km
++                                            </span>
++                                        )}
++                                    </div>
++
++                                    {/* Agent Energy (APE) */}
++                                    <div className="space-y-1">
++                                        <div className="flex justify-between text-[11px]">
++                                            <span className="text-gray-400 flex items-center gap-1">
++                                                <Zap className="w-3 h-3 text-amber-400" />
++                                                Agente Efficienza (APE)
++                                            </span>
++                                            <span className="text-white font-medium">Peso: {Math.round(wEng * 100)}% | Score: {energy}/100</span>
++                                        </div>
++                                        <div className="w-full bg-white/5 h-1.5 rounded-full overflow-hidden">
++                                            <div className="bg-amber-500 h-full rounded-full" style={{ width: `${energy}%` }} />
++                                        </div>
++                                    </div>
++
++                                    {/* Agent Regulatory */}
++                                    <div className="space-y-1">
++                                        <div className="flex justify-between text-[11px]">
++                                            <span className="text-gray-400 flex items-center gap-1">
++                                                <Shield className="w-3 h-3 text-purple-400" />
++                                                Agente Regolarità (Normativa)
++                                            </span>
++                                            <span className="text-white font-medium">Peso: {Math.round(wReg * 100)}% | Score: {regulatory}/100</span>
++                                        </div>
++                                        <div className="w-full bg-white/5 h-1.5 rounded-full overflow-hidden">
++                                            <div className="bg-purple-500 h-full rounded-full" style={{ width: `${regulatory}%` }} />
++                                        </div>
++                                    </div>
++
++                                    {/* Agent Building Technical */}
++                                    <div className="space-y-1">
++                                        <div className="flex justify-between text-[11px]">
++                                            <span className="text-gray-400 flex items-center gap-1">
++                                                <Building2 className="w-3 h-3 text-rose-400" />
++                                                Agente Caratteristiche (Tecnico)
++                                            </span>
++                                            <span className="text-white font-medium">Peso: {Math.round(wBld * 100)}% | Score: {building}/100</span>
++                                        </div>
++                                        <div className="w-full bg-white/5 h-1.5 rounded-full overflow-hidden">
++                                            <div className="bg-rose-500 h-full rounded-full" style={{ width: `${building}%` }} />
++                                        </div>
++                                    </div>
++
++                                    {/* Final Score Mathematical calculation */}
++                                    <div className="mt-3 pt-2 border-t border-white/5 text-[10px] text-gray-400 bg-black/20 p-2 rounded-md font-mono flex flex-col gap-0.5">
++                                        <span className="text-[11px] text-amber-300 font-semibold mb-1">Formula Ponderata:</span>
++                                        <div className="leading-relaxed">
++                                            ({poi} × {wProx.toFixed(2)}) + ({location} × {wLoc.toFixed(2)}) + ({energy} × {wEng.toFixed(2)}) + ({regulatory} × {wReg.toFixed(2)}) + ({building} × {wBld.toFixed(2)})
++                                        </div>
++                                        <div className="text-white font-bold mt-1.5 text-right border-t border-white/5 pt-1">
++                                            = {Math.round(poi * wProx + location * wLoc + energy * wEng + regulatory * wReg + building * wBld)} / 100
++                                        </div>
++                                    </div>
++                                </motion.div>
++                            )}
++                        </AnimatePresence>
++                    </div>
++                )}
++
+                 {/* Pros */}
+                 {pros.length > 0 && (
+                     <div>
+diff --git a/frontend/src/components/building/BuildingDetail.tsx b/frontend/src/components/building/BuildingDetail.tsx
+index 3bdba21..5fc76f6 100644
+--- a/frontend/src/components/building/BuildingDetail.tsx
++++ b/frontend/src/components/building/BuildingDetail.tsx
+@@ -38,6 +38,7 @@ interface BuildingData {
+     energy_scores?: {
+         total?: number;
+         class_score?: number;
++        system_score?: number;
+         plant_score?: number;
+         envelope_score?: number;
+         renewables_score?: number;
+@@ -71,6 +72,17 @@ interface BuildingData {
+     cons?: string[];
+     ranking_score?: number;
+     is_evaluated?: boolean;
++    distance_km?: number;
++    location_score?: number;
++    regulatory_score?: number;
++    energy_score?: number;
++    building_score?: number;
++    proximity_score?: number;
++    ranking_weight_location?: number;
++    ranking_weight_regulatory?: number;
++    ranking_weight_energy?: number;
++    ranking_weight_building?: number;
++    ranking_weight_proximity?: number;
+ }
+ 
+ interface BuildingDetailProps {
+@@ -256,7 +268,7 @@ export const BuildingDetail: React.FC<BuildingDetailProps> = ({ data, runId, onF
+         if (!details.energy_scores) return [];
+         return [
+             { subject: 'Class', A: details.energy_scores.class_score || 0, fullMark: 5 },
+-            { subject: 'Plant', A: details.energy_scores.plant_score || 0, fullMark: 5 },
++            { subject: 'Plant', A: details.energy_scores.system_score || details.energy_scores.plant_score || 0, fullMark: 5 },
+             { subject: 'Envelope', A: details.energy_scores.envelope_score || 0, fullMark: 5 },
+             { subject: 'Renewable', A: details.energy_scores.renewables_score || 0, fullMark: 5 },
+         ];
+@@ -313,7 +325,8 @@ export const BuildingDetail: React.FC<BuildingDetailProps> = ({ data, runId, onF
+ 
+     const hasProximityData = proximityRadarData.some(d => d.A > 0);
+     const hasEnergyRadarData = energyRadarData.length > 0 && energyRadarData.some(d => d.A > 0);
+-    const hasAIEvaluation = details.is_evaluated && (details.ranking_score != null || details.evaluation_text);
++    const finalScore = details.score ?? details.ranking_score;
++    const hasAIEvaluation = details.is_evaluated && ((finalScore != null && finalScore > 0) || details.evaluation_text);
+ 
+     // Get tier badge info
+     const getTierBadge = () => {
+@@ -434,11 +447,24 @@ export const BuildingDetail: React.FC<BuildingDetailProps> = ({ data, runId, onF
+             {
+                 hasAIEvaluation && (
+                     <AIEvaluationCard
+-                        score={details.ranking_score}
++                        score={finalScore}
+                         evaluationText={details.evaluation_text}
+                         pros={details.pros}
+                         cons={details.cons}
+                         compact={false}
++                        energyScores={details.energy_scores}
++                        proximityScores={details.proximity_scores}
++                        distanceKm={details.distance_km}
++                        locationScore={details.location_score}
++                        regulatoryScore={details.regulatory_score}
++                        energyScore={details.energy_score}
++                        buildingScore={details.building_score}
++                        proximityScore={details.proximity_score}
++                        weightLocation={details.ranking_weight_location}
++                        weightRegulatory={details.ranking_weight_regulatory}
++                        weightEnergy={details.ranking_weight_energy}
++                        weightBuilding={details.ranking_weight_building}
++                        weightProximity={details.ranking_weight_proximity}
+                     />
+                 )
+             }
+diff --git a/frontend/src/components/history/RunDetailModal.tsx b/frontend/src/components/history/RunDetailModal.tsx
+index 4c1c157..330d6d9 100644
+--- a/frontend/src/components/history/RunDetailModal.tsx
++++ b/frontend/src/components/history/RunDetailModal.tsx
+@@ -40,6 +40,7 @@ import { analysisApi } from '../../api/endpoints/analysis';
+ import type { AnalysisResults, AgentStep } from '../../api/types';
+ import { QueryTooltip } from '../common/QueryTooltip';
+ import { formatFullDate } from '../../utils/dateUtils';
++import { MarkdownText } from '../common/MarkdownText';
+ 
+ interface RunDetailModalProps {
+     runId: string | null;
+@@ -373,9 +374,9 @@ export const RunDetailModal: React.FC<RunDetailModalProps> = ({
+                                                 <MessageSquare className="w-5 h-5 text-pink-400" />
+                                                 <h3 className="text-sm font-semibold text-white">Riepilogo AI Broker</h3>
+                                             </div>
+-                                            <p className="text-sm text-gray-300 leading-relaxed whitespace-pre-wrap">
+-                                                {results.broker_summary}
+-                                            </p>
++                                             <div className="text-sm text-gray-300 leading-relaxed">
++                                                 <MarkdownText text={results.broker_summary} />
++                                             </div>
+                                         </div>
+                                     )}
+ 
+diff --git a/frontend/src/hooks/useAnalysisProgress.ts b/frontend/src/hooks/useAnalysisProgress.ts
+index 9f6bdb2..1abb03e 100644
+--- a/frontend/src/hooks/useAnalysisProgress.ts
++++ b/frontend/src/hooks/useAnalysisProgress.ts
+@@ -190,12 +190,15 @@ export function useAnalysisProgress(
+                     ws.close(1000, 'Analysis complete');
+                 } else if (data.type === 'error') {
+                     console.error('WebSocket reported an error message:', data);
+-                    setError((data as any).message || 'An error occurred during pipeline execution');
+-                    setIsConnected(false);
++                    setState((prev) => ({
++                        ...prev,
++                        error: data.message || 'An error occurred during pipeline execution',
++                        isConnected: false,
++                    }));
+                     // Connection usually closes itself after an error on the backend, but let's be safe
+                     ws.close();
+                 } else {
+-                    console.warn('Received unexpected message type from WebSocket:', data.type);
++                    console.warn('Received unexpected message type from WebSocket:', (data as any).type);
+                 }
+             } catch (err) {
+                 console.error('[WS] Failed to parse message:', err);
+diff --git a/frontend/src/hooks/useIntelligenceMap.ts b/frontend/src/hooks/useIntelligenceMap.ts
+index 1c7cbd6..61f4718 100644
+--- a/frontend/src/hooks/useIntelligenceMap.ts
++++ b/frontend/src/hooks/useIntelligenceMap.ts
+@@ -185,20 +185,30 @@ export function useIntelligenceMap(
+                         is_evaluated: isEvaluated,
+                         is_match: b.is_match,
+                         meta_building: b.meta_building,
+-                        // New metadata fields
+-                        meta_immobile: b.meta_immobile,
+-                        canone_annuale: b.canone_annuale,
+-                        tipo_detenzione_a_terzi: b.tipo_detenzione_a_terzi,
+-                        data_decorrenza: b.data_decorrenza,
+-                        numero_immobili_per_catasto: b.numero_immobili_per_catasto,
++                        // New metadata fields — Italian aliases
++                        meta_immobile: b.meta_building,
++                        canone_annuale: b.annual_rent,
++                        tipo_detenzione_a_terzi: b.third_party_tenure_type,
++                        data_decorrenza: b.effective_date,
++                        numero_immobili_per_catasto: b.cadastral_units_count,
++                        // English aliases for BuildingDetail compatibility
++                        annual_rent: b.annual_rent,
++                        third_party_tenure_type: b.third_party_tenure_type,
++                        effective_date: b.effective_date,
++                        cadastral_units_count: b.cadastral_units_count,
+                         id_list: b.id_list,
++
+                         // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                         sub_properties: 'sub_properties' in b ? (b as any).sub_properties : undefined,
+-                        // Scores and extended info
+-                        ape_scores: b.ape_scores,
+-                        poi_scores: b.poi_scores,
+-                        // Correctly typed fields now
+-                        ape_files: b.ape_files,
++                        // Energy & proximity scores — mapped with the same names that BuildingDetail expects
++                        energy_scores: b.energy_scores,
++                        proximity_scores: b.proximity_scores,
++                        // Keep legacy aliases for any code that still reads ape_scores/poi_scores
++                        ape_scores: b.energy_scores,
++                        poi_scores: b.proximity_scores,
++                        // Energy files — use both field names for compatibility
++                        energy_files: b.energy_files,
++                        ape_files: b.energy_files,
+                         property_type: b.property_type,
+                         legal_nature: b.legal_nature,
+                         cultural_constraint: b.cultural_constraint,
+@@ -210,7 +220,20 @@ export function useIntelligenceMap(
+                         evaluation_text: evalData?.evaluation_text,
+                         pros: evalData?.pros,
+                         cons: evalData?.cons,
+-                        ranking_score: Math.round(evalData?.score ?? b.score ?? 0),
++                        // final_ranking_score is the real backend field; fallback to score for older runs
++                        ranking_score: Math.round(
++                            (evalData?.final_ranking_score ?? evalData?.score ?? b.score) ?? 0
++                        ),
++                        location_score: b.location_score,
++                        regulatory_score: b.regulatory_score,
++                        energy_score: b.energy_score,
++                        building_score: b.building_score,
++                        proximity_score: b.proximity_score,
++                        ranking_weight_location: b.ranking_weight_location,
++                        ranking_weight_regulatory: b.ranking_weight_regulatory,
++                        ranking_weight_energy: b.ranking_weight_energy,
++                        ranking_weight_building: b.ranking_weight_building,
++                        ranking_weight_proximity: b.ranking_weight_proximity,
+                     } as MapMarker;
+                 });
+ 
+diff --git a/frontend/src/pages/MapPage.tsx b/frontend/src/pages/MapPage.tsx
+index 29541c3..fbdc0d0 100644
+--- a/frontend/src/pages/MapPage.tsx
++++ b/frontend/src/pages/MapPage.tsx
+@@ -284,6 +284,8 @@ export const MapPage: React.FC = () => {
+                 const richMarker: MapMarker = {
+                     ...marker,
+                     ...fullBuilding,
++                    score: marker.ranking_score ?? marker.score ?? fullBuilding.score,
++                    ranking_score: marker.ranking_score ?? fullBuilding.score,
+                     lat: fullBuilding.coordinates.lat,
+                     lng: fullBuilding.coordinates.lng ?? (fullBuilding.coordinates as any).lon ?? marker.lng,
+                     tier: marker.tier
+@@ -311,6 +313,8 @@ export const MapPage: React.FC = () => {
+                     const richMarker: MapMarker = {
+                         ...first,
+                         ...fullBuilding,
++                        score: first.ranking_score ?? first.score ?? fullBuilding.score,
++                        ranking_score: first.ranking_score ?? fullBuilding.score,
+                         lat: fullBuilding.coordinates.lat,
+                         lng: fullBuilding.coordinates.lng ?? (fullBuilding.coordinates as any).lon ?? first.lng,
+                         tier: first.tier
+diff --git a/frontend/src/pages/ProcessingPage.tsx b/frontend/src/pages/ProcessingPage.tsx
+index ddda8e2..c2f0d12 100644
+--- a/frontend/src/pages/ProcessingPage.tsx
++++ b/frontend/src/pages/ProcessingPage.tsx
+@@ -23,6 +23,7 @@ import { useAnalysisProgress } from '../hooks/useAnalysisProgress';
+ import { useSettings } from '../contexts/SettingsContext';
+ import { translations } from '../utils/translations';
+ import { analysisApi } from '../api/endpoints/analysis';
++import { MarkdownText } from '../components/common/MarkdownText';
+ import type { AnalysisResults, ProgressStep } from '../api/types';
+ 
+ interface LogEntry {
+@@ -296,7 +297,7 @@ export const ProcessingPage: React.FC = () => {
+                             </div>
+ 
+                             <div className="prose prose-invert prose-lg max-w-none text-gray-300 relative z-10">
+-                                <p className="leading-relaxed whitespace-pre-wrap">{brokerSummary}</p>
++                                <MarkdownText text={brokerSummary} />
+                             </div>
+                         </motion.div>
+                     )}
+diff --git a/test_agent_pipeline.py b/test_agent_pipeline.py
+deleted file mode 100644
+index 9f7e0df..0000000
+--- a/test_agent_pipeline.py
++++ /dev/null
+@@ -1,71 +0,0 @@
+-import asyncio
+-import os
+-import sys
+-import uuid
+-from pathlib import Path
+-
+-# Add backend to sys.path
+-root_dir = Path(__file__).resolve().parent
+-backend_dir = root_dir / "backend"
+-if str(backend_dir) not in sys.path:
+-    sys.path.insert(0, str(backend_dir))
+-
+-# Change CWD to backend to match relative paths in .env
+-os.chdir(backend_dir)
+-
+-# Initialize environment variables
+-from dotenv import load_dotenv
+-load_dotenv(backend_dir / ".env")
+-
+-from app.services.analysis_service import analysis_service
+-
+-async def test_pipeline():
+-    print("=== Testing Agentic Pipeline ===")
+-    
+-    run_id = str(uuid.uuid4())
+-    query = "Cerco uffici commerciali a Torino con buona efficienza energetica (classe A o B)."
+-    
+-    print(f"Query: {query}")
+-    print(f"Run ID: {run_id}")
+-    print("-" * 30)
+-
+-    # Callback to show progress in console
+-    def progress_callback(progress_tuple):
+-        percent, steps = progress_tuple
+-        current_step = next((s["label"] for s in steps if s["state"] == "current"), "Processing")
+-        print(f"[{percent:3.0f}%] {current_step}...")
+-
+-    try:
+-        # Run the analysis
+-        print("Starting analysis...")
+-        results = await analysis_service.run_analysis(
+-            run_id=run_id,
+-            query=query,
+-            dataset_key="full",
+-            progress_callback=progress_callback
+-        )
+-        
+-        print("-" * 30)
+-        print(f"Status: {results.get('status')}")
+-        print(f"Buildings found: {len(results.get('buildings', []))}")
+-        
+-        if results.get("location"):
+-            print(f"Detected locations: {results['location']}")
+-            
+-        if results.get("filters_applied"):
+-            print(f"SQL Generated: {results['filters_applied'].get('final_sql')}")
+-            
+-        if results.get("broker_summary"):
+-            print("\n--- EXECUTIVE SUMMARY ---")
+-            print(results["broker_summary"])
+-            print("-" * 30)
+-            
+-        print("\nSuccess! Agentic pipeline test completed.")
+-        
+-    except Exception as e:
+-        print(f"\nPipeline failed: {e}")
+-        import traceback
+-        traceback.print_exc()
+-
+-if __name__ == "__main__":
+-    asyncio.run(test_pipeline())
+diff --git a/test_llm.py b/test_llm.py
+deleted file mode 100644
+index ba86987..0000000
+--- a/test_llm.py
++++ /dev/null
+@@ -1,31 +0,0 @@
+-from openai import OpenAI
+-import os
+-
+-client = OpenAI(
+-    base_url=os.getenv("OPENAI_TEST_BASE_URL", "http://localhost:8081/v1"),
+-    api_key=os.getenv("OPENAI_TEST_API_KEY", "EMPTY"),
+-)
+-
+-models = client.models.list()
+-model = models.data[0].id
+-
+-print("Model:", model)
+-
+-resp = client.chat.completions.create(
+-    model=model,
+-    messages=[
+-        {"role": "system", "content": "Rispondi in modo molto breve."},
+-        {"role": "user", "content": "Scrivi 'ok' e una micro-spiegazione di 5 parole."}
+-    ],
+-    temperature=0.0,
+-    max_tokens=64,
+-    # Only include non-standard `chat_template_kwargs` when explicitly allowed
+-    # (e.g. when testing against a local server). Set env var
+-    # `ALLOW_CHAT_TEMPLATE_KWARGS=1` to enable.
+-    **({"extra_body": {"chat_template_kwargs": {"enable_thinking": False}}} if (
+-        os.getenv("ALLOW_CHAT_TEMPLATE_KWARGS") == "1" or "localhost" in client.base_url
+-    ) else {}),
+-)
+-
+-print("Output:")
+-print(resp.choices[0].message.content)
+\ No newline at end of file

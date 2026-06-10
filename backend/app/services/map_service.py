@@ -115,7 +115,7 @@ class MapService:
                         "bathrooms": b.bathrooms,
                         "floor": b.floor,
                         "is_evaluated": b.is_evaluated,
-                        "is_meta_building": b.is_meta_building,
+                        "is_meta_building": b.meta_building,
                         # New metadata fields
                         "meta_property": b.meta_property,
                         "annual_rent": b.annual_rent,

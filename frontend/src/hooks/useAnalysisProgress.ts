@@ -190,12 +190,15 @@ export function useAnalysisProgress(
                     ws.close(1000, 'Analysis complete');
                 } else if (data.type === 'error') {
                     console.error('WebSocket reported an error message:', data);
-                    setError((data as any).message || 'An error occurred during pipeline execution');
-                    setIsConnected(false);
+                    setState((prev) => ({
+                        ...prev,
+                        error: data.message || 'An error occurred during pipeline execution',
+                        isConnected: false,
+                    }));
                     // Connection usually closes itself after an error on the backend, but let's be safe
                     ws.close();
                 } else {
-                    console.warn('Received unexpected message type from WebSocket:', data.type);
+                    console.warn('Received unexpected message type from WebSocket:', (data as any).type);
                 }
             } catch (err) {
                 console.error('[WS] Failed to parse message:', err);

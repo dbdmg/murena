@@ -477,8 +477,8 @@ class RealEstateService:
                 pass
 
         # Extract coordinates
-        lat = safe_get("latitude", alternatives=["lat"])
-        lon = safe_get("longitude", alternatives=["lon"])
+        lat = safe_get("latitude", alternatives=["lat", "latitudine"])
+        lon = safe_get("longitude", alternatives=["lon", "longitudine"])
 
         if lat is None or lon is None:
             # Try to extract from other common column names
@@ -499,11 +499,11 @@ class RealEstateService:
         # Extract energy scores if available
         energy_scores = None
         energy_score_cols = {
-            "total": ["energy_score_total", "energy_score"],
-            "class_score": ["energy_score_class"],
-            "system_score": ["energy_score_plant"],
-            "envelope_score": ["energy_score_envelope"],
-            "renewables_score": ["energy_score_renewables"],
+            "total": ["energy_score_total", "energy_score", "ape_score_total"],
+            "class_score": ["energy_score_class", "ape_score_classe"],
+            "system_score": ["energy_score_plant", "ape_score_impianto"],
+            "envelope_score": ["energy_score_envelope", "ape_score_involucro"],
+            "renewables_score": ["energy_score_renewables", "ape_score_rinnovabili"],
         }
         
         energy_data = {}
@@ -515,9 +515,17 @@ class RealEstateService:
                 else:
                     energy_data[key] = int(value) if not pd.isna(value) else 0
 
-        if energy_data and "total" in energy_data:
+        if energy_data and any(k in energy_data for k in ["class_score", "system_score", "envelope_score", "renewables_score"]):
+            # Ricalcola total come somma dei sotto-score se total è 0 o mancante
+            sub_total = (
+                energy_data.get("class_score", 0)
+                + energy_data.get("system_score", 0)
+                + energy_data.get("envelope_score", 0)
+                + energy_data.get("renewables_score", 0)
+            )
+            total_val = energy_data.get("total", 0.0) or sub_total  # usa sub_total se total==0
             energy_scores = EnergyScores(
-                total=energy_data.get("total", 0.0),
+                total=float(total_val),
                 class_score=energy_data.get("class_score", 0),
                 system_score=energy_data.get("system_score", 0),
                 envelope_score=energy_data.get("envelope_score", 0),
@@ -527,11 +535,11 @@ class RealEstateService:
         # Extract POI scores if available
         poi_scores = None
         poi_columns = {
-            "healthcare": ["healthcare"],
-            "mobility": ["mobility"],
-            "greenery": ["green", "greenery"],
-            "education": ["education"],
-            "commerce": ["commercial", "commerce"],
+            "healthcare": ["healthcare", "sanita", "sanità"],
+            "mobility": ["mobility", "mobilita", "mobilità"],
+            "greenery": ["green", "greenery", "verde"],
+            "education": ["education", "educazione"],
+            "commerce": ["commercial", "commerce", "commerciale"],
             "sport": ["sport"],
         }
         
@@ -568,7 +576,7 @@ class RealEstateService:
         # Parse energy files list
         ape_files = parse_ape_list(
             safe_get(
-                "energy_files"
+                "energy_files", alternatives=["lista_file_ape", "list_file_ape_filtered", "list_file_ape_filtered_parsed"]
             )
         )
 
@@ -611,8 +619,12 @@ class RealEstateService:
 
                                     if "surface_area" in sub_row.index and pd.notna(sub_row["surface_area"]):
                                         sub_prop.surface_area = float(sub_row["surface_area"])
+                                    elif "superficie_di_riferimento_mq" in sub_row.index and pd.notna(sub_row["superficie_di_riferimento_mq"]):
+                                        sub_prop.surface_area = float(sub_row["superficie_di_riferimento_mq"])
                                     if "property_type" in sub_row.index and pd.notna(sub_row["property_type"]):
                                         sub_prop.property_type = str(sub_row["property_type"])
+                                    elif "tipologia_bene_immobile" in sub_row.index and pd.notna(sub_row["tipologia_bene_immobile"]):
+                                        sub_prop.property_type = str(sub_row["tipologia_bene_immobile"])
                                 except Exception as e:
                                     # Fallback or ignore error for single item
                                     pass
@@ -622,42 +634,67 @@ class RealEstateService:
                     logger.warning(f"Error parsing sub-properties: {e}")
                     sub_properties = None
 
+        # Format address
+        addr = safe_get("address", alternatives=["indirizzo"])
+        civic = safe_get("numero_civico")
+        if addr and civic and pd.notna(civic):
+            address_str = f"{addr}, {civic}"
+        else:
+            address_str = addr
+
+        # Map city
+        city_val = safe_get("city", alternatives=["codice_comune"])
+        if city_val == "L219" or (hasattr(settings, "TARGET_COMUNE_CODE") and city_val == settings.TARGET_COMUNE_CODE):
+            city_str = getattr(settings, "TARGET_CITY", "Torino")
+        else:
+            city_str = city_val
+
         # Build the response
         res_data = {
             "id": str(safe_get("id", "")),
-            "address": safe_get("address"),
-            "city": safe_get("city"),
+            "address": address_str,
+            "city": city_str,
             "coordinates": coordinates,
-            "surface_area": safe_get("surface_area"),
-            "energy_class": safe_get("energy_class"),
-            "score": safe_get("score", alternatives=["final_ranking_score", "energy_score"]),
+            "surface_area": safe_get("surface_area", alternatives=["superficie_di_riferimento_mq"]),
+            "energy_class": safe_get("energy_class", alternatives=["classe_energetica_ape"]),
+            "score": safe_get("final_ranking_score", alternatives=["score", "energy_score"]),
             "rooms": None,
             "bathrooms": None,
             "floor": None,
             "price": safe_get("price", alternatives=["annual_rent"]),
-            "description": safe_get("description"),
+            "description": safe_get("description", alternatives=["tipologia_bene_immobile"]),
 
-            "property_type": safe_get("property_type"),
+            "property_type": safe_get("property_type", alternatives=["tipologia_bene_immobile"]),
             "legal_nature": safe_get("legal_nature"),
             "cultural_constraint": None,
             "purpose": safe_get("purpose"),
-            "omi_zone": safe_get("omi_zone"),
+            "omi_zone": safe_get("omi_zone", alternatives=["zona_omi"]),
             "is_evaluated": bool(safe_get("is_evaluated", default=False)),
             "is_match": bool(safe_get("is_match", default=True)),
-            "meta_building": self._str_to_bool(safe_get("is_meta_estate", alternatives=["is_meta"], default=False)),
+            "meta_building": self._str_to_bool(safe_get("is_meta_estate", alternatives=["is_meta", "meta_immobile"], default=False)),
             "annual_rent": safe_get("annual_rent"),
-            "effective_date": safe_get("effective_date"),
-            "cadastral_units_count": safe_get("cadastral_units_count", default=None),
+            "effective_date": safe_get("effective_date", alternatives=["data_decorrenza"]),
+            "cadastral_units_count": safe_get("cadastral_units_count", alternatives=["numero_immobili_per_catasto"], default=None),
             "id_list": (str(safe_get("id_list", default="")) if safe_get("id_list") else None),
             "sub_properties": sub_properties,
             "energy_scores": energy_scores,
             "proximity_scores": poi_scores,
             "energy_files": ape_files,
-            "distance_km": safe_get("distance_km"),
+            "distance_km": safe_get("distance_km", alternatives=["distanza_km"]),
             "proximity_reference": safe_get("proximity_reference"),
-            "greenery": safe_get("green", alternatives=["greenery"]),
-            "mobility": safe_get("mobility"),
-            "education": safe_get("education"),
+            "greenery": safe_get("green", alternatives=["greenery", "verde"]),
+            "mobility": safe_get("mobility", alternatives=["mobilita"]),
+            "education": safe_get("education", alternatives=["educazione"]),
+            "location_score": safe_get("location_score"),
+            "regulatory_score": safe_get("regulatory_score"),
+            "energy_score": safe_get("energy_score"),
+            "building_score": safe_get("building_score"),
+            "proximity_score": safe_get("proximity_score"),
+            "ranking_weight_location": safe_get("ranking_weight_location"),
+            "ranking_weight_regulatory": safe_get("ranking_weight_regulatory"),
+            "ranking_weight_energy": safe_get("ranking_weight_energy"),
+            "ranking_weight_building": safe_get("ranking_weight_building"),
+            "ranking_weight_proximity": safe_get("ranking_weight_proximity"),
         }
 
         # Handle fields that need explicit string conversion or might be None

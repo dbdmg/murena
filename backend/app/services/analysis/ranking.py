@@ -163,7 +163,7 @@ def calculate_ranking_score(
         (property_technical_score_norm * w_property_technical)
     )
 
-    df["final_ranking_score"] = final_score
+    df["final_ranking_score"] = final_score * 100
 
     # Sort descending by score, then ascending by distance (if available)
     if "distanza_km" in df.columns:

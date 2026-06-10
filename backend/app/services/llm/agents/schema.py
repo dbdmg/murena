@@ -75,7 +75,7 @@ class SQLResponse(BaseModel):
 class EvaluationResult(BaseModel):
     id: Union[int, str] = Field(..., description="Real estate ID")
     evaluation_text: str = Field(default="", description="Qualitative evaluation text")
-    final_ranking_score: Optional[int] = Field(default=0, description="Relevance score (0-100) based on deterministic ranking")
+    final_ranking_score: Optional[int] = Field(default=None, description="Relevance score (0-100) based on deterministic ranking")
     pros: List[str] = Field(default_factory=list, description="List of top 3 strengths")
     cons: List[str] = Field(default_factory=list, description="List of top 3 weaknesses")
 

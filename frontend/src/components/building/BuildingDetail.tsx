@@ -38,6 +38,7 @@ interface BuildingData {
     energy_scores?: {
         total?: number;
         class_score?: number;
+        system_score?: number;
         plant_score?: number;
         envelope_score?: number;
         renewables_score?: number;
@@ -71,6 +72,17 @@ interface BuildingData {
     cons?: string[];
     ranking_score?: number;
     is_evaluated?: boolean;
+    distance_km?: number;
+    location_score?: number;
+    regulatory_score?: number;
+    energy_score?: number;
+    building_score?: number;
+    proximity_score?: number;
+    ranking_weight_location?: number;
+    ranking_weight_regulatory?: number;
+    ranking_weight_energy?: number;
+    ranking_weight_building?: number;
+    ranking_weight_proximity?: number;
 }
 
 interface BuildingDetailProps {
@@ -256,7 +268,7 @@ export const BuildingDetail: React.FC<BuildingDetailProps> = ({ data, runId, onF
         if (!details.energy_scores) return [];
         return [
             { subject: 'Class', A: details.energy_scores.class_score || 0, fullMark: 5 },
-            { subject: 'Plant', A: details.energy_scores.plant_score || 0, fullMark: 5 },
+            { subject: 'Plant', A: details.energy_scores.system_score || details.energy_scores.plant_score || 0, fullMark: 5 },
             { subject: 'Envelope', A: details.energy_scores.envelope_score || 0, fullMark: 5 },
             { subject: 'Renewable', A: details.energy_scores.renewables_score || 0, fullMark: 5 },
         ];
@@ -313,7 +325,8 @@ export const BuildingDetail: React.FC<BuildingDetailProps> = ({ data, runId, onF
 
     const hasProximityData = proximityRadarData.some(d => d.A > 0);
     const hasEnergyRadarData = energyRadarData.length > 0 && energyRadarData.some(d => d.A > 0);
-    const hasAIEvaluation = details.is_evaluated && (details.ranking_score != null || details.evaluation_text);
+    const finalScore = details.score ?? details.ranking_score;
+    const hasAIEvaluation = details.is_evaluated && ((finalScore != null && finalScore > 0) || details.evaluation_text);
 
     // Get tier badge info
     const getTierBadge = () => {
@@ -434,11 +447,24 @@ export const BuildingDetail: React.FC<BuildingDetailProps> = ({ data, runId, onF
             {
                 hasAIEvaluation && (
                     <AIEvaluationCard
-                        score={details.ranking_score}
+                        score={finalScore}
                         evaluationText={details.evaluation_text}
                         pros={details.pros}
                         cons={details.cons}
                         compact={false}
+                        energyScores={details.energy_scores}
+                        proximityScores={details.proximity_scores}
+                        distanceKm={details.distance_km}
+                        locationScore={details.location_score}
+                        regulatoryScore={details.regulatory_score}
+                        energyScore={details.energy_score}
+                        buildingScore={details.building_score}
+                        proximityScore={details.proximity_score}
+                        weightLocation={details.ranking_weight_location}
+                        weightRegulatory={details.ranking_weight_regulatory}
+                        weightEnergy={details.ranking_weight_energy}
+                        weightBuilding={details.ranking_weight_building}
+                        weightProximity={details.ranking_weight_proximity}
                     />
                 )
             }

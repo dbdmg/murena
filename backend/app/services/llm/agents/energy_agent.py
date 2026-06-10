@@ -164,7 +164,7 @@ class EnergyAgent(BaseAgent):
                 used_columns.add(col)
                 
                 # Special handling for energy class (categorical)
-                if col == "energy_class":
+                if col in ["energy_class", "classe_target_ape", "classe_energetica_ape"]:
                     # Definitive ranking order: A4 is best (Rank 1), G is worst
                     classes_order = ["A4", "A3", "A2", "A1", "B", "C", "D", "E", "F", "G"]
                     

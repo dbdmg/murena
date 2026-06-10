@@ -284,6 +284,8 @@ export const MapPage: React.FC = () => {
                 const richMarker: MapMarker = {
                     ...marker,
                     ...fullBuilding,
+                    score: marker.ranking_score ?? marker.score ?? fullBuilding.score,
+                    ranking_score: marker.ranking_score ?? fullBuilding.score,
                     lat: fullBuilding.coordinates.lat,
                     lng: fullBuilding.coordinates.lng ?? (fullBuilding.coordinates as any).lon ?? marker.lng,
                     tier: marker.tier
@@ -311,6 +313,8 @@ export const MapPage: React.FC = () => {
                     const richMarker: MapMarker = {
                         ...first,
                         ...fullBuilding,
+                        score: first.ranking_score ?? first.score ?? fullBuilding.score,
+                        ranking_score: first.ranking_score ?? fullBuilding.score,
                         lat: fullBuilding.coordinates.lat,
                         lng: fullBuilding.coordinates.lng ?? (fullBuilding.coordinates as any).lon ?? first.lng,
                         tier: first.tier

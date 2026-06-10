@@ -40,6 +40,7 @@ import { analysisApi } from '../../api/endpoints/analysis';
 import type { AnalysisResults, AgentStep } from '../../api/types';
 import { QueryTooltip } from '../common/QueryTooltip';
 import { formatFullDate } from '../../utils/dateUtils';
+import { MarkdownText } from '../common/MarkdownText';
 
 interface RunDetailModalProps {
     runId: string | null;
@@ -373,9 +374,9 @@ export const RunDetailModal: React.FC<RunDetailModalProps> = ({
                                                 <MessageSquare className="w-5 h-5 text-pink-400" />
                                                 <h3 className="text-sm font-semibold text-white">Riepilogo AI Broker</h3>
                                             </div>
-                                            <p className="text-sm text-gray-300 leading-relaxed whitespace-pre-wrap">
-                                                {results.broker_summary}
-                                            </p>
+                                             <div className="text-sm text-gray-300 leading-relaxed">
+                                                 <MarkdownText text={results.broker_summary} />
+                                             </div>
                                         </div>
                                     )}
 

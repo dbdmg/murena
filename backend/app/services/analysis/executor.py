@@ -55,6 +55,7 @@ def execute_sql_query(sql_query, pd_data, dataset_path=None):
 
                     con.execute("CREATE VIEW PROPERTIES AS SELECT * FROM base_properties")
                     con.execute("CREATE VIEW ESTATES AS SELECT * FROM base_properties")
+                    con.execute("CREATE VIEW IMMOBILI AS SELECT * FROM base_properties")
 
                     # Pre-check SQL syntax with EXPLAIN
                     sql_query = sql_query.strip().rstrip(';')

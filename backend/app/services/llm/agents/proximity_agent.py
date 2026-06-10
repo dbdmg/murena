@@ -132,7 +132,7 @@ class ProximityAgent(BaseAgent):
             return ProximityAgentResult(
                 raw_text=json.dumps(structured_response.model_dump(), ensure_ascii=False),
                 has_pois=has_pois,
-                requirements=structured_response.requisiti,
+                requirements=structured_response.requirements,
                 prompt=PromptRecord(
                     system=rendered_system_prompt,
                     user=user_text,

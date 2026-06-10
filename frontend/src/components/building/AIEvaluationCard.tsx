@@ -1,6 +1,6 @@
-import React from 'react';
-import { motion } from 'framer-motion';
-import { Sparkles, CheckCircle2, AlertTriangle } from 'lucide-react';
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Sparkles, CheckCircle2, AlertTriangle, ChevronDown, ChevronUp, Sliders, Zap, MapPin, Activity, Shield, Building2 } from 'lucide-react';
 
 interface AIEvaluationCardProps {
     score?: number;
@@ -8,6 +8,19 @@ interface AIEvaluationCardProps {
     pros?: string[];
     cons?: string[];
     compact?: boolean; // For smaller display in sidebar
+    energyScores?: any;
+    proximityScores?: any;
+    distanceKm?: number;
+    locationScore?: number;
+    regulatoryScore?: number;
+    energyScore?: number;
+    buildingScore?: number;
+    proximityScore?: number;
+    weightLocation?: number;
+    weightRegulatory?: number;
+    weightEnergy?: number;
+    weightBuilding?: number;
+    weightProximity?: number;
 }
 
 export const AIEvaluationCard: React.FC<AIEvaluationCardProps> = ({
@@ -16,7 +29,29 @@ export const AIEvaluationCard: React.FC<AIEvaluationCardProps> = ({
     pros = [],
     cons = [],
     compact = false,
+    energyScores,
+    proximityScores,
+    distanceKm,
+    locationScore,
+    regulatoryScore,
+    energyScore,
+    buildingScore,
+    proximityScore,
+    weightLocation,
+    weightRegulatory,
+    weightEnergy,
+    weightBuilding,
+    weightProximity,
 }) => {
+    const [showBreakdown, setShowBreakdown] = useState(false);
+
+    const hasWeights = weightLocation !== undefined || weightRegulatory !== undefined || weightEnergy !== undefined || weightBuilding !== undefined || weightProximity !== undefined;
+    const wLoc = hasWeights ? (weightLocation ?? 0.0) : 0.3;
+    const wReg = hasWeights ? (weightRegulatory ?? 0.0) : 0.0;
+    const wEng = hasWeights ? (weightEnergy ?? 0.0) : 0.2;
+    const wBld = hasWeights ? (weightBuilding ?? 0.0) : 0.0;
+    const wProx = hasWeights ? (weightProximity ?? 0.0) : 0.5;
+
     const getScoreColor = (s?: number) => {
         if (!s) return { bg: 'from-gray-600 to-gray-700', text: 'text-gray-400', glow: 'shadow-gray-500/20' };
         if (s >= 80) return { bg: 'from-emerald-500 to-green-600', text: 'text-emerald-400', glow: 'shadow-emerald-500/30' };
@@ -27,6 +62,53 @@ export const AIEvaluationCard: React.FC<AIEvaluationCardProps> = ({
 
     const scoreColors = getScoreColor(score);
     const hasEvaluation = score != null || evaluationText || pros.length > 0 || cons.length > 0;
+
+    // Helper score calculations for breakdown
+    const getPoiScore = () => {
+        if (proximityScore !== undefined && proximityScore !== null) return Math.round(proximityScore);
+        if (!proximityScores) return 70; // fallback default
+        const values = Object.values(proximityScores).filter(v => v !== undefined && v !== null && typeof v === 'number') as number[];
+        if (values.length === 0) return 70;
+        const avg = values.reduce((sum, v) => sum + v, 0) / values.length;
+        return Math.round(avg);
+    };
+
+    const getApeScore = () => {
+        if (energyScore !== undefined && energyScore !== null) return Math.round(energyScore);
+        if (!energyScores) return 60; // fallback default
+        if (energyScores.total !== undefined && energyScores.total !== null) {
+            return Math.round((energyScores.total / 20) * 100);
+        }
+        const keys = ['class_score', 'system_score', 'envelope_score', 'renewables_score'];
+        const values = keys.map(k => energyScores[k]).filter(v => v !== undefined && v !== null && typeof v === 'number') as number[];
+        if (values.length === 0) return 60;
+        const avg = values.reduce((sum, v) => sum + v, 0) / values.length;
+        return Math.round((avg / 5) * 100);
+    };
+
+    const getDistanceScore = () => {
+        if (locationScore !== undefined && locationScore !== null) return Math.round(locationScore);
+        if (distanceKm === undefined || distanceKm === null) return 80; // fallback default
+        const maxDist = 6.0; // standard fallback normalized dist
+        const distScoreNorm = Math.max(0, 1 - (distanceKm / maxDist));
+        return Math.round(distScoreNorm * 100);
+    };
+
+    const getRegulatoryScore = () => {
+        if (regulatoryScore !== undefined && regulatoryScore !== null) return Math.round(regulatoryScore);
+        return 0; // default/fallback
+    };
+
+    const getBuildingScore = () => {
+        if (buildingScore !== undefined && buildingScore !== null) return Math.round(buildingScore);
+        return 0; // default/fallback
+    };
+
+    const poi = getPoiScore();
+    const energy = getApeScore();
+    const location = getDistanceScore();
+    const regulatory = getRegulatoryScore();
+    const building = getBuildingScore();
 
     if (!hasEvaluation) {
         return null;
@@ -125,6 +207,120 @@ export const AIEvaluationCard: React.FC<AIEvaluationCardProps> = ({
                     <p className="text-sm text-gray-300 leading-relaxed">
                         {evaluationText}
                     </p>
+                )}
+
+                {/* Collapsible Score Formulation Detail */}
+                {score != null && (
+                    <div className="border border-white/10 rounded-lg overflow-hidden bg-[#1e293b]/30">
+                        <button
+                            onClick={() => setShowBreakdown(!showBreakdown)}
+                            className="w-full px-3 py-2 flex items-center justify-between text-xs font-semibold text-gray-300 hover:bg-white/5 transition-colors"
+                        >
+                            <span className="flex items-center gap-1.5">
+                                <Sliders className="w-3.5 h-3.5 text-amber-400" />
+                                Dettaglio Formulazione Score
+                            </span>
+                            {showBreakdown ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                        </button>
+
+                        <AnimatePresence>
+                            {showBreakdown && (
+                                <motion.div
+                                    initial={{ height: 0, opacity: 0 }}
+                                    animate={{ height: 'auto', opacity: 1 }}
+                                    exit={{ height: 0, opacity: 0 }}
+                                    transition={{ duration: 0.2 }}
+                                    className="px-3 pb-3 pt-1 border-t border-white/5 text-xs space-y-2.5"
+                                >
+                                    {/* Agent Proximity */}
+                                    <div className="space-y-1">
+                                        <div className="flex justify-between text-[11px]">
+                                            <span className="text-gray-400 flex items-center gap-1">
+                                                <Activity className="w-3 h-3 text-emerald-400" />
+                                                Agente Prossimità (POI)
+                                            </span>
+                                            <span className="text-white font-medium">Peso: {Math.round(wProx * 100)}% | Score: {poi}/100</span>
+                                        </div>
+                                        <div className="w-full bg-white/5 h-1.5 rounded-full overflow-hidden">
+                                            <div className="bg-emerald-500 h-full rounded-full" style={{ width: `${poi}%` }} />
+                                        </div>
+                                    </div>
+
+                                    {/* Agent Location (Distance) */}
+                                    <div className="space-y-1">
+                                        <div className="flex justify-between text-[11px]">
+                                            <span className="text-gray-400 flex items-center gap-1">
+                                                <MapPin className="w-3 h-3 text-cyan-400" />
+                                                Agente Posizione (Distanza)
+                                            </span>
+                                            <span className="text-white font-medium">Peso: {Math.round(wLoc * 100)}% | Score: {location}/100</span>
+                                        </div>
+                                        <div className="w-full bg-white/5 h-1.5 rounded-full overflow-hidden">
+                                            <div className="bg-cyan-500 h-full rounded-full" style={{ width: `${location}%` }} />
+                                        </div>
+                                        {distanceKm !== undefined && (
+                                            <span className="text-[10px] text-gray-500">
+                                                Distanza di riferimento: {distanceKm.toFixed(2)} km
+                                            </span>
+                                        )}
+                                    </div>
+
+                                    {/* Agent Energy (APE) */}
+                                    <div className="space-y-1">
+                                        <div className="flex justify-between text-[11px]">
+                                            <span className="text-gray-400 flex items-center gap-1">
+                                                <Zap className="w-3 h-3 text-amber-400" />
+                                                Agente Efficienza (APE)
+                                            </span>
+                                            <span className="text-white font-medium">Peso: {Math.round(wEng * 100)}% | Score: {energy}/100</span>
+                                        </div>
+                                        <div className="w-full bg-white/5 h-1.5 rounded-full overflow-hidden">
+                                            <div className="bg-amber-500 h-full rounded-full" style={{ width: `${energy}%` }} />
+                                        </div>
+                                    </div>
+
+                                    {/* Agent Regulatory */}
+                                    <div className="space-y-1">
+                                        <div className="flex justify-between text-[11px]">
+                                            <span className="text-gray-400 flex items-center gap-1">
+                                                <Shield className="w-3 h-3 text-purple-400" />
+                                                Agente Regolarità (Normativa)
+                                            </span>
+                                            <span className="text-white font-medium">Peso: {Math.round(wReg * 100)}% | Score: {regulatory}/100</span>
+                                        </div>
+                                        <div className="w-full bg-white/5 h-1.5 rounded-full overflow-hidden">
+                                            <div className="bg-purple-500 h-full rounded-full" style={{ width: `${regulatory}%` }} />
+                                        </div>
+                                    </div>
+
+                                    {/* Agent Building Technical */}
+                                    <div className="space-y-1">
+                                        <div className="flex justify-between text-[11px]">
+                                            <span className="text-gray-400 flex items-center gap-1">
+                                                <Building2 className="w-3 h-3 text-rose-400" />
+                                                Agente Caratteristiche (Tecnico)
+                                            </span>
+                                            <span className="text-white font-medium">Peso: {Math.round(wBld * 100)}% | Score: {building}/100</span>
+                                        </div>
+                                        <div className="w-full bg-white/5 h-1.5 rounded-full overflow-hidden">
+                                            <div className="bg-rose-500 h-full rounded-full" style={{ width: `${building}%` }} />
+                                        </div>
+                                    </div>
+
+                                    {/* Final Score Mathematical calculation */}
+                                    <div className="mt-3 pt-2 border-t border-white/5 text-[10px] text-gray-400 bg-black/20 p-2 rounded-md font-mono flex flex-col gap-0.5">
+                                        <span className="text-[11px] text-amber-300 font-semibold mb-1">Formula Ponderata:</span>
+                                        <div className="leading-relaxed">
+                                            ({poi} × {wProx.toFixed(2)}) + ({location} × {wLoc.toFixed(2)}) + ({energy} × {wEng.toFixed(2)}) + ({regulatory} × {wReg.toFixed(2)}) + ({building} × {wBld.toFixed(2)})
+                                        </div>
+                                        <div className="text-white font-bold mt-1.5 text-right border-t border-white/5 pt-1">
+                                            = {Math.round(poi * wProx + location * wLoc + energy * wEng + regulatory * wReg + building * wBld)} / 100
+                                        </div>
+                                    </div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                    </div>
                 )}
 
                 {/* Pros */}
