@@ -2,10 +2,6 @@
 
 This repository contains the implementation of MURENA, an agentic framework for intelligent real estate analysis that integrates geospatial data, Energy Performance Certifications (EPC), and Proximity evaluation through multi-agent orchestration.
 
----
-*Anonymized for blind review - ECML PKDD 2026*
----
-
 ## Overview
 
 MURENA introduces a 3-phase multi-agent orchestration architecture designed to transform natural language queries into deterministic, technically validated real estate rankings:
@@ -21,12 +17,12 @@ The project is structured to ensure modularity and reproducibility:
 ```text
 murena/
 ├── backend/                # FastAPI services, LLM agents, and data management
-│   ├── run_app.py          # Main entry point: handles DB reset, data init, and server launch
-│   ├── run_experiments.py  # Entry point for research evaluation and benchmarks
 │   ├── app/                # Core application logic (FastAPI, Agents, Models)
-│   └── data/               # Datasets and metadata (SQLite, Parquet, POIs)
+│   ├── data/               # Datasets and metadata (SQLite, Parquet, POIs)
+│   └── experiments/        # Evaluation and benchmarks reproduction scripts
 ├── frontend/               # React-based analytics dashboard (Vite)
-└── notebooks/              # Data analysis and preprocessing notebooks
+├── run_app.py              # Main entry point: handles DB reset, data init, and server launch
+└── run_experiments.py      # Entry point for research evaluation and benchmarks
 ```
 
 ## Setup and installation
@@ -52,7 +48,7 @@ cp backend/.env.example backend/.env
 To launch the full system (backend and frontend):
 
 ```bash
-python backend/run_app.py
+python run_app.py
 ```
 
 **Features of the launcher:**
@@ -71,7 +67,7 @@ python backend/experiments/reproduce_results.py --table 1
 python backend/experiments/reproduce_results.py --table 2
 
 # To generate a comprehensive Markdown report from all available logs
-python backend/run_experiments.py --type all
+python run_experiments.py --type all
 ```
 
 ## User management
@@ -84,8 +80,8 @@ The system includes a basic authentication layer.
 
 **CLI management:**
 ```bash
-python backend/run_app.py --create-user
-python backend/run_app.py --delete-user
+python run_app.py --create-user
+python run_app.py --delete-user
 ```
 
 ## Technical specifications
@@ -97,6 +93,3 @@ python backend/run_app.py --delete-user
 - **Frontend**: React with Leaflet for geospatial visualization.
 - **Scoring**: Deterministic mathematical weighting (0-100 percentile) for property ranking.
 
----
-*Anonymized for blind review - ECML PKDD 2026*
----
