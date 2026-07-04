@@ -17,8 +17,11 @@ logger = logging.getLogger(__name__)
 class MapService:
     """Service for managing map data and overlays."""
 
+    # Class-level cache: MapService is instantiated per request, so an
+    # instance cache would re-read GeoJSON overlays from disk on every call.
+    _cache: Dict[str, Any] = {}
+
     def __init__(self):
-        self._cache: Dict[str, Any] = {}
         self.real_estate_service = RealEstateService()
 
     def _load_geojson(self, path: str) -> Optional[Dict[str, Any]]:

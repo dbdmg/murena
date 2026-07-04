@@ -70,17 +70,26 @@ class Settings(BaseSettings):
     # ==========================================================================
     GEMINI_API_KEY: str = ""
     OPENAI_API_KEY: str = ""
+    ANTHROPIC_API_KEY: str = ""
+    XAI_API_KEY: str = ""
     HF_TOKEN: str = ""
 
     # API key for the institutional LLM endpoint (anonymized for review)
-    INSTITUTIONAL_LLM_API_KEY: str = ""  
+    INSTITUTIONAL_LLM_API_KEY: str = ""
 
-    # LLM Provider: "openai" or "gemini" - controls which provider to use by default
-    DEFAULT_LLM_PROVIDER: str = "openai"
+    # LLM provider: openai | gemini | anthropic | grok | ollama |
+    # openai-compatible (vLLM / LM Studio / llama.cpp for on-prem open-weight
+    # models). Empty = inferred from the model name / base URL.
+    # See app/services/llm/providers.py.
+    LLM_PROVIDER: str = ""
 
     # LLM Models
     LLM_MODEL: str = "gpt-oss-120b"
+    # Base URL for OpenAI-compatible or Ollama servers.
+    # LLM_BASE_URL is the preferred name; OPENAI_API_BASE kept for compatibility.
+    LLM_BASE_URL: Optional[str] = None
     OPENAI_API_BASE: Optional[str] = None
+    OLLAMA_BASE_URL: Optional[str] = None
 
     LLMODEL_CONCURRENCY_LIMITS: Dict[str, int] = {
         "gpt-5.4": 2,
@@ -98,18 +107,16 @@ class Settings(BaseSettings):
         # Ensure latest env vars are loaded (avoids issues with subprocesses/caching)
         base_url = os.environ.get("OPENAI_API_BASE")
         
-        if model_type == "gpt-oss-120b":
-            self.LLM_MODEL = "gemma-4"
+        if model_type in ("gpt-oss-120b", "gemma3-27b", "qwen3-8b"):
+            # Open-weight models served by the local/institutional
+            # OpenAI-compatible endpoint (vLLM). The served model name matches
+            # the requested flavor.
+            self.LLM_MODEL = model_type
             self.OPENAI_API_BASE = base_url
-            self.OPENAI_API_KEY = self.INSTITUTIONAL_LLM_API_KEY or "vllm"
-        elif model_type == "gemma3-27b":
-            self.LLM_MODEL = "gemma-4"
-            self.OPENAI_API_BASE = base_url
-            self.OPENAI_API_KEY = "vllm"
-        elif model_type == "qwen3-8b":
-            self.LLM_MODEL = "gemma-4"
-            self.OPENAI_API_BASE = base_url
-            self.OPENAI_API_KEY = "vllm"
+            if model_type == "gpt-oss-120b":
+                self.OPENAI_API_KEY = self.INSTITUTIONAL_LLM_API_KEY or "vllm"
+            else:
+                self.OPENAI_API_KEY = "vllm"
         elif model_type == "gpt-5.4":
             self.LLM_MODEL = "gpt-5.4"
             self.OPENAI_API_BASE = None # Base OpenAI
@@ -200,10 +207,19 @@ class Settings(BaseSettings):
 
     @property
     def agent_models(self) -> Dict[str, str]:
-        """Return agent-specific model configuration."""
-        return {
-            "default": self.LLM_MODEL,
-        }
+        """Return agent-specific model configuration.
+
+        Every agent can be pinned to a different model with an env variable:
+        ``AGENT_MODEL_<AGENT>`` (e.g. AGENT_MODEL_SQL_AGENT=gpt-4o,
+        AGENT_MODEL_LOCATION_AGENT=gemma3:27b). Agents look themselves up as
+        ``agent_models.get("<name>_agent")`` and fall back to "default".
+        """
+        models = {"default": self.LLM_MODEL}
+        prefix = "AGENT_MODEL_"
+        for key, value in os.environ.items():
+            if key.startswith(prefix) and value.strip():
+                models[key[len(prefix):].lower()] = value.strip()
+        return models
 
 
 # Global settings instance

@@ -4,6 +4,7 @@ Main FastAPI application entry point.
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from contextlib import asynccontextmanager
 import logging
 
@@ -11,6 +12,7 @@ from app.core.config import settings
 from app.api.v1.router import api_router
 from app.core.init_app import startup_event, shutdown_event
 from app.core.exceptions import setup_exception_handlers
+from app.services import activity_log
 
 # Configure logging
 logging.basicConfig(
@@ -43,6 +45,12 @@ app = FastAPI(
 
 # Setup exception handlers
 setup_exception_handlers(app)
+
+# In-process activity log (inspectable from the frontend via /api/v1/logs)
+activity_log.install()
+
+# Compress large JSON payloads (markers, analysis results)
+app.add_middleware(GZipMiddleware, minimum_size=1024)
 
 # Configure CORS
 app.add_middleware(

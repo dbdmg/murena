@@ -17,5 +17,20 @@ export default defineConfig(({ mode }) => {
         },
       },
     },
+    build: {
+      // Split heavy vendors into cacheable chunks: faster first paint and
+      // no giant single bundle re-downloaded on every deploy.
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+            'vendor-map': ['leaflet', 'react-leaflet', 'supercluster', 'use-supercluster'],
+            'vendor-charts': ['recharts'],
+            'vendor-motion': ['framer-motion'],
+          },
+        },
+      },
+      chunkSizeWarningLimit: 900,
+    },
   };
 })
