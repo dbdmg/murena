@@ -42,8 +42,17 @@ cp backend/.env.example backend/.env
 # Edit backend/.env with your LLM API keys (Gemini, OpenAI, etc.)
 ```
 
-## Usage
+### Demo dataset (no source data required)
 
+The real `estates.parquet` is built from raw APE XML certificates that are not versioned in this repository. To run the app locally with map markers and browsable buildings, generate a clearly-synthetic demo dataset:
+
+```bash
+uv run python backend/data/metadata/create_demo_dataset.py    # 1500 synthetic Turin buildings
+```
+
+Replace it with the real dataset for any meaningful analysis.
+
+## Usage
 ### 1. Application execution
 To launch the full system (backend and frontend):
 

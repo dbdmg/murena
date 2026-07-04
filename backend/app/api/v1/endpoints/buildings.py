@@ -6,9 +6,12 @@ Provides REST API for querying and retrieving building data:
 - GET /buildings/{building_id} - Get single building details
 """
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from typing import List, Optional
 
+from sqlalchemy.orm import Session
+
+from app.database.connection import get_db
 from app.models.requests import BuildingFilters
 from app.models.responses import BuildingResponse, BuildingsListResponse
 from app.services.real_estate_service import RealEstateService
@@ -44,6 +47,7 @@ async def list_buildings(
     dataset_key: str = Query(
         "full", description="Dataset to use: 'full', 'meta', or 'ape'"
     ),
+    db: Session = Depends(get_db),
 ):
     """
     List buildings with optional filtering and pagination.
