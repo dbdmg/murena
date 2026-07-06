@@ -53,13 +53,13 @@ interface RunDetailModalProps {
 
 // Agent step icons and labels
 const AGENT_STEP_CONFIG: Record<string, { icon: React.ElementType; label: string; color: string; bgColor: string }> = {
-    intent_analysis: { icon: Target, label: 'Analisi Intent', color: 'text-purple-400', bgColor: 'bg-purple-500/10' },
-    location_extraction: { icon: MapPin, label: 'Estrazione Location', color: 'text-emerald-400', bgColor: 'bg-emerald-500/10' },
-    property_technical_extraction: { icon: Building2, label: 'Caratteristiche Tecniche', color: 'text-emerald-400', bgColor: 'bg-emerald-500/10' },
+    intent_analysis: { icon: Target, label: 'Intent Analysis', color: 'text-purple-400', bgColor: 'bg-purple-500/10' },
+    location_extraction: { icon: MapPin, label: 'Location Extraction', color: 'text-emerald-400', bgColor: 'bg-emerald-500/10' },
+    property_technical_extraction: { icon: Building2, label: 'Technical Features', color: 'text-emerald-400', bgColor: 'bg-emerald-500/10' },
 
-    sql_generation: { icon: Database, label: 'Generazione SQL', color: 'text-emerald-400', bgColor: 'bg-emerald-500/10' },
-    evaluation: { icon: Sparkles, label: 'Valutazione AI', color: 'text-yellow-400', bgColor: 'bg-yellow-500/10' },
-    broker_review: { icon: MessageSquare, label: 'Recensione Broker', color: 'text-pink-400', bgColor: 'bg-pink-500/10' },
+    sql_generation: { icon: Database, label: 'SQL Generation', color: 'text-emerald-400', bgColor: 'bg-emerald-500/10' },
+    evaluation: { icon: Sparkles, label: 'AI Evaluation', color: 'text-yellow-400', bgColor: 'bg-yellow-500/10' },
+    broker_review: { icon: MessageSquare, label: 'Broker Review', color: 'text-pink-400', bgColor: 'bg-pink-500/10' },
 };
 
 // JSON Syntax Highlighter Component
@@ -182,7 +182,7 @@ export const RunDetailModal: React.FC<RunDetailModalProps> = ({
             setAgentSteps(stepsData);
         } catch (err) {
             console.error('Failed to fetch run data:', err);
-            setError('Impossibile caricare i dettagli della ricerca');
+            setError('Unable to load search details');
         } finally {
             setIsLoading(false);
         }
@@ -261,7 +261,7 @@ export const RunDetailModal: React.FC<RunDetailModalProps> = ({
                                         <Bot className="w-5 h-5 text-white" />
                                     </div>
                                     <div>
-                                        <h2 className="text-lg font-bold text-white">Dettagli Ricerca</h2>
+                                        <h2 className="text-lg font-bold text-white">Search Details</h2>
                                         {results && (
                                             <p className="text-xs text-gray-500 font-mono truncate max-w-[250px]">{results.run_id}</p>
                                         )}
@@ -288,7 +288,7 @@ export const RunDetailModal: React.FC<RunDetailModalProps> = ({
                                                 : 'bg-white/5 text-gray-400 hover:text-amber-400 hover:bg-white/10'
                                             }
                                         `}
-                                        title={isFavorite ? 'Rimuovi dai preferiti' : 'Aggiungi ai preferiti'}
+                                        title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
                                     >
                                         <Star className={`w-5 h-5 ${isFavorite ? 'fill-amber-400' : ''}`} />
                                     </button>
@@ -329,30 +329,30 @@ export const RunDetailModal: React.FC<RunDetailModalProps> = ({
                                         <div className="bg-white/5 rounded-xl p-4 border border-white/5">
                                             <div className="flex items-center gap-2 text-gray-500 text-xs mb-1.5">
                                                 <Clock className="w-3.5 h-3.5" />
-                                                Stato
+                                                Status
                                             </div>
                                             <div className="flex items-center gap-2">
                                                 <CheckCircle2 className={`w-4 h-4 ${results.status === 'completed' ? 'text-emerald-400' :
                                                     results.status === 'failed' ? 'text-red-400' : 'text-emerald-400'
                                                     }`} />
                                                 <span className="text-sm text-white">
-                                                    {results.status === 'completed' ? 'Completato' :
-                                                        results.status === 'failed' ? 'Fallito' :
-                                                            results.status === 'processing' ? 'In corso' : results.status}
+                                                    {results.status === 'completed' ? 'Completed' :
+                                                        results.status === 'failed' ? 'Failed' :
+                                                            results.status === 'processing' ? 'In progress' : results.status}
                                                 </span>
                                             </div>
                                         </div>
                                         <div className="bg-white/5 rounded-xl p-4 border border-white/5">
                                             <div className="flex items-center gap-2 text-gray-500 text-xs mb-1.5">
                                                 <Calendar className="w-3.5 h-3.5" />
-                                                Creato
+                                                Created
                                             </div>
                                             <span className="text-sm text-white">{formatFullDate(results.created_at)}</span>
                                         </div>
                                         <div className="bg-white/5 rounded-xl p-4 border border-white/5">
                                             <div className="flex items-center gap-2 text-gray-500 text-xs mb-1.5">
                                                 <Building2 className="w-3.5 h-3.5" />
-                                                Immobili
+                                                Properties
                                             </div>
                                             <span className="text-sm text-white font-semibold">{results.buildings?.length || 0}</span>
                                         </div>
@@ -372,7 +372,7 @@ export const RunDetailModal: React.FC<RunDetailModalProps> = ({
                                         <div className="bg-linear-to-br from-pink-500/10 to-purple-500/10 rounded-xl p-5 border border-pink-500/20">
                                             <div className="flex items-center gap-2 mb-3">
                                                 <MessageSquare className="w-5 h-5 text-pink-400" />
-                                                <h3 className="text-sm font-semibold text-white">Riepilogo AI Broker</h3>
+                                                <h3 className="text-sm font-semibold text-white">AI Broker Summary</h3>
                                             </div>
                                              <div className="text-sm text-gray-300 leading-relaxed">
                                                  <MarkdownText text={results.broker_summary} />
@@ -385,7 +385,7 @@ export const RunDetailModal: React.FC<RunDetailModalProps> = ({
                                         <div className="flex items-center justify-between mb-4">
                                             <h3 className="text-sm font-semibold text-white flex items-center gap-2">
                                                 <Bot className="w-5 h-5 text-emerald-400" />
-                                                Passaggi Agenti AI
+                                                AI Agent Steps
                                                 <span className="text-xs text-gray-500 font-normal px-2 py-1 bg-white/5 rounded-lg">
                                                     {agentSteps.length} steps
                                                 </span>
@@ -394,7 +394,7 @@ export const RunDetailModal: React.FC<RunDetailModalProps> = ({
 
                                         {agentSteps.length === 0 ? (
                                             <div className="text-center text-gray-500 py-8 text-base">
-                                                Nessun dettaglio disponibile per questa ricerca
+                                                No details available for this search
                                             </div>
                                         ) : (
                                             <div className="space-y-3">

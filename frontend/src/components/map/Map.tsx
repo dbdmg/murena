@@ -531,7 +531,7 @@ export const Map: React.FC<MapProps> = ({
                                 <div className="flex items-center gap-1.5 mb-0.5">
                                     <span className="text-[10px] uppercase font-bold text-indigo-400 tracking-wider bg-indigo-500/10 px-1.5 rounded-sm">{poi.category}</span>
                                 </div>
-                                <h3 className="font-bold text-sm text-white leading-tight mb-1">{poi.name || 'Punto di Interesse'}</h3>
+                                <h3 className="font-bold text-sm text-white leading-tight mb-1">{poi.name || 'Point of Interest'}</h3>
 
                                 {(poi.details?.address || poi.details?.city) && (
                                     <p className="text-[11px] text-gray-400 leading-snug truncate">

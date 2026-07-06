@@ -275,7 +275,7 @@ export const SQLFiltersHUD: React.FC<SQLFiltersHUDProps> = ({
                     .sort((a, b) => a.attempt - b.attempt);
 
                 if (sqlStepsProcessed.length === 0) {
-                    setError("Nessuna query SQL trovata per questa analisi.");
+                    setError("No SQL query found for this analysis.");
                 }
 
                 setSqlSteps(sqlStepsProcessed);
@@ -284,7 +284,7 @@ export const SQLFiltersHUD: React.FC<SQLFiltersHUDProps> = ({
 
             } catch (err) {
                 console.error("Failed to load SQL steps:", err);
-                setError("Impossibile caricare i filtri SQL.");
+                setError("Unable to load SQL filters.");
             } finally {
                 setIsLoading(false);
             }
@@ -365,7 +365,7 @@ export const SQLFiltersHUD: React.FC<SQLFiltersHUDProps> = ({
                                     </div>
                                     <div>
                                         <h2 className="text-xl font-bold text-white">Ispettore Logico</h2>
-                                        <p className="text-sm text-gray-500 italic">Analisi granulare dei parametri di ricerca applicati</p>
+                                        <p className="text-sm text-gray-500 italic">Granular analysis of the applied search parameters</p>
                                     </div>
                                 </div>
                                 <button
@@ -384,7 +384,7 @@ export const SQLFiltersHUD: React.FC<SQLFiltersHUDProps> = ({
                                     ) : (
                                         <>
                                             <Code2 className="w-4 h-4" />
-                                            <span className="hidden sm:inline">Torna a SQL</span>
+                                            <span className="hidden sm:inline">Back to SQL</span>
                                         </>
                                     )}
                                 </button>
@@ -402,14 +402,14 @@ export const SQLFiltersHUD: React.FC<SQLFiltersHUDProps> = ({
                                     {isLoadingTrace ? (
                                         <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-500">
                                             <Loader2 className="w-10 h-10 animate-spin mb-4 text-amber-500" />
-                                            <span>Caricamento trace...</span>
+                                            <span>Loading trace...</span>
                                         </div>
                                     ) : agentTrace ? (
                                         <AgentTraceViewer trace={agentTrace} />
                                     ) : (
                                         <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-500">
                                             <AlertCircle className="w-10 h-10 mb-4 text-red-400" />
-                                            <span>Trace non disponibile</span>
+                                            <span>Trace not available</span>
                                         </div>
                                     )}
                                 </div>
@@ -418,7 +418,7 @@ export const SQLFiltersHUD: React.FC<SQLFiltersHUDProps> = ({
                                     {isLoading ? (
                                         <div className="flex-1 flex flex-col items-center justify-center text-gray-500">
                                             <Loader2 className="w-10 h-10 animate-spin mb-4 text-amber-500" />
-                                            <span>Analisi della query...</span>
+                                            <span>Analyzing query...</span>
                                         </div>
                                     ) : error ? (
                                         <div className="flex-1 flex flex-col items-center justify-center text-red-400">
@@ -464,7 +464,7 @@ export const SQLFiltersHUD: React.FC<SQLFiltersHUDProps> = ({
                                                         ))}
                                                         {activeStep.conditions.length === 0 && (
                                                             <span className="text-gray-500 italic ml-16 bg-white/5 px-4 py-2 rounded-lg">
-                                                                Nessun filtro semantico rilevato (Ricerca globale).
+                                                                No semantic filters detected (global search).
                                                             </span>
                                                         )}
                                                     </div>

@@ -43,10 +43,10 @@ import { formatRunDate } from '../utils/dateUtils';
 type DateFilter = 'all' | '7days' | '30days' | '90days';
 
 const DATE_FILTERS: { value: DateFilter; label: string }[] = [
-    { value: 'all', label: 'Tutti' },
-    { value: '7days', label: 'Ultimi 7 giorni' },
-    { value: '30days', label: 'Ultimi 30 giorni' },
-    { value: '90days', label: 'Ultimi 90 giorni' },
+    { value: 'all', label: 'All' },
+    { value: '7days', label: 'Last 7 days' },
+    { value: '30days', label: 'Last 30 days' },
+    { value: '90days', label: 'Last 90 days' },
 ];
 
 const ITEMS_PER_PAGE = 12; // 4x3 grid
@@ -115,7 +115,7 @@ export const HistoryPage: React.FC = () => {
             console.error('Failed to fetch history:', err);
             const status = axios.isAxiosError(err) ? err.response?.status : undefined;
             const detail = axios.isAxiosError(err) ? err.response?.data?.detail : undefined;
-            setError(`Impossibile caricare la cronologia${status ? ` (${status})` : ''}${detail ? `: ${detail}` : ''}`);
+            setError(`Unable to load history${status ? ` (${status})` : ''}${detail ? `: ${detail}` : ''}`);
         } finally {
             setIsLoading(false);
         }
@@ -257,11 +257,11 @@ export const HistoryPage: React.FC = () => {
     const getStatusDisplay = (status: string) => {
         switch (status) {
             case 'completed':
-                return { icon: CheckCircle2, color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', label: 'Completato' };
+                return { icon: CheckCircle2, color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', label: 'Completed' };
             case 'processing':
-                return { icon: Loader2, color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', label: 'In corso', animate: true };
+                return { icon: Loader2, color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', label: 'In progress', animate: true };
             case 'failed':
-                return { icon: XCircle, color: 'text-red-400', bg: 'bg-red-500/10', border: 'border-red-500/20', label: 'Errore' };
+                return { icon: XCircle, color: 'text-red-400', bg: 'bg-red-500/10', border: 'border-red-500/20', label: 'Error' };
             default:
                 return { icon: Clock, color: 'text-gray-400', bg: 'bg-gray-500/10', border: 'border-gray-500/20', label: status };
         }
@@ -279,9 +279,9 @@ export const HistoryPage: React.FC = () => {
                         <Clock className="w-5 h-5 text-white" />
                     </div>
                     <div>
-                        <h1 className="text-2xl font-bold text-white">Cronologia Ricerche</h1>
+                        <h1 className="text-2xl font-bold text-white">Search History</h1>
                         <p className="text-sm text-gray-500">
-                            {filteredRuns.length} ricerche trovate
+                            {filteredRuns.length} searches found
                             {showOnlyFavorites && ' (solo preferiti)'}
                         </p>
                     </div>
@@ -295,7 +295,7 @@ export const HistoryPage: React.FC = () => {
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
                     <input
                         type="text"
-                        placeholder="Cerca per query o ID..."
+                        placeholder="Search by query or ID..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         className="w-full bg-[#0f1218]/80 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20 transition-all"
@@ -434,7 +434,7 @@ export const HistoryPage: React.FC = () => {
                 ) : filteredRuns.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-64 text-gray-500">
                         <Clock className="w-10 h-10 mb-3 opacity-50" />
-                        <p>Nessuna ricerca trovata</p>
+                        <p>No searches found</p>
                         {(searchQuery || dateFilter !== 'all' || showOnlyFavorites) && (
                             <button
                                 onClick={() => {
@@ -540,7 +540,7 @@ export const HistoryPage: React.FC = () => {
                                             {run.buildings_count !== undefined && run.buildings_count > 0 && (
                                                 <div className="flex items-center gap-2 text-sm text-gray-500">
                                                     <Building2 className="w-4 h-4" />
-                                                    <span>{run.buildings_count} immobili trovati</span>
+                                                    <span>{run.buildings_count} properties found</span>
                                                 </div>
                                             )}
                                         </div>
@@ -556,7 +556,7 @@ export const HistoryPage: React.FC = () => {
                                             className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-white/5 rounded-lg text-sm text-gray-400 hover:text-white hover:bg-white/10 transition-all"
                                         >
                                             <Eye className="w-4 h-4" />
-                                            Dettagli
+                                            Details
                                         </button>
 
                                         {run.status === 'completed' && (
@@ -594,7 +594,7 @@ export const HistoryPage: React.FC = () => {
                                                 onClick={(e) => e.stopPropagation()}
                                             >
                                                 <AlertTriangle className="w-8 h-8 text-red-400" />
-                                                <span className="text-sm text-gray-300 text-center">Eliminare questa ricerca?</span>
+                                                <span className="text-sm text-gray-300 text-center">Delete this search?</span>
                                                 <div className="flex gap-2">
                                                     <button
                                                         onClick={() => deleteRun(run.run_id)}

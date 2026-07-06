@@ -79,7 +79,7 @@ export const FeedbackPanel: React.FC<FeedbackPanelProps> = ({
 
     const handleSubmit = async () => {
         if (rating === 0) {
-            setError('Seleziona almeno una stella');
+            setError('Select at least one star');
             return;
         }
 
@@ -106,7 +106,7 @@ export const FeedbackPanel: React.FC<FeedbackPanelProps> = ({
             setIsSubmitted(true);
             if (onSubmitSuccess) onSubmitSuccess();
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Errore durante l\'invio del feedback');
+            setError(err instanceof Error ? err.message : 'Error while sending feedback');
         } finally {
             setIsSubmitting(false);
         }
@@ -125,7 +125,7 @@ export const FeedbackPanel: React.FC<FeedbackPanelProps> = ({
             setComment('');
             if (onSubmitSuccess) onSubmitSuccess();
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Errore durante la rimozione del feedback');
+            setError(err instanceof Error ? err.message : 'Error while removing feedback');
         } finally {
             setIsSubmitting(false);
         }
@@ -154,17 +154,17 @@ export const FeedbackPanel: React.FC<FeedbackPanelProps> = ({
                             : 'bg-amber-500 border border-amber-600 text-black hover:bg-amber-400 shadow-amber-500/20'
                     }
                 `}
-                title={buildingId ? "Valuta questo immobile" : "Valuta questa ricerca"}
+                title={buildingId ? "Rate this property" : "Rate this search"}
             >
                 <Star className={`w-3.5 h-3.5 ${isSubmitted ? 'text-white' : 'text-black opacity-70 group-hover:opacity-100'} transition-colors`} />
                 <span className="text-[10px] font-black uppercase tracking-widest whitespace-nowrap">
                     {isSubmitted
-                        ? 'Votato'
+                        ? 'Rated'
                         : buildingId
-                            ? 'Valuta Immobile'
+                            ? 'Rate Property'
                             : agentName
-                                ? 'Valuta Agente'
-                                : 'Valuta Ricerca'
+                                ? 'Rate Agent'
+                                : 'Rate Search'
                     }
                 </span>
                 {isSubmitted && <Check className="w-3 h-3 text-white" />}
@@ -186,10 +186,10 @@ export const FeedbackPanel: React.FC<FeedbackPanelProps> = ({
                                 <MessageSquare className={`w-4 h-4 ${buildingId ? 'text-cyan-400' : 'text-amber-500'}`} />
                                 <span className="text-sm font-bold text-white">
                                     {buildingId
-                                        ? 'Valutazione Immobile'
+                                        ? 'Property Evaluation'
                                         : agentName
-                                            ? `Feedback Agente: ${agentName}`
-                                            : 'Feedback Ricerca Globale'}
+                                            ? `Agent Feedback: ${agentName}`
+                                            : 'Global Search Feedback'}
                                 </span>
                             </div>
                             <button
@@ -205,7 +205,7 @@ export const FeedbackPanel: React.FC<FeedbackPanelProps> = ({
                             {/* Star Rating */}
                             <div className="space-y-2">
                                 <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-                                    Valutazione
+                                    Rating
                                 </label>
                                 <div className="flex items-center gap-1">
                                     {[1, 2, 3, 4, 5].map((star) => (
@@ -238,14 +238,14 @@ export const FeedbackPanel: React.FC<FeedbackPanelProps> = ({
                             {/* Comment Field */}
                             <div className="space-y-2">
                                 <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-                                    Commento (Opzionale)
+                                    Comment (Optional)
                                 </label>
                                 <textarea
                                     ref={textareaRef}
                                     value={comment}
                                     onChange={(e) => setComment(e.target.value)}
                                     disabled={isSubmitted || isSubmitting}
-                                    placeholder="Condividi i tuoi pensieri..."
+                                    placeholder="Share your thoughts..."
                                     className="w-full px-3 py-2 bg-black/40 border border-white/10 rounded-lg text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/50 transition-colors resize-none disabled:opacity-50 disabled:cursor-not-allowed overflow-y-auto min-h-[80px] max-h-[240px]"
                                     rows={1}
                                 />
@@ -278,7 +278,7 @@ export const FeedbackPanel: React.FC<FeedbackPanelProps> = ({
                                             ) : (
                                                 <>
                                                     <Check className="w-4 h-4" />
-                                                    <span>Invia Feedback</span>
+                                                    <span>Send Feedback</span>
                                                 </>
                                             )}
                                         </button>
@@ -293,7 +293,7 @@ export const FeedbackPanel: React.FC<FeedbackPanelProps> = ({
                                     <>
                                         <div className="flex-1 flex items-center gap-2 px-4 py-2 bg-emerald-600 border border-emerald-700 text-white font-medium rounded-lg">
                                             <Check className="w-4 h-4 text-white" />
-                                            <span>Feedback Inviato!</span>
+                                            <span>Feedback Sent!</span>
                                         </div>
                                         <div className="flex items-center gap-1">
                                             <button
@@ -307,9 +307,9 @@ export const FeedbackPanel: React.FC<FeedbackPanelProps> = ({
                                                 onClick={handleDelete}
                                                 disabled={isSubmitting}
                                                 className="px-3 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 font-medium rounded-lg transition-colors text-xs disabled:opacity-50"
-                                                title="Rimuovi"
+                                                title="Remove"
                                             >
-                                                {isSubmitting ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Rimuovi'}
+                                                {isSubmitting ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Remove'}
                                             </button>
                                         </div>
                                     </>

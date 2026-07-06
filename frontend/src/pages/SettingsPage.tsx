@@ -143,7 +143,7 @@ export const SettingsPage: React.FC = () => {
             const data = response.data;
 
             setResetStatus('success');
-            setResetMessage(data.message || 'Prompt ripristinati con successo!');
+            setResetMessage(data.message || 'Prompts restored successfully!');
             setShowConfirm(false);
 
             setTimeout(() => {
@@ -154,11 +154,11 @@ export const SettingsPage: React.FC = () => {
             setResetStatus('error');
             if (err && typeof err === 'object' && 'response' in err) {
                 const axiosErr = err as { response?: { data?: { detail?: string } } };
-                setResetMessage(axiosErr.response?.data?.detail || 'Errore durante il reset');
+                setResetMessage(axiosErr.response?.data?.detail || 'Error during reset');
             } else if (err instanceof Error) {
                 setResetMessage(err.message);
             } else {
-                setResetMessage('Errore durante il reset');
+                setResetMessage('Error during reset');
             }
         } finally {
             setIsResetting(false);
@@ -173,8 +173,8 @@ export const SettingsPage: React.FC = () => {
                     <Settings className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                    <h1 className="text-2xl font-bold text-white">Impostazioni</h1>
-                    <p className="text-sm text-gray-400">Configura RealEstate AI</p>
+                    <h1 className="text-2xl font-bold text-white">Settings</h1>
+                    <p className="text-sm text-gray-400">Configure RealEstate AI</p>
                 </div>
             </div>
 
@@ -196,7 +196,7 @@ export const SettingsPage: React.FC = () => {
                                 <label className="text-sm text-gray-300">AI Provider</label>
                             </div>
                             <p className="text-xs text-gray-500 mb-3">
-                                Seleziona il provider AI. Il modello specifico viene scelto automaticamente in base all'agente.
+                                Select the AI provider. The specific model is chosen automatically per agent.
                             </p>
                             <div className="grid grid-cols-1 gap-2">
                                 {LLM_PROVIDERS.map((provider) => (
@@ -221,7 +221,7 @@ export const SettingsPage: React.FC = () => {
                                                     {provider.label}
                                                     {provider.comingSoon && (
                                                         <span className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-gray-500/20 text-gray-500 font-semibold">
-                                                            Prossimamente
+                                                            Coming soon
                                                         </span>
                                                     )}
                                                 </div>
@@ -238,15 +238,15 @@ export const SettingsPage: React.FC = () => {
 
                         {/* LLM Limit Slider */}
                         <SliderField
-                            label="Analisi Profonda (Batch)"
+                            label="Deep Analysis (Batch)"
                             value={llmLimit}
                             min={5}
                             max={50}
                             step={5}
                             onChange={setLLMLimit}
-                            helperText="Numero di immobili da valutare in profondità. Valori più alti aumentano il tempo di analisi ma forniscono maggiore copertura."
-                            leftLabel="5 (Veloce)"
-                            rightLabel="50 (Completo)"
+                            helperText="Number of properties to evaluate in depth. Higher values increase analysis time but provide better coverage."
+                            leftLabel="5 (Fast)"
+                            rightLabel="50 (Complete)"
                         />
 
                         {/* Temperature Slider */}
@@ -258,16 +258,16 @@ export const SettingsPage: React.FC = () => {
                             step={0.1}
                             onChange={setAgentTemperature}
                             displayValue={agentTemperature.toFixed(1)}
-                            helperText="Controlla la creatività degli agenti AI. Valori bassi = risposte più precise, valori alti = risposte più creative."
-                            leftLabel="Analitico"
-                            rightLabel="Creativo"
+                            helperText="Controls the creativity of the AI agents. Low values = more precise answers, high values = more creative answers."
+                            leftLabel="Analytical"
+                            rightLabel="Creative"
                         />
 
                         {/* Info */}
                         <div className="p-3 bg-violet-500/10 border border-violet-500/20 rounded-lg">
                             <p className="text-xs text-violet-400">
                                 <Thermometer className="w-3 h-3 inline mr-1" />
-                                Le modifiche alla configurazione AI saranno applicate alla prossima analisi.
+                                Changes to the AI configuration will be applied to the next analysis.
                             </p>
                         </div>
                     </SectionCard>
@@ -275,12 +275,12 @@ export const SettingsPage: React.FC = () => {
                     {/* AI Prompts Section */}
                     <SectionCard
                         icon={<Wand2 className="w-4 h-4" />}
-                        title="Prompt AI"
+                        title="AI Prompts"
                         iconColor="text-amber-400"
                     >
                         <p className="text-sm text-gray-400 mb-4">
-                            I prompt definiscono come gli agenti AI analizzano e valutano gli immobili.
-                            Puoi modificarli tramite l'Agent Tuner sulla mappa.
+                            Prompts define how the AI agents analyze and evaluate properties.
+                            You can edit them through the Agent Tuner on the map.
                         </p>
 
                         {/* Reset Status */}
@@ -310,10 +310,10 @@ export const SettingsPage: React.FC = () => {
                                 <div className="flex items-start gap-3 mb-4">
                                     <AlertTriangle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
                                     <div>
-                                        <h3 className="text-sm font-semibold text-red-400 mb-1">Conferma Reset</h3>
+                                        <h3 className="text-sm font-semibold text-red-400 mb-1">Confirm Reset</h3>
                                         <p className="text-xs text-gray-400">
-                                            Tutti i prompt AI verranno ripristinati ai valori di default.
-                                            Le personalizzazioni andranno perse.
+                                            All AI prompts will be restored to their default values.
+                                            Customizations will be lost.
                                         </p>
                                     </div>
                                 </div>
@@ -323,7 +323,7 @@ export const SettingsPage: React.FC = () => {
                                         disabled={isResetting}
                                         className="px-4 py-2 text-sm font-medium text-gray-400 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition-colors"
                                     >
-                                        Annulla
+                                        Cancel
                                     </button>
                                     <button
                                         onClick={handleResetPrompts}
@@ -333,12 +333,12 @@ export const SettingsPage: React.FC = () => {
                                         {isResetting ? (
                                             <>
                                                 <Loader2 className="w-4 h-4 animate-spin" />
-                                                Ripristino...
+                                                Restoring...
                                             </>
                                         ) : (
                                             <>
                                                 <RotateCcw className="w-4 h-4" />
-                                                Conferma
+                                                Confirm
                                             </>
                                         )}
                                     </button>
@@ -350,7 +350,7 @@ export const SettingsPage: React.FC = () => {
                                 className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-gray-300 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 hover:text-white transition-colors"
                             >
                                 <RotateCcw className="w-4 h-4" />
-                                Ripristina Prompt di Default
+                                Restore Default Prompts
                             </button>
                         )}
                     </SectionCard>
@@ -363,7 +363,7 @@ export const SettingsPage: React.FC = () => {
                     {/* Visualization Section */}
                     <SectionCard
                         icon={<Map className="w-4 h-4" />}
-                        title="Visualizzazione"
+                        title="Display"
                         iconColor="text-emerald-400"
                     >
                         {/* Viewport Object Limit */}
@@ -371,14 +371,14 @@ export const SettingsPage: React.FC = () => {
                             <div className="flex items-center justify-between mb-2">
                                 <div className="flex items-center gap-2">
                                     <Layers className="w-3.5 h-3.5 text-gray-500" />
-                                    <label className="text-sm text-gray-300">Limite Oggetti Visualizzati</label>
+                                    <label className="text-sm text-gray-300">Displayed Objects Limit</label>
                                 </div>
                                 <span className="text-xs text-emerald-400 font-mono bg-emerald-500/10 px-2 py-0.5 rounded">
                                     {markersLimit.toLocaleString()}
                                 </span>
                             </div>
                             <p className="text-xs text-gray-500 mb-3">
-                                Numero massimo di immobili visualizzati sulla mappa.
+                                Maximum number of properties displayed on the map.
                             </p>
                             <div className="flex flex-wrap gap-2">
                                 {MARKERS_LIMIT_OPTIONS.map((option) => (
@@ -402,7 +402,7 @@ export const SettingsPage: React.FC = () => {
                         {/* Warning */}
                         <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg">
                             <p className="text-xs text-amber-400">
-                                ⚠️ Un numero elevato di marker potrebbe rallentare la mappa.
+                                ⚠️ A high number of markers may slow down the map.
                             </p>
                         </div>
                     </SectionCard>
@@ -410,11 +410,11 @@ export const SettingsPage: React.FC = () => {
                     {/* Data Source Section */}
                     <SectionCard
                         icon={<Database className="w-4 h-4" />}
-                        title="Sorgente Dati"
+                        title="Data Source"
                         iconColor="text-emerald-400"
                     >
                         <p className="text-xs text-gray-500 mb-4">
-                            Seleziona la sorgente dati per le analisi.
+                            Select the data source for the analyses.
                         </p>
 
                         <div className="grid grid-cols-2 gap-3">
@@ -432,7 +432,7 @@ export const SettingsPage: React.FC = () => {
                                 <div className={`text-sm font-medium ${dataSource === 'live' ? 'text-emerald-300' : 'text-gray-400'}`}>
                                     Live
                                 </div>
-                                <div className="text-xs text-gray-500 mt-1">Dataset completo</div>
+                                <div className="text-xs text-gray-500 mt-1">Full dataset</div>
                             </button>
 
                             <button
@@ -449,14 +449,14 @@ export const SettingsPage: React.FC = () => {
                                 <div className={`text-sm font-medium ${dataSource === 'sandbox' ? 'text-amber-300' : 'text-gray-400'}`}>
                                     Sandbox
                                 </div>
-                                <div className="text-xs text-gray-500 mt-1">Dati demo</div>
+                                <div className="text-xs text-gray-500 mt-1">Demo data</div>
                             </button>
                         </div>
 
                         {dataSource === 'sandbox' && (
                             <div className="mt-4 p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg">
                                 <p className="text-xs text-amber-400">
-                                    🧪 Modalità Sandbox attiva. I dati mostrati sono solo dimostrativi.
+                                    🧪 Sandbox mode active. The displayed data is for demonstration only.
                                 </p>
                             </div>
                         )}
@@ -479,7 +479,7 @@ export const SettingsPage: React.FC = () => {
                                         <div className="text-lg font-semibold text-white">{user.username}</div>
                                         <div className="text-sm text-gray-400">{user.email}</div>
                                         <div className="mt-1 inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-500/20 border border-emerald-500/30 rounded-full">
-                                            <span className="text-xs text-emerald-400 font-medium">Analista</span>
+                                            <span className="text-xs text-emerald-400 font-medium">Analyst</span>
                                         </div>
                                     </div>
                                 </div>
@@ -490,13 +490,13 @@ export const SettingsPage: React.FC = () => {
                                     className="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl hover:bg-red-500/20 hover:border-red-500/40 transition-all"
                                 >
                                     <LogOut className="w-4 h-4" />
-                                    Disconnetti
+                                    Sign out
                                 </button>
                             </>
                         ) : (
                             <div className="text-center py-8 text-gray-500">
                                 <User className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                                <p className="text-sm">Nessun utente connesso</p>
+                                <p className="text-sm">No user signed in</p>
                             </div>
                         )}
                     </SectionCard>
@@ -506,7 +506,7 @@ export const SettingsPage: React.FC = () => {
             {/* Footer */}
             <div className="mt-8 pt-6 border-t border-white/10 text-center">
                 <p className="text-xs text-gray-500">
-                    RealEstate AI v1.0.0 • Le modifiche vengono salvate automaticamente
+                    RealEstate AI v1.0.0 • Changes are saved automatically
                 </p>
             </div>
         </div>

@@ -365,7 +365,7 @@ export const AgentTraceViewer: React.FC<AgentTraceViewerProps> = ({ trace, class
                 <div className="w-16 h-16 rounded-3xl bg-white/5 flex items-center justify-center mb-6">
                     <Terminal className="w-8 h-8 opacity-20" />
                 </div>
-                <p className="text-lg font-medium opacity-40">Nessuna traccia disponibile</p>
+                <p className="text-lg font-medium opacity-40">No trace available</p>
             </div>
         );
     }
@@ -425,9 +425,9 @@ export const AgentTraceViewer: React.FC<AgentTraceViewerProps> = ({ trace, class
                     </div>
                     <div className="flex items-center gap-2 text-[10px] opacity-0 group-hover/path:opacity-100 transition-opacity">
                         {isCopied ? (
-                            <span className="text-emerald-500 flex items-center gap-1 font-bold"><Check size={10} /> Copiato!</span>
+                            <span className="text-emerald-500 flex items-center gap-1 font-bold"><Check size={10} /> Copied!</span>
                         ) : (
-                            <span className="text-slate-600 uppercase">Clicca per copiare il percorso</span>
+                            <span className="text-slate-600 uppercase">Click to copy the path</span>
                         )}
                     </div>
                 </div>
@@ -476,7 +476,7 @@ export const AgentTraceViewer: React.FC<AgentTraceViewerProps> = ({ trace, class
                             <Box className="w-4 h-4 text-orange-400" />
                         </div>
                         <div>
-                            <div className="text-[10px] text-slate-600 uppercase font-black tracking-widest leading-none">Ispezione Selezionata</div>
+                            <div className="text-[10px] text-slate-600 uppercase font-black tracking-widest leading-none">Selected Inspection</div>
                             <div className="text-xs text-white/80 font-mono mt-1 font-bold">
                                 {selectedPathArr[selectedPathArr.length - 1]}
                             </div>
@@ -508,7 +508,7 @@ export const AgentTraceViewer: React.FC<AgentTraceViewerProps> = ({ trace, class
                         }}
                         className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-xs font-bold text-slate-300 hover:text-white hover:bg-white/10 transition-all"
                     >
-                        <Copy size={14} /> Copia Valore
+                        <Copy size={14} /> Copy Value
                     </button>
                 </div>
             )}

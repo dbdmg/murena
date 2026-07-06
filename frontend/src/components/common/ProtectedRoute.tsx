@@ -18,7 +18,7 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
             <div className="min-h-screen bg-[#0a0c10] flex items-center justify-center">
                 <div className="flex flex-col items-center gap-4">
                     <div className="w-10 h-10 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-                    <span className="text-gray-400 text-sm font-medium tracking-wide">Inizializzazione sessione...</span>
+                    <span className="text-gray-400 text-sm font-medium tracking-wide">Initializing session...</span>
                 </div>
             </div>
         );

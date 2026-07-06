@@ -117,7 +117,7 @@ const TriggerButton: React.FC<TriggerButtonProps> = ({ isOpen, onClick, hasActiv
                         }
                     `}
                 >
-                    <span className="font-medium">Regolazione Agenti</span>
+                    <span className="font-medium">Agent Tuner</span>
                     {hasActiveRun && (
                         <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                     )}
@@ -346,7 +346,7 @@ export const AgentRefinementHUD: React.FC<AgentRefinementHUDProps> = ({
                     }
                 }
             } catch (err) {
-                setError('Impossibile caricare i dati dell\'agent');
+                setError('Unable to load agent data');
                 console.error('Failed to load agent steps:', err);
             } finally {
                 setIsLoading(false);
@@ -399,12 +399,12 @@ export const AgentRefinementHUD: React.FC<AgentRefinementHUDProps> = ({
 
 
         if (!currentQuery) {
-            setError('Query non disponibile. Esegui prima una ricerca dalla mappa.');
+            setError('Query not available. Run a search from the map first.');
             return;
         }
 
         setIsSimulating(true);
-        setSimulationProgress('Salvataggio prompt...');
+        setSimulationProgress('Saving prompts...');
         setError(null);
         setSuccessMessage(null);
 
@@ -418,20 +418,20 @@ export const AgentRefinementHUD: React.FC<AgentRefinementHUDProps> = ({
 
                     await apiClient.put(`/prompts/overrides/${agentName}/system`, { text: editedSystemPrompt });
                     await apiClient.put(`/prompts/overrides/${agentName}/user`, { text: editedUserPrompt });
-                    setSimulationProgress('Prompt salvati. Avvio analisi...');
+                    setSimulationProgress('Prompts saved. Starting analysis...');
 
                     // Update original prompts since we saved them
                     setOriginalSystemPrompt(editedSystemPrompt);
                     setOriginalUserPrompt(editedUserPrompt);
                 } catch (saveErr) {
                     console.error('Failed to save prompts:', saveErr);
-                    setError('Impossibile salvare i prompt modificati');
+                    setError('Unable to save the edited prompts');
                     setIsSimulating(false);
                     setSimulationProgress('');
                     return;
                 }
             } else {
-                setSimulationProgress('Avvio analisi...');
+                setSimulationProgress('Starting analysis...');
             }
 
             // Step 2: Start analysis
@@ -454,12 +454,12 @@ export const AgentRefinementHUD: React.FC<AgentRefinementHUDProps> = ({
                 } else if (results.status === 'completed') {
                     setSimulatedRunId(response.run_id);
                     onRunSwitch(response.run_id);
-                    setSuccessMessage('Simulazione completata! La mappa è stata aggiornata.');
+                    setSuccessMessage('Simulation completed! The map has been updated.');
                     setSimulationProgress('');
                     break;
                 } else if (results.status === 'failed') {
-                    const errorMessage = (results as { error?: string }).error || 'Errore sconosciuto';
-                    setError('Analisi fallita: ' + errorMessage);
+                    const errorMessage = (results as { error?: string }).error || 'Unknown error';
+                    setError('Analysis failed: ' + errorMessage);
                     setSimulationProgress('');
                     break;
                 }
@@ -467,11 +467,11 @@ export const AgentRefinementHUD: React.FC<AgentRefinementHUDProps> = ({
             }
 
             if (attempts >= maxAttempts) {
-                setError('Timeout della simulazione (2 minuti)');
+                setError('Simulation timeout (2 minutes)');
                 setSimulationProgress('');
             }
         } catch (err) {
-            setError('Impossibile avviare la simulazione');
+            setError('Unable to start the simulation');
             setSimulationProgress('');
             console.error('Simulation error:', err);
         } finally {
@@ -492,7 +492,7 @@ export const AgentRefinementHUD: React.FC<AgentRefinementHUDProps> = ({
             // Save user template
             await apiClient.put(`/prompts/overrides/${agentName}/user`, { text: editedUserPrompt });
 
-            setSuccessMessage('Prompt dell\'agent aggiornati globalmente!');
+            setSuccessMessage('Agent prompts updated globally!');
             setOriginalSystemPrompt(editedSystemPrompt);
             setOriginalUserPrompt(editedUserPrompt);
             setSimulatedRunId(null);
@@ -501,11 +501,11 @@ export const AgentRefinementHUD: React.FC<AgentRefinementHUDProps> = ({
         } catch (err: unknown) {
             if (err && typeof err === 'object' && 'response' in err) {
                 const axiosErr = err as { response?: { data?: { detail?: string } } };
-                setError(axiosErr.response?.data?.detail || 'Impossibile salvare i prompt');
+                setError(axiosErr.response?.data?.detail || 'Unable to save prompts');
             } else if (err instanceof Error) {
                 setError(err.message);
             } else {
-                setError('Impossibile salvare i prompt');
+                setError('Unable to save prompts');
             }
         }
     }, [canSave, selectedAgent, editedSystemPrompt, editedUserPrompt]);
@@ -545,16 +545,16 @@ export const AgentRefinementHUD: React.FC<AgentRefinementHUDProps> = ({
             setEditedSystemPrompt(systemData.text || '');
             setEditedUserPrompt(userData.text || '');
 
-            setSuccessMessage('Prompt ripristinati ai valori di default!');
+            setSuccessMessage('Prompts restored to default values!');
             setTimeout(() => setSuccessMessage(null), 3000);
         } catch (err: unknown) {
             if (err && typeof err === 'object' && 'response' in err) {
                 const axiosErr = err as { response?: { data?: { detail?: string } } };
-                setError(axiosErr.response?.data?.detail || 'Errore durante il reset');
+                setError(axiosErr.response?.data?.detail || 'Error during reset');
             } else if (err instanceof Error) {
                 setError(err.message);
             } else {
-                setError('Errore durante il reset');
+                setError('Error during reset');
             }
         } finally {
             setIsResettingToDefault(false);
@@ -622,8 +622,8 @@ export const AgentRefinementHUD: React.FC<AgentRefinementHUDProps> = ({
                                         <Sparkles className="w-6 h-6 text-white" />
                                     </div>
                                     <div>
-                                        <h2 className="text-xl font-bold text-white">Regolazione Agenti</h2>
-                                        <p className="text-sm text-gray-500">Modifica e valida il comportamento dell'AI</p>
+                                        <h2 className="text-xl font-bold text-white">Agent Tuner</h2>
+                                        <p className="text-sm text-gray-500">Edit and validate the AI behavior</p>
                                     </div>
                                 </div>
 
@@ -636,7 +636,7 @@ export const AgentRefinementHUD: React.FC<AgentRefinementHUDProps> = ({
                                             {simulatedRunId && (
                                                 <div className="flex items-center gap-1.5 text-emerald-400">
                                                     <Check className="w-4 h-4" />
-                                                    <span className="text-xs font-medium">Simulato</span>
+                                                    <span className="text-xs font-medium">Simulated</span>
                                                 </div>
                                             )}
                                         </div>
@@ -657,20 +657,20 @@ export const AgentRefinementHUD: React.FC<AgentRefinementHUDProps> = ({
                                 {isLoading ? (
                                     <div className="flex-1 flex flex-col items-center justify-center text-gray-500">
                                         <Loader2 className="w-10 h-10 animate-spin mb-4 text-violet-500" />
-                                        <span className="text-base">Caricamento dati agent...</span>
+                                        <span className="text-base">Loading agent data...</span>
                                     </div>
                                 ) : !activeRunId ? (
                                     <div className="flex-1 flex flex-col items-center justify-center text-gray-500">
                                         <AlertCircle className="w-12 h-12 mb-4" />
-                                        <span className="text-lg font-medium">Nessun run attivo</span>
-                                        <p className="text-sm text-gray-600 mt-2">Carica un run dalla mappa per modificare gli agent</p>
+                                        <span className="text-lg font-medium">No active run</span>
+                                        <p className="text-sm text-gray-600 mt-2">Load a run from the map to edit the agents</p>
                                     </div>
                                 ) : (
                                     <div className="flex-1 flex flex-col min-h-0 gap-6">
                                         {/* Agent Selector */}
                                         {availableAgents.length > 0 && (
                                             <div className="flex items-center gap-3">
-                                                <span className="text-sm text-gray-500">Agente:</span>
+                                                <span className="text-sm text-gray-500">Agent:</span>
                                                 <div className="flex flex-wrap gap-2">
                                                     {availableAgents.map((agent) => (
                                                         <button
@@ -731,7 +731,7 @@ export const AgentRefinementHUD: React.FC<AgentRefinementHUDProps> = ({
                                                 onChange={setEditedSystemPrompt}
                                                 label="System Prompt"
                                                 agentLabel={`${selectedAgentLabel} - Istruzioni di ruolo e comportamento`}
-                                                placeholder="Nessun system prompt disponibile per questo agent"
+                                                placeholder="No system prompt available for this agent"
                                             />
                                         ) : (
                                             <PromptEditor
@@ -739,7 +739,7 @@ export const AgentRefinementHUD: React.FC<AgentRefinementHUDProps> = ({
                                                 onChange={setEditedUserPrompt}
                                                 label="User Template"
                                                 agentLabel={`${selectedAgentLabel} - Template con variabili (es. {query})`}
-                                                placeholder="Nessun user template disponibile per questo agent"
+                                                placeholder="No user template available for this agent"
                                             />
                                         )}
 
@@ -777,7 +777,7 @@ export const AgentRefinementHUD: React.FC<AgentRefinementHUDProps> = ({
                                 <div className="relative px-8 py-6 border-t border-white/10 bg-white/2">
                                     <div className="flex items-center justify-between">
                                         <p className="text-xs text-gray-600">
-                                            Modalità esperto • Le modifiche salvate influenzeranno tutte le future analisi
+                                            Expert mode • Saved changes will affect all future analyses
                                         </p>
 
                                         <div className="flex items-center gap-3">
@@ -786,7 +786,7 @@ export const AgentRefinementHUD: React.FC<AgentRefinementHUDProps> = ({
                                                 onClick={handleResetToDefault}
                                                 disabled={isSimulating || isResettingToDefault}
                                                 className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm transition-all duration-200 bg-white/5 text-gray-400 border border-white/10 hover:bg-amber-500/10 hover:text-amber-400 hover:border-amber-500/30"
-                                                title="Ripristina prompt di default per questo agent"
+                                                title="Restore default prompts for this agent"
                                             >
                                                 {isResettingToDefault ? (
                                                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -825,7 +825,7 @@ export const AgentRefinementHUD: React.FC<AgentRefinementHUDProps> = ({
                                                         : 'bg-white/2 text-gray-600 cursor-not-allowed'
                                                     }
                                                 `}
-                                                title={canSave ? 'Salva come default globale' : 'Esegui prima una simulazione'}
+                                                title={canSave ? 'Save as global default' : 'Run a simulation first'}
                                             >
                                                 <Save className="w-4 h-4" />
                                                 Salva Default
@@ -847,12 +847,12 @@ export const AgentRefinementHUD: React.FC<AgentRefinementHUDProps> = ({
                                                 {isSimulating ? (
                                                     <>
                                                         <Loader2 className="w-4 h-4 animate-spin" />
-                                                        {simulationProgress || 'Simulazione...'}
+                                                        {simulationProgress || 'Simulating...'}
                                                     </>
                                                 ) : (
                                                     <>
                                                         <Play className="w-4 h-4" />
-                                                        {hasChanges ? 'Salva e Simula' : 'Ri-esegui Analisi'}
+                                                        {hasChanges ? 'Save & Simulate' : 'Re-run Analysis'}
                                                     </>
                                                 )}
                                             </button>
