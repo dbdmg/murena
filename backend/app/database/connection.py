@@ -17,7 +17,7 @@ from app.utils.logger import logger
 # pool_pre_ping=True ensures connections are checked before use
 is_sqlite = settings.DATABASE_URL.startswith("sqlite")
 engine_kwargs = {
-    "echo": settings.DEBUG,
+    "echo": settings.SQL_ECHO,
     "pool_pre_ping": True,
 }
 

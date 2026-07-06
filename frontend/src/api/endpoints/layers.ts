@@ -1,6 +1,7 @@
 
 import apiClient from '../client';
 import type { POIResponse } from '../types';
+import type { GeoJsonObject } from 'geojson';
 
 export const layersApi = {
     /**
@@ -34,7 +35,7 @@ export const layersApi = {
     /**
      * Get Zone OMI GeoJSON
      */
-    getZoneOMI: async (): Promise<Record<string, unknown>> => {
+    getZoneOMI: async (): Promise<GeoJsonObject> => {
         const response = await apiClient.get('/layers/zone-omi');
         return response.data;
     },

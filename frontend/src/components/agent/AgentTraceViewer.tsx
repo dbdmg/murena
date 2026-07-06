@@ -36,11 +36,16 @@ interface AgentTraceViewerProps {
 // ----------------------------------------------------------------------------
 
 type ViewMode = 'tree' | 'table';
+type JsonDataType = 'null' | 'array' | 'object' | 'string' | 'number' | 'boolean' | 'undefined' | 'function' | 'symbol' | 'bigint';
 
-const getDataType = (val: any): string => {
+const isRecord = (val: unknown): val is Record<string, unknown> => (
+    typeof val === 'object' && val !== null && !Array.isArray(val)
+);
+
+const getDataType = (val: unknown): JsonDataType => {
     if (val === null) return 'null';
     if (Array.isArray(val)) return 'array';
-    return typeof val;
+    return typeof val as JsonDataType;
 };
 
 const formatPath = (path: string[]) => {
@@ -64,12 +69,12 @@ const getAgentModeClasses = (mode: string): string => {
 // Components
 // ----------------------------------------------------------------------------
 
-const JsonValue: React.FC<{ value: any; type: string }> = ({ value, type }) => {
+const JsonValue: React.FC<{ value: unknown; type: JsonDataType }> = ({ value, type }) => {
     switch (type) {
         case 'string':
-            return <span className="text-amber-200/90 break-all">"{value}"</span>;
+            return <span className="text-amber-200/90 break-all">"{String(value)}"</span>;
         case 'number':
-            return <span className="text-cyan-400 font-mono">{value}</span>;
+            return <span className="text-cyan-400 font-mono">{String(value)}</span>;
         case 'boolean':
             return <span className="text-orange-400 font-bold italic">{String(value)}</span>;
         case 'null':
@@ -77,12 +82,12 @@ const JsonValue: React.FC<{ value: any; type: string }> = ({ value, type }) => {
         case 'array':
             return (
                 <span className="text-slate-500 text-[10px] font-mono">
-                    Array({value.length})
+                    Array({Array.isArray(value) ? value.length : 0})
                     <span className="ml-2 opacity-30">[...]</span>
                 </span>
             );
-        case 'object':
-            const keys = Object.keys(value);
+        case 'object': {
+            const keys = isRecord(value) ? Object.keys(value) : [];
             return (
                 <span className="text-slate-500 text-[10px] font-mono">
                     Object({keys.length})
@@ -91,6 +96,7 @@ const JsonValue: React.FC<{ value: any; type: string }> = ({ value, type }) => {
                     </span>
                 </span>
             );
+        }
         default:
             return <span className="text-slate-300">{String(value)}</span>;
     }
@@ -98,7 +104,7 @@ const JsonValue: React.FC<{ value: any; type: string }> = ({ value, type }) => {
 
 const JsonNode: React.FC<{
     name: string | number;
-    value: any;
+    value: unknown;
     depth: number;
     path: string[];
     expandedPaths: Set<string>;
@@ -110,8 +116,8 @@ const JsonNode: React.FC<{
     const parsedValue = useMemo(() => {
         if (typeof value === 'string' && (value.startsWith('{') || value.startsWith('['))) {
             try {
-                return JSON.parse(value);
-            } catch (e) {
+                return JSON.parse(value) as unknown;
+            } catch {
                 return value;
             }
         }
@@ -119,12 +125,16 @@ const JsonNode: React.FC<{
     }, [value]);
 
     const label = useMemo(() => {
-        if (typeof name === 'number' && parsedValue && typeof parsedValue === 'object') {
+        if (typeof name === 'number' && isRecord(parsedValue)) {
+            const recordLabel = parsedValue.agent_name ?? parsedValue.key;
+            const displayLabel = typeof recordLabel === 'string' || typeof recordLabel === 'number'
+                ? String(recordLabel)
+                : 'Item';
             return (
                 <span className="flex items-center gap-2">
                     <span className="text-slate-600">[{name}]</span>
                     <span className="text-amber-400/90 font-bold px-1.5 py-0.25 rounded bg-amber-400/5 border border-amber-400/10 text-[10px] uppercase tracking-tighter shadow-sm">
-                        {parsedValue.agent_name || parsedValue.key || 'Item'}
+                        {displayLabel}
                     </span>
                 </span>
             );
@@ -193,8 +203,8 @@ const JsonNode: React.FC<{
 
             {isExpandable && isExpanded && (
                 <div className="flex flex-col">
-                    {type === 'array' ? (
-                        (parsedValue as any[]).map((item, i) => (
+                    {Array.isArray(parsedValue) ? (
+                        parsedValue.map((item, i) => (
                             <JsonNode
                                 key={i}
                                 name={i}
@@ -207,7 +217,7 @@ const JsonNode: React.FC<{
                                 selectedPath={selectedPath}
                             />
                         ))
-                    ) : (
+                    ) : isRecord(parsedValue) ? (
                         Object.entries(parsedValue).map(([key, val]) => (
                             <JsonNode
                                 key={key}
@@ -221,7 +231,7 @@ const JsonNode: React.FC<{
                                 selectedPath={selectedPath}
                             />
                         ))
-                    )}
+                    ) : null}
                 </div>
             )}
         </div>
@@ -317,17 +327,6 @@ export const AgentTraceViewer: React.FC<AgentTraceViewerProps> = ({ trace, class
     const [selectedPathArr, setSelectedPathArr] = useState<string[]>([]);
     const [isCopied, setIsCopied] = useState(false);
 
-    if (!trace || trace.length === 0) {
-        return (
-            <div className={`flex flex-col items-center justify-center p-20 text-slate-600 ${className}`}>
-                <div className="w-16 h-16 rounded-3xl bg-white/5 flex items-center justify-center mb-6">
-                    <Terminal className="w-8 h-8 opacity-20" />
-                </div>
-                <p className="text-lg font-medium opacity-40">Nessuna traccia disponibile</p>
-            </div>
-        );
-    }
-
     const togglePath = useCallback((path: string) => {
         setExpandedPaths(prev => {
             const next = new Set(prev);
@@ -359,6 +358,17 @@ export const AgentTraceViewer: React.FC<AgentTraceViewerProps> = ({ trace, class
         setIsCopied(true);
         setTimeout(() => setIsCopied(false), 2000);
     };
+
+    if (!trace || trace.length === 0) {
+        return (
+            <div className={`flex flex-col items-center justify-center p-20 text-slate-600 ${className}`}>
+                <div className="w-16 h-16 rounded-3xl bg-white/5 flex items-center justify-center mb-6">
+                    <Terminal className="w-8 h-8 opacity-20" />
+                </div>
+                <p className="text-lg font-medium opacity-40">Nessuna traccia disponibile</p>
+            </div>
+        );
+    }
 
     return (
         <div className={cn("flex flex-col gap-4 min-h-[600px]", className)}>
@@ -475,13 +485,19 @@ export const AgentTraceViewer: React.FC<AgentTraceViewerProps> = ({ trace, class
                     <button
                         onClick={() => {
                             // Helper function to resolve path deeply considering recursive parsing
-                            const resolveDeep = (obj: any, pathArr: string[]): any => {
-                                let current = obj;
+                            const resolveDeep = (obj: unknown, pathArr: string[]): unknown => {
+                                let current: unknown = obj;
                                 for (const key of pathArr) {
                                     if (typeof current === 'string') {
                                         try { current = JSON.parse(current); } catch { return undefined; }
                                     }
-                                    current = current[key];
+                                    if (Array.isArray(current)) {
+                                        current = current[Number(key)];
+                                    } else if (isRecord(current)) {
+                                        current = current[key];
+                                    } else {
+                                        return undefined;
+                                    }
                                 }
                                 return current;
                             };

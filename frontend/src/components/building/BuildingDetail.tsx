@@ -228,27 +228,36 @@ const EnergyFilesList: React.FC<{ files: string[]; onFileClick: (file: string) =
 export const BuildingDetail: React.FC<BuildingDetailProps> = ({ data, runId, onFeedbackSuccess }) => {
     const details = data;
     const [selectedEnergyFile, setSelectedEnergyFile] = useState<string | null>(null);
-    const [existingFeedback, setExistingFeedback] = useState<AgentFeedbackResponse | undefined>(undefined);
+    const [feedbackState, setFeedbackState] = useState<{
+        key: string;
+        feedback?: AgentFeedbackResponse;
+    } | null>(null);
 
     const is_meta_building_val = details.is_meta_building === true || String(details.is_meta_building) === 'true';
+    const feedbackTargetKey = runId && details.id ? `${runId}:${details.id}` : null;
+    const existingFeedback = feedbackState?.key === feedbackTargetKey ? feedbackState.feedback : undefined;
 
     // Fetch existing feedback when building or run changes
     useEffect(() => {
-        if (runId && details.id) {
-            feedbackApi.getBuildingFeedback(runId, details.id)
-                .then(feedbacks => {
-                    if (feedbacks && feedbacks.length > 0) {
-                        // Use the most recent feedback
-                        setExistingFeedback(feedbacks[0]);
-                    } else {
-                        setExistingFeedback(undefined);
-                    }
-                })
-                .catch(err => console.error("Error loading building feedback:", err));
-        } else {
-            setExistingFeedback(undefined);
-        }
-    }, [runId, details.id]);
+        if (!feedbackTargetKey || !runId || !details.id) return;
+
+        let isCancelled = false;
+
+        feedbackApi.getBuildingFeedback(runId, details.id)
+            .then(feedbacks => {
+                if (isCancelled) return;
+                setFeedbackState({
+                    key: feedbackTargetKey,
+                    // Use the most recent feedback
+                    feedback: feedbacks?.[0],
+                });
+            })
+            .catch(err => console.error("Error loading building feedback:", err));
+
+        return () => {
+            isCancelled = true;
+        };
+    }, [feedbackTargetKey, runId, details.id]);
 
     // Proximity Radar data (6 metrics)
     const proximityRadarData = useMemo(() => {
@@ -363,7 +372,7 @@ export const BuildingDetail: React.FC<BuildingDetailProps> = ({ data, runId, onF
                 </div>
                 {/* Tier Badge */}
                 {tierBadge && (
-                    <div className={`absolute top - 2 left - 2 px - 2.5 py - 1 rounded - lg flex items - center gap - 1.5 text - [10px] font - bold shadow - lg ${tierBadge.className} `}>
+                    <div className={`absolute top-2 left-2 px-2.5 py-1 rounded-lg flex items-center gap-1.5 text-[10px] font-bold shadow-lg ${tierBadge.className}`}>
                         {tierBadge.icon}
                         {tierBadge.label}
                     </div>
@@ -434,7 +443,12 @@ export const BuildingDetail: React.FC<BuildingDetailProps> = ({ data, runId, onF
                             if (runId && details.id) {
                                 feedbackApi.getBuildingFeedback(runId, details.id)
                                     .then(feedbacks => {
-                                        if (feedbacks && feedbacks.length > 0) setExistingFeedback(feedbacks[0]);
+                                        if (feedbackTargetKey) {
+                                            setFeedbackState({
+                                                key: feedbackTargetKey,
+                                                feedback: feedbacks?.[0],
+                                            });
+                                        }
                                     });
                             }
                             onFeedbackSuccess?.();

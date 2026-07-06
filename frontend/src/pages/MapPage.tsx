@@ -1,4 +1,6 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import axios from 'axios';
+import type { GeoJsonObject } from 'geojson';
 import { Map } from '../components/map/Map';
 import { BuildingSidebar } from '../components/building/BuildingSidebar';
 import { FilterPanel, defaultFilters } from '../components/filters/FilterPanel';
@@ -18,12 +20,23 @@ import type { AgentFeedbackResponse } from '../api/types';
 import { mapApi } from '../api/endpoints/map';
 import { layersApi } from '../api/endpoints/layers';
 import { buildingsApi } from '../api/endpoints/buildings';
-import type { MapConfig, MapMarker, POI } from '../api/types';
+import type { ApiCoordinates, MapConfig, MapMarker, POI } from '../api/types';
 import { Loader2, Sparkles, Building2, List } from 'lucide-react';
 
 import { useSettings } from '../contexts/SettingsContext';
 import { useMap } from '../contexts/MapContext';
 import { useIntelligenceMap } from '../hooks/useIntelligenceMap';
+
+const getCoordinateLng = (
+    coordinates: ApiCoordinates,
+    fallback: number
+) => (
+    typeof coordinates.lng === 'number'
+        ? coordinates.lng
+        : typeof coordinates.lon === 'number'
+            ? coordinates.lon
+            : fallback
+);
 
 export const MapPage: React.FC = () => {
     const { markersLimit } = useSettings();
@@ -43,7 +56,7 @@ export const MapPage: React.FC = () => {
     } = useIntelligenceMap(markersLimit);
 
     const [config, setConfig] = useState<MapConfig | null>(null);
-    const [overlays, setOverlays] = useState<{ municipi?: unknown }>({});
+    const [overlays, setOverlays] = useState<{ municipi?: GeoJsonObject }>({});
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -58,7 +71,7 @@ export const MapPage: React.FC = () => {
     // Layer state
     const [layers, setLayers] = useState<LayersState>(defaultLayersState);
     const [pois, setPois] = useState<POI[]>([]);
-    const [zoneOMIOverlay, setZoneOMIOverlay] = useState<unknown>(null);
+    const [zoneOMIOverlay, setZoneOMIOverlay] = useState<GeoJsonObject | null>(null);
 
     // Filter state
     const [filters, setFilters] = useState<FilterState>(defaultFilters);
@@ -229,8 +242,8 @@ export const MapPage: React.FC = () => {
             try {
                 const municipiData = await mapApi.getOverlay('municipi');
                 setOverlays((prev) => ({ ...prev, municipi: municipiData }));
-            } catch (err) {
-                const status = (err as any)?.response?.status;
+            } catch (err: unknown) {
+                const status = axios.isAxiosError(err) ? err.response?.status : undefined;
                 if (status === 404) {
                     console.warn('Municipi overlay is not available on the backend. Skipping overlay load.');
                 } else {
@@ -251,17 +264,23 @@ export const MapPage: React.FC = () => {
 
     // Fetch POIs when categories change
     // Use stringified version to avoid unnecessary re-fetches
-    const activePOICategoriesKey = layers.activePOICategories.sort().join(',');
+    const activePOICategoriesKey = useMemo(
+        () => [...layers.activePOICategories].sort().join(','),
+        [layers.activePOICategories]
+    );
 
     useEffect(() => {
-        if (layers.activePOICategories.length > 0) {
-            layersApi.getPOIs(layers.activePOICategories, undefined, undefined)
+        const activeCategories = activePOICategoriesKey
+            ? activePOICategoriesKey.split(',')
+            : [];
+
+        if (activeCategories.length > 0) {
+            layersApi.getPOIs(activeCategories, undefined, undefined)
                 .then(data => setPois(data.pois))
                 .catch(err => console.error("Error fetching POIs:", err));
         } else {
             setPois([]);
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [activePOICategoriesKey]);
 
     // Handle marker click from map
@@ -287,7 +306,7 @@ export const MapPage: React.FC = () => {
                     score: marker.ranking_score ?? marker.score ?? fullBuilding.score,
                     ranking_score: marker.ranking_score ?? fullBuilding.score,
                     lat: fullBuilding.coordinates.lat,
-                    lng: fullBuilding.coordinates.lng ?? (fullBuilding.coordinates as any).lon ?? marker.lng,
+                    lng: getCoordinateLng(fullBuilding.coordinates, marker.lng),
                     tier: marker.tier
                 };
 
@@ -316,7 +335,7 @@ export const MapPage: React.FC = () => {
                         score: first.ranking_score ?? first.score ?? fullBuilding.score,
                         ranking_score: first.ranking_score ?? fullBuilding.score,
                         lat: fullBuilding.coordinates.lat,
-                        lng: fullBuilding.coordinates.lng ?? (fullBuilding.coordinates as any).lon ?? first.lng,
+                        lng: getCoordinateLng(fullBuilding.coordinates, first.lng),
                         tier: first.tier
                     };
 
@@ -525,7 +544,7 @@ export const MapPage: React.FC = () => {
                     zoom={config.zoom}
                     overlays={layers.showMunicipi ? overlays : undefined}
                     pois={pois}
-                    zoneOMI={layers.showZoneOMI ? zoneOMIOverlay : null}
+                    zoneOMI={layers.showZoneOMI ? zoneOMIOverlay ?? undefined : undefined}
                     selectedBuildingIds={selectedBuildings.map(b => b.id)}
                     focusMarkerId={focusMarkerId}
                     hoveredMarkerId={hoveredMarkerId}

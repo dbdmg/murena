@@ -13,6 +13,7 @@
  */
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -110,10 +111,10 @@ export const HistoryPage: React.FC = () => {
             setError(null);
             const history = await analysisApi.getHistory(500, 0);
             setAllRuns(history);
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error('Failed to fetch history:', err);
-            const status = err.response?.status;
-            const detail = err.response?.data?.detail;
+            const status = axios.isAxiosError(err) ? err.response?.status : undefined;
+            const detail = axios.isAxiosError(err) ? err.response?.data?.detail : undefined;
             setError(`Impossibile caricare la cronologia${status ? ` (${status})` : ''}${detail ? `: ${detail}` : ''}`);
         } finally {
             setIsLoading(false);

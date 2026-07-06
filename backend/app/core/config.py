@@ -37,6 +37,7 @@ class Settings(BaseSettings):
     DATABASE_URL: str
     DATABASE_POOL_SIZE: int = 5
     DATABASE_MAX_OVERFLOW: int = 10
+    SQL_ECHO: bool = False
     DATABASE_PATH: str = "data/database/users.db"  # SQLite fallback
     CACHE_DIR: str = "data/database/cache"
 

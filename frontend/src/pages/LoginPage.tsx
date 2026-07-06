@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import axios from 'axios';
 import { useAuth } from '../contexts/AuthContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { translations } from '../utils/translations';
@@ -8,6 +9,11 @@ import { useNavigate } from 'react-router-dom';
 import googleIcon from '../assets/icons/icons8-google-48.png';
 import microsoftIcon from '../assets/icons/icons8-microsoft-48.png';
 import murenaLogo from '../assets/brand/MURENA_no-casetta_56x56px.svg';
+
+interface FastApiValidationError {
+    loc?: Array<string | number>;
+    msg?: string;
+}
 
 export const LoginPage: React.FC = () => {
     const { login } = useAuth();
@@ -28,22 +34,23 @@ export const LoginPage: React.FC = () => {
         try {
             await login({ username, password });
             navigate('/');
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error(err);
             const apiUrl = import.meta.env.VITE_API_URL || '/api/v1';
             
             // Handle FastAPI validation errors or standard messages
-            const detail = err.response?.data?.detail;
+            const detail = axios.isAxiosError(err) ? err.response?.data?.detail : undefined;
             let msg = t.login.failed;
             
             if (Array.isArray(detail)) {
                 // Formatting for validation error list: "field: error message"
-                msg = detail.map((d: any) => `${d.loc.at(-1) || 'error'}: ${d.msg}`).join(', ');
+                msg = detail.map((d: FastApiValidationError) => `${d.loc?.at(-1) || 'error'}: ${d.msg || t.login.failed}`).join(', ');
             } else if (typeof detail === 'string') {
                 msg = detail;
+            } else if (err instanceof Error) {
+                msg = err.message;
             } else {
-                msg = err.message || t.login.failed;
+                msg = t.login.failed;
             }
             
             setError(`Error: ${msg} (API: ${apiUrl})`);

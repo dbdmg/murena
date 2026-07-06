@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, CheckCircle2, AlertTriangle, ChevronDown, ChevronUp, Sliders, Zap, MapPin, Activity, Shield, Building2 } from 'lucide-react';
+import type { EnergyScores, ProximityScores } from '../../api/types';
 
 interface AIEvaluationCardProps {
     score?: number;
@@ -8,8 +9,8 @@ interface AIEvaluationCardProps {
     pros?: string[];
     cons?: string[];
     compact?: boolean; // For smaller display in sidebar
-    energyScores?: any;
-    proximityScores?: any;
+    energyScores?: Partial<EnergyScores>;
+    proximityScores?: Partial<ProximityScores>;
     distanceKm?: number;
     locationScore?: number;
     regulatoryScore?: number;
@@ -79,8 +80,12 @@ export const AIEvaluationCard: React.FC<AIEvaluationCardProps> = ({
         if (energyScores.total !== undefined && energyScores.total !== null) {
             return Math.round((energyScores.total / 20) * 100);
         }
-        const keys = ['class_score', 'system_score', 'envelope_score', 'renewables_score'];
-        const values = keys.map(k => energyScores[k]).filter(v => v !== undefined && v !== null && typeof v === 'number') as number[];
+        const values = [
+            energyScores.class_score,
+            energyScores.system_score ?? energyScores.plant_score,
+            energyScores.envelope_score,
+            energyScores.renewables_score,
+        ].filter((v): v is number => typeof v === 'number');
         if (values.length === 0) return 60;
         const avg = values.reduce((sum, v) => sum + v, 0) / values.length;
         return Math.round((avg / 5) * 100);

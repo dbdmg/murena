@@ -88,7 +88,7 @@ export function useAnalysisProgress(
         // - ws://host:port/api/v1
         // - ws://host:port/api/v1/ws
         // - ws://host:port/ws (legacy)
-        let rawBase = (import.meta.env.VITE_WS_URL || '').replace(/\/$/, '');
+        const rawBase = (import.meta.env.VITE_WS_URL || '').replace(/\/$/, '');
 
         // Behavior:
         // 1. If VITE_WS_URL is explicitly set (and not localhost default), use it.
@@ -198,7 +198,8 @@ export function useAnalysisProgress(
                     // Connection usually closes itself after an error on the backend, but let's be safe
                     ws.close();
                 } else {
-                    console.warn('Received unexpected message type from WebSocket:', (data as any).type);
+                    const unexpectedMessage = data as { type?: unknown };
+                    console.warn('Received unexpected message type from WebSocket:', unexpectedMessage.type);
                 }
             } catch (err) {
                 console.error('[WS] Failed to parse message:', err);
