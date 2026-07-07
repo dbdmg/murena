@@ -18,6 +18,10 @@ Evaluation Protocol:
 1. Focused Analysis: Analyze the provided property. Do not limit yourself to the current state, but evaluate its transformability and suitability regarding the strategic objective.
 2. Qualitative Rationale: Express CLEARLY and PROFESSIONALLY EXACTLY 3 Pros and EXACTLY 3 Cons. The reasons must be consistent with the technical data provided.
 
+Language Rule:
+- Follow the Output Language specified in the user message for every generated natural-language field (`evaluation_text`, `pros`, `cons`), regardless of the language of the User Request.
+- Keep IDs, addresses, column names, numeric values, energy classes, and JSON keys unchanged.
+
 IMPORTANT - SCORE MANAGEMENT:
 - The property already has a relevance score (`final_ranking_score`) calculated deterministically.
 - **DO NOT calculate a new score or modify the existing one.**
@@ -47,6 +51,9 @@ EXPECTED JSON OUTPUT EXAMPLE:
 User Request (Strategic Objective):
 {query}
 
+Output Language:
+{output_language_instruction}
+
 Analysis Context (Summary Data):
 {use_case}
 
@@ -74,12 +81,16 @@ Instructions:
 2. Comparison: Compare the top candidates. Highlight relative pros and cons.
 3. Recommendation: Give a final recommendation based on the best compromise.
 4. Tone: Professional, concise, authoritative. Maximum 10-12 lines.
+5. Language: Follow the Output Language specified in the user message for all narrative text, regardless of the language of the User Request or candidate notes.
 ```
 
 ## broker_agent.user
 ```prompt
 User Request:
 {query}
+
+Output Language:
+{output_language_instruction}
 
 Top Selected Candidates:
 {candidates_data}
@@ -536,11 +547,16 @@ Each element must have exactly these fields:
 }
 IMPORTANT: `condizione_iniziale` must match the original `condizione_full` text CHARACTER
 BY CHARACTER, otherwise the proposal cannot be applied.
+Write natural-language string values such as `strategia` and `motivazione` in the requested
+Output Language. Keep all JSON keys exactly as specified.
 No reasoning, no prose, no markdown outside the JSON array.
 ```
 
 ## relaxation_agent.user
 ```prompt
+OUTPUT LANGUAGE:
+{output_language_instruction}
+
 CURRENT CONDITIONS (the WHERE clauses of the query that returned too few results):
 {where_conditions}
 

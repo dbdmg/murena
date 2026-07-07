@@ -27,6 +27,35 @@ from app.core.constants import (
 MAX_ITEMS_FOR_LLM = settings.MAX_ITEMS_FOR_LLM
 MAX_ITEMS_FOR_MAP = settings.MAX_ITEMS_FOR_MAP
 MAX_LLM_CAP = settings.MAX_LLM_CAP
+
+
+def _normalize_output_language(output_language: Optional[str]) -> str:
+    """Return the canonical output language code for user-facing text."""
+    value = (output_language or "en").strip().lower()
+    if value in {"it", "ita", "italian", "italiano"}:
+        return "it"
+    return "en"
+
+
+def _build_output_language_instruction(output_language: Optional[str]) -> str:
+    language = _normalize_output_language(output_language)
+    if language == "it":
+        return (
+            "Italian. Write every user-facing natural-language field in Italian, "
+            "regardless of the user's query language. Keep IDs, addresses, column "
+            "names, numeric values, energy classes, and JSON keys unchanged."
+        )
+    return (
+        "English. Write every user-facing natural-language field in English, "
+        "regardless of the user's query language. Keep IDs, addresses, column "
+        "names, numeric values, energy classes, and JSON keys unchanged."
+    )
+
+
+def _localized_text(output_language: Optional[str], *, en: str, it: str) -> str:
+    return it if _normalize_output_language(output_language) == "it" else en
+
+
 from app.data.loaders import get_coordinates
 from app.data.processors import calculate_travel_times_df
 from app.services.llm.agents.energy_agent import EnergyAgent
@@ -102,6 +131,8 @@ class GraphState(TypedDict):
     # Configuration flags
     analysis_mode: str
     architecture: str
+    output_language: str
+    output_language_instruction: str
     
     # Intermediate results
     location_payload: List[List[Union[str, float]]]
@@ -292,6 +323,7 @@ class GraphOrchestratorAgent(BaseAgent):
         use_relaxation: bool = True,
         analysis_mode: str = "agent",
         architecture: str = "multiagent",
+        output_language: str = "en",
     ) -> OrchestratorResult:
         """Execute the full agentic orchestration pipeline for a user query.
 
@@ -310,6 +342,7 @@ class GraphOrchestratorAgent(BaseAgent):
             use_data_knowledge: Whether to augment prompts with dataset statistics.
             analysis_mode: Selection of orchestration methodology.
             architecture: Architectural pattern for agent coordination.
+            output_language: Language for user-facing generated text ('en' or 'it').
 
         Returns:
             An OrchestratorResult containing processed data and agentic traces.
@@ -353,6 +386,11 @@ class GraphOrchestratorAgent(BaseAgent):
         # Suppress future warnings for downcasting during finalization
         pd.set_option('future.no_silent_downcasting', True)
 
+        normalized_output_language = _normalize_output_language(output_language)
+        output_language_instruction = _build_output_language_instruction(
+            normalized_output_language
+        )
+
         initial_state: GraphState = {
             "agent_trace": [],
             "query": query,
@@ -364,6 +402,8 @@ class GraphOrchestratorAgent(BaseAgent):
             "dataset_metadata": dataset_metadata,
             "analysis_mode": analysis_mode.lower(),
             "architecture": architecture.lower(),
+            "output_language": normalized_output_language,
+            "output_language_instruction": output_language_instruction,
             "disabled_agents": disabled_agents or [],
             "use_data_knowledge": use_data_knowledge,
             "use_relaxation": use_relaxation,
@@ -382,8 +422,12 @@ class GraphOrchestratorAgent(BaseAgent):
             "gemini_responses": {
                 "analysis_mode": analysis_mode.lower(),
                 "dataset_key": dataset_key,
+                "output_language": normalized_output_language,
             },
-            "context": AgentContext(user_query=query),
+            "context": AgentContext(
+                user_query=query,
+                output_language=normalized_output_language,
+            ),
             "where_clause": "",
             "match_count": 0,
             "broker_summary": "",
@@ -1658,7 +1702,15 @@ class GraphOrchestratorAgent(BaseAgent):
 
     def _relax_query(self, state: GraphState) -> GraphState:
         """Propone rilassamenti ai criteri di ricerca se i risultati sono vuoti."""
-        self._update_progress(state, "sql", "Analizzo possibili rilassamenti dei criteri...")
+        self._update_progress(
+            state,
+            "sql",
+            _localized_text(
+                state.get("output_language"),
+                en="Analyzing possible criteria relaxations...",
+                it="Analizzo possibili rilassamenti dei criteri...",
+            ),
+        )
         
         sql_query = state.get("sql_query", "")
         where_details, _, _ = self._prepare_relaxation_data(state, sql_query)
@@ -1678,7 +1730,8 @@ class GraphOrchestratorAgent(BaseAgent):
         result = self.relaxation_agent.run(
             where_conditions=json.dumps(where_details, indent=2, ensure_ascii=False),
             statistics=json.dumps(stats, indent=2, ensure_ascii=False),
-            current_results_count=len(state.get("selected_data", []))
+            current_results_count=len(state.get("selected_data", [])),
+            output_language_instruction=state.get("output_language_instruction", ""),
         )
         duration_ms = (time.time() - start_t) * 1000
         
@@ -1692,9 +1745,25 @@ class GraphOrchestratorAgent(BaseAgent):
         applied = final_relaxed_sql != sql_query
         if applied:
             state["prepared_relaxed_sql"] = final_relaxed_sql
-            self._update_progress(state, "sql", "Rilassamento deterministico applicato con successo.")
+            self._update_progress(
+                state,
+                "sql",
+                _localized_text(
+                    state.get("output_language"),
+                    en="Deterministic relaxation applied successfully.",
+                    it="Rilassamento deterministico applicato con successo.",
+                ),
+            )
         else:
-            self._update_progress(state, "sql", "Nessun rilassamento ha prodotto risultati sufficienti.")
+            self._update_progress(
+                state,
+                "sql",
+                _localized_text(
+                    state.get("output_language"),
+                    en="No relaxation produced enough results.",
+                    it="Nessun rilassamento ha prodotto risultati sufficienti.",
+                ),
+            )
 
         current_count = state.get("relaxation_count", 0) + 1
         all_proposals = state.get("relaxation_proposals", []) + proposals
@@ -1705,8 +1774,16 @@ class GraphOrchestratorAgent(BaseAgent):
             "relax_constraints": True,
             "relaxation_applied": applied,
             "relaxation_count": current_count,
-            "execution_error": f"[Rilassamento #{current_count}] Zero o insufficenti risultati trovati (< 10 righe). Applica i rilassamenti suggeriti per ampliare la ricerca.",
-            "status_msg": "Rilassamento criteri attivato per mancanza di risultati."
+            "execution_error": _localized_text(
+                state.get("output_language"),
+                en=f"[Relaxation #{current_count}] Zero or too few results found (< 10 rows). Apply the suggested relaxations to broaden the search.",
+                it=f"[Rilassamento #{current_count}] Zero o insufficenti risultati trovati (< 10 righe). Applica i rilassamenti suggeriti per ampliare la ricerca.",
+            ),
+            "status_msg": _localized_text(
+                state.get("output_language"),
+                en="Criteria relaxation activated because the query returned too few results.",
+                it="Rilassamento criteri attivato per mancanza di risultati.",
+            )
         }
 
     def _apply_ast_relaxation_workflow(self, state, initial_sql, proposals):
@@ -1786,7 +1863,11 @@ class GraphOrchestratorAgent(BaseAgent):
         
         if not dataset_path and base_dataset is None:
             logger.error("No dataset path or base_dataset for fallback")
-            state["status_msg"] = "Errore: impossibile generare alternative."
+            state["status_msg"] = _localized_text(
+                state.get("output_language"),
+                en="Error: unable to generate alternatives.",
+                it="Errore: impossibile generare alternative.",
+            )
             return state
 
         try:
@@ -1837,15 +1918,26 @@ class GraphOrchestratorAgent(BaseAgent):
 
             state["selected_data"] = fallback_df
             state["gemini_responses"]["fallback_activated"] = True
-            state["status_msg"] = (
-                "Nessun risultato trovato con i criteri specificati. "
-                "Mostro alternative suggerite."
+            state["status_msg"] = _localized_text(
+                state.get("output_language"),
+                en=(
+                    "No results found with the specified criteria. "
+                    "Showing suggested alternatives."
+                ),
+                it=(
+                    "Nessun risultato trovato con i criteri specificati. "
+                    "Mostro alternative suggerite."
+                ),
             )
             logger.info(f"Fallback returning {len(fallback_df)} results")
 
         except Exception as e:
             logger.error(f"Fallback failed: {e}")
-            state["status_msg"] = f"Errore durante la generazione di alternative: {e}"
+            state["status_msg"] = _localized_text(
+                state.get("output_language"),
+                en=f"Error while generating alternatives: {e}",
+                it=f"Errore durante la generazione di alternative: {e}",
+            )
 
         return state
 
@@ -2378,6 +2470,9 @@ class GraphOrchestratorAgent(BaseAgent):
                 estates_data=estates_data_str,
                 original_query=state["query"],  # NEW: pass original query for context
                 score_legend=SCORE_LEGEND,
+                output_language_instruction=state.get(
+                    "output_language_instruction", ""
+                ),
             )
             return eval_payload, (time.time() - start_t) * 1000
 
@@ -2444,6 +2539,16 @@ class GraphOrchestratorAgent(BaseAgent):
         self._update_progress(state, "broker", "")
 
         eval_results = state["context"].evaluation_results
+        output_language = state.get("output_language")
+        output_language_instruction = state.get("output_language_instruction", "")
+        candidate_label = _localized_text(
+            output_language, en="Candidate", it="Candidato"
+        )
+        rationale_label = _localized_text(
+            output_language, en="Rationale", it="Motivazione"
+        )
+        pros_label = _localized_text(output_language, en="Pros", it="Pro")
+        cons_label = _localized_text(output_language, en="Cons", it="Contro")
 
         # Create structured text for the broker
         candidates = []
@@ -2451,25 +2556,27 @@ class GraphOrchestratorAgent(BaseAgent):
             if hasattr(res, "id") and hasattr(res, "final_ranking_score"):
                 # Handle as Pydantic model
                 candidates.append(
-                    f"Candidato #{i+1} (ID: {res.id}, Score: {res.final_ranking_score}):\n"
-                    f"Motivazione: {res.evaluation_text}\n"
-                    f"Pro: {', '.join(res.pros)}\n"
-                    f"Contro: {', '.join(res.cons)}\n"
+                    f"{candidate_label} #{i+1} (ID: {res.id}, Score: {res.final_ranking_score}):\n"
+                    f"{rationale_label}: {res.evaluation_text}\n"
+                    f"{pros_label}: {', '.join(res.pros)}\n"
+                    f"{cons_label}: {', '.join(res.cons)}\n"
                 )
             elif isinstance(res, dict):
                 # Handle as dictionary
                 score_val = res.get("final_ranking_score") or res.get("score")
                 candidates.append(
-                    f"Candidato #{i+1} (ID: {res.get('id')}, Score: {score_val}):\n"
-                    f"Motivazione: {res.get('evaluation_text')}\n"
-                    f"Pro: {', '.join(res.get('pros', []))}\n"
-                    f"Contro: {', '.join(res.get('cons', []))}\n"
+                    f"{candidate_label} #{i+1} (ID: {res.get('id')}, Score: {score_val}):\n"
+                    f"{rationale_label}: {res.get('evaluation_text')}\n"
+                    f"{pros_label}: {', '.join(res.get('pros', []))}\n"
+                    f"{cons_label}: {', '.join(res.get('cons', []))}\n"
                 )
 
         candidates_text = "\n---\n".join(candidates)
 
         summary = self.broker_agent.run(
-            query=state["query"], candidates_data=candidates_text
+            query=state["query"],
+            candidates_data=candidates_text,
+            output_language_instruction=output_language_instruction,
         )
 
         state["broker_summary"] = summary
@@ -2482,8 +2589,16 @@ class GraphOrchestratorAgent(BaseAgent):
         logger.info(f"Finalizing results. Agent trace size: {trace_len}")
 
         if state["selected_data"].empty:
-            state["status_msg"] = (
-                "La ricerca non ha prodotto risultati specifici. Mostro un campione di immobili."
+            state["status_msg"] = _localized_text(
+                state.get("output_language"),
+                en=(
+                    "The search did not return specific matches. "
+                    "Showing a sample of properties."
+                ),
+                it=(
+                    "La ricerca non ha prodotto risultati specifici. "
+                    "Mostro un campione di immobili."
+                ),
             )
 
             # Fallback: Fetch a sample from DuckDB since working_dataset is not in state
@@ -2688,16 +2803,32 @@ class GraphOrchestratorAgent(BaseAgent):
         )
 
         if evaluated_total > 0:
-            msg = (
-                f"Trovati {total_matches} immobili corrispondenti. "
-                f"Punti visibili in mappa: {shown_count} (limite {map_cap}). "
-                f"LLM ha valutato {evaluated_total}/{llm_cap} elementi. "
+            msg = _localized_text(
+                state.get("output_language"),
+                en=(
+                    f"Found {total_matches} matching properties. "
+                    f"Visible map points: {shown_count} (limit {map_cap}). "
+                    f"The LLM evaluated {evaluated_total}/{llm_cap} items. "
+                ),
+                it=(
+                    f"Trovati {total_matches} immobili corrispondenti. "
+                    f"Punti visibili in mappa: {shown_count} (limite {map_cap}). "
+                    f"LLM ha valutato {evaluated_total}/{llm_cap} elementi. "
+                ),
             )
         else:
-            msg = (
-                f"Trovati {total_matches} immobili corrispondenti. "
-                f"Punti visibili in mappa: {shown_count} (limite {map_cap}). "
-                "Nessuna valutazione LLM disponibile."
+            msg = _localized_text(
+                state.get("output_language"),
+                en=(
+                    f"Found {total_matches} matching properties. "
+                    f"Visible map points: {shown_count} (limit {map_cap}). "
+                    "No LLM evaluation available."
+                ),
+                it=(
+                    f"Trovati {total_matches} immobili corrispondenti. "
+                    f"Punti visibili in mappa: {shown_count} (limite {map_cap}). "
+                    "Nessuna valutazione LLM disponibile."
+                ),
             )
 
         state["status_msg"] = msg

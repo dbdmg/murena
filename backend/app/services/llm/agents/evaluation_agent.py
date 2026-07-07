@@ -79,6 +79,7 @@ class EvaluationAgent(BaseAgent):
         query: str = "",  # Kept for backward compat
         original_query: str = "",  # NEW: original user query for context
         score_legend: str = "",
+        output_language_instruction: str = "",
     ) -> EvaluationAgentResponse:
         # If query is empty, use original_query for the prompt
         if not query:
@@ -94,6 +95,13 @@ class EvaluationAgent(BaseAgent):
 
         logger.info(f"EvaluationAgent running on {expected_count} properties.")
 
+        system_content = self._system_with_format
+        if output_language_instruction:
+            system_content = (
+                f"{system_content}\n\nRuntime Output Language:\n"
+                f"{output_language_instruction}"
+            )
+
         # Format user prompt with variables
         user_text = self.render_template(
             self.user_template,
@@ -101,8 +109,9 @@ class EvaluationAgent(BaseAgent):
             use_case=use_case,
             estates_data=estates_data,
             expected_count=expected_count,
+            output_language_instruction=output_language_instruction,
         ).strip()
-        full_text = f"[SYSTEM]\n{self._system_with_format}\n\n[USER]\n{user_text}"
+        full_text = f"[SYSTEM]\n{system_content}\n\n[USER]\n{user_text}"
 
         max_retries = 3
         result = None
@@ -116,11 +125,12 @@ class EvaluationAgent(BaseAgent):
                 result = invoke_with_langfuse(
                     active_chain,
                     {
-                        "system_content": self._system_with_format,
+                        "system_content": system_content,
                         "query": query,
                         "use_case": use_case,
                         "estates_data": estates_data,
                         "expected_count": expected_count,
+                        "output_language_instruction": output_language_instruction,
                     },
                 )
 
@@ -191,7 +201,7 @@ class EvaluationAgent(BaseAgent):
                 # Continue retry loop
 
         prompt_record = PromptRecord(
-            system=self._system_with_format.strip(),
+            system=system_content.strip(),
             user=user_text,
             full_text=full_text,
         )

@@ -33,6 +33,7 @@ import {
 } from 'lucide-react';
 import { analysisApi } from '../../api/endpoints/analysis';
 import apiClient from '../../api/client';
+import { useSettings } from '../../contexts/SettingsContext';
 import type { AgentStep } from '../../api/types';
 
 // ============================================================================
@@ -282,6 +283,8 @@ export const AgentRefinementHUD: React.FC<AgentRefinementHUDProps> = ({
     onToggle,
     className = '',
 }) => {
+    const { language } = useSettings();
+
     // State
     const [agentSteps, setAgentSteps] = useState<AgentStep[]>([]);
     const [selectedAgent, setSelectedAgent] = useState<string>('evaluation');
@@ -438,6 +441,7 @@ export const AgentRefinementHUD: React.FC<AgentRefinementHUDProps> = ({
             const response = await analysisApi.startAnalysis({
                 query: currentQuery,
                 analysis_mode: 'agent',
+                output_language: language,
             });
 
             let attempts = 0;
@@ -477,7 +481,7 @@ export const AgentRefinementHUD: React.FC<AgentRefinementHUDProps> = ({
         } finally {
             setIsSimulating(false);
         }
-    }, [currentQuery, onRunSwitch, hasChanges, selectedAgent, editedSystemPrompt, editedUserPrompt]);
+    }, [currentQuery, onRunSwitch, hasChanges, selectedAgent, editedSystemPrompt, editedUserPrompt, language]);
 
     // Handle Save as Default
     const handleSaveDefault = useCallback(async () => {

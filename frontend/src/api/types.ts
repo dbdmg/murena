@@ -262,6 +262,7 @@ export interface POIResponse {
 
 export type AnalysisMode = 'agent';
 export type DatasetKey = 'full' | 'meta' | 'ape';
+export type OutputLanguage = 'it' | 'en';
 export type AnalysisStatusType = 'pending' | 'processing' | 'completed' | 'failed';
 
 export interface AnalysisRequest {
@@ -270,6 +271,7 @@ export interface AnalysisRequest {
     map_limit?: number;
     llm_limit?: number;
     analysis_mode?: AnalysisMode;
+    output_language?: OutputLanguage;
 }
 
 export interface AnalysisStartResponse {

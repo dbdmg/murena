@@ -28,6 +28,10 @@ class AnalysisRequest(BaseModel):
     analysis_mode: str = Field(
         default="agent", description="Analysis mode: 'classic' or 'agent'"
     )
+    output_language: str = Field(
+        default="en",
+        description="Language for user-facing generated text: 'en' or 'it'",
+    )
     use_relaxation: bool = Field(
         default=True, description="Whether to use query relaxation if 0 results found"
     )
@@ -43,6 +47,7 @@ class AnalysisRequest(BaseModel):
                 "map_limit": 500,
                 "llm_limit": 10,
                 "analysis_mode": "agent",
+                "output_language": "en",
             }
         }
     )

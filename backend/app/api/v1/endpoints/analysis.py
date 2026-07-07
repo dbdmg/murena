@@ -743,6 +743,7 @@ async def start_analysis(
                 map_limit=request.map_limit,
                 llm_limit=request.llm_limit,
                 analysis_mode=request.analysis_mode,
+                output_language=request.output_language,
                 use_relaxation=request.use_relaxation,
                 model_type=request.model_type,
             )

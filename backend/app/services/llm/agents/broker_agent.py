@@ -40,24 +40,39 @@ class BrokerAgent(BaseAgent):
 
     @log_llm_usage
     @handle_agent_error(fallback_value="Currently unable to generate synthesis.")
-    def run(self, *, query: str, candidates_data: str) -> str:
+    def run(
+        self,
+        *,
+        query: str,
+        candidates_data: str,
+        output_language_instruction: str = "",
+    ) -> str:
         """
         Performs comparative synthesis of the candidates.
         """
+        system_content = self.system_prompt
+        if output_language_instruction:
+            system_content = (
+                f"{system_content}\n\nRuntime Output Language:\n"
+                f"{output_language_instruction}"
+            )
+
         user_text = self.render_template(
             self.user_template,
             query=query,
-            candidates_data=candidates_data
+            candidates_data=candidates_data,
+            output_language_instruction=output_language_instruction,
         ).strip()
         
-        full_text = f"[SYSTEM]\n{self.system_prompt}\n\n[USER]\n{user_text}"
+        full_text = f"[SYSTEM]\n{system_content}\n\n[USER]\n{user_text}"
 
         response = invoke_with_langfuse(
             self.chain,
             {
-                "system_content": self.system_prompt,
+                "system_content": system_content,
                 "query": query,
-                "candidates_data": candidates_data
+                "candidates_data": candidates_data,
+                "output_language_instruction": output_language_instruction,
             }
         )
         

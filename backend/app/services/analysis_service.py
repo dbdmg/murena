@@ -112,6 +112,7 @@ class AnalysisService:
         use_relaxation: bool = True,
         architecture: str = "multiagent",
         model_type: Optional[str] = None,
+        output_language: str = "en",
     ) -> Dict[str, Any]:
         """
         Run a complete real estate analysis.
@@ -131,6 +132,7 @@ class AnalysisService:
             analysis_mode: 'agent' or 'classic'
             progress_callback: Optional callback for progress updates
             dataset: Optional custom dataset DataFrame to use instead of loading from file
+            output_language: Language for user-facing generated text ('en' or 'it')
 
         Returns:
             Dict containing analysis results
@@ -238,6 +240,7 @@ class AnalysisService:
                 use_relaxation=use_relaxation,
                 analysis_mode=analysis_mode,
                 architecture=architecture,
+                output_language=output_language,
             )
 
             logger.info(f"Analysis {run_id} completed successfully")

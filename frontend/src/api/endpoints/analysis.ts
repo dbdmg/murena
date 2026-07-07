@@ -33,6 +33,7 @@ export const analysisApi = {
             map_limit: request.map_limit ?? 500,
             llm_limit: request.llm_limit ?? 10,
             analysis_mode: request.analysis_mode ?? 'agent',
+            output_language: request.output_language ?? 'en',
         };
 
         const response = await apiClient.post<AnalysisStartResponse>(

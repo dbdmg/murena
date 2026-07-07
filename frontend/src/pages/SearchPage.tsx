@@ -24,11 +24,22 @@ import { analysisApi } from '../api/endpoints/analysis';
 import type { AnalysisHistoryItem } from '../api/types';
 import { HistoryItem } from '../components/search/HistoryItem';
 
-const SUGGESTED_QUERIES = [
-    'Uffici vicino a Porta Nuova con classe energetica alta',
-    'Edifici di almeno 1000 mq vicino al Politecnico',
-    'Spazi commerciali in centro comodi ai trasporti',
-];
+const SUGGESTED_QUERIES = {
+    it: [
+        'Trova un grande meta-edificio residenziale vicino a Porta Nuova adatto alla conversione in co-housing o social housing, con almeno 600 mq, classe energetica bassa E, F o G, ottima accessibilita al trasporto pubblico e preferibilmente vicino ad aree verdi o impianti sportivi',
+        'Trova edifici direzionali o commerciali vicino al Politecnico di Torino convertibili in residenze universitarie o servizi pubblici, con almeno 200 mq, classe energetica A, B o C, forte accessibilita al trasporto pubblico e buona prossimita a istruzione e aree verdi',
+        'Uffici vicino a Porta Nuova con classe energetica alta',
+        'Edifici di almeno 1000 mq vicino al Politecnico',
+        'Spazi commerciali in centro comodi ai trasporti',
+    ],
+    en: [
+        'Find a large residential meta-building near Porta Nuova suitable for co-housing or social housing conversion, with at least 600 sqm, low energy class E, F or G, excellent public transport accessibility, and preferably close to green areas or sports facilities',
+        'Find office or commercial buildings near the Politecnico di Torino that could be converted into student housing or public services, with at least 200 sqm, energy class A, B or C, strong public transport accessibility, and good proximity to education and green areas',
+        'Offices near Porta Nuova with a high energy class',
+        'Buildings of at least 1000 sqm near the Polytechnic University',
+        'Retail spaces in the city center with convenient public transport',
+    ],
+} as const;
 
 import murenaLogo217 from '../assets/brand/MURENA_217x34px.svg';
 
@@ -45,7 +56,7 @@ export const SearchPage: React.FC = () => {
     const { startAnalysis, loadDemo, status, runId, isLoading } = useAnalysis();
 
     const t = translations[language];
-    const suggestions = SUGGESTED_QUERIES;
+    const suggestions = SUGGESTED_QUERIES[language];
 
     // Auto-resize textarea
     useEffect(() => {
@@ -94,6 +105,7 @@ export const SearchPage: React.FC = () => {
                     query: query.trim(),
                     llm_limit: llmLimit,
                     map_limit: markersLimit,
+                    output_language: language,
                 });
                 navigate(`/processing/${id}`);
             }

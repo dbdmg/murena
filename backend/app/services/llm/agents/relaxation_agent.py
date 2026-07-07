@@ -60,6 +60,7 @@ class RelaxationAgent(BaseAgent):
         statistics: str,
         min_threshold: int = 10,
         current_results_count: int = 0,
+        output_language_instruction: str = "",
     ) -> RelaxationAgentResult:
         """
         Analizza le condizioni SQL e propone strategie di rilassamento.
@@ -69,10 +70,18 @@ class RelaxationAgent(BaseAgent):
             "statistics": statistics,
             "min_threshold": min_threshold,
             "current_results_count": current_results_count,
+            "output_language_instruction": output_language_instruction,
         }
 
+        system_content = self.system_prompt
+        if output_language_instruction:
+            system_content = (
+                f"{system_content}\n\nRuntime Output Language:\n"
+                f"{output_language_instruction}"
+            )
+
         raw_text, prompt_record = self._invoke(
-            self.system_prompt, self.user_template, variables
+            system_content, self.user_template, variables
         )
 
         # Estrazione JSON dei rilassamenti

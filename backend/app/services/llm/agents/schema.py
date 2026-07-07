@@ -163,6 +163,9 @@ class RelaxationAgentResult(AgentResult):
 
 class AgentContext(BaseModel):
     user_query: str = Field(..., description="Original user query")
+    output_language: str = Field(
+        default="en", description="Language used for user-facing generated text"
+    )
     locations: List[Place] = Field(
         default_factory=list, description="Identified places"
     )
