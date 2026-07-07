@@ -1,32 +1,32 @@
 from typing import Dict, List
 
-# Score legend (1-5) for energy and proximity
-SCORE_LEGEND = """SCORE LEGEND (all on 1-5 scale, where 5=excellent):
+# Score legend for energy and proximity
+SCORE_LEGEND = """SCORE LEGEND:
 
 Energy (energy efficiency):
 - energy_score_class: Energy class (5=A1-A4, 3=B-E, 1=F-G)
 - energy_score_plant: Thermal plant quality (5=Heat pump/District heating, 3=Condensation/Biomass, 1=Traditional)
 - energy_score_envelope: Building insulation (5=Excellent, 3=Medium, 1=Poor/None)
 - energy_score_renewables: Renewable energy sources present (5=Yes, 1=No)
-- energy_score_total: Overall average of energy scores
+- energy_score_total: Sum of the four energy sub-scores (4-20)
 
 Proximity (proximity services):
-- healthcare: Proximity to healthcare services (Hospitals, pharmacies)
-- mobility: Public transport accessibility (Metro, bus, stations)
-- green: Presence of green areas (Parks, gardens)
-- sport: Proximity to sports facilities (Gyms, pools)
-- commercial: Commercial services (Shops, supermarkets)
-- education: Schools and education (Schools, universities)
+- healthcare: Proximity to healthcare services (0-100 percentile)
+- mobility: Public transport accessibility (0-100 percentile)
+- green: Presence of green areas (0-100 percentile)
+- sport: Proximity to sports facilities (0-100 percentile)
+- commercial: Commercial services (0-100 percentile)
+- education: Schools and education (0-100 percentile)
 """
 
 # Specific legend for Energy agent
-ENERGY_SCORE_LEGEND = """ENERGY SCORE LEGEND (1-5 scale, where 5=excellent):
+ENERGY_SCORE_LEGEND = """ENERGY SCORE LEGEND:
 
 - energy_score_class: Energy class (5=A1-A4, 3=B-E, 1=F-G)
 - energy_score_plant: Thermal plant quality (5=Heat pump/District heating, 3=Condensation/Biomass, 1=Traditional)
 - energy_score_envelope: Building insulation (5=Excellent, 3=Medium, 1=Poor/None)
 - energy_score_renewables: Renewable energy sources present (5=Yes, 1=No)
-- energy_score_total: Overall average of energy scores
+- energy_score_total: Sum of the four sub-scores (4-20)
 """
 
 # Columns for Location agent

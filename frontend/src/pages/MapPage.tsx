@@ -38,6 +38,42 @@ const getCoordinateLng = (
             : fallback
 );
 
+const getConstructionYear = (value?: string | number | null): number | null => {
+    if (value == null) return null;
+    const match = String(value).match(/\d{4}/);
+    return match ? Number(match[0]) : null;
+};
+
+const matchesConstructionPeriod = (value: string | number | undefined, periods: string[]): boolean => {
+    const year = getConstructionYear(value);
+    if (year === null) return false;
+
+    return periods.some(period => {
+        switch (period) {
+            case 'Before 1919':
+                return year < 1919;
+            case '1919 to 1945':
+                return year >= 1919 && year <= 1945;
+            case '1946 to 1960':
+                return year >= 1946 && year <= 1960;
+            case '1961 to 1970':
+                return year >= 1961 && year <= 1970;
+            case '1971 to 1980':
+                return year >= 1971 && year <= 1980;
+            case '1981 to 1990':
+                return year >= 1981 && year <= 1990;
+            case '1991 to 2000':
+                return year >= 1991 && year <= 2000;
+            case '2001 to 2010':
+                return year >= 2001 && year <= 2010;
+            case 'After 2010':
+                return year > 2010;
+            default:
+                return String(value).trim() === period;
+        }
+    });
+};
+
 export const MapPage: React.FC = () => {
     const { markersLimit } = useSettings();
     const { setMarkersCount, setTotalCount } = useMap();
@@ -142,7 +178,7 @@ export const MapPage: React.FC = () => {
 
         // 3. Filter by Construction Period
         if (filters.constructionPeriods.length > 0) {
-            result = result.filter(m => m.construction_year && filters.constructionPeriods.includes(m.construction_year));
+            result = result.filter(m => matchesConstructionPeriod(m.construction_year, filters.constructionPeriods));
         }
 
         // 4. Filter by Property Type
@@ -169,7 +205,7 @@ export const MapPage: React.FC = () => {
         // 7. Filter by Meta Building
         if (filters.isMetaBuilding !== null) {
             result = result.filter(m => {
-                const isMeta = m.is_meta_building === true;
+                const isMeta = m.is_meta_building === true || m.meta_building === true || m.meta_immobile === true;
                 return filters.isMetaBuilding ? isMeta : !isMeta;
             });
         }
