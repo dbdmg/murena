@@ -9,6 +9,7 @@ import client from '../../api/client';
 import type { MarkerTier, AgentFeedbackResponse } from '../../api/types';
 import { FeedbackPanel } from '../agent/FeedbackPanel';
 import { feedbackApi } from '../../api/endpoints/feedback';
+import { getEnergyCertificateLabel, getEnergyFileName } from '../../utils/energyFiles';
 
 // Interface matching the data structure from MapMarker/Backend
 interface BuildingData {
@@ -118,12 +119,6 @@ const EnergyFilesList: React.FC<{ files: string[]; onFileClick: (file: string) =
     const displayedFiles = isExpanded ? files : files.slice(0, 2);
     const hasMore = files.length > 2;
 
-    // Extract filename from path for display
-    const getFileName = (path: string) => {
-        const parts = path.split(/[/\\]/);
-        return parts[parts.length - 1] || path;
-    };
-
     // Track fetched files to avoid dependency loop and re-renders
     const fetchedFilesRef = React.useRef<Set<string>>(new Set());
 
@@ -131,7 +126,7 @@ const EnergyFilesList: React.FC<{ files: string[]; onFileClick: (file: string) =
         let isMounted = true;
 
         files.forEach(file => {
-            const fileName = getFileName(file);
+            const fileName = getEnergyFileName(file);
 
             // Only fetch if not already fetched/fetching in this component instance
             if (!fetchedFilesRef.current.has(fileName)) {
@@ -139,7 +134,7 @@ const EnergyFilesList: React.FC<{ files: string[]; onFileClick: (file: string) =
 
                 setFileInfos(prev => ({ ...prev, [fileName]: { loading: true } }));
 
-                client.get<EnergyDetail>(`/energy/${fileName}`)
+                client.get<EnergyDetail>(`/energy/${encodeURIComponent(fileName)}`)
                     .then(res => {
                         if (isMounted) {
                             setFileInfos(prev => ({
@@ -176,17 +171,17 @@ const EnergyFilesList: React.FC<{ files: string[]; onFileClick: (file: string) =
             </div>
             <div className="space-y-1.5">
                 {displayedFiles.map((file, index) => {
-                    const fileName = getFileName(file);
+                    const fileName = getEnergyFileName(file);
                     const info = fileInfos[fileName];
                     return (
                         <button
                             key={index}
-                            onClick={() => onFileClick(file)}
+                            onClick={() => onFileClick(fileName)}
                             className="w-full flex items-center gap-2 px-2 py-2 rounded bg-white/5 hover:bg-emerald-500/10 text-xs text-gray-400 hover:text-emerald-400 transition-colors text-left group"
                         >
                             <FileText className="w-3 h-3 text-gray-500 group-hover:text-emerald-400 shrink-0" />
                             <span className="truncate flex-1 min-w-0">
-                                {fileName.replace(/\.xml$/i, '').split('_')[1] || fileName.replace(/\.xml$/i, '')}
+                                {getEnergyCertificateLabel(fileName)}
                             </span>
                             {/* Badges for Energy Class and Cost */}
                             <div className="flex items-center gap-1.5 shrink-0">

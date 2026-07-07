@@ -55,6 +55,12 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
         setLanguage(language === 'it' ? 'en' : 'it');
     };
 
+    const currentLanguageLabel = language === 'it' ? 'Italiano (IT)' : 'English (EN)';
+    const currentLanguageTooltip = language === 'it' ? 'Italiano' : 'English';
+    const languageToggleTitle = language === 'it'
+        ? 'Lingua corrente: Italiano. Switch to English'
+        : 'Current language: English. Passa all\'Italiano';
+
     return (
         <div className="min-h-screen w-full relative bg-(--bg-main) text-(--text-primary) overflow-hidden tracking-tight">
             {/* Ambient Background Effects */}
@@ -167,7 +173,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
                             w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group relative text-gray-400 hover:text-white hover:bg-white/5
                             ${isExpanded ? '' : 'justify-center'}
                         `}
-                        title={language === 'it' ? 'Switch to English' : 'Passa all\'Italiano'}
+                        title={languageToggleTitle}
                     >
                         <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 bg-white/5 text-emerald-500/80 group-hover:text-emerald-400 group-hover:bg-emerald-500/10 transition-colors">
                             <Languages className="w-4 h-4" />
@@ -183,7 +189,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
                                     className="flex-1 overflow-hidden text-left"
                                 >
                                     <span className="text-sm font-medium block whitespace-nowrap">
-                                        {language === 'it' ? 'English (EN)' : 'Italiano (IT)'}
+                                        {currentLanguageLabel}
                                     </span>
                                 </motion.div>
                             )}
@@ -191,7 +197,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
 
                         {!isExpanded && (
                             <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-xs text-white rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50">
-                                {language === 'it' ? 'English' : 'Italiano'}
+                                {currentLanguageTooltip}
                             </div>
                         )}
                     </button>

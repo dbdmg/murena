@@ -63,16 +63,22 @@ export const LoginPage: React.FC = () => {
         setLanguage(language === 'it' ? 'en' : 'it');
     };
 
+    const currentLanguageCode = language === 'it' ? 'IT' : 'EN';
+    const languageToggleTitle = language === 'it'
+        ? 'Lingua corrente: Italiano. Switch to English'
+        : 'Current language: English. Passa all\'Italiano';
+
     return (
         <div className="min-h-screen w-full flex items-center justify-center relative overflow-hidden bg-[#0a0d12]">
             {/* Language Switcher - Floating for Login Page */}
             <div className="absolute top-6 right-6 z-50">
                 <button
                     onClick={toggleLanguage}
+                    title={languageToggleTitle}
                     className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-gray-400 hover:text-white hover:bg-white/10 backdrop-blur-md transition-all font-medium text-xs"
                 >
                     <Languages className="w-4 h-4 text-emerald-500" />
-                    <span>{language === 'it' ? 'EN' : 'IT'}</span>
+                    <span>{currentLanguageCode}</span>
                 </button>
             </div>
 

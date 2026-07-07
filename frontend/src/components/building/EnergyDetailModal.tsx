@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Zap, Thermometer, Droplets, Snowflake, Wrench, Calendar, MapPin, Building, Info } from 'lucide-react';
 import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
 import client from '../../api/client';
+import { getEnergyCertificateLabel, getEnergyFileName } from '../../utils/energyFiles';
 
 export interface EnergyDetail {
     // Basic identification
@@ -65,6 +66,7 @@ export interface EnergyDetail {
 
     // Total consumption
     consumo_kwh_tot?: number;
+    total_annual_kwh?: number;
 
     // Cadastral info
     cadastral_code?: string;
@@ -102,6 +104,12 @@ interface EnergyDetailModalProps {
     onClose: () => void;
 }
 
+interface EnergyDetailResult {
+    fileName: string;
+    data: EnergyDetail | null;
+    error: string | null;
+}
+
 const getClassColor = (cls?: string) => {
     if (!cls) return 'from-gray-500 to-gray-600';
     const c = cls.toUpperCase();
@@ -134,29 +142,48 @@ const InfoRow: React.FC<{ label: string; value?: string | number | null; unit?: 
 };
 
 export const EnergyDetailModal: React.FC<EnergyDetailModalProps> = ({ filename, isOpen, onClose }) => {
-    const [data, setData] = useState<EnergyDetail | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    const activeFileName = isOpen && filename ? getEnergyFileName(filename) : '';
+    const [result, setResult] = useState<EnergyDetailResult>({
+        fileName: '',
+        data: null,
+        error: null,
+    });
 
-    if (isOpen && filename && !loading && !data && !error) {
-        setLoading(true);
-    }
+    const data = result.fileName === activeFileName ? result.data : null;
+    const error = result.fileName === activeFileName ? result.error : null;
+    const loading = Boolean(isOpen && activeFileName && !data && !error);
 
     useEffect(() => {
-        if (!isOpen || !filename || data || error) return;
+        if (!isOpen || !activeFileName || result.fileName === activeFileName) return;
 
-        client.get<EnergyDetail>(`/energy/${encodeURIComponent(filename)}`)
+        let isCancelled = false;
+
+        client.get<EnergyDetail>(`/energy/${encodeURIComponent(activeFileName)}`)
             .then(res => {
-                setData(res.data);
-                setLoading(false);
+                if (isCancelled) return;
+                setResult({
+                    fileName: activeFileName,
+                    data: res.data,
+                    error: null,
+                });
             })
             .catch(err => {
-                setError(err.response?.data?.detail || 'Error loading data');
-                setLoading(false);
+                if (isCancelled) return;
+                setResult({
+                    fileName: activeFileName,
+                    data: null,
+                    error: err.response?.data?.detail || err.response?.data?.error?.message || 'Error loading data',
+                });
             });
-    }, [filename, isOpen, data, error]);
+
+        return () => {
+            isCancelled = true;
+        };
+    }, [activeFileName, isOpen, result.fileName]);
 
     if (!isOpen) return null;
+
+    const totalAnnualKwh = data?.total_annual_kwh ?? data?.consumo_kwh_tot;
 
     return (
         <div className="fixed inset-0 z-1000 flex items-center justify-center p-4" onClick={onClose}>
@@ -248,7 +275,7 @@ export const EnergyDetailModal: React.FC<EnergyDetailModalProps> = ({ filename, 
                             )}
 
                             {/* Energy Cost Analysis - Row 3 */}
-                            {(data.energy_score !== undefined && data.energy_score !== null) || data.consumo_kwh_tot || data.annual_cost_estimate ? (
+                            {(data.energy_score !== undefined && data.energy_score !== null) || totalAnnualKwh || data.annual_cost_estimate ? (
                                 <div className="bg-linear-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/20 rounded-lg p-3">
                                     <div className="flex items-center gap-2 mb-3">
                                         <div className="w-6 h-6 rounded-full bg-linear-to-br from-purple-500 to-pink-500 flex items-center justify-center">
@@ -279,13 +306,13 @@ export const EnergyDetailModal: React.FC<EnergyDetailModalProps> = ({ filename, 
                                     )}
 
                                     {/* Total values grid */}
-                                    {(data.consumo_kwh_tot || data.annual_cost_estimate) && (
+                                    {(totalAnnualKwh || data.annual_cost_estimate) && (
                                         <div className="grid grid-cols-2 gap-2 mb-3">
-                                            {data.consumo_kwh_tot && data.consumo_kwh_tot > 0 && (
+                                            {totalAnnualKwh && totalAnnualKwh > 0 && (
                                                 <div className="bg-black/20 rounded-lg p-2 text-center">
                                                     <p className="text-[10px] text-gray-500 uppercase">Estimated annual TOTAL consumption</p>
                                                     <p className="text-base font-bold text-yellow-400">
-                                                        {data.consumo_kwh_tot.toLocaleString('it-IT', { maximumFractionDigits: 0 })} <span className="text-xs text-gray-500">kWh</span>
+                                                        {totalAnnualKwh.toLocaleString('it-IT', { maximumFractionDigits: 0 })} <span className="text-xs text-gray-500">kWh</span>
                                                     </p>
                                                 </div>
                                             )}
@@ -575,7 +602,7 @@ export const EnergyDetailModal: React.FC<EnergyDetailModalProps> = ({ filename, 
 
                             {/* File identifier */}
                             <p className="text-[10px] text-gray-600 text-center mt-2">
-                                {data.file.replace(/\.xml$/i, '').split('_')[1] || data.file.replace(/\.xml$/i, '')}
+                                {getEnergyCertificateLabel(data.file)}
                             </p>
                         </>
                     )}
