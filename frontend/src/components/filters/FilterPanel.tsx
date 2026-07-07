@@ -54,7 +54,7 @@ interface FilterPanelProps {
 }
 
 // Real values from db_metadata.json
-const ENERGY_CLASSES = ['A1', 'A2', 'A4', 'B', 'C', 'D', 'E', 'F', 'G'];
+const ENERGY_CLASSES = ['A1', 'A2', 'A3', 'A4', 'B', 'C', 'D', 'E', 'F', 'G'];
 const CONSTRUCTION_PERIODS = [
     'Before 1919',
     '1919 to 1945',
@@ -68,18 +68,20 @@ const CONSTRUCTION_PERIODS = [
 ];
 
 const PROPERTY_TYPES = [
-    'Residential',
-    'Office building',
-    'Commercial space, shop',
-    'Warehouse and storage',
-    'Industrial/Artisanal/Agricultural building',
-    'School building',
-    'Library, Museum, Gallery',
-    'Hospital, Clinic',
-    'Historical palace, Castle',
-    'Theatre, Cinema',
-    'Sports facility',
-    'Public parking',
+    'Abitazioni adibite a residenza con carattere continuativo',
+    'Attività commerciali e assimilabili',
+    'Uffici e assimilabili',
+    'Attività industriali, artigianali e assimilabili',
+    'Bar, ristoranti, sale da ballo e assimilabili',
+    'Attività scolastiche',
+    'Ospedali, cliniche, case di cura e assimilabili',
+    'Edifici adibiti ad albergo, pensione ed attività similari',
+    'Palestre e assimilabili',
+    'Abitazioni adibite a residenza con occupazione saltuaria',
+    'Collegi, luoghi di ricovero, case di pena, caserme, conventi',
+    'Mostre, musei e biblioteche, luoghi di culto e assimilabili',
+    'Cinema e teatri, sale di riunione per congressi e assimilabili',
+    'Servizi di supporto alle attività sportive',
 ];
 
 const PROPERTY_USAGE = [

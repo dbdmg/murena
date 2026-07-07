@@ -1,4 +1,6 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import axios from 'axios';
+import type { GeoJsonObject } from 'geojson';
 import { Map } from '../components/map/Map';
 import { BuildingSidebar } from '../components/building/BuildingSidebar';
 import { FilterPanel, defaultFilters } from '../components/filters/FilterPanel';
@@ -18,12 +20,59 @@ import type { AgentFeedbackResponse } from '../api/types';
 import { mapApi } from '../api/endpoints/map';
 import { layersApi } from '../api/endpoints/layers';
 import { buildingsApi } from '../api/endpoints/buildings';
-import type { MapConfig, MapMarker, POI } from '../api/types';
+import type { ApiCoordinates, MapConfig, MapMarker, POI } from '../api/types';
 import { Loader2, Sparkles, Building2, List } from 'lucide-react';
 
 import { useSettings } from '../contexts/SettingsContext';
 import { useMap } from '../contexts/MapContext';
 import { useIntelligenceMap } from '../hooks/useIntelligenceMap';
+
+const getCoordinateLng = (
+    coordinates: ApiCoordinates,
+    fallback: number
+) => (
+    typeof coordinates.lng === 'number'
+        ? coordinates.lng
+        : typeof coordinates.lon === 'number'
+            ? coordinates.lon
+            : fallback
+);
+
+const getConstructionYear = (value?: string | number | null): number | null => {
+    if (value == null) return null;
+    const match = String(value).match(/\d{4}/);
+    return match ? Number(match[0]) : null;
+};
+
+const matchesConstructionPeriod = (value: string | number | undefined, periods: string[]): boolean => {
+    const year = getConstructionYear(value);
+    if (year === null) return false;
+
+    return periods.some(period => {
+        switch (period) {
+            case 'Before 1919':
+                return year < 1919;
+            case '1919 to 1945':
+                return year >= 1919 && year <= 1945;
+            case '1946 to 1960':
+                return year >= 1946 && year <= 1960;
+            case '1961 to 1970':
+                return year >= 1961 && year <= 1970;
+            case '1971 to 1980':
+                return year >= 1971 && year <= 1980;
+            case '1981 to 1990':
+                return year >= 1981 && year <= 1990;
+            case '1991 to 2000':
+                return year >= 1991 && year <= 2000;
+            case '2001 to 2010':
+                return year >= 2001 && year <= 2010;
+            case 'After 2010':
+                return year > 2010;
+            default:
+                return String(value).trim() === period;
+        }
+    });
+};
 
 export const MapPage: React.FC = () => {
     const { markersLimit } = useSettings();
@@ -43,7 +92,7 @@ export const MapPage: React.FC = () => {
     } = useIntelligenceMap(markersLimit);
 
     const [config, setConfig] = useState<MapConfig | null>(null);
-    const [overlays, setOverlays] = useState<{ municipi?: unknown }>({});
+    const [overlays, setOverlays] = useState<{ municipi?: GeoJsonObject }>({});
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -58,7 +107,7 @@ export const MapPage: React.FC = () => {
     // Layer state
     const [layers, setLayers] = useState<LayersState>(defaultLayersState);
     const [pois, setPois] = useState<POI[]>([]);
-    const [zoneOMIOverlay, setZoneOMIOverlay] = useState<unknown>(null);
+    const [zoneOMIOverlay, setZoneOMIOverlay] = useState<GeoJsonObject | null>(null);
 
     // Filter state
     const [filters, setFilters] = useState<FilterState>(defaultFilters);
@@ -129,7 +178,7 @@ export const MapPage: React.FC = () => {
 
         // 3. Filter by Construction Period
         if (filters.constructionPeriods.length > 0) {
-            result = result.filter(m => m.construction_year && filters.constructionPeriods.includes(m.construction_year));
+            result = result.filter(m => matchesConstructionPeriod(m.construction_year, filters.constructionPeriods));
         }
 
         // 4. Filter by Property Type
@@ -156,7 +205,7 @@ export const MapPage: React.FC = () => {
         // 7. Filter by Meta Building
         if (filters.isMetaBuilding !== null) {
             result = result.filter(m => {
-                const isMeta = m.is_meta_building === true;
+                const isMeta = m.is_meta_building === true || m.meta_building === true || m.meta_immobile === true;
                 return filters.isMetaBuilding ? isMeta : !isMeta;
             });
         }
@@ -229,8 +278,8 @@ export const MapPage: React.FC = () => {
             try {
                 const municipiData = await mapApi.getOverlay('municipi');
                 setOverlays((prev) => ({ ...prev, municipi: municipiData }));
-            } catch (err) {
-                const status = (err as any)?.response?.status;
+            } catch (err: unknown) {
+                const status = axios.isAxiosError(err) ? err.response?.status : undefined;
                 if (status === 404) {
                     console.warn('Municipi overlay is not available on the backend. Skipping overlay load.');
                 } else {
@@ -251,17 +300,23 @@ export const MapPage: React.FC = () => {
 
     // Fetch POIs when categories change
     // Use stringified version to avoid unnecessary re-fetches
-    const activePOICategoriesKey = layers.activePOICategories.sort().join(',');
+    const activePOICategoriesKey = useMemo(
+        () => [...layers.activePOICategories].sort().join(','),
+        [layers.activePOICategories]
+    );
 
     useEffect(() => {
-        if (layers.activePOICategories.length > 0) {
-            layersApi.getPOIs(layers.activePOICategories, undefined, undefined)
+        const activeCategories = activePOICategoriesKey
+            ? activePOICategoriesKey.split(',')
+            : [];
+
+        if (activeCategories.length > 0) {
+            layersApi.getPOIs(activeCategories, undefined, undefined)
                 .then(data => setPois(data.pois))
                 .catch(err => console.error("Error fetching POIs:", err));
         } else {
             setPois([]);
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [activePOICategoriesKey]);
 
     // Handle marker click from map
@@ -287,7 +342,7 @@ export const MapPage: React.FC = () => {
                     score: marker.ranking_score ?? marker.score ?? fullBuilding.score,
                     ranking_score: marker.ranking_score ?? fullBuilding.score,
                     lat: fullBuilding.coordinates.lat,
-                    lng: fullBuilding.coordinates.lng ?? (fullBuilding.coordinates as any).lon ?? marker.lng,
+                    lng: getCoordinateLng(fullBuilding.coordinates, marker.lng),
                     tier: marker.tier
                 };
 
@@ -316,7 +371,7 @@ export const MapPage: React.FC = () => {
                         score: first.ranking_score ?? first.score ?? fullBuilding.score,
                         ranking_score: first.ranking_score ?? fullBuilding.score,
                         lat: fullBuilding.coordinates.lat,
-                        lng: fullBuilding.coordinates.lng ?? (fullBuilding.coordinates as any).lon ?? first.lng,
+                        lng: getCoordinateLng(fullBuilding.coordinates, first.lng),
                         tier: first.tier
                     };
 
@@ -525,7 +580,7 @@ export const MapPage: React.FC = () => {
                     zoom={config.zoom}
                     overlays={layers.showMunicipi ? overlays : undefined}
                     pois={pois}
-                    zoneOMI={layers.showZoneOMI ? zoneOMIOverlay : null}
+                    zoneOMI={layers.showZoneOMI ? zoneOMIOverlay ?? undefined : undefined}
                     selectedBuildingIds={selectedBuildings.map(b => b.id)}
                     focusMarkerId={focusMarkerId}
                     hoveredMarkerId={hoveredMarkerId}

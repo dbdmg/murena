@@ -24,7 +24,7 @@ export const parseSqlWhereConditions = (sqlQuery: string): SqlCondition[] => {
         if (whereMatch && whereMatch[1]) {
             whereClause = whereMatch[1];
         } else {
-            return [{ operator: null, content: 'Nessun filtro specifico applicato (Query Globale)' }];
+            return [{ operator: null, content: 'No specific filters applied (global query)' }];
         }
     } else {
         whereClause = cleanSql.replace(/^WHERE\s+/i, '');

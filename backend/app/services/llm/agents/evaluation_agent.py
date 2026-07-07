@@ -126,7 +126,8 @@ class EvaluationAgent(BaseAgent):
 
                 # Handle raw output for the final record
                 if hasattr(result, "content"):
-                    raw_text = result.content
+                    from app.utils.json_parser import llm_content_to_text
+                    raw_text = llm_content_to_text(result.content)
                 elif hasattr(result, "model_dump_json"):
                     raw_text = result.model_dump_json()
                 else:

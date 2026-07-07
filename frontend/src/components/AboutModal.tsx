@@ -212,18 +212,18 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
                                 {/* Title */}
                                 <h1 className="text-3xl font-bold mb-2">
                                     <span className="bg-linear-to-r from-emerald-400 via-green-400 to-teal-400 bg-clip-text text-transparent">
-                                        Sistema Analitico Immobiliare
+                                        Real Estate Analytics System
                                     </span>
                                 </h1>
                                 <p className="text-sm text-gray-400 mb-3">
-                                    Mappa Intelligence per la Gestione del Patrimonio Immobiliare
+                                    Intelligence Map for Public Real Estate Asset Management
                                 </p>
 
                                 {/* Version & Stats */}
                                 <div className="flex flex-wrap items-center justify-center gap-2">
-                                    <StatBadge label="Versione" value="0.9.2-alpha" />
+                                    <StatBadge label="Version" value="0.9.2-alpha" />
                                     <StatBadge label="Build" value="2025.01" />
-                                    <StatBadge label="Agenti" value="9 AI" />
+                                    <StatBadge label="Agents" value="9 AI" />
                                 </div>
                             </motion.div>
 
@@ -237,11 +237,11 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
                                         <Zap className="w-5 h-5 text-emerald-400" />
                                     </div>
                                     <div>
-                                        <h2 className="text-sm font-semibold text-emerald-300 mb-1">La nostra missione</h2>
+                                        <h2 className="text-sm font-semibold text-emerald-300 mb-1">Our mission</h2>
                                         <p className="text-sm text-gray-400 leading-relaxed">
-                                            Trasformiamo la gestione del patrimonio immobiliare pubblico attraverso
-                                            l'intelligenza artificiale, rendendo l'analisi dei dati accessibile,
-                                            veloce e azionabile per decisori e analisti.
+                                            We transform public real estate asset management through
+                                            artificial intelligence, making data analysis accessible,
+                                            fast and actionable for decision-makers and analysts.
                                         </p>
                                     </div>
                                 </div>
@@ -252,28 +252,28 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
                                 <BentoCard
                                     icon={<Brain className="w-4 h-4" />}
                                     title="Multi-Agent AI"
-                                    description="5 agenti specializzati orchestrati per analisi complesse"
+                                    description="5 specialized agents orchestrated for complex analyses"
                                     iconBg="bg-violet-500/20"
                                     iconColor="text-violet-400"
                                 />
                                 <BentoCard
                                     icon={<MapPin className="w-4 h-4" />}
                                     title="Geospatial"
-                                    description="Visualizzazione interattiva su mappa con clustering"
+                                    description="Interactive map visualization with clustering"
                                     iconBg="bg-emerald-500/20"
                                     iconColor="text-emerald-400"
                                 />
                                 <BentoCard
                                     icon={<Database className="w-4 h-4" />}
-                                    title="25K+ Immobili"
-                                    description="Dataset completo del patrimonio pubblico"
+                                    title="25K+ Properties"
+                                    description="Complete public asset dataset"
                                     iconBg="bg-emerald-500/20"
                                     iconColor="text-emerald-400"
                                 />
                                 <BentoCard
                                     icon={<Cpu className="w-4 h-4" />}
                                     title="Real-time"
-                                    description="Analisi e scoring in tempo reale"
+                                    description="Real-time analysis and scoring"
                                     iconBg="bg-amber-500/20"
                                     iconColor="text-amber-400"
                                 />

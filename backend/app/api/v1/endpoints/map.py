@@ -96,19 +96,19 @@ async def get_map_markers(
     if max_surface is not None:
         filters["max_surface"] = max_surface
     if epoche_costruzione:
-        filters["epoche_costruzione"] = [
+        filters["construction_periods"] = [
             e.strip() for e in epoche_costruzione.split("|")
         ]
     if property_types:
         filters["property_types"] = [t.strip() for t in property_types.split("|")]
     if utilizzo_bene:
-        filters["utilizzo_bene"] = [u.strip() for u in utilizzo_bene.split("|")]
+        filters["asset_utilization"] = [u.strip() for u in utilizzo_bene.split("|")]
     if vincolo_culturale:
-        filters["vincolo_culturale"] = [v.strip() for v in vincolo_culturale.split("|")]
+        filters["cultural_constraints"] = [v.strip() for v in vincolo_culturale.split("|")]
     if is_meta_immobile is not None:
-        filters["is_meta_immobile"] = is_meta_immobile
+        filters["is_meta_building"] = is_meta_immobile
     if natura_bene:
-        filters["natura_bene"] = natura_bene
+        filters["asset_nature"] = natura_bene
 
     return await service.get_markers(limit=limit, filters=filters)
 
@@ -152,20 +152,20 @@ async def get_map_markers_lite(
     if max_surface is not None:
         filters["max_surface"] = max_surface
     if epoche_costruzione:
-        filters["epoche_costruzione"] = [
+        filters["construction_periods"] = [
             e.strip() for e in epoche_costruzione.split("|")
         ]
     if property_types:
         filters["property_types"] = [t.strip() for t in property_types.split("|")]
     if utilizzo_bene:
-        filters["utilizzo_bene"] = [u.strip() for u in utilizzo_bene.split("|")]
+        filters["asset_utilization"] = [u.strip() for u in utilizzo_bene.split("|")]
     if vincolo_culturale:
-        filters["vincolo_culturale"] = [
+        filters["cultural_constraints"] = [
             v.strip() for v in vincolo_culturale.split("|")
         ]
     if is_meta_immobile is not None:
-        filters["is_meta_immobile"] = is_meta_immobile
+        filters["is_meta_building"] = is_meta_immobile
     if natura_bene:
-        filters["natura_bene"] = natura_bene
+        filters["asset_nature"] = natura_bene
 
     return await service.get_markers_lite(limit=limit, filters=filters)

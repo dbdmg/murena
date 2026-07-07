@@ -1,13 +1,15 @@
 import { motion } from 'framer-motion';
 import { CheckCircle2, XCircle, Loader2, Building2, ArrowRight } from 'lucide-react';
 import type { AnalysisHistoryItem } from '../../api/types';
+import type { Language } from '../../contexts/SettingsContext';
+import type { TranslationKeys } from '../../utils/translations';
 import { QueryTooltip } from '../common/QueryTooltip';
 
 interface HistoryItemProps {
     item: AnalysisHistoryItem;
     index: number;
-    language: string;
-    translations: any;
+    language: Language;
+    translations: Record<Language, TranslationKeys>;
     onClick: (item: AnalysisHistoryItem) => void;
 }
 

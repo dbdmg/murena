@@ -32,6 +32,12 @@ export interface LatLng {
     lng: number;
 }
 
+export interface ApiCoordinates {
+    lat: number;
+    lng?: number;
+    lon?: number;
+}
+
 // Tier enum for Intelligence Map
 export type MarkerTier = 1 | 2 | 3;
 
@@ -92,6 +98,7 @@ export interface MapMarker {
         total?: number;
         class_score?: number;
         system_score?: number;
+        plant_score?: number;
         envelope_score?: number;
         renewables_score?: number;
     };
@@ -110,8 +117,8 @@ export interface MapMarker {
     tipo_detenzione_a_terzi?: string;
     data_decorrenza?: string;
     numero_immobili_per_catasto?: number;
-    ape_scores?: any;
-    poi_scores?: any;
+    ape_scores?: Partial<EnergyScores>;
+    poi_scores?: Partial<ProximityScores>;
     ape_files?: string[];
     // English aliases for BuildingDetail compatibility
     effective_date?: string;           // alias for data_decorrenza
@@ -143,11 +150,12 @@ export interface MapConfig {
 
 // Building Details Types
 export interface EnergyScores {
-    total: number;
-    class_score: number;
-    system_score: number;
-    envelope_score: number;
-    renewables_score: number;
+    total?: number;
+    class_score?: number;
+    system_score?: number;
+    plant_score?: number;
+    envelope_score?: number;
+    renewables_score?: number;
 }
 
 export interface ProximityScores {
@@ -163,7 +171,7 @@ export interface BuildingResponse {
     id: string;
     address?: string;
     city?: string;
-    coordinates: LatLng;
+    coordinates: ApiCoordinates;
     surface_area?: number;
     construction_year?: string;
     energy_class?: string;

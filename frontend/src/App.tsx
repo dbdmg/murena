@@ -15,6 +15,7 @@ const ProcessingPage = lazy(() => import('./pages/ProcessingPage').then(module =
 const MapPage = lazy(() => import('./pages/MapPage').then(module => ({ default: module.MapPage })));
 const SettingsPage = lazy(() => import('./pages/SettingsPage').then(module => ({ default: module.SettingsPage })));
 const HistoryPage = lazy(() => import('./pages/HistoryPage').then(module => ({ default: module.HistoryPage })));
+const LogsPage = lazy(() => import('./pages/LogsPage').then(module => ({ default: module.LogsPage })));
 
 // Create Query Client
 const queryClient = new QueryClient({
@@ -76,6 +77,16 @@ function App() {
                                             <ProtectedRoute>
                                                 <AppLayout>
                                                     <SettingsPage />
+                                                </AppLayout>
+                                            </ProtectedRoute>
+                                        }
+                                    />
+                                    <Route
+                                        path="/logs"
+                                        element={
+                                            <ProtectedRoute>
+                                                <AppLayout>
+                                                    <LogsPage />
                                                 </AppLayout>
                                             </ProtectedRoute>
                                         }

@@ -5,7 +5,7 @@
  * sequence of activated agents.
  */
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useReducer } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
@@ -34,13 +34,44 @@ interface LogEntry {
     detail?: string;
 }
 
+type LogAction =
+    | { type: 'progress'; message: string; step: string }
+    | { type: 'complete' };
+
+const logStatusToStepState = (status: LogEntry['status']): ProgressStep['state'] => (
+    status === 'processing' ? 'current' : status
+);
+
+const logsReducer = (logs: LogEntry[], action: LogAction): LogEntry[] => {
+    if (action.type === 'complete') {
+        return logs.map(l => ({ ...l, status: 'done' }));
+    }
+
+    const last = logs[logs.length - 1];
+    if (last && last.message === action.message && last.step === action.step) {
+        return logs;
+    }
+
+    const updated = logs.map(l =>
+        l.status === 'processing' ? { ...l, status: 'done' as const } : l
+    );
+
+    return [...updated, {
+        timestamp: new Date().toLocaleTimeString(),
+        message: action.message,
+        step: action.step,
+        status: 'processing',
+        detail: undefined,
+    }];
+};
+
 export const ProcessingPage: React.FC = () => {
     const { runId } = useParams<{ runId: string }>();
     const navigate = useNavigate();
     const { language } = useSettings();
 
     const [results, setResults] = useState<AnalysisResults | null>(null);
-    const [isComplete, setIsComplete] = useState(false);
+    const [hasTerminalStatus, setHasTerminalStatus] = useState(false);
     const [brokerSummary, setBrokerSummary] = useState<string | null>(null);
     const [buildingsFound, setBuildingsFound] = useState<number | null>(null);
 
@@ -50,41 +81,24 @@ export const ProcessingPage: React.FC = () => {
     const t = translations[language];
 
     // Logs for fallback if structured steps aren't provided
-    const [logs, setLogs] = useState<LogEntry[]>([]);
+    const [logs, dispatchLogs] = useReducer(logsReducer, []);
     const hasFetchedSteps = useRef(false);
     const summaryRef = useRef<HTMLDivElement>(null);
     const logsEndRef = useRef<HTMLDivElement>(null);
+    const isComplete = progress.isComplete || hasTerminalStatus || results?.status === 'completed' || results?.status === 'failed';
 
     // Update logs based on progress message (Fallback mechanism)
     useEffect(() => {
         if (progress.message && progress.step) {
-            setLogs(prev => {
-                // Avoid duplicates for same step if message is identical
-                const last = prev[prev.length - 1];
-                if (last && last.message === progress.message && last.step === progress.step) {
-                    return prev;
-                }
-
-                // Mark previous as done if new step comes
-                const updated = prev.map(l =>
-                    l.status === 'processing' ? { ...l, status: 'done' as const } : l
-                );
-
-                return [...updated, {
-                    timestamp: new Date().toLocaleTimeString(),
-                    message: progress.message,
-                    step: progress.step,
-                    status: 'processing',
-                    // progress object does not have detail property directly exposed by hook, 
-                    // message usually contains the detail. 
-                    detail: undefined
-                }];
+            dispatchLogs({
+                type: 'progress',
+                message: progress.message,
+                step: progress.step,
             });
         }
 
         if (progress.isComplete) {
-            setIsComplete(true);
-            setLogs(prev => prev.map(l => ({ ...l, status: 'done' })));
+            dispatchLogs({ type: 'complete' });
         }
     }, [progress.message, progress.step, progress.isComplete]);
 
@@ -99,7 +113,7 @@ export const ProcessingPage: React.FC = () => {
                         setResults(resultsData);
                         setBuildingsFound(resultsData.buildings?.length || 0);
                         setBrokerSummary(resultsData.broker_summary || null);
-                        setIsComplete(true);
+                        setHasTerminalStatus(true);
                     }
                 }).catch(err => console.error('Failed to fetch results:', err));
             }
@@ -122,10 +136,10 @@ export const ProcessingPage: React.FC = () => {
                     setResults(resultsData);
                     setBuildingsFound(resultsData.buildings?.length || 0);
                     setBrokerSummary(resultsData.broker_summary || null);
-                    setIsComplete(true);
+                    setHasTerminalStatus(true);
                 } else if (resultsData.status === 'failed') {
                     clearInterval(pollInterval);
-                    setIsComplete(true);
+                    setHasTerminalStatus(true);
                 }
             } catch (err) {
                 if (!isCancelled) {
@@ -138,7 +152,7 @@ export const ProcessingPage: React.FC = () => {
             isCancelled = true;
             clearInterval(pollInterval);
         };
-    }, [runId, isComplete, !!results]);
+    }, [runId, isComplete, results]);
 
     // Auto-scroll to bottom of step list
     useEffect(() => {
@@ -164,7 +178,7 @@ export const ProcessingPage: React.FC = () => {
         : logs.length > 0 
             ? logs.map(l => ({
                 label: l.message,
-                state: l.status === 'processing' ? 'current' as const : l.status as any,
+                state: logStatusToStepState(l.status),
                 detail: l.detail
             }))
             : DEFAULT_STEPS)

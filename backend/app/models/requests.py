@@ -20,10 +20,10 @@ class AnalysisRequest(BaseModel):
         description="Maximum number of results to show on map",
     )
     llm_limit: int = Field(
-        default=25,
+        default=10,
         ge=1,
-        le=50,
-        description="Maximum number of properties to evaluate with LLM",
+        le=10,
+        description="Maximum number of properties to evaluate with LLM (local cap: 10)",
     )
     analysis_mode: str = Field(
         default="agent", description="Analysis mode: 'classic' or 'agent'"

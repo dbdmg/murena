@@ -97,7 +97,34 @@ async def reload_prompt_overrides() -> Dict[str, str]:
     """Reload prompt override cache."""
 
     prompt_loader.reload_prompt_cache()
-    return {"status": "ok"}
+    return {
+        "status": "ok",
+        "message": "Prompt cache reloaded from prompt_config.md",
+    }
+
+
+@router.post("/reset")
+async def reset_prompt_overrides() -> Dict[str, str]:
+    """Backward-compatible alias for reloading prompt_config.md.
+
+    The project currently stores prompts directly in prompt_config.md, so there
+    is no separate defaults file to restore from.
+    """
+
+    return await reload_prompt_overrides()
+
+
+@router.post("/reset/{agent}")
+async def reset_agent_prompt_overrides(agent: str) -> Dict[str, str]:
+    """Backward-compatible alias used by older frontend builds."""
+
+    prompt_loader.reload_prompt_cache()
+    if agent and not prompt_loader.get_agent_prompts(agent):
+        raise HTTPException(status_code=404, detail=f"Prompt agent not found: {agent}")
+    return {
+        "status": "ok",
+        "message": f"Prompt cache reloaded from prompt_config.md for {agent}",
+    }
 
 
 @router.get("/agents")

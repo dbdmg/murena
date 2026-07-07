@@ -101,9 +101,16 @@ def calculate_ranking_score(
     # 2. APE Score Calculation
     if "ape_score" in df.columns:
         ape_score_norm = pd.to_numeric(df["ape_score"], errors="coerce").fillna(0) / 100
-    elif "ape_score_total" in df.columns:
-        ape_values = pd.to_numeric(df["ape_score_total"], errors="coerce").fillna(1)
-        ape_score_norm = (ape_values - 1) / 4
+    elif "ape_score_total" in df.columns or "energy_score_total" in df.columns:
+        score_col = "ape_score_total" if "ape_score_total" in df.columns else "energy_score_total"
+        ape_values = pd.to_numeric(df[score_col], errors="coerce")
+        max_observed = float(ape_values.max()) if not ape_values.dropna().empty else 5.0
+        if max_observed > 5:
+            # Historical Turin data stores the sum of four 1-5 sub-scores (4-20).
+            ape_score_norm = (ape_values.fillna(4) - 4) / 16
+        else:
+            # Newer/demo data may store an already averaged 1-5 score.
+            ape_score_norm = (ape_values.fillna(1) - 1) / 4
         ape_score_norm = ape_score_norm.clip(0, 1)
     else:
         ape_score_norm = 0.0
@@ -117,10 +124,11 @@ def calculate_ranking_score(
         w_dist = distance_weight
     elif user_location:
         user_lat, user_lon = user_location
-        # Ensure lat/lon columns exist
-        if "latitude" in df.columns and "longitude" in df.columns:
-            lats = pd.to_numeric(df["latitude"], errors="coerce")
-            lons = pd.to_numeric(df["longitude"], errors="coerce")
+        lat_col = "latitude" if "latitude" in df.columns else ("latitudine" if "latitudine" in df.columns else None)
+        lon_col = "longitude" if "longitude" in df.columns else ("longitudine" if "longitudine" in df.columns else None)
+        if lat_col and lon_col:
+            lats = pd.to_numeric(df[lat_col], errors="coerce")
+            lons = pd.to_numeric(df[lon_col], errors="coerce")
             dists = haversine_vectorized(lats, lons, user_lat, user_lon)
             df["distanza_km"] = dists
             max_dist = min(search_radius_km * 0.6, 10.0)
@@ -141,7 +149,11 @@ def calculate_ranking_score(
     # Sum weights only if the relative score columns are populated
     active_normative_weight = normative_weight if "normative_score" in df.columns else 0
     active_property_technical_weight = property_technical_weight if "property_technical_score" in df.columns else 0
-    active_ape_weight = ape_weight if "ape_score" in df.columns else (ape_weight if "ape_score_total" in df.columns else 0)
+    active_ape_weight = (
+        ape_weight
+        if any(col in df.columns for col in ["ape_score", "ape_score_total", "energy_score_total"])
+        else 0
+    )
     
     tot_w = active_ape_weight + poi_weight_factor + w_dist + active_normative_weight + active_property_technical_weight
     
@@ -264,13 +276,28 @@ def _calculate_poi_score_legacy(df: pd.DataFrame, poi_weights: dict) -> pd.Serie
     Returns:
         Series with normalized POI scores (0-1) for each property
     """
-    poi_cols = ["healthcare", "mobility", "green", "sport", "commercial", "education"]
+    poi_aliases = {
+        "healthcare": ["healthcare", "sanita", "sanità"],
+        "mobility": ["mobility", "mobilita", "mobilità"],
+        "green": ["green", "greenery", "verde"],
+        "sport": ["sport"],
+        "commercial": ["commercial", "commerce", "commerciale"],
+        "education": ["education", "educazione"],
+    }
+    available_cols = {
+        category: next((col for col in aliases if col in df.columns), None)
+        for category, aliases in poi_aliases.items()
+    }
+    available_cols = {category: col for category, col in available_cols.items() if col}
+
+    if not available_cols:
+        return pd.Series(0.0, index=df.index)
     
     # Normalize POI weights (sum = 1)
     total_poi_weight = sum(poi_weights.values())
     if total_poi_weight == 0:
         # If all weights are 0, give equal weight (or 0)
-        norm_poi_weights = {k: 1 / 6 for k in poi_cols}
+        norm_poi_weights = {k: 1 / len(poi_aliases) for k in poi_aliases}
     else:
         # Map input weights (Italian) to normalized weights (English)
         mapping = {
@@ -283,16 +310,17 @@ def _calculate_poi_score_legacy(df: pd.DataFrame, poi_weights: dict) -> pd.Serie
         }
         norm_poi_weights = {mapping.get(k, k): v / total_poi_weight for k, v in poi_weights.items()}
     
-    # Calculate weighted POI sum (scale 1-5)
+    # Calculate weighted POI sum. Historical exports use 0-100 percentiles;
+    # demo/newer datasets can use a 1-5 scale.
     poi_score_series = pd.Series(0.0, index=df.index)
     
-    for col in poi_cols:
-        if col in df.columns:
-            # Convert to numeric, handle NaN by setting 1 (minimum score)
-            col_values = pd.to_numeric(df[col], errors="coerce").fillna(1)
-            poi_score_series += col_values * norm_poi_weights.get(col, 0)
+    for category, source_col in available_cols.items():
+        col_values = pd.to_numeric(df[source_col], errors="coerce")
+        max_observed = float(col_values.max()) if not col_values.dropna().empty else 5.0
+        if max_observed > 5:
+            normalized_values = col_values.fillna(0) / 100
+        else:
+            normalized_values = (col_values.fillna(1) - 1) / 4
+        poi_score_series += normalized_values.clip(0, 1) * norm_poi_weights.get(category, 0)
     
-    # Normalize POI score to 0-1 (from 1-5) -> (val - 1) / 4
-    poi_score_norm = (poi_score_series - 1) / 4
-    
-    return poi_score_norm.clip(0, 1)
+    return poi_score_series.clip(0, 1)

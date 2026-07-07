@@ -12,114 +12,81 @@ load_dotenv()
 _langfuse_client = None
 
 
-@lru_cache(maxsize=8)
+@lru_cache(maxsize=16)
 def _get_llm_internal(
-    model_name: str, 
-    temperature: float, 
-    openai_api_base: Optional[str],
-    openai_api_key: Optional[str] = None
+    provider: str,
+    model_name: str,
+    temperature: float,
+    base_url: Optional[str],
+    api_key: Optional[str] = None,
 ):
     """Internal cached model factory to ensure unified instances."""
-    
-    # Select the correct API key based on override or active endpoint.
-    if openai_api_key:
-        api_key = openai_api_key
-    else:
-        # If the base URL points to the institutional instance, prefer INSTITUTIONAL_LLM_API_KEY.
-        is_institutional = openai_api_base and "institutional-endpoint.edu" in openai_api_base
-        if is_institutional:
-            api_key = (
-                settings.INSTITUTIONAL_LLM_API_KEY
-                or os.getenv("INSTITUTIONAL_LLM_API_KEY")
-                or settings.OPENAI_API_KEY
-                or os.getenv("OPENAI_API_KEY")
-            )
-        else:
-            api_key = settings.OPENAI_API_KEY or os.getenv("OPENAI_API_KEY")
+    from app.services.llm.providers import build_chat_model
 
-    if not api_key and not openai_api_base:
-        raise RuntimeError(
-            "OPENAI_API_KEY non configurata per utilizzare i modelli API."
+    # Institutional gateway keeps its dedicated key (backward compatibility).
+    if not api_key and base_url and "institutional-endpoint.edu" in base_url:
+        api_key = (
+            settings.INSTITUTIONAL_LLM_API_KEY
+            or os.getenv("INSTITUTIONAL_LLM_API_KEY")
+            or settings.OPENAI_API_KEY
         )
 
-    try:
-        from langchain_openai import ChatOpenAI
-    except ImportError:
-        try:
-            from langchain_community.chat_models import ChatOpenAI
-        except ImportError as e:
-            raise RuntimeError(
-                "Manca il pacchetto 'langchain-openai'. Installalo con pip install langchain-openai"
-            ) from e
-
-    print(f"[LLM] Inizializzazione modello {model_name} (Base URL: {openai_api_base or 'Default OpenAI'})")
-    # Only include `chat_template_kwargs` when talking to a compatible local/institutional
-    # API base that expects this non-standard parameter. Official OpenAI endpoints
-    # reject unknown parameters which results in a 400 error.
-    client_kwargs = dict(
-        model=model_name,
-        api_key=api_key or "sk-dummy",  # Fallback for local servers without auth
+    return build_chat_model(
+        provider=provider,
+        model_name=model_name,
         temperature=temperature,
-        base_url=openai_api_base,
+        base_url=base_url,
+        api_key=api_key,
     )
-
-    safe_bases = ["localhost", "127.0.0.1", "institutional"]
-    include_chat_template = False
-    if openai_api_base:
-        lower_base = openai_api_base.lower()
-        for token in safe_bases:
-            if token in lower_base:
-                include_chat_template = True
-                break
-
-    if include_chat_template:
-        client_kwargs["extra_body"] = {"chat_template_kwargs": {"enable_thinking": False}}
-
-    return ChatOpenAI(**client_kwargs)
-
 
 
 def get_llm(
-    model_name: Optional[str] = None, 
+    model_name: Optional[str] = None,
     temperature: Optional[float] = None,
     api_base: Optional[str] = None,
-    api_key: Optional[str] = None
+    api_key: Optional[str] = None,
+    provider: Optional[str] = None,
 ):
-    """Restituisce un'istanza Chat LLM tramite LangChain.
-    Usa una cache interna per evitare di caricare lo stesso modello più volte.
+    """Return a LangChain chat-model instance (cached).
+
+    Provider selection is configuration-driven: set ``LLM_PROVIDER`` in
+    backend/.env (openai | gemini | anthropic | grok | ollama |
+    openai-compatible) or let it be inferred from the model name.
 
     Args:
-        model_name: override esplicito del modello da usare (es. 'gpt-4o', 'nvidia/Llama-3_3-Nemotron-Super-49B-v1').
-        temperature: override della temperatura del modello (default: settings.AGENT_TEMPERATURE).
-        api_base: override dell'URL base dell'API (es. per vLLM).
-        api_key: override della chiave API.
+        model_name: explicit model override (e.g. 'gpt-4o', 'claude-sonnet-5',
+            'gemini-2.5-pro', 'grok-4', 'gemma3:27b').
+        temperature: model temperature (default: settings.AGENT_TEMPERATURE).
+        api_base: base-URL override (e.g. a vLLM/LM Studio/Ollama server).
+        api_key: API-key override.
+        provider: explicit provider override (see LLM_PROVIDER).
     """
-    # Determina il modello di default dinamicamente dalle impostazioni globali
-    if not model_name:
-        model_name = settings.LLM_MODEL
+    from app.services.llm.providers import resolve_provider
 
-    resolved_model = model_name or os.getenv("LLM_MODEL_DEFAULT")
+    resolved_model = model_name or settings.LLM_MODEL or os.getenv("LLM_MODEL_DEFAULT")
 
-    # Risoluzione della temperatura: 
-    # Priorità: argomento esplicito > colonna env > settings.AGENT_TEMPERATURE (default 0.0)
+    # Temperature resolution: explicit arg > env > settings default.
     if temperature is not None:
         resolved_temperature = float(temperature)
     else:
         try:
             env_temp = os.getenv("LLM_TEMPERATURE")
-            if env_temp is not None:
-                resolved_temperature = float(env_temp)
-            else:
-                resolved_temperature = float(settings.AGENT_TEMPERATURE)
+            resolved_temperature = (
+                float(env_temp) if env_temp is not None
+                else float(settings.AGENT_TEMPERATURE)
+            )
         except ValueError:
             resolved_temperature = 0.0
 
-    # Pass along overrides to the internal factory.
+    resolved_base = api_base or settings.LLM_BASE_URL or settings.OPENAI_API_BASE
+    resolved_provider = resolve_provider(resolved_model, resolved_base, explicit=provider)
+
     return _get_llm_internal(
+        provider=resolved_provider,
         model_name=resolved_model,
         temperature=resolved_temperature,
-        openai_api_base=api_base or settings.OPENAI_API_BASE,
-        openai_api_key=api_key
+        base_url=resolved_base,
+        api_key=api_key,
     )
 
 
@@ -147,9 +114,18 @@ def is_oss_model(model_name: Optional[str] = None) -> bool:
     except ImportError:
         pass
 
-    # Fallback: heuristic based on model name and endpoint URL.
+    # Provider-based check: managed APIs support structured output reliably.
+    from app.services.llm.providers import resolve_provider, supports_structured_output
     resolved = (model_name or settings.LLM_MODEL or "").lower()
-    api_base = (settings.OPENAI_API_BASE or "").lower()
+    api_base = (settings.LLM_BASE_URL or settings.OPENAI_API_BASE or "").lower()
+    try:
+        provider = resolve_provider(resolved, api_base or None)
+        if supports_structured_output(provider):
+            return False
+    except RuntimeError:
+        pass
+
+    # Fallback: heuristic based on model name and endpoint URL.
     return (
         "oss" in resolved
         or "llama" in resolved

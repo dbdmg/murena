@@ -89,7 +89,7 @@ export const MapRunSelector: React.FC<MapRunSelectorProps> = ({
                             </span>
                         </QueryTooltip>
                     ) : (
-                        <span className="font-medium">Seleziona ricerca...</span>
+                        <span className="font-medium">Select a search...</span>
                     )}
 
                     <ChevronDown
@@ -119,7 +119,7 @@ export const MapRunSelector: React.FC<MapRunSelectorProps> = ({
                             <div className="p-3 border-b border-white/5 space-y-3">
                                 <div className="flex items-center justify-between">
                                     <span className="text-[10px] uppercase text-gray-500 font-medium tracking-wider">
-                                        Ricerche recenti
+                                        Recent searches
                                     </span>
                                     {activeRunId && (
                                         <button
@@ -144,7 +144,7 @@ export const MapRunSelector: React.FC<MapRunSelectorProps> = ({
                                             setSearchQuery(e.target.value);
                                             setPage(1);
                                         }}
-                                        placeholder="Cerca..."
+                                        placeholder="Search..."
                                         className="w-full bg-white/5 border border-white/10 rounded-lg pl-8 pr-3 py-1.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500/50 transition-colors"
                                     />
                                 </div>
@@ -182,7 +182,7 @@ export const MapRunSelector: React.FC<MapRunSelectorProps> = ({
                                     <div className="p-4 text-center">
                                         <Search className="w-8 h-8 text-gray-600 mx-auto mb-2" />
                                         <p className="text-sm text-gray-500">
-                                            Nessuna ricerca trovata
+                                            No searches found
                                         </p>
                                     </div>
                                 ) : (
@@ -217,7 +217,7 @@ export const MapRunSelector: React.FC<MapRunSelectorProps> = ({
                                                                 </span>
                                                                 {item.buildings_count && (
                                                                     <span className="text-[10px] bg-white/5 text-gray-400 px-1.5 py-0.5 rounded">
-                                                                        {item.buildings_count} immobili
+                                                                        {item.buildings_count} properties
                                                                     </span>
                                                                 )}
                                                             </div>

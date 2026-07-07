@@ -3,6 +3,7 @@ import { MapContainer, TileLayer, Marker, useMap, GeoJSON, Popup } from 'react-l
 import L from 'leaflet';
 import useSupercluster from 'use-supercluster';
 import type { MapMarker, LatLng, POI, MarkerTier } from '../../api/types';
+import type { GeoJsonObject } from 'geojson';
 import 'leaflet/dist/leaflet.css';
 
 // ... (icons remain unchanged)
@@ -295,12 +296,10 @@ interface MapProps {
     tileUrl?: string;
     tileAttribution?: string;
     overlays?: {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        municipi?: any;
+        municipi?: GeoJsonObject;
     };
     pois?: POI[];
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    zoneOMI?: any;
+    zoneOMI?: GeoJsonObject;
     selectedBuildingIds?: string[];
     focusMarkerId?: string | null;
     hoveredMarkerId?: string | null; // For carousel hover sync
@@ -309,6 +308,16 @@ interface MapProps {
     onMarkerClick?: (marker: MapMarker) => void;
     onClusterClick?: (markers: MapMarker[]) => void;
 }
+
+type EstatePointProperties = MapMarker & {
+    cluster: false;
+    markerId: string;
+    category: 'real_estate';
+};
+
+type EstatePointFeature = {
+    properties: EstatePointProperties;
+};
 
 export const Map: React.FC<MapProps> = ({
     markers,
@@ -387,8 +396,7 @@ export const Map: React.FC<MapProps> = ({
         if (isCluster) {
             // Check if this cluster contains any selected markers
             const leaves = supercluster.getLeaves(cluster.id, Infinity);
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const clusterMarkerIds = leaves.map((leaf: any) => leaf.properties.markerId);
+            const clusterMarkerIds = (leaves as EstatePointFeature[]).map((leaf) => leaf.properties.markerId);
             const hasSelectedMarker = clusterMarkerIds.some((id: string) => selectedBuildingIds.includes(id));
 
             return (
@@ -407,8 +415,7 @@ export const Map: React.FC<MapProps> = ({
                             if (rawExpansionZoom >= 20 || currentZoom >= 18) {
                                 // Get all buildings in this cluster and open sidebar
                                 if (onClusterClick) {
-                                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                    const clusterMarkers = leaves.map((leaf: any) => leaf.properties as MapMarker);
+                                    const clusterMarkers = (leaves as EstatePointFeature[]).map((leaf) => leaf.properties as MapMarker);
                                     onClusterClick(clusterMarkers);
                                 }
                                 // Also zoom to max for visual context
@@ -427,8 +434,7 @@ export const Map: React.FC<MapProps> = ({
 
 
         const markerId = cluster.properties.markerId;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const markerData = cluster.properties as any as MapMarker;
+        const markerData = cluster.properties as EstatePointProperties as MapMarker;
         const isSelected = selectedBuildingIds.includes(markerId);
         const rating = buildingRatings[markerId];
 
@@ -453,7 +459,7 @@ export const Map: React.FC<MapProps> = ({
             />
         );
 
-    }), [clusters, supercluster, selectedBuildingIds, onClusterClick, onMarkerClick, currentZoom]);
+    }), [clusters, supercluster, selectedBuildingIds, onClusterClick, onMarkerClick, currentZoom, buildingRatings]);
 
     // Memoize Tier 3 markers
     const renderedTier3Markers = useMemo(() => tier3Markers.map((marker) => {
@@ -476,7 +482,7 @@ export const Map: React.FC<MapProps> = ({
                 }}
             />
         );
-    }), [tier3Markers, selectedBuildingIds, hoveredMarkerId, onMarkerClick]);
+    }), [tier3Markers, selectedBuildingIds, hoveredMarkerId, onMarkerClick, buildingRatings]);
 
     // Memoize POI Clusters
     const renderedPoiClusters = useMemo(() => poiClusters.map(cluster => {
@@ -525,7 +531,7 @@ export const Map: React.FC<MapProps> = ({
                                 <div className="flex items-center gap-1.5 mb-0.5">
                                     <span className="text-[10px] uppercase font-bold text-indigo-400 tracking-wider bg-indigo-500/10 px-1.5 rounded-sm">{poi.category}</span>
                                 </div>
-                                <h3 className="font-bold text-sm text-white leading-tight mb-1">{poi.name || 'Punto di Interesse'}</h3>
+                                <h3 className="font-bold text-sm text-white leading-tight mb-1">{poi.name || 'Point of Interest'}</h3>
 
                                 {(poi.details?.address || poi.details?.city) && (
                                     <p className="text-[11px] text-gray-400 leading-snug truncate">

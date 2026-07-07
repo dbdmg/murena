@@ -9,7 +9,7 @@ from app.services.llm.agents.schema import PromptRecord, RelaxationAgentResult, 
 from app.services.llm.langchain_client import get_llm, invoke_with_langfuse
 from app.services.llm.prompt_loader import get_system_prompt, get_user_template
 from app.utils.decorators import log_llm_usage
-from app.utils.json_parser import safe_extract_json
+from app.utils.json_parser import llm_content_to_text, safe_extract_json
 from app.utils.logger import logger
 
 class RelaxationAgent(BaseAgent):
@@ -43,7 +43,7 @@ class RelaxationAgent(BaseAgent):
         response = invoke_with_langfuse(
             chain, {"system_content": system, "user_content": user_text}
         )
-        raw_text = getattr(response, "content", str(response))
+        raw_text = llm_content_to_text(getattr(response, "content", str(response)))
 
         prompt_record = PromptRecord(
             system=system.strip(),

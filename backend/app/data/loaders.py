@@ -38,6 +38,64 @@ if os.path.exists(GEOCODE_CACHE_FILE):
 
 DEFAULT_CITY = os.getenv("DEFAULT_CITY", "Torino")
 
+COMPATIBILITY_ALIASES = {
+    # Core geography and identity
+    "indirizzo": ["address"],
+    "numero_civico": ["house_number"],
+    "latitudine": ["latitude"],
+    "longitudine": ["longitude"],
+    "zona_omi": ["omi_zone"],
+    "foglio": ["cadastral_sheet"],
+    "particella": ["cadastral_parcel"],
+    "subalterno": ["cadastral_subaltern"],
+    # Building attributes
+    "superficie_di_riferimento_mq": ["surface_area"],
+    "tipologia_bene_immobile": ["property_type", "description"],
+    "epoca_costruzione": ["construction_year", "construction_period"],
+    "numero_immobili_per_catasto": ["cadastral_units_count"],
+    "meta_immobile": ["is_meta", "is_meta_estate", "meta_building"],
+    "data_decorrenza": ["effective_date"],
+    # Energy
+    "classe_energetica_ape": ["energy_class"],
+    "ape_score_classe": ["energy_score_class"],
+    "ape_score_impianto": ["energy_score_plant"],
+    "ape_score_involucro": ["energy_score_envelope"],
+    "ape_score_rinnovabili": ["energy_score_renewables"],
+    "ape_score_total": ["energy_score_total"],
+    "lista_file_ape": ["energy_files", "ape_file_list"],
+    # Proximity pillars
+    "sanita": ["healthcare"],
+    "mobilita": ["mobility"],
+    "verde": ["green", "greenery"],
+    "commerciale": ["commercial", "commerce"],
+    "educazione": ["education"],
+}
+
+
+def _add_compatibility_aliases(pd_data: pd.DataFrame) -> pd.DataFrame:
+    """
+    Add English compatibility columns for legacy Murena/Turin exports.
+
+    The historical Turin dataset uses Italian column names. The current API and
+    frontend mostly use English names. Keeping both lets old SQL prompts and
+    newer API code work against the same real parquet file.
+    """
+    for source, targets in COMPATIBILITY_ALIASES.items():
+        if source not in pd_data.columns:
+            continue
+        for target in targets:
+            if target not in pd_data.columns:
+                pd_data[target] = pd_data[source]
+
+    if "codice_comune" in pd_data.columns and "city" not in pd_data.columns:
+        target_code = os.getenv("TARGET_COMUNE_CODE", "L219")
+        target_city = os.getenv("TARGET_CITY", DEFAULT_CITY)
+        pd_data["city"] = pd_data["codice_comune"].apply(
+            lambda value: target_city if str(value).strip() == target_code else value
+        )
+
+    return pd_data
+
 LOCAL_LANDMARKS = {
     "palazzo nuovo": (45.068846, 7.691295),
     "porta susa": (45.0732, 7.6663),
@@ -129,7 +187,7 @@ def load_and_merge_data(file_path):
         logger.error(f"Generic load error: {e}")
         return None
 
-    return pd_data
+    return _add_compatibility_aliases(pd_data)
 
 
 @lru_cache(maxsize=128)

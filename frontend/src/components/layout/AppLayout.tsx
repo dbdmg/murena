@@ -22,6 +22,7 @@ import {
     Settings,
     Info,
     Languages,
+    ScrollText,
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { AboutModal } from '../AboutModal';
@@ -46,6 +47,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
         { label: t.nav.home, path: '/', icon: Home },
         { label: t.nav.map, path: '/map', icon: MapIcon },
         { label: t.nav.history, path: '/history', icon: History },
+        { label: t.nav.logs, path: '/logs', icon: ScrollText },
         { label: t.nav.settings, path: '/settings', icon: Settings },
     ];
 

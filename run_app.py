@@ -4,6 +4,7 @@ import subprocess
 import argparse
 import time
 import shutil
+import socket
 from pathlib import Path
 from getpass import getpass
 from dotenv import load_dotenv
@@ -31,13 +32,32 @@ def check_prerequisites():
         print("Please create it from .env.example first.")
         sys.exit(1)
 
-def init_data():
-    """Initialize datasets if they are missing."""
+def init_data(use_real_pipeline: bool = False):
+    """Initialize datasets if they are missing.
+
+    Local demos should not depend on the raw APE/OSM sources used by the
+    research pipeline, because those sources are intentionally not versioned.
+    """
     metadata_dir = backend_dir / "data" / "metadata"
     data_path = metadata_dir / "estates.parquet"
     
     if not data_path.exists():
         print("Dataset not found or incomplete. Starting initialization...")
+
+        env = os.environ.copy()
+        env["PYTHONPATH"] = str(backend_dir)
+
+        create_demo_dataset = metadata_dir / "create_demo_dataset.py"
+        if not use_real_pipeline and create_demo_dataset.exists():
+            print("Creating local synthetic demo dataset...")
+            subprocess.run(
+                [sys.executable, str(create_demo_dataset)],
+                cwd=str(root_dir),
+                env=env,
+                check=True,
+            )
+            if data_path.exists():
+                return
         
         create_estate_dataset = metadata_dir / "create_estate_dataset.py"
         create_pois = metadata_dir / "pois_download.py"
@@ -51,9 +71,6 @@ def init_data():
             else:
                 poi_path = backend_dir / poi_path
         
-        env = os.environ.copy()
-        env["PYTHONPATH"] = str(backend_dir)
-
         if not poi_path.exists() and create_pois.exists():
             subprocess.run([sys.executable, str(create_pois)], cwd=str(backend_dir), env=env, check=True, stdout=subprocess.DEVNULL)
 
@@ -77,10 +94,25 @@ def reset_database():
             except Exception as e:
                 print(f"Error deleting database: {e}")
 
+def find_available_port(preferred_port: str, max_attempts: int = 20) -> str:
+    """Return the preferred port if free, otherwise the next free port."""
+    try:
+        start = int(preferred_port)
+    except (TypeError, ValueError):
+        start = 5173
+
+    for port in range(start, start + max_attempts):
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            sock.settimeout(0.2)
+            if sock.connect_ex(("127.0.0.1", port)) != 0:
+                return str(port)
+
+    raise RuntimeError(f"No available port found from {start} to {start + max_attempts - 1}")
+
 def start_backend():
     """Start the FastAPI backend server."""
     try:
-        port = os.getenv("PORT", "8002")
+        port = os.getenv("PORT", "8000")
         backend_url = f"http://localhost:{port}"
         print(f"MURENA Backend: {make_link(backend_url)}")
         
@@ -109,7 +141,7 @@ def start_frontend():
         print("Warning: 'npm' command not found. Node.js is required for the frontend. Skipping frontend start.")
         return
 
-    frontend_port = os.getenv("FRONTEND_PORT", "5173")
+    frontend_port = find_available_port(os.getenv("FRONTEND_PORT", "5173"))
     frontend_url = f"http://localhost:{frontend_port}"
     print(f"MURENA Frontend: {make_link(frontend_url)}")
     try:
@@ -140,7 +172,25 @@ def start_frontend():
             except Exception:
                 pass
         
-        subprocess.Popen(["npm", "run", "dev"], cwd=str(frontend_dir), stdout=subprocess.DEVNULL)
+        frontend_env = os.environ.copy()
+        frontend_env["FRONTEND_PORT"] = frontend_port
+        frontend_env["VITE_BACKEND_PORT"] = os.getenv("PORT", "8000")
+        subprocess.Popen(
+            [
+                "npm",
+                "run",
+                "dev",
+                "--",
+                "--host",
+                "0.0.0.0",
+                "--port",
+                frontend_port,
+                "--strictPort",
+            ],
+            cwd=str(frontend_dir),
+            env=frontend_env,
+            stdout=subprocess.DEVNULL,
+        )
     except Exception as e:
         print(f"Failed to start frontend: {e}")
 
@@ -200,6 +250,11 @@ def delete_user():
 def main():
     parser = argparse.ArgumentParser(description="Launch the MURENA Application")
     parser.add_argument("--skip-init", action="store_true", help="Skip data initialization check")
+    parser.add_argument(
+        "--real-data-init",
+        action="store_true",
+        help="Use the real APE/OSM data pipeline if estates.parquet is missing",
+    )
     parser.add_argument("--backend-only", action="store_true", help="Start only the backend")
     parser.add_argument("--create-user", action="store_true", help="Create a new user instead of starting app")
     parser.add_argument("--delete-user", action="store_true", help="Delete a user instead of starting app")
@@ -221,7 +276,7 @@ def main():
     reset_database()
     
     if not args.skip_init:
-        init_data()
+        init_data(use_real_pipeline=args.real_data_init)
 
     start_backend()
     

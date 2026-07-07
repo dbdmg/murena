@@ -17,8 +17,11 @@ logger = logging.getLogger(__name__)
 class MapService:
     """Service for managing map data and overlays."""
 
+    # Class-level cache: MapService is instantiated per request, so an
+    # instance cache would re-read GeoJSON overlays from disk on every call.
+    _cache: Dict[str, Any] = {}
+
     def __init__(self):
-        self._cache: Dict[str, Any] = {}
         self.real_estate_service = RealEstateService()
 
     def _load_geojson(self, path: str) -> Optional[Dict[str, Any]]:
@@ -117,10 +120,10 @@ class MapService:
                         "is_evaluated": b.is_evaluated,
                         "is_meta_building": b.meta_building,
                         # New metadata fields
-                        "meta_property": b.meta_property,
+                        "meta_property": getattr(b, "meta_property", None),
                         "annual_rent": b.annual_rent,
                         "third_party_tenure_type": b.third_party_tenure_type,
-                        "start_date": b.start_date,
+                        "start_date": b.effective_date,
                         "cadastral_units_count": b.cadastral_units_count,
                         "id_list": b.id_list,
                         # Extended property info
@@ -139,7 +142,7 @@ class MapService:
                                     b.energy_scores.class_score if b.energy_scores else None
                                 ),
                                 "plant_score": (
-                                    b.energy_scores.plant_score if b.energy_scores else None
+                                    b.energy_scores.system_score if b.energy_scores else None
                                 ),
                                 "envelope_score": (
                                     b.energy_scores.envelope_score

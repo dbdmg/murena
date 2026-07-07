@@ -43,7 +43,7 @@ export const POISidebar: React.FC<POISidebarProps> = ({ poi, onClose }) => {
                             </span>
                         )}
                     </div>
-                    <h2 className="text-2xl font-bold text-white leading-tight">{poi.name || 'Punto di Interesse'}</h2>
+                    <h2 className="text-2xl font-bold text-white leading-tight">{poi.name || 'Point of Interest'}</h2>
                 </div>
 
                 {/* Details List */}

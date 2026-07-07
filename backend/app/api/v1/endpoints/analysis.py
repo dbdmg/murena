@@ -722,6 +722,19 @@ async def start_analysis(
             autocommit=False, autoflush=False, bind=engine
         )
 
+        # Persist a full agent trace for this run so every step is
+        # inspectable afterwards from the frontend (/api/v1/logs/traces).
+        from app.services.agent_logger import AgentLogger, set_active_evaluation_logger
+        trace_logger = AgentLogger(log_dir=Path(settings.AGENT_LOGS_DIR))
+        trace_logger.start_evaluation(
+            use_case="app",
+            prompt_id=run_id,
+            run_number=1,
+            timestamp=datetime.now().strftime("%Y%m%d_%H%M%S"),
+            user_query=request.query,
+        )
+        set_active_evaluation_logger(trace_logger)
+
         try:
             raw_results = await analysis_service.run_analysis(
                 run_id=run_id,
@@ -756,6 +769,7 @@ async def start_analysis(
             # Now signal completion to WebSocket subscribers (data is ready in DB)
             from app.services.progress_manager import progress_manager
             await progress_manager.complete(run_id)
+            trace_logger.end_evaluation(success=True)
         except Exception as e:
             logger.error(f"Analysis task failed for run {run_id}: {e}", exc_info=True)
             with BackgroundSessionLocal() as bg_db:
@@ -773,6 +787,9 @@ async def start_analysis(
                 await progress_manager.complete(run_id)
             except:
                 pass
+            trace_logger.end_evaluation(success=False, error_msg=str(e))
+        finally:
+            set_active_evaluation_logger(None)
 
     background_tasks.add_task(run_analysis_task)
 

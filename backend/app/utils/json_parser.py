@@ -10,7 +10,31 @@ from pydantic import BaseModel, ValidationError
 T = TypeVar("T", bound=BaseModel)
 
 
-def safe_extract_json(text: str, schema: Optional[Type[T]] = None) -> Any:
+def llm_content_to_text(content: Any) -> str:
+    """Normalizza il contenuto di una risposta LLM in stringa.
+
+    LangChain può restituire ``message.content`` come lista di blocchi
+    (es. Gemini/Anthropic con thinking: [{"type": "text", "text": ...}, ...])
+    invece che come semplice stringa.
+    """
+    if content is None:
+        return ""
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts: list[str] = []
+        for block in content:
+            if isinstance(block, str):
+                parts.append(block)
+            elif isinstance(block, dict):
+                # Ignora blocchi non testuali (thinking, tool_use, ...)
+                if block.get("type") in (None, "text") and isinstance(block.get("text"), str):
+                    parts.append(block["text"])
+        return "\n".join(parts)
+    return str(content)
+
+
+def safe_extract_json(text: Any, schema: Optional[Type[T]] = None) -> Any:
     """
     Estrae un JSON valido da una stringa, con pulizia e validazione opzionale.
 
@@ -22,6 +46,7 @@ def safe_extract_json(text: str, schema: Optional[Type[T]] = None) -> Any:
         Il dizionario/lista parsato, oppure un'istanza del modello Pydantic.
         Restituisce None se il parsing fallisce.
     """
+    text = llm_content_to_text(text)
     if not text:
         return None
 

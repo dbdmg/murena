@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, CheckCircle2, AlertTriangle, ChevronDown, ChevronUp, Sliders, Zap, MapPin, Activity, Shield, Building2 } from 'lucide-react';
+import type { EnergyScores, ProximityScores } from '../../api/types';
 
 interface AIEvaluationCardProps {
     score?: number;
@@ -8,8 +9,8 @@ interface AIEvaluationCardProps {
     pros?: string[];
     cons?: string[];
     compact?: boolean; // For smaller display in sidebar
-    energyScores?: any;
-    proximityScores?: any;
+    energyScores?: Partial<EnergyScores>;
+    proximityScores?: Partial<ProximityScores>;
     distanceKm?: number;
     locationScore?: number;
     regulatoryScore?: number;
@@ -79,8 +80,12 @@ export const AIEvaluationCard: React.FC<AIEvaluationCardProps> = ({
         if (energyScores.total !== undefined && energyScores.total !== null) {
             return Math.round((energyScores.total / 20) * 100);
         }
-        const keys = ['class_score', 'system_score', 'envelope_score', 'renewables_score'];
-        const values = keys.map(k => energyScores[k]).filter(v => v !== undefined && v !== null && typeof v === 'number') as number[];
+        const values = [
+            energyScores.class_score,
+            energyScores.system_score ?? energyScores.plant_score,
+            energyScores.envelope_score,
+            energyScores.renewables_score,
+        ].filter((v): v is number => typeof v === 'number');
         if (values.length === 0) return 60;
         const avg = values.reduce((sum, v) => sum + v, 0) / values.length;
         return Math.round((avg / 5) * 100);
@@ -133,7 +138,7 @@ export const AIEvaluationCard: React.FC<AIEvaluationCardProps> = ({
                         <div className="flex items-center gap-1.5 mb-1">
                             <Sparkles className="w-3 h-3 text-amber-400" />
                             <span className="text-[10px] uppercase font-semibold text-amber-400 tracking-wide">
-                                Valutazione AI
+                                AI Evaluation
                             </span>
                         </div>
                         {evaluationText && (
@@ -150,13 +155,13 @@ export const AIEvaluationCard: React.FC<AIEvaluationCardProps> = ({
                         {pros.length > 0 && (
                             <span className="text-emerald-400 flex items-center gap-1">
                                 <CheckCircle2 className="w-3 h-3" />
-                                {pros.length} punti di forza
+                                {pros.length} strengths
                             </span>
                         )}
                         {cons.length > 0 && (
                             <span className="text-amber-400 flex items-center gap-1">
                                 <AlertTriangle className="w-3 h-3" />
-                                {cons.length} criticità
+                                {cons.length} weaknesses
                             </span>
                         )}
                     </div>
@@ -179,7 +184,7 @@ export const AIEvaluationCard: React.FC<AIEvaluationCardProps> = ({
                         <Sparkles className="w-3.5 h-3.5 text-white" />
                     </div>
                     <span className="text-sm font-semibold text-amber-400">
-                        Valutazione AI
+                        AI Evaluation
                     </span>
                 </div>
 
@@ -218,7 +223,7 @@ export const AIEvaluationCard: React.FC<AIEvaluationCardProps> = ({
                         >
                             <span className="flex items-center gap-1.5">
                                 <Sliders className="w-3.5 h-3.5 text-amber-400" />
-                                Dettaglio Formulazione Score
+                                Score Breakdown
                             </span>
                             {showBreakdown ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
                         </button>
@@ -237,7 +242,7 @@ export const AIEvaluationCard: React.FC<AIEvaluationCardProps> = ({
                                         <div className="flex justify-between text-[11px]">
                                             <span className="text-gray-400 flex items-center gap-1">
                                                 <Activity className="w-3 h-3 text-emerald-400" />
-                                                Agente Prossimità (POI)
+                                                Proximity Agent (POI)
                                             </span>
                                             <span className="text-white font-medium">Peso: {Math.round(wProx * 100)}% | Score: {poi}/100</span>
                                         </div>
@@ -251,7 +256,7 @@ export const AIEvaluationCard: React.FC<AIEvaluationCardProps> = ({
                                         <div className="flex justify-between text-[11px]">
                                             <span className="text-gray-400 flex items-center gap-1">
                                                 <MapPin className="w-3 h-3 text-cyan-400" />
-                                                Agente Posizione (Distanza)
+                                                Location Agent (Distance)
                                             </span>
                                             <span className="text-white font-medium">Peso: {Math.round(wLoc * 100)}% | Score: {location}/100</span>
                                         </div>
@@ -270,7 +275,7 @@ export const AIEvaluationCard: React.FC<AIEvaluationCardProps> = ({
                                         <div className="flex justify-between text-[11px]">
                                             <span className="text-gray-400 flex items-center gap-1">
                                                 <Zap className="w-3 h-3 text-amber-400" />
-                                                Agente Efficienza (APE)
+                                                Energy Agent (EPC)
                                             </span>
                                             <span className="text-white font-medium">Peso: {Math.round(wEng * 100)}% | Score: {energy}/100</span>
                                         </div>
@@ -284,7 +289,7 @@ export const AIEvaluationCard: React.FC<AIEvaluationCardProps> = ({
                                         <div className="flex justify-between text-[11px]">
                                             <span className="text-gray-400 flex items-center gap-1">
                                                 <Shield className="w-3 h-3 text-purple-400" />
-                                                Agente Regolarità (Normativa)
+                                                Regulatory Agent (Compliance)
                                             </span>
                                             <span className="text-white font-medium">Peso: {Math.round(wReg * 100)}% | Score: {regulatory}/100</span>
                                         </div>
@@ -298,7 +303,7 @@ export const AIEvaluationCard: React.FC<AIEvaluationCardProps> = ({
                                         <div className="flex justify-between text-[11px]">
                                             <span className="text-gray-400 flex items-center gap-1">
                                                 <Building2 className="w-3 h-3 text-rose-400" />
-                                                Agente Caratteristiche (Tecnico)
+                                                Building Agent (Technical)
                                             </span>
                                             <span className="text-white font-medium">Peso: {Math.round(wBld * 100)}% | Score: {building}/100</span>
                                         </div>
@@ -329,7 +334,7 @@ export const AIEvaluationCard: React.FC<AIEvaluationCardProps> = ({
                         <div className="flex items-center gap-1.5 mb-2">
                             <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                             <span className="text-xs font-semibold text-emerald-400 uppercase tracking-wide">
-                                Punti di forza
+                                Strengths
                             </span>
                         </div>
                         <ul className="space-y-1.5">
@@ -355,7 +360,7 @@ export const AIEvaluationCard: React.FC<AIEvaluationCardProps> = ({
                         <div className="flex items-center gap-1.5 mb-2">
                             <AlertTriangle className="w-4 h-4 text-amber-400" />
                             <span className="text-xs font-semibold text-amber-400 uppercase tracking-wide">
-                                Criticità
+                                Weaknesses
                             </span>
                         </div>
                         <ul className="space-y-1.5">

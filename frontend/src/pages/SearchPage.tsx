@@ -25,16 +25,16 @@ import type { AnalysisHistoryItem } from '../api/types';
 import { HistoryItem } from '../components/search/HistoryItem';
 
 const SUGGESTED_QUERIES = [
-    'Offices near Porta Nuova with energy class A',
-    'Properties of 200sqm near Polytechnic',
-    'Shops in city center suitable for restaurant',
+    'Uffici vicino a Porta Nuova con classe energetica alta',
+    'Edifici di almeno 1000 mq vicino al Politecnico',
+    'Spazi commerciali in centro comodi ai trasporti',
 ];
 
 import murenaLogo217 from '../assets/brand/MURENA_217x34px.svg';
 
 export const SearchPage: React.FC = () => {
     const navigate = useNavigate();
-    const { demoMode, language, llmLimit, markersLimit } = useSettings();
+    const { dataSource, language, llmLimit, markersLimit } = useSettings();
     const [query, setQuery] = useState('');
     const [isFocused, setIsFocused] = useState(false);
     const [recentHistory, setRecentHistory] = useState<AnalysisHistoryItem[]>([]);
@@ -86,7 +86,7 @@ export const SearchPage: React.FC = () => {
         if (!query.trim() || isLoading) return;
 
         try {
-            if (demoMode && availableDemos.length > 0) {
+            if (dataSource === 'sandbox' && availableDemos.length > 0) {
                 const id = await loadDemo(availableDemos[0]);
                 navigate(`/processing/${id}`);
             } else {

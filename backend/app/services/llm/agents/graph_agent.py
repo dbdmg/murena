@@ -2247,8 +2247,7 @@ class GraphOrchestratorAgent(BaseAgent):
     def _evaluate_results(self, state: GraphState) -> GraphState:
         enriched_data = state["selected_data"]
 
-        # Restore top 10 as per user request
-        llm_cap = MAX_LLM_CAP
+        llm_cap = self._resolve_llm_cap(state.get("llm_limit"))
 
         # Limit evaluation to top results defined by llm_cap
         eval_input_df = enriched_data.head(llm_cap).copy()
@@ -2716,7 +2715,7 @@ class GraphOrchestratorAgent(BaseAgent):
             val = int(llm_limit) if llm_limit else MAX_ITEMS_FOR_LLM
             return min(max(1, val), MAX_LLM_CAP)
         except (TypeError, ValueError):
-            return MAX_ITEMS_FOR_LLM
+            return min(MAX_ITEMS_FOR_LLM, MAX_LLM_CAP)
 
     def _resolve_map_cap(self, map_limit: Optional[int]) -> int:
         try:

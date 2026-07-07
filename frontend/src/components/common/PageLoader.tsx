@@ -7,6 +7,6 @@ export const PageLoader = () => (
             <div className="w-12 h-12 border-2 border-cyan-500/20 rounded-full" />
             <div className="w-12 h-12 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin absolute inset-0" />
         </div>
-        <span className="mt-4 text-cyan-500/80 text-xs font-semibold tracking-widest uppercase">Caricamento...</span>
+        <span className="mt-4 text-cyan-500/80 text-xs font-semibold tracking-widest uppercase">Loading...</span>
     </div>
 );

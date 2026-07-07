@@ -162,7 +162,7 @@ export const ResultsCarousel: React.FC<ResultsCarouselProps> = ({
                             Top Picks AI
                         </span>
                         <span className="text-[10px] text-amber-200/50">
-                            {topPicks.length} immobili selezionati
+                            {topPicks.length} selected properties
                         </span>
                     </div>
                 </div>
@@ -305,7 +305,7 @@ export const ResultsCarousel: React.FC<ResultsCarouselProps> = ({
                                             <MapPin className="w-3.5 h-3.5 text-gray-500 mt-0.5 shrink-0" />
                                             <div className="flex-1 min-w-0">
                                                 <p className="text-sm text-white font-medium truncate">
-                                                    {marker.address || `Immobile ${marker.id}`}
+                                                    {marker.address || `Property ${marker.id}`}
                                                 </p>
                                                 {marker.city && (
                                                     <p className="text-[11px] text-gray-500 truncate">
@@ -324,7 +324,7 @@ export const ResultsCarousel: React.FC<ResultsCarouselProps> = ({
                                             )}
                                             {marker.energy_class && (
                                                 <span className={`px-1.5 py-0.5 rounded font-medium ${getEnergyClassColor(marker.energy_class)}`}>
-                                                    Classe {marker.energy_class}
+                                                    Class {marker.energy_class}
                                                 </span>
                                             )}
                                             {marker.omi_zone && (
@@ -346,12 +346,12 @@ export const ResultsCarousel: React.FC<ResultsCarouselProps> = ({
                                             <div className="flex items-center gap-2 text-[10px]">
                                                 {marker.pros && marker.pros.length > 0 && (
                                                     <span className="text-emerald-400">
-                                                        ✓ {marker.pros.length} pro
+                                                        ✓ {marker.pros.length} pros
                                                     </span>
                                                 )}
                                                 {marker.cons && marker.cons.length > 0 && (
                                                     <span className="text-amber-400">
-                                                        ⚠ {marker.cons.length} contro
+                                                        ⚠ {marker.cons.length} cons
                                                     </span>
                                                 )}
                                             </div>

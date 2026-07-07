@@ -121,11 +121,11 @@ class RealEstateService:
             "lat": ["latitude", "lat", "latitudine"],
             "lng": ["longitude", "lon", "longitudine"],
             "price": ["price", "annual_rent"],
-            "surface": ["surface_area", "surface"],
-            "energy_class": ["energy_class"],
-            "year": ["construction_year"],
-            "type": ["property_type"],
-            "is_meta": ["is_meta"]
+            "surface": ["surface_area", "surface", "superficie_di_riferimento_mq"],
+            "energy_class": ["energy_class", "classe_energetica_ape"],
+            "year": ["construction_year", "construction_period", "epoca_costruzione"],
+            "type": ["property_type", "tipologia_bene_immobile"],
+            "is_meta": ["is_meta", "is_meta_estate", "meta_building", "meta_immobile"]
         }
 
         # Create a new DataFrame with mapped columns
@@ -206,6 +206,58 @@ class RealEstateService:
         if isinstance(value, str):
             return value.lower() == "true"
         return bool(value)
+
+    def _construction_period_mask(
+        self, series: pd.Series, periods: List[str]
+    ) -> pd.Series:
+        """Build a mask for UI construction-period labels against year values."""
+        year_values = pd.to_numeric(series, errors="coerce")
+        text_values = series.astype(str).str.strip().str.lower()
+        mask = pd.Series(False, index=series.index)
+
+        period_ranges = {
+            "before 1919": (None, 1918),
+            "prima del 1919": (None, 1918),
+            "ante 1919": (None, 1918),
+            "1919 to 1945": (1919, 1945),
+            "dal 1919 al 1945": (1919, 1945),
+            "1946 to 1960": (1946, 1960),
+            "dal 1946 al 1960": (1946, 1960),
+            "1961 to 1970": (1961, 1970),
+            "dal 1961 al 1970": (1961, 1970),
+            "1971 to 1980": (1971, 1980),
+            "dal 1971 al 1980": (1971, 1980),
+            "1981 to 1990": (1981, 1990),
+            "dal 1981 al 1990": (1981, 1990),
+            "1991 to 2000": (1991, 2000),
+            "dal 1991 al 2000": (1991, 2000),
+            "2001 to 2010": (2001, 2010),
+            "dal 2001 al 2010": (2001, 2010),
+            "after 2010": (2011, None),
+            "dopo il 2010": (2011, None),
+            "post 2010": (2011, None),
+        }
+
+        exact_values = []
+        for period in periods:
+            normalized = str(period).strip().lower()
+            year_range = period_ranges.get(normalized)
+            if year_range is None:
+                exact_values.append(normalized)
+                continue
+
+            min_year, max_year = year_range
+            range_mask = pd.Series(True, index=series.index)
+            if min_year is not None:
+                range_mask &= year_values >= min_year
+            if max_year is not None:
+                range_mask &= year_values <= max_year
+            mask |= range_mask.fillna(False)
+
+        if exact_values:
+            mask |= text_values.isin(exact_values)
+
+        return mask.fillna(False)
 
     def _load_dataset(self, dataset_key: str) -> Optional[pd.DataFrame]:
         """
@@ -387,7 +439,11 @@ class RealEstateService:
             if epoca_col:
                 logger.info(f"Filtering by eras: {filters.construction_periods}")
                 before_count = len(result)
-                result = result[result[epoca_col].isin(filters.construction_periods)]
+                result = result[
+                    self._construction_period_mask(
+                        result[epoca_col], filters.construction_periods
+                    )
+                ]
                 logger.info(f"Era filter: {before_count} -> {len(result)} buildings")
 
         # Filter by property types
@@ -431,6 +487,20 @@ class RealEstateService:
                     result = result[result[meta_col] == True]
                 else:
                     result = result[(result[meta_col] == False) | (result[meta_col].isna())]
+
+        # Filter by asset nature if a dataset exposes it.
+        if filters.asset_nature:
+            nature_col = None
+            if "asset_nature" in result.columns:
+                nature_col = "asset_nature"
+            elif "natura_bene" in result.columns:
+                nature_col = "natura_bene"
+
+            if nature_col:
+                result = result[
+                    result[nature_col].astype(str).str.upper()
+                    == filters.asset_nature.upper()
+                ]
 
 
         return result
@@ -582,7 +652,9 @@ class RealEstateService:
 
         # Parse sub-properties for meta buildings
         sub_properties = None
-        if self._str_to_bool(safe_get("meta_building", default=False)):
+        if self._str_to_bool(
+            safe_get("meta_building", alternatives=["is_meta_estate", "is_meta", "meta_immobile"], default=False)
+        ):
             id_list_raw = safe_get("id_list")
             if id_list_raw is not None:
                 try:
@@ -636,7 +708,7 @@ class RealEstateService:
 
         # Format address
         addr = safe_get("address", alternatives=["indirizzo"])
-        civic = safe_get("numero_civico")
+        civic = safe_get("house_number", alternatives=["numero_civico"])
         if addr and civic and pd.notna(civic):
             address_str = f"{addr}, {civic}"
         else:
@@ -714,7 +786,7 @@ class RealEstateService:
         res_data["cadastral_parcel"] = str(val) if val is not None else None
         
         # effective_date
-        val = safe_get("effective_date")
+        val = safe_get("effective_date", alternatives=["data_decorrenza"])
         res_data["effective_date"] = str(val) if val is not None else None
         
         return BuildingResponse(**res_data)

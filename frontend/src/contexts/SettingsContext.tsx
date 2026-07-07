@@ -28,6 +28,7 @@ interface SettingsContextType {
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
 
 const STORAGE_KEY = 'realestate-settings';
+const MAX_LLM_LIMIT = 10;
 
 interface StoredSettings {
     markersLimit: number;
@@ -41,7 +42,7 @@ interface StoredSettings {
 
 const DEFAULT_SETTINGS: StoredSettings = {
     markersLimit: 1000,
-    llmProvider: 'openai',
+    llmProvider: 'google',
     llmLimit: 10,
     agentTemperature: 0.3,
     dataSource: 'live',
@@ -54,7 +55,15 @@ const getStoredSettings = (): StoredSettings => {
         const stored = localStorage.getItem(STORAGE_KEY);
         if (stored) {
             const parsed = JSON.parse(stored);
-            return { ...DEFAULT_SETTINGS, ...parsed };
+            const merged = { ...DEFAULT_SETTINGS, ...parsed };
+            return {
+                ...merged,
+                llmProvider: 'google',
+                llmLimit: Math.min(
+                    MAX_LLM_LIMIT,
+                    Math.max(1, Number(merged.llmLimit) || DEFAULT_SETTINGS.llmLimit)
+                ),
+            };
         }
     } catch (e) {
         console.error('Failed to load settings', e);

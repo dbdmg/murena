@@ -22,12 +22,12 @@ interface LayersPanelProps {
 
 // Map POI types to their labels (6 main categories)
 const POI_LABELS: Record<string, string> = {
-    'sanità': 'Sanità',
-    'mobilità': 'Mobilità',
-    'verde': 'Verde',
+    'sanità': 'Healthcare',
+    'mobilità': 'Mobility',
+    'verde': 'Green areas',
     'sport': 'Sport',
-    'commerciale': 'Commerciale',
-    'educazione': 'Educazione',
+    'commerciale': 'Commercial',
+    'educazione': 'Education',
 };
 
 const POI_ICONS: Record<string, string> = {
@@ -93,7 +93,7 @@ export const LayersPanel: React.FC<LayersPanelProps> = ({
                         }
                     `}
                 >
-                    <span className="font-medium">Livelli</span>
+                    <span className="font-medium">Layers</span>
                     {activeCount > 0 && (
                         <span className="ml-1 bg-emerald-500/30 px-1.5 py-0.5 rounded-full text-[10px]">
                             {activeCount}
@@ -110,7 +110,7 @@ export const LayersPanel: React.FC<LayersPanelProps> = ({
 
                         {/* Zone OMI Section */}
                         <div className="space-y-2">
-                            <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wider">Territorio</h3>
+                            <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wider">Territory</h3>
                             <button
                                 onClick={toggleZoneOMI}
                                 className={`
@@ -139,7 +139,7 @@ export const LayersPanel: React.FC<LayersPanelProps> = ({
                             >
                                 <div className="flex items-center gap-2">
                                     <span>🗺️</span>
-                                    <span>Municipi</span>
+                                    <span>Districts</span>
                                 </div>
                                 {layers.showMunicipi && <Check className="w-3.5 h-3.5" />}
                             </button>
@@ -147,7 +147,7 @@ export const LayersPanel: React.FC<LayersPanelProps> = ({
 
                         {/* POI Section */}
                         <div className="space-y-2">
-                            <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wider">Punti di Interesse</h3>
+                            <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wider">Points of Interest</h3>
                             <div className="grid grid-cols-1 gap-1.5">
                                 {Object.keys(POI_LABELS).map((category) => (
                                     <button
