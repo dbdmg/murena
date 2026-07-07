@@ -180,7 +180,7 @@ class Settings(BaseSettings):
     # Limits and Caps
     # ==========================================================================
     MAX_ITEMS_FOR_MAP: int = 1000
-    MAX_ITEMS_FOR_LLM: int = 25
+    MAX_ITEMS_FOR_LLM: int = 10
     MAX_LLM_CAP: int = 10  # Hard cap for LLM evaluation
 
     # ==========================================================================

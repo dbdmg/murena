@@ -519,7 +519,7 @@ export const AgentRefinementHUD: React.FC<AgentRefinementHUDProps> = ({
         setSuccessMessage(null);
     }, [originalSystemPrompt, originalUserPrompt]);
 
-    // Handle Reset to Default
+    // Handle prompt reload from the markdown configuration file.
     const handleResetToDefault = useCallback(async () => {
         if (!selectedAgent) return;
 
@@ -529,7 +529,7 @@ export const AgentRefinementHUD: React.FC<AgentRefinementHUDProps> = ({
         setSuccessMessage(null);
 
         try {
-            await apiClient.post(`/prompts/reset/${agentName}`);
+            await apiClient.post('/prompts/reload');
 
             // Reload prompts from API
             const [systemResp, userResp] = await Promise.all([
@@ -545,16 +545,16 @@ export const AgentRefinementHUD: React.FC<AgentRefinementHUDProps> = ({
             setEditedSystemPrompt(systemData.text || '');
             setEditedUserPrompt(userData.text || '');
 
-            setSuccessMessage('Prompts restored to default values!');
+            setSuccessMessage('Prompts reloaded from prompt_config.md.');
             setTimeout(() => setSuccessMessage(null), 3000);
         } catch (err: unknown) {
             if (err && typeof err === 'object' && 'response' in err) {
                 const axiosErr = err as { response?: { data?: { detail?: string } } };
-                setError(axiosErr.response?.data?.detail || 'Error during reset');
+                setError(axiosErr.response?.data?.detail || 'Error during prompt reload');
             } else if (err instanceof Error) {
                 setError(err.message);
             } else {
-                setError('Error during reset');
+                setError('Error during prompt reload');
             }
         } finally {
             setIsResettingToDefault(false);
@@ -781,19 +781,19 @@ export const AgentRefinementHUD: React.FC<AgentRefinementHUDProps> = ({
                                         </p>
 
                                         <div className="flex items-center gap-3">
-                                            {/* Reset to Default */}
+                                            {/* Reload prompts */}
                                             <button
                                                 onClick={handleResetToDefault}
                                                 disabled={isSimulating || isResettingToDefault}
                                                 className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm transition-all duration-200 bg-white/5 text-gray-400 border border-white/10 hover:bg-amber-500/10 hover:text-amber-400 hover:border-amber-500/30"
-                                                title="Restore default prompts for this agent"
+                                                title="Reload prompts from prompt_config.md"
                                             >
                                                 {isResettingToDefault ? (
                                                     <Loader2 className="w-4 h-4 animate-spin" />
                                                 ) : (
                                                     <RotateCcw className="w-4 h-4" />
                                                 )}
-                                                Default
+                                                Reload
                                             </button>
 
                                             {/* Revert */}

@@ -20,15 +20,16 @@ cp backend/.env.example backend/.env     # then fill in LLM API keys (OPENAI_API
 A `backend/.env` file is mandatory — both launchers exit immediately without it.
 
 ```bash
-python run_app.py                  # full stack: backend (uvicorn, port 8002 default) + frontend (Vite, port 5173)
+python run_app.py                  # full stack: backend (uvicorn, port 8000 default) + frontend (Vite, port 5173)
 python run_app.py --backend-only   # skip frontend
 python run_app.py --skip-init      # skip dataset initialization check
+python run_app.py --real-data-init # use real APE/OSM pipeline if raw sources are available
 python run_app.py --create-user    # interactive user creation (default credentials: admin/admin)
 ```
 
 Important launcher behavior (`run_app.py`):
 - **Deletes the SQLite users DB on every launch** (intentional reset for reproducibility).
-- If `backend/data/metadata/estates.parquet` is missing, it auto-runs the data generation pipeline (`backend/data/metadata/create_estate_dataset.py`, `pois_download.py`). That pipeline needs raw APE XML sources that are **not in the repo** — for local development generate a synthetic dataset instead: `uv run python backend/data/metadata/create_demo_dataset.py` (1500 fake Turin buildings, schema-complete).
+- If `backend/data/metadata/estates.parquet` is missing, it auto-generates the synthetic local demo dataset via `backend/data/metadata/create_demo_dataset.py` (1500 fake Turin buildings, schema-complete). The real data pipeline (`create_estate_dataset.py`, `pois_download.py`) is available only with `--real-data-init` and requires raw APE/OSM sources that are **not in the repo**.
 - Backend commands run with `cwd=backend/` and `PYTHONPATH=backend`; the FastAPI app is `app.main:app`.
 
 Frontend (in `frontend/`):

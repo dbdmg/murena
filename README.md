@@ -50,7 +50,7 @@ The real `estates.parquet` is built from raw APE XML certificates that are not v
 uv run python backend/data/metadata/create_demo_dataset.py    # 1500 synthetic Turin buildings
 ```
 
-Replace it with the real dataset for any meaningful analysis.
+`python run_app.py` also creates this synthetic dataset automatically if `backend/data/metadata/estates.parquet` is missing. Use `python run_app.py --real-data-init` only when the raw APE/OSM source files are available and you explicitly want the real data pipeline.
 
 ## Usage
 ### 1. Application execution
@@ -62,7 +62,7 @@ python run_app.py
 
 **Features of the launcher:**
 - **Automatic DB Reset**: Each run clears the local SQLite database to ensure a clean, reproducible state.
-- **Data Initialization**: Automatically detects if `estates.parquet` is missing and triggers the generation pipeline (XML parsing, Geocoding, POI scoring).
+- **Data Initialization**: Automatically detects if `estates.parquet` is missing and creates the local synthetic Turin demo dataset.
 - **Graceful Execution**: If `npm` is missing, it will start the backend only, allowing API-level testing.
 
 ### 2. Research evaluation & Reproduction
