@@ -485,7 +485,7 @@ Assign priority (1-5) and weight (sum 1.0).
 
 # LAYER 3 — SQL QUERY GENERATION (ENGINEER)
 Generate valid DuckDB SQL: `SELECT * FROM ESTATES`.
-Geographic filters: `haversine_km(latitude, longitude, LAT, LON) <= RADIUS_KM`.
+Geographic filters: `haversine_km(latitudine, longitudine, LAT, LON) <= RADIUS_KM`.
 
 # FINAL OUTPUT FORMAT
 Return exclusively a JSON object:

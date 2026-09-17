@@ -8,21 +8,36 @@ Main functions:
 """
 
 import os
-import traceback
 import logging
-from typing import Any, Dict
 
 import duckdb
 import pandas as pd
+import pyarrow.parquet as pq
 
-from app.core.config import settings
-
-
-# Switch to GraphOrchestratorAgent
-from app.services.llm.agents.graph_agent import GraphOrchestratorAgent
+from app.data.loaders import COMPATIBILITY_ALIASES
 from app.utils.helpers import haversine_km
 
 logger = logging.getLogger(__name__)
+
+
+def _parquet_view_select(dataset_path: str) -> str:
+    """Build a DuckDB SELECT that keeps Italian columns and adds English aliases."""
+    cols = set(pq.read_schema(dataset_path).names)
+    alias_exprs = []
+    for source, targets in COMPATIBILITY_ALIASES.items():
+        if source not in cols:
+            continue
+        for target in targets:
+            if target not in cols:
+                alias_exprs.append(f'"{source}" AS "{target}"')
+
+    safe_path = dataset_path.replace("\\", "/")
+    if alias_exprs:
+        return (
+            f"SELECT *, {', '.join(alias_exprs)} "
+            f"FROM read_parquet('{safe_path}')"
+        )
+    return f"SELECT * FROM read_parquet('{safe_path}')"
 
 
 def execute_sql_query(sql_query, pd_data, dataset_path=None):
@@ -48,9 +63,9 @@ def execute_sql_query(sql_query, pd_data, dataset_path=None):
                 and os.path.exists(dataset_path)
             ):
                 try:
-                    # Create view for base data
+                    # Create view for base data with English compatibility aliases.
                     con.execute(
-                        f"CREATE VIEW base_properties AS SELECT * FROM '{dataset_path}'"
+                        f"CREATE VIEW base_properties AS {_parquet_view_select(dataset_path)}"
                     )
 
                     con.execute("CREATE VIEW PROPERTIES AS SELECT * FROM base_properties")
