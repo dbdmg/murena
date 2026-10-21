@@ -1,5 +1,9 @@
 # APE dataset profiling
 
+## MURENA-CivicBench Phase 2
+
+The structured candidate universe, use-case ontology, schema, independent oracle and pilot benchmark are implemented in [`civicbench/`](civicbench/README.md). Rebuild the candidate snapshot from Phase 1 Parquet, generate 200 scenarios and evaluate them with the versioned scoring configuration using the commands in that guide. The benchmark artifacts and validation/design reports are under `civicbench/output/v1/`. This work does not modify the application dataset or production ranking logic.
+
 `profile_ape_dataset.py` profiles Parquet snapshots with DuckDB, optionally counts XML filenames and parses a deterministic XML sample. It writes only to the selected output directory and does not modify production data. It does not generate synthetic records or benchmark queries. `diagnose_xml_parsing.py` compares strict, byte-preserving normalization and lxml recovery on a reproducible stratified sample.
 
 The workspace currently has `backend/data/metadata/estates.parquet`. A second, differently shaped Torino snapshot is embedded in `backend/data/data_Turin.zip`; the profiler treats these as separate datasets and extracts the ZIP member into the output directory's `.cache/` folder.

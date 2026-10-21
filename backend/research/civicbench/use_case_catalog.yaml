@@ -1,0 +1,78 @@
+version: civicbench-use-cases-v1
+limitations_global:
+  - APE observations describe a certified unit/certificate and do not establish whole-building suitability.
+  - No entry implies legal, structural, regulatory, accessibility or functional suitability.
+  - Cadastral units and parcels are not verified physical-building identifiers.
+use_cases:
+  - id: community_healthcare
+    description: Community healthcare facilities
+    objective: Screen observed certificates for preliminary space and energy comparisons.
+    observed_requirements: [heated_usable_surface, dpr412_class_code, construction_year, energy_class, epglnren, municipality, istat_code, xml_latitude, xml_longitude]
+    derived_requirements: [coordinate_validity]
+    supported_hard_constraints: [heated_usable_surface, dpr412_class_code, construction_year, energy_class, epglnren, municipality, istat_code]
+    supported_preferences: [heated_usable_surface, epglnren, co2_emissions]
+    unsupported_requirements: [ownership, availability, structural_safety, accessibility_compliance, healthcare_licensing, capacity, service_demand, retrofit_cost]
+    limitations: APE values do not establish healthcare use authorization, room suitability or safe occupancy.
+  - id: social_community_center
+    description: Social and community centers
+    objective: Compare certificates for preliminary community-space screening.
+    observed_requirements: [heated_usable_surface, dpr412_class_code, construction_year, energy_class, municipality, istat_code]
+    derived_requirements: []
+    supported_hard_constraints: [heated_usable_surface, dpr412_class_code, construction_year, energy_class, municipality, istat_code]
+    supported_preferences: [heated_usable_surface, epglnren, co2_emissions]
+    unsupported_requirements: [ownership, vacancy, accessibility_compliance, fire_safety, layout, operating_cost, local_demand]
+    limitations: Unit surface is not proof of usable capacity for an intended service.
+  - id: libraries_cultural_facilities
+    description: Libraries and cultural facilities
+    objective: Compare observed unit area and energy characteristics.
+    observed_requirements: [heated_usable_surface, dpr412_class_code, construction_year, energy_class, municipality]
+    derived_requirements: []
+    supported_hard_constraints: [heated_usable_surface, dpr412_class_code, construction_year, energy_class, municipality, istat_code]
+    supported_preferences: [heated_usable_surface, epglnren, co2_emissions]
+    unsupported_requirements: [floor_loading, daylight, acoustics, accessibility_compliance, heritage_constraints, ownership, demand]
+    limitations: APE data do not describe library or cultural-space performance requirements.
+  - id: educational_training_spaces
+    description: Educational and training spaces
+    objective: Compare observed certificate characteristics for preliminary space screening.
+    observed_requirements: [heated_usable_surface, dpr412_class_code, construction_year, energy_class, municipality]
+    derived_requirements: []
+    supported_hard_constraints: [heated_usable_surface, dpr412_class_code, construction_year, energy_class, municipality]
+    supported_preferences: [heated_usable_surface, epglnren, co2_emissions]
+    unsupported_requirements: [school_authorization, occupancy_limits, accessibility_compliance, fire_safety, capacity, demand]
+    limitations: APE data do not establish educational authorization, safety or occupancy capacity.
+  - id: public_administration_offices
+    description: Public administration offices
+    objective: Compare observed certificates for preliminary office-space screening.
+    observed_requirements: [heated_usable_surface, dpr412_class_code, construction_year, energy_class, municipality]
+    derived_requirements: []
+    supported_hard_constraints: [heated_usable_surface, dpr412_class_code, construction_year, energy_class, municipality]
+    supported_preferences: [heated_usable_surface, epglnren, co2_emissions]
+    unsupported_requirements: [public_ownership, availability, security, accessibility_compliance, office_layout, demand]
+    limitations: Recorded use codes do not prove office conversion feasibility.
+  - id: social_housing
+    description: Social housing
+    objective: Compare unit surface and observed energy performance.
+    observed_requirements: [heated_usable_surface, construction_year, energy_class, epglnren, epglren, municipality]
+    derived_requirements: []
+    supported_hard_constraints: [heated_usable_surface, construction_year, energy_class, epglnren, municipality, istat_code]
+    supported_preferences: [heated_usable_surface, epglnren, co2_emissions]
+    unsupported_requirements: [tenure, habitability, structural_safety, accessibility, affordability, vacancy, housing_need]
+    limitations: An APE does not establish residential habitability, tenure or affordability.
+  - id: climate_shelters
+    description: Climate shelters
+    objective: Compare observed energy and service-system indicators as screening proxies.
+    observed_requirements: [heated_usable_surface, energy_class, heating_energy_need, cooling_energy_need, heating_service_present, cooling_service_present, istat_code, xml_latitude, xml_longitude]
+    derived_requirements: [coordinate_validity]
+    supported_hard_constraints: [heated_usable_surface, energy_class, heating_service_present, cooling_service_present, municipality, istat_code]
+    supported_preferences: [heated_usable_surface, epglnren, co2_emissions, heating_energy_need, cooling_energy_need]
+    unsupported_requirements: [thermal_resilience, backup_power, water, accessible_routes, opening_arrangements, capacity, population_exposure]
+    limitations: Energy service indicators do not establish resilience or emergency-shelter capability. Cooling energy need is unavailable in the 2026-10-19 candidate snapshot, so the v1 scenario generator does not use it as a ranking preference.
+  - id: multifunctional_community_hubs
+    description: Multifunctional community hubs
+    objective: Compare unit-level space, use-code and energy indicators.
+    observed_requirements: [heated_usable_surface, dpr412_class_code, construction_year, energy_class, epglnren, municipality, istat_code]
+    derived_requirements: []
+    supported_hard_constraints: [heated_usable_surface, dpr412_class_code, construction_year, energy_class, epglnren, municipality, istat_code]
+    supported_preferences: [heated_usable_surface, epglnren, co2_emissions]
+    unsupported_requirements: [ownership, structural_condition, zoning, contamination, accessibility, renovation_cost, vacancy, demand]
+    limitations: APE data do not establish conversion feasibility or the presence of a whole building.

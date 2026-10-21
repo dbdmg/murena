@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://murena.example/schemas/civicbench-scenario-v1.json",
+  "title": "MURENA-CivicBench structured decision scenario",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["scenario_id", "use_case_id", "candidate_universe_version", "scoring_config_version", "geographic_scope", "hard_constraints", "preferences", "missing_value_policy", "normalization_method", "expected_behavior", "generation_metadata"],
+  "properties": {
+    "scenario_id": {"type": "string", "pattern": "^CB-[A-Z]-[0-9]{4}$"},
+    "use_case_id": {"type": "string", "enum": ["community_healthcare", "social_community_center", "libraries_cultural_facilities", "educational_training_spaces", "public_administration_offices", "social_housing", "climate_shelters", "multifunctional_community_hubs"]},
+    "candidate_universe_version": {"const": "civicbench-candidates-v1-2026-10-19"},
+    "scoring_config_version": {"const": "oracle-v1.1"},
+    "geographic_scope": {"type": "object", "required": ["type"], "properties": {"type": {"enum": ["all", "istat_code"]}, "value": {"type": ["string", "null"]}}, "additionalProperties": false},
+    "hard_constraints": {"type": "array", "items": {"type": "object", "required": ["constraint_id", "attribute", "operator", "value", "unit", "source", "missing_behavior"], "properties": {"constraint_id": {"type": "string"}, "attribute": {"enum": ["heated_usable_surface", "cooled_usable_surface", "construction_year", "energy_class", "epglnren", "epglren", "co2_emissions", "heating_energy_need", "cooling_energy_need", "dpr412_class_code", "attestation_object_code", "climate_zone", "heating_service_present", "cooling_service_present", "municipality", "istat_code", "xml_latitude", "xml_longitude", "number_real_estate_units", "building_typology_code"]}, "operator": {"enum": ["eq", "ne", "in", "gte", "lte", "between", "is_true", "is_false"]}, "value": {}, "unit": {"type": ["string", "null"]}, "source": {"type": "string"}, "missing_behavior": {"const": "unknown"}}, "additionalProperties": false}},
+    "preferences": {"type": "array", "maxItems": 2, "items": {"type": "object", "required": ["attribute", "direction", "weight", "normalization"], "properties": {"attribute": {"enum": ["heated_usable_surface", "construction_year", "energy_class", "epglnren", "epglren", "co2_emissions", "heating_energy_need", "cooling_energy_need"]}, "direction": {"enum": ["maximize", "minimize"]}, "weight": {"type": "number", "exclusiveMinimum": 0}, "normalization": {"const": "fixed_bounds_clipped_minmax_v1"}}, "additionalProperties": false}},
+    "missing_value_policy": {"enum": ["exclude_from_confirmed", "include_unknown_separately"]},
+    "normalization_method": {"const": "fixed_bounds_clipped_minmax_v1"},
+    "expected_behavior": {"type": "object"},
+    "generation_metadata": {"type": "object", "required": ["strategy", "seed", "difficulty"], "properties": {"strategy": {"enum": ["A_distribution_independent", "B_dataset_aware"]}, "seed": {"type": "integer"}, "difficulty": {"type": "string"}}, "additionalProperties": true}
+  }
+}
