@@ -1,0 +1,42 @@
+---
+type: Data Transformation
+title: Geocoding, OMI e punteggi POI
+description: Macro-categorie di prossimità e modello spaziale usato nei dati e nel paper.
+tags:
+- geospatial
+- poi
+- osm
+generated:
+  by: process:okf-documentation-generator
+  at: '2026-11-10T16:18:43Z'
+sources:
+- resource: ../../../backend/data/metadata/pois_download.py
+  title: 'MURENA repository: backend/data/metadata/pois_download.py'
+- resource: ../../../backend/data/metadata/amenities_config.py
+  title: 'MURENA repository: backend/data/metadata/amenities_config.py'
+- resource: ../../../backend/app/data/processors.py
+  title: 'MURENA repository: backend/app/data/processors.py'
+- resource: ../../../backend/app/services/map_service.py
+  title: 'MURENA repository: backend/app/services/map_service.py'
+- resource: ../references/paper/paper.tex
+  title: Manoscritto LaTeX MURENA fornito dall’utente
+---
+
+# Geocoding, OMI e punteggi POI
+
+## Dati di contesto
+
+- **OSM POI:** importazione e classificazione delle amenities, comprese geometrie puntuali e centroidi.
+- **OMI:** associazione a zone di mercato immobiliare (`omi_zone`); il progetto contiene `data/static_data/omi_zones.geojson`.
+- **Geocoding:** risoluzione di luoghi e landmark richiesti dall'utente per vincoli di distanza; interazioni esterne possibili.
+- **Macro-score:** colonne `healthcare`, `mobility`, `green`, `sport`, `commercial`, `education` nello schema corrente. Nel testo del paper sono descritte macro-categorie e soglie di camminabilità.
+
+## Metodo paper
+
+Le distanze ai POI vengono **precalcolate** all'ingestion, anziché ricercare tutti i servizi durante ogni query. Il contributo di un servizio a distanza `x` decresce secondo una funzione della forma `exp(-(x/(S·U))^3)`; i valori sono poi normalizzati su scala percentile 0–100. Le soglie riportate nel manoscritto sono circa 340/680/1360 metri per gruppi di walkability.
+
+## Implementazione e cautele
+
+Il processo di ingestion e le trasformazioni risiedono nel codice di metadata e in `app/data/processors.py`. Non assumere che il dataset sintetico riproduca il procedimento OSM: il suo generatore usa una distribuzione parametrica semplificata.
+
+[Schema Parquet](estate-schema.md) · [ProximityAgent](../agents/proximity.md).

@@ -1,0 +1,580 @@
+\documentclass[runningheads,orivec]{llncs}
+\usepackage[T1]{fontenc}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{url}
+\usepackage{appendix}
+\usepackage{float}
+
+\input{ECML_PKDD_2025_Author_Kit/metadata}
+
+\newcommand{\code}{\url{https://github.com/dbdmg/murena}}
+\newcommand{\demo}{\url{https://murena.vercel.app/}}
+
+\newcommand{\rankingagent}{\textit{Ranking agent}}
+\newcommand{\technicalagent}{\textit{Technical agent}}
+\newcommand{\technicalagents}{\textit{Technical agents}}
+\newcommand{\locationagent}{\textit{Location agent}}
+\newcommand{\energyagent}{\textit{Energy agent}}
+\newcommand{\proximityagent}{\textit{Proximity agent}}
+\newcommand{\regulatoryagent}{\textit{Regulatory agent}}
+\newcommand{\buildingagent}{\textit{Building agent}}
+\newcommand{\sqlagent}{\textit{SQL agent}}
+\newcommand{\evaluationagent}{\textit{Evaluation agent}}
+\newcommand{\brokeragent}{\textit{Broker agent}}
+\newcommand{\filteringmode}{\textit{Filtering mode}}
+\newcommand{\rankingmode}{\textit{Ranking mode}}
+\newcommand{\gptoss}{\texttt{gpt-oss-120b}}
+\newcommand{\gemma}{\texttt{gemma3-27b}}
+\newcommand{\qwen}{\texttt{qwen3-8b}}
+\newcommand{\gptfive}{\texttt{gpt-5.4}}
+\newcommand{\combqueries}{$\mathcal{Q}_\text{comb}$}
+\newcommand{\completequeries}{$\mathcal{Q}_\text{full}$}
+
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{cleveref}
+\usepackage{listings}
+%%%%%%%%%%%%%%%%%%%%%
+
+\usepackage{xcolor}
+\usepackage{ifthen}
+\usepackage[misc]{ifsym}
+\usepackage{enumitem}
+
+
+% \usepackage[style=numeric, citestyle=numeric-comp, sorting=none, backend=bibtex, maxcitenames=2, mincitenames=1]{biblatex}
+% \addbibresource{paper.bib}
+
+
+\newboolean{showcomments}
+\setboolean{showcomments}{true}
+
+\ifthenelse{\boolean{showcomments}}
+  {
+   \usepackage{todonotes}
+   \newcommand{\nb}[3]{
+        {\color{#1}\fbox{\bfseries\sffamily\scriptsize#2}
+            {\sf\small$\blacktriangleright$\textit{#3}$\blacktriangleleft$}
+        }
+   }   
+  }
+  {
+   \usepackage[disable]{todonotes}
+   \newcommand{\nb}[3]{}
+  }
+
+
+
+\title{\paperTitle}
+
+\titlerunning{\paperTitleRunning}
+
+\toctitle{\paperTitle}
+
+\tocauthor{Marco De Luca,
+    Simone Monaco,
+    Claudiu Tcaciuc,
+    Alice Gorrino,
+    Giovanna De Luca,
+    Daniele Apiletti,
+    Tania Cerquitelli}
+
+\author{\paperAuthor}
+
+\institute{\paperAffiliation}
+
+\authorrunning{\paperAuthorRunning}
+
+\begin{document}
+
+\maketitle
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{abstract}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Managing large-scale public real estate portfolios requires screening thousands of buildings against technical, energy, spatial, and regulatory constraints; a process that currently takes domain experts weeks of manual cross-referencing across fragmented data sources.
+We present \methodACR, a multi-agent Human-in-the-Loop platform where the LLM acts as a semantic controller, translating user intent into structured constraints and orchestrating execution across SQL and geospatial engines, while the final decision remains with a domain
+expert. 
+Role-specialised agents (energy performance, zoning compliance, spatial accessibility, regulatory constraints) operate over a unified registry of 90,000 Italian Energy Performance Certificates enriched with geocoded proximity indicators and an expert-curated regulatory knowledge base, through three phases: requirements extraction, SQL
+query composition, and multi-criteria scoring, with full intermediate traceability.
+Evaluation combining automatic benchmarking on 486 queries and expert validation on 10 institutional change-of-use scenarios shows 90.3\% perfect agent routing, 90\% top-5 retrieval of expert-preferred buildings, and end-to-end execution in tens of seconds, reducing manual screening from weeks to minutes.
+The platform, developed with institutional stakeholders and running on locally hosted open-weight models, has attracted interest from regional and national bodies for operationalising building decarbonisation under EPBD IV.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% OLD ABSTRACT VERSION %%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%Large language models (LLMs) provide strong semantic capabilities, yet their non-determinism and occasional hallucinations limit direct adoption in high-stakes, data-intensive settings.
+%We present \methodACR, a multi-agent Human-in-the-Loop architecture for large-scale real estate management and change-of-use assessment, where the system proposes, decomposes, and documents the analysis, while the final decision remains with a domain expert.
+%Rather than serving as a generative endpoint, the LLM acts as a semantic controller, translating user intent into structured constraints and orchestrating execution across SQL and geospatial engines.
+%\methodACR\ orchestrates role-specialised agents (energy performance, zoning compliance, spatial accessibility, regulatory constraints) over a unified data model built on energy certification records enriched with market-relevant proximity indicators, through three sequential phases: (1) a \textit{requirements extraction} phase that activates domain-specialised agents in parallel to decompose the user query into structured constraints; (2) a \textit{SQL query composition} phase that synthesizes those constraints into an executable SQL query over the building registry; and (3) a \textit{multi-criteria scoring} phase that ranks retrieved assets by weighted agent scores and generates a structured executive synthesis for expert validation.
+%All intermediate representations, constraints, query plans, and scoring components are logged and presented in a visually-rich web interface, to enable full traceability, reproducibility, and explicit human override.
+%\textbf{Evaluation on nearly 90,000 buildings shows 90.3\% perfect agent routing accuracy, 90\% top-5 retrieval of expert-preferred buildings across 10 institutional scenarios, and a reduction of manual screening effort from weeks to minutes.}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\keywords{agentic AI \and multi-agent systems \and large language models \and 
+real estate \and text-to-sql.}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\end{abstract}
+
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Introduction}
+\label{sec:intro}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% The management of large-scale real estate portfolios is a critical data science challenge.
+% Policy makers must identify assets suitable for repurposing or renovating within fragmented, heterogeneous properties while simultaneously satisfying technical, spatial, economic, and regulatory constraints.
+% This task is further complicated by multi-level governance structures spanning European, national, regional, and municipal regulations, as well as the need to balance decarbonisation targets with social equity objectives.
+
+% This challenge is becoming increasingly urgent in the context of the revised European Energy Performance of Buildings Directive (EPBD IV), which requires Member States to implement large-scale building decarbonisation policies while addressing energy poverty and ensuring a "just transition". 
+% As a result, decision-makers must operate on large building registries derived from multiple sources, often characterised by inconsistent formats, missing data, variable quality, and unit-level fragmentation that does not align directly with building-level policy actions.
+
+
+Managing large-scale real estate portfolios is a significant data science challenge. Policymakers must identify assets for repurposing or renovation within fragmented, heterogeneous datasets while satisfying technical, spatial, economic, and regulatory constraints across multi-level governance structures. These decisions must also balance decarbonisation goals with social equity.
+
+This challenge is becoming increasingly urgent in the context of the revised European Energy Performance of Buildings Directive (EPBD IV), which requires Member States to implement large-scale building decarbonisation policies while addressing energy poverty and ensuring a ``just transition''. 
+As a result, decision-makers must operate on large building registries derived from multiple sources, often characterised by inconsistent formats, missing data, variable quality, and unit-level fragmentation that does not align directly with building-level policy actions.
+
+For example, a municipal or regional asset manager tasked with identifying buildings suitable for social housing conversion must today cross-reference EPC registries, cadastral databases, zoning maps, and regulatory texts, often using spreadsheets and manual GIS overlays. A single screening cycle for a medium-sized city portfolio can take weeks of expert time. \methodACR\ was developed in collaboration with institutional stakeholders to automate this workflow while maintaining full expert oversight.
+
+\methodACR\ (\method) is a Human-in-the-Loop decision-support platform that suggests and decomposes complex portfolio queries while keeping the final decision with a domain expert.
+Real estate portfolio data are inherently sensitive: detailed building characteristics, ownership information, cadastral identifiers, and energy performance metrics may be subject to confidentiality obligations or competitive disclosure constraints in public procurement and urban planning contexts.
+To this end, \methodACR\ operates on locally-hosted open-weight LLMs, ensuring data sovereignty and privacy without transmitting sensitive information to third-party APIs.
+For organisations that do not operate local inference infrastructure, the architecture is designed to be easily extended to remote API-based LLMs, trading on-premises privacy guarantees for deployment convenience.
+The system also relies on an expert-curated regulatory knowledge base to produce consistent and auditable output.
+
+\paragraph{Related work.}
+Supporting interactive exploration across heterogeneous repositories spanning structured databases, semi-structured stores, and unstructured regulatory corpora introduces retrieval challenges that no single paradigm fully addresses. In relational settings, this problem is typically framed as text-to-SQL or semantic parsing.
+Recent LLM-based frameworks such as TriSQL~\cite{Su2026Text2SQL} and Think2sql~\cite{papicchio2025think2sql} advance this direction by analysing question complexity and applying dynamic strategies to generate accurate, executable SQL, improving schema linking and compositional generalisation on standard benchmarks such as Spider~\cite{yu_spider_2018}.
+However, text-to-SQL alone is insufficient when queries must simultaneously satisfy geospatial constraints, domain-specific regulatory thresholds, and multi-criteria ranking objectives drawn from heterogeneous sources—none of which can be directly expressed as a single relational query.
+Tool-augmented frameworks such as ReAct~\cite{yao2022react} and Toolformer~\cite{schick_toolformer_2023} demonstrate how LLMs can interleave reasoning with external actions, and multi-agent architectures extend this idea to general-purpose orchestration through graph-based and role-specialized designs~\cite{wang2024llmas}.
+Retrieval-Augmented Generation (RAG)~\cite{lewis_rag_2020} complements action-based approaches by grounding LLM outputs in domain corpora at inference time. However, in compliance-heavy domains, long, hierarchical, and frequently updated regulations make retrieval quality critical for extracting legally valid constraints~\cite{reuter-etal-2025-towards}.
+Recent work on LLMs in urban planning focuses mainly on generative planning and document understanding~\cite{zhou2024llm}, while Automated Valuation Models (AVMs) target price prediction~\cite{JAFARY2024105115} and real estate recommender systems address multi-criteria evaluation~\cite{ginevicius2011recommender,gharahighehi2021recommender,de2025recommender}.
+Geospatial reasoning has been studied in LLM-based systems like GeoGPT~\cite{zhang_geogpt_2024}, which supports natural-language geoprocessing but lacks structured, constraint-based retrieval or aggregation with other data, such as regulatory information.
+Approaches including text-to-SQL, agentic orchestration, RAG, and urban decision-support have largely evolved in isolation, each with structural limitations: text-to-SQL struggles with geospatial and multi-criteria ranking, RAG risks threshold hallucination in compliance settings~\cite{reuter-etal-2025-towards}, and generic agent frameworks lack domain-specific scoring across energy, spatial, and regulatory dimensions.
+\methodACR\ unifies these paradigms under a complementary division of responsibilities: the LLM acts as a semantic orchestrator that handles intent decomposition and linguistic ambiguity, while SQL and geospatial layers enforce strict filtering, and specialised agents apply domain-aware scoring calibrated against the empirical data distribution—structurally preventing each component's failure mode from propagating to the final output.
+Rather than claiming a full benchmark-style reimplementation of each paradigm in isolation, we validate this design empirically in \Cref{sec:results} through a leave-one-out per-agent ablation, quantifying each module's marginal contribution when combined, and a direct structural comparison against monolithic single-prompt baselines.
+
+\paragraph{Contributions.} Our contributions can be summarized as follows.
+\begin{itemize}
+    \item \methodACR, a \textbf{multi-agent pipeline} that decomposes user intent into parallel domain-specialised agents (energy, location, proximity, regulatory, building), composes SQL queries over a structured dataset, and produces a \\weighted multi-criteria ranking with full intermediate traceability.
+    
+    \item A \textbf{data aggregation pipeline} integrating $\sim$90,000 of Italian Energy Performance Certificate (EPC) records into a unified structured registry, including cadastral-based meta-building construction, geocoded proximity indicators, market-zone benchmarks, and an expert-curated regulatory knowledge base, thereby establishing a reproducible benchmark for constraint-based real estate retrieval.
+    
+    \item A \textbf{two-tier evaluation protocol} that combines (i) automatic benchmarking on hundreds of combinatorially generated queries, measuring agent routing accuracy, retrieval diversity, ranking consistency, and qualitative output quality, with (ii) expert validation across 10 real change-of-use scenarios, demonstrating strong alignment between system recommendations and professional judgement.
+\end{itemize}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Dataset and materials}
+\label{sec:dataset}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% \subsection{Open-access building registry}
+\methodACR\ is evaluated on a dataset built from Italian EPCs, the \textit{Attestato di Prestazione Energetica} (APE)~\cite{italy_dl63_2013}, which is published as open datasets through Regional platforms. 
+Compared to large-scale geographic datasets (e.g., OpenStreetMap), EPC records offer richer technical attributes for evaluating buildings, particularly for decarbonization strategies. The proposed pipeline, however, remains data-agnostic and can be applied to any structured building registry with similar attribute dimensions.
+% EPCs do not constitute a complete census of the building stock, as they are issued only during real estate transactions (sales and rentals) or for specific renovation interventions. In addition, this study considers EPCs issued over the last 10 years due to a 2015 revision of the Italian calculation methodology, making earlier certificates not directly comparable with current ones. Despite these limitations, EPC datasets constitute a detailed registry of building characteristics, including geometric parameters, building envelope and technical systems properties, and energy performance indicators (e.g., energy rating - from G to A4, non-renewable energy performance indicator - $EP_{gl,nren}$, greenhouse-gas emissions, etc.).
+EPCs do not cover the entire building stock, as they are issued only during transactions (sales and rentals) or major renovations. This study considers certificates from the last 10 years because a 2015 methodological revision limits comparability with earlier records. Despite these constraints, EPCs provide detailed information on geometry, envelope and system properties, and energy performance indicators (e.g., energy class A4--G, $EP_{gl,nren}$, and emissions). EPC records contain building address and cadastral identifiers (\textit{foglio}/\textit{particella}), geographic coordinates, gross floor area (e.g., 320\,m$^2$), construction year (e.g., 1962), energy class (e.g., E), global non-renewable primary energy index $EP_{gl,nren}$ (e.g., 187\,kWh/m$^2$year), heating system type (e.g., centralised gas boiler), and $\mathrm{CO_2}$ emissions (e.g., 43\,kg/m$^2$year).
+This combination of geometric, technical, energetic, and locational attributes enables the multidimensional constraint queries that \methodACR\ is designed to support.
+This data model is extensible at the European scale, as the Italian EPC scheme aligns with the EPBD framework and shares common attributes with EPC systems across Member States.
+
+%a unified, structured registry of buildings derived from the open-access Italian Energy Performance Certificate (EPC) registry, named \textit{Attestati di Prestazione Energetica} (APE)~\cite{italy_dl63_2013}. They are published as open data through the national SIAPE portal and regional open-data platforms.
+%Compared to large-scale geographic datasets (e.g., OpenStreetMap footprints), EPC records provide richer technical metadata relevant to real-estate decision support, while avoiding the access restrictions typical of full cadastral registries.
+%Although EPC data do not constitute an exhaustive census, as certificates are typically produced during sale, rental, or renovation events, they form a detailed open semantic registry combining energy performance (e.g., class A4--G, $EP_{gl,nren}$, $CO_2$ emissions) with geometric and system descriptors (e.g., floor area, envelope properties, heating-system characteristics).
+%This abstraction can be ported to analogous Energy Performance Certificate (EPC) schemes across Europe where comparable fields are available.
+
+\subsection{Pre-processing, aggregation, and enrichment}
+
+The raw EPC dataset requires preprocessing before integration into the pipeline. 
+
+First, Certificates may appear multiple times due to reissuance. Therefore, we opted for always retaining the most recent record.
+
+Second, they are recorded at the unit level despite the need for building-scale decisions. We therefore construct \emph{meta-buildings} (e.g., for whole-building reuse or cohousing): units sharing cadastral identifiers (\textit{foglio}, \textit{particella}) are merged by summing total floor area, aggregating categorical attributes via surface-weighted majority voting, and taking the minimum across sub-units for continuous energy indices (e.g., $EP_{gl,nren}$, CO\textsubscript{2} emissions). In the remainder of this paper, \emph{building} denotes either an individual unit or an aggregated meta-building.
+
+Third, EPCs lack proximity and market-zone indicators, which are required for comprehensive estates scoring. 
+Starting from geographic coordinates, we linked corresponding OMI zones (\textit{Osservatorio del Mercato Immobiliare}), which represent district-level market benchmarks.
+
+Finally, EPCs also present data-quality errors from manual certification (e.g., incorrect surfaces or coordinates) that cannot be fully corrected and are discussed in \Cref{sec:limitations}.
+
+The \proximityagent\ and \regulatoryagent\ require inputs that are absent from the raw EPC registry—respectively, urban accessibility indicators and structured compliance rules; so we enrich the core data model with the following two resources.
+
+\paragraph{Geocoding and proximity indicators.}
+Computing real-time geospatial distances from all buildings to their surrounding POIs at query time would be computationally prohibitive for an interactive tool.
+Furthermore, the \proximityagent\ must emit SQL-compatible numerical predicates; raw geospatial lookups cannot be expressed as standard relational filters.
+We therefore pre-compute a fixed set of accessibility scores at ingestion time and materialise them as additional columns in the unified registry, enabling the \proximityagent\ to apply them directly in both \filteringmode\ and \rankingmode\ without any runtime geospatial computation.
+Concretely, we augment each building with these indicators summarising access to nearby urban services.
+We extract Points of Interest (POIs) from OpenStreetMap and associate them to macro-categories commonly used in accessibility studies~\cite{shi2025impacts}: \textit{health}, \textit{mobility}, \textit{greenery}, \textit{sport}, \textit{commerce}, and \textit{education}.
+The mapping covers over 230 OSM tags; nodes, ways, and relations are all considered, with ways and relations represented by their geometry centroid and a deduplication step preventing double-counting.
+Category-level scores are derived via an exponential decay model $f(x) = e^{-(x / (S \cdot U))^3}$, where $S$ encodes service-specific walkability thresholds (340\,m, 680\,m, and 1360\,m, corresponding to approximately 5-, 10-, and 20-minute walking catchments following the ``15-minute city'' paradigm) and $U$ is a context-aware urban multiplier ranging from 1.0 (city centre) to 4.0 (suburban areas).
+Scores are then normalized to a [0, 100] scale using percentiles to improve robustness across different urban densities.
+The full tag-to-category mapping and scoring implementation are available in the project repository\footnote{\code}.
+
+For user queries referencing explicit locations (e.g., landmarks or transit stops), the system also relies on external geocoding services (e.g., OpenStreetMap-based APIs) to resolve names to coordinates, enabling fine-grained distance constraints beyond aggregated POI indicators.
+
+For more details, please see Appendix C.
+
+\paragraph{Regulatory corpora.}
+To support regulatory and normative compliance in this proof-of-concept, we build a static repository of structured rules (e.g., minimum surface thresholds, capacity limits) distilled from official public repositories.
+Although this demonstrates feasibility in a reproducible setup, a production-grade system could improve coverage and update reliability by integrating one of the many specialised regulatory intelligence platforms that aggregate and structure normative texts across jurisdictions.
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Methodology}
+\label{sec:method}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+The decision-support process is formalized as a multi-phase semantic transformation of the user query.
+The architecture comprises three distinct phases: requirements extraction, query composition, and multi-dimensional scoring (\Cref{fig:pipeline}).
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=\linewidth]{ECML_PKDD_2025_Author_Kit/images/architecture/murena_architecture.pdf}
+    \caption{
+    Architectural overview of the decision-support pipeline: (1) requirements extraction via parallel technical agents, (2) SQL-based query composition, and (3) multi-dimensional scoring and executive synthesis for final decision-making.
+    }
+    % Architectural overview of the decision-support pipeline. The process flows through three integrated phases: (1) requirements extraction, where the \rankingagent\ orchestrates parallel \technicalagents\ in filtering mode; (2) query composition, where the \sqlagent\ synthesizes the extracted constraints into an optimized relational query; and (3) multi-dimensional scoring and executive synthesis, where results are re-evaluated in ranking mode, weighted via a redistribution algorithm, and qualitatively synthesized by the \evaluationagent\ and \brokeragent\ for final decision-making.
+    \label{fig:pipeline}
+\end{figure}
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Phase 1: requirements extraction}
+\label{sec:methods_phase1}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+The process begins with the \rankingagent, which acts as an orchestrator and is instructed to serve as an expert real estate analyst.
+Its objective is to determine, from the user query alone, which assessment dimensions are \emph{explicitly} required, which are merely implied or secondary, and which are irrelevant—information that is then used to weight each technical agent's contribution to the final multi-criteria score.
+Concretely, the agent reads the full query and, for each \technicalagent, reasons about whether that dimension is a stated hard requirement (e.g., ``I need a building near a metro station''), a soft preference (e.g., ``ideally close to green areas''), or not mentioned at all; it then assigns a rank reflecting that importance order.
+This priority ranking $S$ distinguishes between ``core'' non-negotiable needs and accessory preferences, so that agents handling explicitly stated requirements receive higher weight in the final aggregation than agents handling implicit or secondary ones.
+To formalize the input processed by the pipeline, we represent a user query as a structured tuple of potentially optional components:
+
+\begin{equation}
+    Q = (I, D, L, C_b, C_e, C_p),
+    \label{eq:query-template}
+\end{equation}
+
+where \(I\) denotes the property typology or search intent (e.g., “search for a building”), \(D\) represents the intended project use or destination (e.g., co-housing, clinic), \(L\) encodes location preferences and reference landmarks (e.g., specific districts or POIs), \(C_b\) captures structural building constraints (e.g., minimum surface), \(C_e\) captures energy performance constraints (e.g., energy class), and \(C_p\) specifies proximity requirements with respect to ancillary services (e.g., public transport, sports facilities).
+This formulation provides a compact and modular abstraction of user requests.
+While not exhaustive, it captures the principal components typically expressed in real-world queries. 
+A single LLM, especially smaller models, attempting to jointly resolve these potentially competing requirements would reduce interpretability and increase the risk of reasoning errors. As shown in the experiments, monolithic single-prompt baselines produce structurally different and less comprehensive SQL queries, confirming that architectural decomposition, not merely prompt enrichment, drives query quality.
+To this aim, \methodACR\ is specifically designed to provide atomic, controllable evaluations of user requests, enabling Human-in-the-Loop refinements.
+
+The \rankingagent\ assigns relative importance weights $w_i$ to each technical agent using harmonic ranking: an agent with rank $r_i$ receives raw weight $1/r_i$, then normalized to have active agents' weights sum to 1.
+Agents with the same rank receive identical weights, enabling balanced multi-objective evaluation. For example, in a query like``find a large building for co-housing that is close to public transport and has good energy performance", the requirements specify size, proximity, and energy efficiency without any preference. The ranking agent assigns equal rank to the relevant agents, ensuring that their scores contribute equally and that there is no arbitrary bias in the results.
+
+
+
+
+In parallel, five \textit{Technical agents} are activated to evaluate the available buildings according to the user’s query.
+These agents were selected to cover the primary assessment dimensions that domain experts typically consider when analyzing properties. They include
+(i) \locationagent, (ii) \proximityagent, (iii) \regulatoryagent, (iv) \buildingagent, and (v) \energyagent.
+Each agent's prompt is further enhanced with data-driven context injection, including quartile statistics (P25, P50, P75) for the relevant dataset columns. This enables the LLM to operate as a context-aware analyst rather than a blind extractor.
+The proposed pipeline is designed to be modular and extensible.
+Additional \technicalagents\ can be easily integrated into the workflow by updating the \rankingagent\ to account for their outputs and functional roles.
+Each \technicalagent\ accesses specific data and tools according to its assessment dimension. They operate in two modes: (i) \filteringmode, generating atomic conditions that translate into SQL \texttt{WHERE} clauses; and (ii) \rankingmode, assigning a score to each building based on its performance against those conditions. \\
+% In the previous example, the agent will compute a score for each building based on its surface area, assigning higher scores to buildings with larger areas.
+%A \technicalagent\ needs to be executed first in \filteringmode, and then in \rankingmode, otherwise the \rankingmode\ is not meaningful.
+%In this stage, the \technicalagents\ operate in \filteringmode, in parallel, independently extracting structural constraints that inform the next stages of the pipeline.
+%A \technicalagent\ must run first in \filteringmode\ and then in \rankingmode; otherwise, ranking is not meaningful.
+%\technicalagents\ run in parallel in \filteringmode first, independently extracting structural constraints for the subsequent pipeline stages. Then, 
+\textbf{\locationagent.} 
+The agent differentiates between primary search entities and contextual references (e.g., cities, districts, landmarks, or monuments) using external geocoding services, 
+converting distance specifications to kilometre ranges with a default limiting radius $R_\text{lim}$ set to 3 km. 
+% This maximum radius is subsequently adjusted during the scoring phase using an urban-density multiplier that modulates penalties based on factors such as local urban density and centrality (e.g., city center vs. peripheral areas).
+Unlike traditional Named Entity Recognition (NER)~\cite{Jehangir2023SurveyNER}, the LLM-driven design handles negations, implicit constraints, and domain-specific linguistic variations without annotated training data.\\
+\textbf{\proximityagent.}  
+It assesses buildings based on their proximity and accessibility to urban items (amenities, services, infrastructure) in the surrounding urban environment. This information is captured through pre-aggregate features that represent the macro-categories commonly used in urban accessibility analyses, as described in \Cref{sec:dataset}.
+Representing each amenity macro-category with a single pre-aggregated score simplifies the classification of buildings according to the needs associated with different intended uses.
+%However, such aggregation limits the agent’s ability to differentiate between specific types of POIs within the same category. For example, both metro stations and bus stops are part of the broader \textit{mobility} category. Consequently, a query explicitly referring to proximity to a metro station is interpreted by the POI Agent as a general mobility requirement. Achieving finer-grained distinctions would require either extending the dataset with additional category-specific features or delegating the request to a complementary component, such as the \locationagent, which can manage specific named POIs through geocoding.\\
+\\
+\textbf{\regulatoryagent.} 
+It is responsible for identifying regulatory and normative constraints implied by the user query, such as accessibility standards or typology-specific technical provisions. It draws on the expert-curated JSON repository described in \Cref{sec:dataset}, which pre-formalises compliance rules distilled from authoritative public sources.
+When the query matches an existing rule, the corresponding constraint is directly retrieved and translated into SQL filtering conditions, ensuring full auditability without probabilistic retrieval at inference time.
+In a production environment, this component can be seamlessly extended with dynamic regulatory intelligence platforms that provide up-to-date semantic legal research across jurisdictions.\\
+%If no suitable rule is available in the static repository, the agent activates a RAG-based retrieval procedure over the legal corpora.
+%Relevant documents are identified from selected normative sources, and the agent extracts the applicable compliance thresholds from them.
+% These may include physical requirements such as minimum surface areas (e.g., 600\,m\(^2\) for co-housing), safety provisions, or functional constraints mandated by regulation.
+\textbf{\buildingagent.} 
+First, it identifies the relevant building typology (e.g., “residential dwelling”, “school building”) and the associated technical or cadastral requirements.
+Then, it processes structural constraints, such as the minimum surface area or the capacity.
+Qualitative descriptors (e.g., ``large'' or ``small'') are mapped to quantitative thresholds derived from the empirical distribution of the corresponding attribute in the database.
+Specifically, terms such as ``large'' and ``small'' are translated into values above the 75th percentile and below the 25th percentile, respectively.\\
+\textbf{\energyagent.}
+It translates energy-efficiency requirements into structured constraints, taking EPC data as input.
+Attributes including the energy class label (A4--G) and $EP_{gl,nren}$ are standardised and assigned to database-based numerical thresholds to allow consistent filtering and scoring (as detailed in Section~\ref{sec:dataset}).
+Beyond the core EPC indicators, the agent incorporates additional energy-related attributes from the integrated dataset, including the heating system typology, energy source, and other technical specifications.
+To ensure robustness and prevent unrealistic or overly restrictive constraints, the derived efficiency filters are calibrated against the empirical statistical distribution of the corresponding attributes in the database.
+This data-driven normalisation mitigates the risk of misleading threshold selections and preserves coherence between user requirements and the actual distribution of available buildings.
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Phase 2: SQL query composition}
+\label{sec:methods_phase2}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+The requirements extracted in Phase 1 are synthesized by the \sqlagent\ into an optimized relational database query.
+This phase is primarily a \emph{filtering} step, intended to narrow the search space and exclude irrelevant records before any ranking is applied.
+To ensure auditability and prevent hallucinations, the agent follows a strict zero-addition policy: it only processes parameters explicitly provided by the technical agents, ignoring any latent intent in the original user text that was not formalized during extraction.
+The query generation logic includes a semantic consolidation layer that merges redundant or overlapping conditions into the most restrictive valid clause (e.g., combining \texttt{surface >= 1000} and \texttt{surface >= 3000} into \texttt{surface >= 3000}).
+Geospatial preferences are translated into functions using a distance metric, while qualitative textual filters employ flexible matching operators.
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Phase 3: multi-dimensional scoring}
+\label{sec:methods_phase3}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Retrieved assets undergo an evaluation pass where candidate properties are ranked based on their alignment with both explicit constraints and implicit preferences.
+\technicalagents\ are re-invoked in \rankingmode, using extracted filters as scoring guidance.
+Namely, each \technicalagent\ score is calculated as follows.
+\\
+\textbf{\locationagent} uses an exponential decay model $\propto e^{-(dist/r)^3}$, where $dist$ is the distance to the identified landmark. The parameter $r$ is calibrated so that the score reaches the 20$^{th}$ percentile at the search radius limit $R_\text{lim}$, after which the score exponentially goes to 0.
+\\
+\textbf{\proximityagent} computes a weighted average of the pre-aggregated 
+category-level scores (see \Cref{sec:dataset}) over the service categories 
+\emph{explicitly mentioned in the query}; categories not referenced by the 
+user are excluded from this agent's score. Weights follow an inverse-ranking 
+scheme $w_c = 1 / \mathcal{R}_c$, where $\mathcal{R}_c$ denotes the 
+LLM-derived importance rank of category $c$ among the requested categories.
+\\
+\textbf{\regulatoryagent} computes the average adherence to the extracted requirements. Categorical requirements (e.g., intended use) are first prioritized by the LLM, and their scores are computed using an inverse-ranking weighting scheme based on this ordering. Numerical constraints (e.g., minimum surface) are instead evaluated using threshold-based logic.
+\\
+\textbf{\buildingagent} evaluates typology compatibility by generating an ordered list of relevant categories and computing the score using the same inverse-ranking weighting scheme.
+\\
+\textbf{\energyagent} evaluates energy performance directionally based on the user intent extracted by the Ranking agent. Energy classes are mapped to a linear scale (A4-G), with inversion applied when lower performance is explicitly requested. In the absence of a clear preference, the default decreasing mapping is used. 
+Numerical indicators (e.g., EP$_{gl,nren}$) follow a normalized linear
+scheme calibrated to query intent and dataset distribution.
+
+The final score is computed as a weighted average of the normalized scores provided by the individual agents with weights defined in \Cref{sec:methods_phase1} by the \rankingagent\ from the user query context (e.g., prioritizing locations if the user specifies "near the metro").
+To prevent score dilution when an agent finds no relevant requirements, we implement a weight redistribution algorithm. If an agent $k$ is inactive, its weight $w_k$ is redistributed among active agents $j$ proportionally to their initial weights.
+% \begin{equation}
+%     w'_j = w_j + \left( w_k \times \frac{w_j}{\sum_{active} w_i} \right)
+% \end{equation}
+Finally, an \evaluationagent\ analyzes the top results, complementing quantitative scores with a qualitative assessment of repurposing and strategic potential. For each candidate, it highlights the main score drivers and provides three pros and three cons. A final executive summary compares the top-ranked options and recommends the most coherent strategic compromise.
+
+% The top results are analyzed by the \evaluationagent. Its primary purpose is to provide qualitative depth to the score, effectively ``giving a voice'' to the numerical output by evaluating an asset's repurposing and strategic potential with respect to the user query. 
+% For each candidate, the agent produces an overview of the characteristics that most significantly contributed to its score and identifies exactly three pros and three cons, ensuring that technical metrics are grounded in professional interpretative reasoning.
+% Finally, a comparative executive summary is created for the final decision-maker, comparing the top-ranked candidates and suggesting the best strategic compromise that aligns with the global portfolio objectives.
+% Finally, the pipeline concludes with the \brokeragent. It is specifically framed as a ``broker'' because it serves as the essential intermediary between raw technical evaluations and policy-level choices; it synthesizes the findings into a comparative executive summary for the final decision-maker, contrasting the top-ranked candidates and recommending the optimal strategic compromise aligned with the global portfolio objectives.
+
+
+
+\subsection{Visual analytics}
+To mitigate automation bias and fully support the Human-in-the-Loop paradigm, \methodACR\ presents its outputs through a visually-rich web interface.
+
+The raw numerical scores are translated into actionable Explainable AI (XAI) components, including textual justifications and multi-dimensional Radar Charts. Specifically, the Energy Radar maps raw EPC XML tags into four normalized axes (Energy Class, System Efficiency, Envelope Performance, and Renewables), while the Proximity Radar visualizes the six 15-minute city pillars. This allows human operators to visually inspect and override the LLM's multi-criteria evaluations.
+Screenshots of the web interface are in Appendix A.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Results}
+\label{sec:results}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Experimental setup}
+\label{sec:setup}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+We evaluated \methodACR\ on a real-world dataset of nearly 90,000 buildings in a major Italian city (\Cref{sec:dataset}), chosen for its representative urban structure, with distinct central and peripheral zones.
+% The focus on a specific city provides a representative urban context, characterized by a clear organization into central and peripheral zones, which significantly influences property valuation and accessibility.
+
+The evaluation comprises complementary tasks targeting key pipeline properties: (i) agent routing correctness (i.e., whether the correct agents are activated); (ii) ranking behaviour, including differentiation, determinism, and priority alignment; (iii) SQL synthesis structure compared to monolithic baselines; (iv) data awareness and calibration via knowledge ablations; (v) qualitative usefulness of generated pros/cons using an LLM-as-a-judge protocol; and (vi) human-centred validation with domain experts in realistic change-of-use scenarios.
+
+The experiments were carried out on an NVIDIA RTX PRO 6000 GPU.
+All models used within the \methodACR\ pipeline are open-weight and deployed locally: \gptoss, \gemma, and \qwen.
+These models were selected to represent three distinct scale tiers of state-of-the-art models known for their strong reasoning and instruction-following capabilities. This selection allows us to evaluate the trade-off between computational cost (e.g., \qwen and \gemma can be easily deployed on a single consumer-grade GPU) and multi-agent orchestration performance, while strictly satisfying the data sovereignty and local-hosting constraints required by real estate applications.
+The closed-weight model \gptfive\ is used exclusively outside the pipeline, as an external baseline and as the LLM-as-a-judge evaluator.
+We selected \gptfive\ to establish a state-of-the-art upper bound for single-prompt capabilities and to provide robust zero-shot assessments for qualitative metrics. 
+The pipeline uses LangGraph for orchestration, DuckDB for data persistence and in-memory analytics, and scikit-learn’s \texttt{BallTree} for spatial operations. Geocoding and geographic knowledge are obtained from OpenStreetMap via the Overpass API. The tracing and evaluation of the system is handled with Langfuse. The code is openly available in the project repository; a live demo is available at \demo.
+
+Taking inspiration from state-of-the-art benchmarking schemas~\cite{papicchio2023qatch}, we generated 486 combinatorial queries (\combqueries; details in the Appendix B.1), of which 64 activate all five technical agents (\completequeries). Routing is evaluated in \combqueries to assess activation correctness across optional components, while ablations are performed in \completequeries to ensure comparability when all agents are active.
+
+
+
+% The ``none'' option indicates that a component may be optional.
+The components were mapped to natural language queries, using the following template, eventually ignoring fields when optional:
+\begin{quote}
+    Search a $I$ [near $L$] [with $C_b$] [for a $D$] [close to $C_p$] [in energy class $C_e$].
+\end{quote}
+where the square brackets indicate whether a component is optional.
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Quantitative and qualitative performance}
+\label{subsec:metrics}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{table}[ht]
+\centering
+\caption{Routing, ranking, and qualitative evaluation results. Top: agent routing on \(\mathcal{Q}_{\mathrm{comb}}\). Middle: ranking differentiation, consistency, and weight–discovery alignment on \(\mathcal{Q}_{\mathrm{full}}\). Bottom: LLM-as-a-judge assessment of pros/cons quality. Up and down arrows indicate whether the higher or lower value is preferred for each metric.
+}
+\label{tab:routing_ranking_qualitative_combined}
+\small
+\begin{tabular}{lccc}
+\toprule
+\textbf{Metric} & \textbf{\gptoss} & \textbf{\gemma} & \textbf{\qwen} \\
+\midrule
+\multicolumn{4}{l}{\textbf{Agent routing (\combqueries)}} \\
+PMR (\%)\ ($\uparrow$)  & \textbf{90.3}  & 54.5  & 54.9  \\
+Mean Jaccard score\ ($\uparrow$)         & \textbf{0.972} & 0.863 & 0.861 \\
+% Classification mismatches  & & 47    & 221   & 219   \\
+F1: \energyagent\ ($\uparrow$)           & 0.989 & \textbf{0.998} & 0.984 \\
+F1: \locationagent\ ($\uparrow$)         & \textbf{1.000} & \textbf{1.000} & 0.995 \\
+F1: \regulatoryagent\ ($\uparrow$)      & \textbf{1.000} & 0.800 & 0.807 \\
+F1: \proximityagent\ ($\uparrow$)        & \textbf{0.998} & 0.982 & 0.997 \\
+F1: \buildingagent\ ($\uparrow$)         & \textbf{0.949} & 0.909 & 0.899 \\
+\midrule
+\multicolumn{4}{l}{\textbf{Ranking consistency (\completequeries)}} \\
+Ranking differentiation (cross-query IoU) ($\downarrow$) & 0.024      & 0.018      & \textbf{0.017}      \\
+Model consistency (self-query IoU, 3 trials) ($\uparrow$)   & 0.705      & \textbf{0.820}      & 0.720      \\
+% Spearman $\rho$   & & $-0.541$ & $0.018$ & $-0.481$ \\
+% Spearman $p$-value & & $0.000$ & $0.385$ & $0.000$ \\
+Discovery rate @ Rank 1 (\%)  ($\uparrow$)            & 96.3       & 66.7       & \textbf{97.1}       \\
+Discovery rate @ Rank 5 (\%) ($\downarrow$)             & \textbf{25.7}       & 69.1       & 42.6       \\
+\midrule
+\multicolumn{4}{l}{\textbf{LLM-as-a-judge qualitative evaluation (\completequeries)}} \\
+Accuracy (Pros) ($\uparrow$)  & 69.8\% & \textbf{79.5\%} & 63.5\% \\
+Accuracy (Cons) ($\uparrow$)  & 52.8\% & \textbf{68.9\%} & 50.4\% \\
+Relevance (Pros)($\uparrow$) & 80.3\% & 79.7\% & \textbf{80.8\%} \\
+Relevance (Cons) ($\uparrow$) & \textbf{46.9\%} & 44.9\% & 36.4\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+
+
+
+\subsubsection{Agent routing evaluation.}
+\label{sec:routing}
+
+We evaluate the routing capability of \methodACR\ on the full combinatorial query set $\mathcal{Q}_{\mathrm{comb}}$, assessing whether the orchestration layer activates the correct subset of specialised agents for each query. Ground-truth activations are deterministically derived from the structured query template (\Cref{eq:query-template}), where components map to agents as follows: \(L \rightarrow\) \locationagent, \(D \rightarrow\) \regulatoryagent, \(C_p \rightarrow\) \proximityagent, \(C_e \rightarrow\) \energyagent, and both \(I\) and \(C_b \rightarrow\) \buildingagent. Observed activations are compared against this mapping using global and per-agent metrics, including Perfect Mapping Rate (PMR, exact activation match), Mean Jaccard Score (set overlap), and per-agent F1-scores. 
+
+Results for all three models are shown in \Cref{tab:routing_ranking_qualitative_combined}. All achieve near-perfect per-agent F1 and high Jaccard scores, indicating that identifying individual conditions is relatively straightforward, especially when few are combined. Differences emerge in joint activation accuracy: PMR reveals that smaller models struggle to fully align with the expected agent set, and rather tend to over-activate or drop marginal secondary agents. In practice, this means smaller models remain highly usable, as the downstream SQL and scoring layers naturally filter out irrelevant agent outputs.
+
+
+\subsubsection{Ranking dynamics and qualitative evaluation.}
+
+The middle block of \Cref{tab:routing_ranking_qualitative_combined} reports ranking differentiation, determinism, and rank-effectiveness alignment on $\mathcal{Q}_{\mathrm{full}}$. Cross-query IoU assesses ranking differentiation and remains consistently low across models, indicating that rankings adapt to query-specific constraints rather than converging to a fixed ordering. Self-IoU across three independent trials is high, confirming stable, auditable behavior despite LLM involvement.
+Discovery rates at Rank~1 and Rank~5 measure how often top- and lower-ranked agents successfully extract requirements. As expected, higher-ranked agents contribute more frequently than lower-ranked ones, supporting the effectiveness of the ranking mechanism. Without the \rankingagent\ dynamically assigning weights based on intent, the final multi-criteria score would be uniformly diluted across all technical agents. By correctly prioritizing active agents, the ranking mechanism ensures that properties strictly matching the user's primary requirements are not outranked by properties that only excel in secondary or unrequested dimensions.
+% Interestingly, removing the \rankingagent\ and applying uniform weights leaves the top-10 results unchanged (weighting sensitivity IoU = 1.000 for all models). This reflects the structurally balanced activation pattern of $\mathcal{Q}_{\mathrm{comb}}$, where constraints often act conjunctively rather than competitively.
+
+The bottom block reports LLM-as-a-judge evaluation of generated pros and cons. Accuracy scores are consistently higher for Pros than Cons, suggesting that positive evidence is easier to ground in structured attributes, while critical assessments require more interpretative synthesis. Relevance scores remain comparatively stable across models, indicating that even weaker models maintain topical alignment despite differences in factual precision.
+
+
+
+% \Cref{tab:routing_ranking_qualitative_combined} reports ranking differentiation, consistency, and rank-effectiveness alignment for all models. \gptoss\ and \qwen\ show significant negative Spearman correlation between rank and discovery rate, while \gemma\ does not. For all models, removing the \rankingagent's weight assignments (uniform weights) leaves the retrieved top-10 unchanged (weighting sensitivity IoU $= 1.000$), consistent with the balanced agent activation structure of \combqueries.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsubsection{Expert evaluation.}
+\label{sec:experteval}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\methodACR\ was validated by two senior domain experts on 10 realistic change-of-use scenarios derived from institutional cases in a major Italian city. The task was to identify buildings suitable for co-housing conversion (10 apartments, 40–70 m² each) in three city areas, targeting both low-energy-class buildings (renovation candidates) and high-energy-class buildings (low-effort conversion). For each scenario, experts first defined their ideal top-5 shortlist via manual search, then compared it blindly against \methodACR's ranked output.
+\methodACR\ retrieved at least one expert-preferred building in the top-5 in 9 of 10 scenarios. Among the remaining system-proposed buildings, 80\% were rated relevant by both experts. Human overrides were needed in only 1 of 10 cases (weight adjustment), confirming the Human-in-the-Loop design's value.
+A concrete example is a co-housing scenario in which \methodACR\ correctly identified and aggregated 10 distinct cadastral units (ranging from 23 to 124 m²) into a single 642 m² meta-building near the requested landmark. Experts confirmed that the generated "Cons" appropriately highlighted renovation constraints implied by the 1850 construction year and Class E rating, while correctly recognising the excellent mobility proximity score of 98/100. The system also surfaced dataset-based information not explicitly requested, such as the presence of green areas and sports facilities, enriching the building selection process.
+The experts particularly appreciated the transparency of the weighted scoring breakdown, the radar charts, and the clarity of the executive synthesis.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Ablation study}
+\label{sec:ablation}
+We perform a leave-one-out ablation over the \completequeries\ to quantify each component's contribution. Removing each agent determines a ranking IoU between the ablated system and the full pipeline which is on average 0.276. For more details, see the Appendix B.2.
+
+To assess the benefit of multi-agent modularization, we compare \methodACR\ against two monolithic text-to-SQL baselines powered by \gptfive: (i) a schema-only prompt containing column names, and (ii) a schema+statistics prompt enriched with column quartile statistics, both generating the full query in a single pass. By deliberately selecting one of the most capable closed-weight frontier models for these baselines, we aim to demonstrate that the challenge of multi-dimensional query extraction cannot be solved merely by raw model scale. 
+
+We evaluate the architectures along two complementary dimensions. First, the domain coverage F1 score measures whether the generated SQL captures all the thematic dimensions implied by the query. Each dimension (energy, location, proximity, regulatory, structural) maps to a predefined set of schema columns and is considered "covered" if at least one corresponding column appears in the query.
+Second, column-set IoU on the \texttt{SELECT}/\texttt{WHERE} clauses quantifies structural divergence between multi-agent and monolithic queries, independent of output equivalence. Retrieval behaviour is evaluated separately through ranking metrics, diversity analysis, and expert validation.
+
+As shown in \Cref{tab:sql_comparison}, both monolithic baseline configurations achieve a domain coverage F1 of around $0.75$, regardless of whether column statistics are injected into the prompt, meaning that for roughly 3 out of 4 queries the baseline entirely omits at least one thematic dimension that the query implicitly requires. The IoU analysis on the top 10 results further confirms that this gap is structural: the two baseline configurations are mutually consistent across models (ranking IoU $\approx 0.515$), whereas their divergence from the multi-agent architecture (the result \methodACR\ with the same LLM) is substantial. Architectural modularisation, rather than prompt enrichment alone, is therefore the primary driver of both domain coverage and structural differences in generated SQL.
+
+\begin{table}[ht]
+\centering
+\caption{SQL structural comparison between multi-agent and monolithic baselines (\gptfive), evaluated on $\mathcal{Q}_{\mathrm{full}}$.}
+\label{tab:sql_comparison}
+\begin{tabular}{lcccc}
+\toprule
+& & \multicolumn{3}{c}{\textbf{column-set IoU ($\uparrow$)}} \\
+\cmidrule(lr){3-5}
+\textbf{Model} & \textbf{Domain F1 ($\uparrow$)} & \textbf{\gptoss} & \textbf{\gemma} & \textbf{\qwen} \\
+\midrule
+Columns only    & 0.757 & 0.126 & 0.125 & 0.191 \\
+Columns + stats & 0.757 & 0.121 & 0.183 & 0.229 \\
+\midrule       
+\methodACR  & 1 & 1 & 1 & 1\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Discussion and conclusion}
+\label{sec:limitations}
+\label{sec:discussion}
+\label{sec:conclusion}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection{Impact and deployment perspective.}
+\methodACR\ demonstrates that multi-agent LLM architectures can deliver highly scalable and robust decision support for large-scale real estate management, a domain where manual workflows currently dominate. Expert validation confirms that the system reduces the portfolio screening effort from weeks to minutes, with an average end-to-end query execution time of 55 seconds, while maintaining alignment with professional judgement (90\% top-5 retrieval, 80\% of additional recommendations rated useful). 
+
+Based on our evaluation, we recommend Gemma3-27B for real-world deployments. It offers the optimal trade-off: it achieves reasoning and qualitative performance comparable to massive 120B models, yet it can be hosted on a single enterprise GPU, satisfying both operational cost constraints and strict public-sector data privacy requirements.
+
+Crucially, the platform has attracted strong institutional interest at both regional and national level: public bodies responsible for managing large property portfolios have identified \methodACR \ as a candidate tool to support the building decarbonisation obligations mandated by EPBD IV and the planning of just transition at scale. 
+This institutional traction validates the system's practical relevance beyond academic evaluation and positions it as a concrete instrument for evidence-based urban policy. \\
+
+\subsubsection{Lessons learned.}
+Three architectural choices proved essential and generalise beyond real estate.
+\begin{enumerate}[label=(\roman*)]
+    \item Confining the LLM to semantic orchestration while delegating filtering and scoring to deterministic SQL and geospatial layers eliminates hallucination risk in the constraint enforcement path—a prerequisite for any regulatory application.
+    \item Locally-hosted open-weight models (Qwen3-8B, Gemma3-27B) achieve near-closed-model routing performance at a fraction of the computational cost, enabling full data sovereignty without sacrificing orchestration quality—a critical requirement for public institutions processing sensitive cadastral and ownership data. 
+    \item The Human-in-the-Loop visual analytics layer (radar charts, scoring breakdowns, pros/cons) proved non-negotiable for expert trust and adoption: in our evaluation, domain experts used the interface to audit, adjust, and override the system's output, confirming that transparent scoring is what distinguishes a decision-support tool from a black-box recommendation engine.
+\end{enumerate}
+
+\subsubsection{Limitations.}
+Several limitations should guide interpretation and future deployment.
+\begin{enumerate}[label=(\roman*)]
+    \item The absence of a standardised ground truth for multi-dimensional urban queries requires reliance on expert evaluation; while our 10-scenario protocol demonstrates alignment, larger-scale user studies across multiple cities would strengthen external validity. 
+    \item The system assumes sufficiently specified initial queries; ambiguous or underspecified input may activate suboptimal agent configurations, a limitation we plan to address through conversational query refinement. 
+    \item Spatial modelling aggregates amenities into broad macro-categories without distinguishing hierarchical service levels (e.g., metro vs. local bus), limiting accessibility granularity. 
+    \item EPC data quality is inherently noisy due to manual entry and modelling assumptions, and the registry skews heavily residential (90\% of records), which may bias analyses on specialised assets.
+\end{enumerate}
+
+\subsubsection{Future work.}
+Near-term priorities include: 
+(a) extending the architecture to a conversational framework that dynamically solicits missing constraints, directly mitigating limitation (ii); 
+(b) integrating finer-grained spatial taxonomies from multi-source cadastral and BIM data; and (c) conducting cross-regional deployment studies to validate scalability on national-level portfolios.
+
+Longer-term, we envision \methodACR\  as a reusable blueprint for compliance-heavy public-sector domains, urban planning, public procurement, ESG reporting, where the same pattern of LLM-driven orchestration over deterministic execution layers can deliver auditable, privacy-preserving, and expert-validated decision support.
+
+\begin{credits}
+
+    \subsubsection{Ethical considerations.}
+    The system processes only publicly available EPC data and aggregated OpenStreetMap indicators; no personal or sensitive ownership information is used for inference. Locally-hosted models guarantee data sovereignty. The architecture has no military or surveillance applications. All experiments comply with the European Code of Conduct for Research Integrity.
+    
+    \subsubsection{\ackname}
+    This study was partially supported by the ``WEBFARE'' (Nr. FISA2022-00908), funded by the Italian Ministry of University and Research under the FISA 2022 programme (D.D. No. 1405 of 13/09/2022, Fondo Italiano per le Scienze Applicate – FISA). This manuscript reflects only the authors’ views and opinions; the Ministry cannot be held responsible for them.
+    
+    \subsubsection{\discintname}
+    The authors have no competing interests to declare.
+    
+    \subsubsection{Reproducibility Statement.}
+    The data derive from multiple open-access sources (Section~\ref{sec:dataset}). 
+    The full code, preprocessing scripts, experiment prompts, and reproducibility specifications are available at \code.
+
+\end{credits}
+
+% \printbibliography
+\bibliographystyle{splncs04}
+\bibliography{paper}
+\end{document}

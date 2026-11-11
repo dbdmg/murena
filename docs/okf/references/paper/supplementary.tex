@@ -1,0 +1,592 @@
+\documentclass[runningheads,orivec]{llncs}
+\usepackage[T1]{fontenc}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{url}
+\usepackage{appendix}
+\usepackage{subcaption}
+\usepackage{float}
+
+\input{ECML_PKDD_2025_Author_Kit/metadata}
+
+\newcommand{\rankingagent}{\textit{Ranking agent}}
+\newcommand{\technicalagent}{\textit{Technical agent}}
+\newcommand{\technicalagents}{\textit{Technical agents}}
+\newcommand{\locationagent}{\textit{Location agent}}
+\newcommand{\energyagent}{\textit{Energy agent}}
+\newcommand{\proximityagent}{\textit{Proximity agent}}
+\newcommand{\regulatoryagent}{\textit{Regulatory agent}}
+\newcommand{\buildingagent}{\textit{Building agent}}
+\newcommand{\sqlagent}{\textit{SQL agent}}
+\newcommand{\evaluationagent}{\textit{Evaluation agent}}
+\newcommand{\brokeragent}{\textit{Broker agent}}
+\newcommand{\filteringmode}{\textit{Filtering mode}}
+\newcommand{\rankingmode}{\textit{Ranking mode}}
+\newcommand{\gptoss}{\texttt{gpt-oss-120b}}
+\newcommand{\gemma}{\texttt{gemma3-27b}}
+\newcommand{\qwen}{\texttt{qwen3-8b}}
+\newcommand{\gptfive}{\texttt{gpt-5.4}}
+\newcommand{\combqueries}{$\mathcal{Q}_\text{comb}$}
+\newcommand{\completequeries}{$\mathcal{Q}_\text{full}$}
+
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{cleveref}
+\usepackage{listings}
+\usepackage{tabularx}
+%%%%%%%%%%%%%%%%%%%%%
+
+\usepackage{xcolor}
+\usepackage{ifthen}
+\usepackage[misc]{ifsym}
+
+\usepackage[style=numeric, citestyle=numeric-comp, sorting=none, backend=bibtex, maxcitenames=2, mincitenames=1]{biblatex}
+
+
+
+\begin{document}
+
+\title{\paperTitle: Appendix}
+
+\titlerunning{\methodACR\ - Appendix}
+
+\author{\paperAuthor}
+\authorrunning{\paperAuthorRunning}
+
+\institute{\paperAffiliation}
+
+\maketitle
+
+\centerline{\textbf{Supplementary Material}}
+
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\appendix
+
+\section{Visual inspection}
+
+\begin{figure}[H]
+    \centering
+    
+    \begin{subfigure}{0.48\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{ECML_PKDD_2025_Author_Kit/Supplementary/images/app/login.png}
+        \caption{Login page.}
+        \label{fig:login}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.48\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{ECML_PKDD_2025_Author_Kit/Supplementary/images/app/home.png}
+        \caption{Home page.}
+        \label{fig:home}
+    \end{subfigure}
+
+    \vspace{0.5em}
+
+    \begin{subfigure}{0.48\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{ECML_PKDD_2025_Author_Kit/Supplementary/images/app/map.png}
+        \caption{Map visualization.}
+        \label{fig:map}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.48\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{ECML_PKDD_2025_Author_Kit/Supplementary/images/app/inspector.png}
+        \caption{Inspector view.}
+        \label{fig:inspector}
+    \end{subfigure}
+    
+    % \vspace{0.5em}
+
+    % \begin{subfigure}{\linewidth}
+    %     \centering
+    %     \includegraphics[width=\linewidth]{ECML_PKDD_2025_Author_Kit/images/app/details.png}
+    %     \caption{Property details view.}
+    %     \label{fig:details}
+    % \end{subfigure}
+
+    \caption{User interface of the decision-support system: authentication, query interface, spatial visualization, asset inspection, and agent-level reasoning transparency. Inspector view shows agent reasoning and intermediate results.}
+    \label{fig:app_overview}
+\end{figure}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Extended results}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Combinatorial query generation protocol}
+
+To systematically evaluate the pipeline, we constructed a controlled set of synthetic user queries via combinatorial variation of six input components: typology (\(I\)), intended use (\(D\)), point of interest (\(L\)), building constraints (\(C_b\)), energy constraints (\(C_e\)), and ancillary services (\(C_p\)). The full configuration space yields 486 queries (\(\mathcal{Q}_{\mathrm{comb}}\)), spanning both mandatory and optional components (Table~\ref{tab:query-components}).
+
+Optional fields were independently activated to simulate realistic variability in user requests, producing queries of heterogeneous structural complexity. Among these, 64 queries (\(\mathcal{Q}_{\mathrm{full}}\)) simultaneously activate all five technical agents, representing the most constrained and computationally demanding scenarios. This controlled design enables a systematic evaluation of both routing robustness and multi-agent interaction as query complexity increases.
+
+
+\begin{table}[H]
+\caption{Input components and their values for the combinatorial generation of the evaluation queries. Reported dimensions are typology $I$, intended use $D$, point of interest $L$, building constraints $C_b$, energy constraints $C_e$, and ancillary services $C_p$. Optional fields are marked with *.}
+\label{tab:query-components}
+\centering
+\begin{tabular}{ll}
+\toprule
+\textbf{Component} & \textbf{Options} \\ \midrule
+Property typology ($I$) & building; dwelling \\ 
+Intended use ($D$)* & co-housing; elderly care center \\ 
+Point of interest ($L$)* & Landmark 1; Landmark 2 \\ 
+% Point of interest ($L$) & Palazzo Nuovo; Porta Susa; none \\ 
+Surface area ($C_b$)* & between 50 and 80 m\(^2\); over 1000 m\(^2\) \\ 
+Energy class ($C_e$)* & F or G; C or better \\ 
+Ancillary services ($C_p$)* & public transport; gyms and sports centers \\ \bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Extended ablation study}
+
+% \subsubsection{Agent sensitivity, ranking, and knowledge contribution.}
+Table \ref{tab:ablation_summary} shows a leave-one-out ablation over the \completequeries\ to quantify each component's contribution.
+Ranking IoU is computed between the top-10 of the ablated configuration and the full pipeline; a lower value indicates a higher discriminative contribution.
+As shown in \Cref{tab:ablation_summary}, for \gptoss\ the \energyagent\ is the most impactful component (IoU $= 0.082$), followed by the \proximityagent\ and \locationagent; for \gemma\ the \buildingagent\ drives the largest perturbation (IoU $= 0.072$); for \qwen\ the \locationagent\ shows the highest sensitivity (IoU $= 0.145$), followed by the \proximityagent\ (IoU $= 0.154$).
+Removing the \rankingagent's weighting (uniform weights) does not alter the retrieved top-10 (IoU $= 1.000$ for all models). This result is consistent with the structure of the evaluation dataset: the \combqueries\ are generated from a small combinatorial grid of query templates, which produces a relatively uniform distribution of agent activations. Under such conditions, harmonic weights and uniform weights yield similar score distributions, and the top-10 ranking is not sufficiently sensitive to weight perturbations to produce measurable divergence. On queries with a stronger imbalance across agent importance, the \rankingagent's semantic prioritisation would be expected to produce a more pronounced effect.
+Similarly, withholding data statistics (\textit{no knowledge}) leaves the retrieved set unchanged (IoU $= 1.000$), but collapses the constraint tightness from $0.279$ to $0.000$. This suggests that on the structured EPC dataset, the LLM already possesses sufficient implicit knowledge of plausible numerical ranges to generate syntactically valid SQL filters even without explicit statistical grounding; however, without injected quartiles, the generated thresholds lack discriminative calibration to the actual data distribution, producing vacuous or maximally permissive constraints.
+
+\begin{table}[h]
+\centering
+\caption{Ranking IoU between each ablated configuration and the full pipeline, computed on the \completequeries.}
+\label{tab:ablation_summary}
+\begin{tabular}{lccc}
+\toprule
+\textbf{Configuration} & \textbf{\gptoss} & \textbf{\gemma} & \textbf{\qwen} \\
+\midrule
+No \energyagent           & 0.082 & 0.175 & 0.311 \\
+No \proximityagent        & 0.161 & 0.214 & 0.154 \\
+No \locationagent         & 0.245 & 0.169 & 0.145 \\
+No \buildingagent         & 0.405 & 0.072 & 0.275 \\
+No \regulatoryagent       & 0.482 & 0.692 & 0.561 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Data aggregation policy}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+This appendix provides a complete description of the data
+processing pipeline used to ingest, parse, enrich, and consolidate
+Italian Energy Performance Certificates (EPC) for the municipality of Turin (cadastral
+code \texttt{L219}). The pipeline
+operates on a corpus of XML files conforming to the CSI/SICEE 2015
+schema. It produces one record
+per certified real-estate unit, augmented with geographic,
+urban-amenity, and energy-quality scores.
+The pipeline comprises five sequential stages, summarised in
+Table~\ref{tab:stages}.
+
+\begin{table}[h]
+\centering
+\caption{Summary of pipeline stages.}
+\label{tab:stages}
+\begin{tabularx}{\textwidth}{clX}
+\toprule
+\textbf{Stage} & \textbf{Name} & \textbf{Description} \\
+\midrule
+1 & XML Parsing         & Extraction of certificate fields via XPath from SICEE-schema XML files \\
+2 & Geocoding           & Resolution of postal addresses to WGS-84 coordinates using a local OSM address database \\
+3 & Geographic enrichment & Assignment of OMI real-estate zones and computation of urban-amenity proximity scores \\
+4 & Energy scoring      & Derivation of composite energy-quality indicators \\
+5 & Deduplication and aggregation & Cadastral deduplication and synthesis of building-level meta-records \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+% -------------------------------------------------------
+\subsection{Stage 1: XML parsing}
+\label{sec:parsing}
+% -------------------------------------------------------
+
+Each EPC file is an XML document governed by the namespace \\
+\texttt{http://www.csi.it/sicee/siceeweb/xml/xmlapecompleto2015/data}. Six \\groups of attributes are extracted via XPath expressions.
+
+\paragraph{Identity and location.}
+Street address, civic number, municipality, climatic zone, construction
+year, floor level, and GIS coordinates (latitude/longitude) where
+embedded in the certificate.
+
+\paragraph{Global energy performance.}
+Energy class (scale A4--G), non-renewable global energy performance
+index ($EP_{gl,nren}$, kWh/m\textsuperscript{2}$\cdot$year),
+renewable component \\ ($EP_{gl,ren}$), and CO\textsubscript{2} emissions.
+
+\paragraph{Energy carriers.}
+Fourteen energy vectors are read (Table~\ref{tab:carriers}). For
+fossil fuels and biomass, raw consumption values (expressed in
+volume or mass units) are converted to kWh equivalents by
+multiplication with lower heating value factors ($H_i$, also listed
+in Table~\ref{tab:carriers}). The carrier with the largest converted
+consumption is designated the \emph{primary energy carrier}.
+
+\begin{table}[h]
+\centering
+\caption{Energy carriers and lower heating value conversion factors.
+Entries marked ``---'' are already expressed in kWh.}
+\label{tab:carriers}
+\begin{tabular}{llc}
+\toprule
+\textbf{Carrier} & \textbf{Unit (XML)} & $H_i$ \textbf{(kWh/unit)} \\
+\midrule
+Grid electricity      & kWh   & --- \\
+Natural gas           & m\textsuperscript{3} & 9.94 \\
+LPG                   & kg    & 12.778 \\
+Coal                  & kg    & 7.917 \\
+Diesel                & kg    & 11.87 \\
+Fuel oil              & kg    & 11.75 \\
+Solid biomass         & kg    & 4.67  \\
+Liquid biomass        & kg    & 7.50  \\
+Gaseous biomass       & m\textsuperscript{3} & 6.40  \\
+Solar photovoltaic    & kWh   & --- \\
+Solar thermal         & kWh   & --- \\
+Wind                  & kWh   & --- \\
+District heating      & kWh   & --- \\
+District cooling      & kWh   & --- \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Envelope quality.}
+The XML encodes winter and summer envelope performance as integer
+codes (0, 1, 2), mapped to qualitative ratings: \textit{satisfactory},
+\textit{neutral}, and \textit{poor}.
+
+\paragraph{Building services and heating systems.}
+Boolean flags record the presence of heating, domestic hot water
+(DHW), cooling, mechanical ventilation, lighting, and
+lift/transportation services. For heating and DHW, the technology
+code and installation year of the primary generator are extracted
+and mapped to human-readable descriptions via a look-up table
+(e.g.\ codes \texttt{4}--\texttt{15} $\to$ heat pump, code
+\texttt{1} $\to$ condensing boiler).
+
+\paragraph{Cadastral data.}
+Municipality code, cadastral sheet, parcel, and sub-unit
+are extracted. When the XML records a range
+of sub-units (\texttt{subDA}--\texttt{subA}), both bounds are
+retained as a comma-separated string.
+
+\paragraph{Improvement recommendations.}
+Target energy class and estimated payback period from the
+certificate's recommendation section.
+
+% -------------------------------------------------------
+\subsection{Stage 2: local OSM geocoding}
+\label{sec:geocoding}
+% -------------------------------------------------------
+
+EPC certificates frequently omit GIS coordinates or contain
+erroneous ones. A local geocoding service based on OpenStreetMap
+data is therefore used to derive or improve coordinate assignments
+without reliance on external APIs.
+A local address database is built from OSM data covering
+north-west Italy, retaining all nodes that carry street name,
+house number, and city tags, indexed by street name for efficient lookup.
+
+\subsubsection{Address normalisation}
+
+Raw address strings from the EPC certificates are normalised
+through the following steps, applied in sequence:
+
+\begin{enumerate}
+  \item Removal of leading postal codes (five-digit sequences).
+  \item Removal of city-name tokens (e.g.~\textit{Turin}, abbreviated \textit{TO})
+        at the start or end of the string.
+  \item Removal of stray leading numeric tokens.
+  \item Expansion of abbreviated street-type prefixes
+        (e.g.\ \texttt{C.SO} $\to$ \texttt{CORSO} [avenue],
+        \texttt{P.ZZA} $\to$ \texttt{PIAZZA} [square]).
+  \item Extraction of civic numbers embedded in the street string
+        (e.g.\ ``\texttt{CORSO TRAPANI, 133}'' $\to$
+        street = \texttt{corso trapani}, number = \texttt{133}).
+\end{enumerate}
+
+\subsubsection{Candidate retrieval and scoring}
+
+Up to 60 candidate records are retrieved for the normalised street.
+If no candidates are found, a fallback query drops the street-type prefix
+(retaining only the toponym). Each candidate is scored according to:
+
+\begin{equation}
+  s = s_\text{city} + s_\text{street} + s_\text{number}
+  \label{eq:geo_score}
+\end{equation}
+
+where the component terms are defined in
+Table~\ref{tab:geo_scoring}.
+
+\begin{table}[h]
+\centering
+\caption{Geocoding scoring components.}
+\label{tab:geo_scoring}
+\begin{tabular}{lll}
+\toprule
+\textbf{Component} & \textbf{Condition} & \textbf{Points} \\
+\midrule
+\multirow{2}{*}{City ($s_\text{city}$)}
+  & Exact match & $+100$ \\
+  & No match    & $0$    \\
+\midrule
+\multirow{3}{*}{Street ($s_\text{street}$)}
+  & Exact match          & $+150$ \\
+  & Substring match      & $+50$  \\
+  & No overlap           & $0$    \\
+\midrule
+\multirow{3}{*}{Number ($s_\text{number}$)}
+  & Exact match          & $+300$ \\
+  & Prefix match         & $+150$ \\
+  & Mismatch             & $-100$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The candidate with the highest score is selected. Its coordinates
+replace the XML-supplied values if (a) the score exceeds a quality
+threshold of 450 points, or (b) the XML contained no valid
+coordinates.
+
+% -------------------------------------------------------
+\subsection{Stage 3: geographic enrichment}
+\label{sec:enrichment}
+% -------------------------------------------------------
+
+The Italian Revenue Agency publishes OMI (``Osservatorio del Mercato Immobiliare'') zones, i.e. cadastral micro-zones used for official real-estate valuations.
+For each property, a point-in-polygon test against
+OMI zone boundaries assigns the corresponding zone code.
+
+\subsubsection{Urban amenity proximity scoring}
+
+\paragraph{POI dataset}
+
+Points of Interest (POIs) are extracted from OpenStreetMap (OSM) data and organised
+into six thematic categories: \textit{health}, \textit{mobility},
+\textit{greenery}, \textit{sport}, \textit{commerce},
+and \textit{education}.
+The extraction logic processes the three primary OSM geometry types: nodes, ways, and
+relations. Nodes are handled directly as point geometries; the spatial coordinates of
+ways and relations are represented by their centroids, computed by averaging the
+coordinates of their constituent nodes.
+
+A tag-based categorisation mechanism maps OSM tags (e.g., \texttt{amenity},
+\texttt{shop}, \texttt{leisure}) to the six target categories, covering over 230
+distinct tags. For complex geometries (ways and relations), a consistency check is
+performed across member tags: if all members share a common category, it is assigned
+to the aggregate entity; otherwise the category is inherited from the top-level tags
+of the way or relation. A deduplication step ensures that nodes already accounted for
+within ways or relations are not re-processed as independent POIs. Finally, specific
+refinement rules resolve semantic overlaps (e.g., swimming pools are reallocated
+across categories depending on analysis context).
+
+Within each category, individual amenity types are classified by expected service
+range into three distance-threshold classes:
+\textit{short} ($S = 340\,\text{m}$, $\approx$5-min walk),
+\textit{medium} ($S = 680\,\text{m}$, $\approx$10 min), and
+\textit{long} ($S = 1{,}360\,\text{m}$, $\approx$20 min),
+adhering to the ``15-minute city'' planning paradigm.
+
+\paragraph{Score computation}
+
+All POI coordinates are stored in a spatial index (haversine metric).
+For a property located at coordinates $(\varphi, \lambda)$, all
+POIs within a maximum radius of 5\,km are retrieved. The
+contribution of a single POI at distance $x$ (km) is modelled by
+a cubic Gaussian decay:
+
+\begin{equation}
+  f(x) = \exp\!\left[-\left(\frac{x}{S \cdot U}\right)^{\!3}\right]
+  \label{eq:decay}
+\end{equation}
+
+where $S$ is the base service radius for the amenity's threshold
+class and $U$ is an urban-density multiplier depending on the
+urban zone type of the property (Table~\ref{tab:urban_mult}).
+
+\begin{table}[h]
+\centering
+\caption{Urban density multipliers by urban zone type.}
+\label{tab:urban_mult}
+\begin{tabular}{cc}
+\toprule
+\textbf{Zone} & $U$ \\
+\midrule
+B & 1.0 \\
+C & 1.5 \\
+D & 2.5 \\
+E & 4.0 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Individual POI scores are accumulated by amenity type. The
+category score $c_k$ is the mean across all amenity types
+$\{a_j\}$ belonging to category $k$:
+
+\begin{equation}
+  c_k = \frac{1}{|A_k|}\sum_{j \in A_k}
+        \sum_{\substack{i\,:\,\text{cat}(i)=k \\ \text{am}(i)=j}}
+        f(x_i)
+  \label{eq:cat_score}
+\end{equation}
+
+The six raw category scores are percentile-normalised to the
+range $[0, 100]$ across the full dataset.
+
+The choice of a cubic exponent ($k=3$) in Eq.~\ref{eq:decay}, rather than a
+standard Gaussian ($k=2$) or linear ($k=1$) decay, is deliberate. It creates a
+\emph{plateau of indifference} near the origin where $f(x)\approx 1$, reflecting
+human perception: services within an immediate walkable radius tend to be perceived
+as equally convenient regardless of exact distance. Beyond this plateau, the
+higher-order exponent induces a sharper utility drop-off, modelling the threshold
+effect whereby an amenity that transitions from walkable to transit-required loses
+value more abruptly than a smooth quadratic decay would predict. The urban multiplier
+$U$ (Table~\ref{tab:urban_mult}) ranges from $1.0$ in dense, high-walkability central
+areas to $4.0$ in suburban environments with higher car dependency, and is calibrated
+against density expectations in major Italian metropolitan areas.
+
+% -------------------------------------------------------
+\subsection{Stage 4: energy quality scoring}
+\label{sec:scoring}
+% -------------------------------------------------------
+
+Four ordinal scores are computed for each property from the
+parsed EPC fields (Table~\ref{tab:energy_scores}). The composite
+score $S_\text{total}$ is their sum (range: 4--20).
+
+\begin{equation}
+  S_\text{total} = S_\text{class} + S_\text{system} +
+                   S_\text{envelope} + S_\text{renewables}
+\end{equation}
+
+\begin{table}[h]
+\centering
+\caption{Energy quality score mapping.}
+\label{tab:energy_scores}
+\begin{tabularx}{\textwidth}{lXc}
+\toprule
+\textbf{Score} & \textbf{Condition} & \textbf{Value} \\
+\midrule
+\multirow{3}{*}{$S_\text{class}$}
+  & Energy class starts with A & 5 \\
+  & Energy class is B, C, D, or E & 3 \\
+  & Energy class is F or G (or missing) & 1 \\
+\midrule
+\multirow{3}{*}{$S_\text{system}$}
+  & Heating system is heat pump or district heating & 5 \\
+  & Heating system is condensing boiler or biomass  & 3 \\
+  & Standard boiler or other  & 1 \\
+\midrule
+\multirow{3}{*}{$S_\text{envelope}$}
+  & Envelope quality \textit{satisfactory} & 5 \\
+  & Envelope quality \textit{neutral}       & 3 \\
+  & Envelope quality \textit{poor} (or missing) & 1 \\
+\midrule
+\multirow{2}{*}{$S_\text{renewables}$}
+  & Solar PV or solar thermal consumption $> 0$ & 5 \\
+  & Otherwise & 1 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+% -------------------------------------------------------
+\subsection{Stage 5: deduplication and meta-property generation}
+\label{sec:dedup}
+% -------------------------------------------------------
+
+\subsubsection{Cadastral deduplication}
+
+Multiple EPC certificates may exist for the same real-estate unit,
+identified by the triple
+\textit{sheet}/\textit{parcel}/\textit{sub-unit}.
+The deduplication procedure retains, for each unit, only the most
+recent certificate (sorted by \texttt{certificate\_date} descending).
+An additional address-consistency filter ensures that only records
+sharing the address of the most recent entry are considered, to
+prevent erroneous merging of data from different units assigned to
+the same cadastral triple.
+
+\subsubsection{Meta-property records}
+
+For each (sheet, parcel) pair containing more than one
+sub-unit, a synthetic \emph{meta-property} record is generated to
+represent the entire building parcel. The aggregation rules are:
+
+\begin{itemize}
+  \item \textbf{Floor area}: sum of individual sub-unit areas.
+  \item \textbf{Property type}: type with the greatest aggregate
+        floor area (surface-weighted mode).
+  \item \textbf{Energy class}: class with the greatest aggregate
+        floor area (surface-weighted mode).
+  \item \textbf{Energy consumption indices}
+        ($EP_{gl,nren}$, $EP_{gl,ren}$, CO\textsubscript{2}):
+        minimum across sub-units (best-performing unit).
+  \item \textbf{Energy sub-scores} ($S_\text{system}$,
+        $S_\text{envelope}$, $S_\text{renewables}$): maximum
+        across sub-units.
+  \item \textbf{All remaining fields}: mode across sub-units.
+\end{itemize}
+
+Meta-property records receive identifiers of the form
+\texttt{M00001}, \texttt{M00002}, $\ldots$ and the boolean flag
+\texttt{is\_meta\_property\,=\,True}. They are appended to the dataset
+after all individual unit records.
+
+% -------------------------------------------------------
+\subsection{Output schema}
+\label{sec:output}
+% -------------------------------------------------------
+
+The final dataset contains the columns listed in
+Table~\ref{tab:schema}. Columns retained exclusively for intermediate processing
+(\texttt{heating\_type}, \texttt{winter\_quality}, \\ \texttt{renewable\_sources},
+\texttt{floor}, etc.) are dropped from the final output.
+Records lacking an OMI zone assignment are removed.
+The six amenity scores are \\ percentile-normalised to
+$[0, 100]$ and rounded to two decimal places.
+
+\begin{table}[h]
+\centering
+\caption{Selected output columns and their descriptions.}
+\label{tab:schema}
+\begin{tabularx}{\textwidth}{llX}
+\toprule
+\textbf{Column} & \textbf{Type} & \textbf{Description} \\
+\midrule
+\texttt{id}                         & string  & Unique record identifier \\
+\texttt{is\_meta\_property}          & bool    & True for building-level aggregate records \\
+\texttt{num\_units\_per\_parcel}      & int     & Number of sub-units in the parcel \\
+\texttt{cadastral\_sheet}            & int     & Cadastral sheet \\
+\texttt{cadastral\_parcel}           & int     & Cadastral parcel \\
+\texttt{cadastral\_subunit}          & int     & Cadastral sub-unit (0 for meta-properties) \\
+\texttt{address}                    & string  & Street address \\
+\texttt{latitude}                   & float   & WGS-84 latitude \\
+\texttt{longitude}                  & float   & WGS-84 longitude \\
+\texttt{omi\_zone}                   & string  & OMI valuation zone code \\
+\texttt{floor\_area\_sqm}            & float   & Heated useful floor area (m\textsuperscript{2}) \\
+\texttt{property\_type}             & string  & Property use type (DPR~412 classification) \\
+\texttt{construction\_epoch}         & string  & Construction year or decade \\
+\texttt{certificate\_date}           & date    & Certificate issue date \\
+\texttt{epc\_energy\_class}          & string  & Energy class (A4--G) \\
+\texttt{epglnren\_epc}               & float   & $EP_{gl,nren}$ (kWh/m\textsuperscript{2}$\cdot$year) \\
+\texttt{epglren\_epc}                & float   & $EP_{gl,ren}$ (kWh/m\textsuperscript{2}$\cdot$year) \\
+\texttt{co2\_emissions}              & float   & CO\textsubscript{2} emissions (kg/m\textsuperscript{2}$\cdot$year) \\
+\texttt{epc\_score\_class}           & int     & Energy class score (1, 3, or 5) \\
+\texttt{epc\_score\_system}          & int     & Heating system score (1, 3, or 5) \\
+\texttt{epc\_score\_envelope}        & int     & Envelope quality score (1, 3, or 5) \\
+\texttt{epc\_score\_renewables}      & int     & Renewables score (1 or 5) \\
+\texttt{epc\_score\_total}           & int     & Composite energy score (4--20) \\
+\texttt{health}    & float   & Health amenity score (percentile 0--100) \\
+\texttt{education} & float   & Education amenity score (percentile 0--100) \\
+\texttt{mobility}  & float   & Mobility amenity score (percentile 0--100) \\
+\texttt{sport}     & float   & Sport amenity score (percentile 0--100) \\
+\texttt{commerce}  & float   & Commerce amenity score (percentile 0--100) \\
+\texttt{greenery}  & float   & Greenery amenity score (percentile 0--100) \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+% POIs description integrated into Stage 3 --- Urban amenity proximity scoring above.
+
+\end{document}
