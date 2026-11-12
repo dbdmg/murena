@@ -23,6 +23,7 @@ export const analysisApi = {
     submitAnalysis: async (request: AnalysisRequest & {
         clarification_session_id?: string;
         clarification_response?: string;
+        clarification_confirmed?: boolean;
     }): Promise<AnalysisSubmissionResponse> => {
         const response = await apiClient.post<AnalysisSubmissionResponse>(ANALYSIS_BASE, {
             query: request.query,
@@ -33,6 +34,7 @@ export const analysisApi = {
             output_language: request.output_language ?? 'en',
             clarification_session_id: request.clarification_session_id,
             clarification_response: request.clarification_response,
+            clarification_confirmed: request.clarification_confirmed ?? false,
         });
         return response.data;
     },

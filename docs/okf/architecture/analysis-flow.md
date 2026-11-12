@@ -30,6 +30,8 @@ sources:
 6. **Phase 3 — scoring & synthesis:** arricchimento risultati, attribuzione pesi, ranking numerico, valutazione qualitativa e sintesi del broker quando prevista.
 7. La run salva i risultati e comunica percentuale/stato tramite WebSocket; il client carica i dettagli REST, mostrando edifici, mappe e spiegazioni.
 
+Nel nodo di valutazione, i campi passati all'EvaluationAgent sono selezionati anche con i nomi canonici presenti nel Parquet. Il calcolo della distanza normalizza gli alias inglesi e italiani delle coordinate, così le spiegazioni possono usare `distanza_km` quando il riferimento geografico è disponibile.
+
 ## Grafo operativo
 
 ```text

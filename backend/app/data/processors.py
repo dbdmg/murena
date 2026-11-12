@@ -177,16 +177,22 @@ def calculate_travel_times_df(
     df_processed["distanza_km"] = np.nan
     df_processed["tempo_minuti"] = np.nan  # Added estimated time
 
-    # Ensure coordinates are float
-    if "latitudine" in df_processed.columns and "longitudine" in df_processed.columns:
-        df_processed["latitudine"] = pd.to_numeric(
-            df_processed["latitudine"], errors="coerce"
-        )
-        df_processed["longitudine"] = pd.to_numeric(
-            df_processed["longitudine"], errors="coerce"
-        )
-    else:
+    # The inventory uses English coordinate names; some processed sources use
+    # their Italian equivalents. Normalize aliases for the distance calculation.
+    if "latitudine" not in df_processed.columns and "latitude" in df_processed.columns:
+        df_processed["latitudine"] = df_processed["latitude"]
+    if "longitudine" not in df_processed.columns and "longitude" in df_processed.columns:
+        df_processed["longitudine"] = df_processed["longitude"]
+
+    if "latitudine" not in df_processed.columns or "longitudine" not in df_processed.columns:
         return df_processed
+
+    df_processed["latitudine"] = pd.to_numeric(
+        df_processed["latitudine"], errors="coerce"
+    )
+    df_processed["longitudine"] = pd.to_numeric(
+        df_processed["longitudine"], errors="coerce"
+    )
 
     # Valid lat/lon mask (initialized once after numeric conversion)
     valid_mask = (

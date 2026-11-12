@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import re
 from pathlib import Path
 from typing import Any
 
@@ -18,18 +17,32 @@ def _prompt_catalog() -> str:
 
 def render_prompt(name: str, **values: Any) -> str:
     """Render a prompt section, requiring every template placeholder to be supplied."""
-    marker = re.compile(
-        rf"<!--\s*prompt:{re.escape(name)}\s*-->(.*?)<!--\s*/prompt:{re.escape(name)}\s*-->",
-        re.DOTALL,
-    )
-    match = marker.search(_prompt_catalog())
-    if not match:
+    catalog = _prompt_catalog()
+    start_marker = f"<!-- prompt:{name} -->"
+    end_marker = f"<!-- /prompt:{name} -->"
+    start = catalog.find(start_marker)
+    if start < 0:
         raise KeyError(f"Prompt '{name}' is not defined in {_PROMPT_FILE.name}")
+    start += len(start_marker)
+    end = catalog.find(end_marker, start)
+    if end < 0:
+        raise KeyError(f"Prompt '{name}' has no closing marker in {_PROMPT_FILE.name}")
 
-    prompt = match.group(1).strip()
+    prompt = catalog[start:end].strip()
     for key, value in values.items():
         prompt = prompt.replace("{{" + key + "}}", str(value))
-    unresolved = re.findall(r"{{([A-Z_]+)}}", prompt)
+    unresolved = []
+    search_from = 0
+    while True:
+        placeholder_start = prompt.find("{{", search_from)
+        if placeholder_start < 0:
+            break
+        placeholder_end = prompt.find("}}", placeholder_start + 2)
+        if placeholder_end < 0:
+            unresolved.append(prompt[placeholder_start + 2:].strip())
+            break
+        unresolved.append(prompt[placeholder_start + 2:placeholder_end].strip())
+        search_from = placeholder_end + 2
     if unresolved:
         raise ValueError(f"Prompt '{name}' has unresolved placeholders: {', '.join(unresolved)}")
     return prompt

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
-import re
+import unicodedata
 import uuid
 from datetime import datetime, timezone
 from typing import Any, Optional
@@ -15,7 +15,6 @@ from app.core.config import settings
 from app.database.models import ClarificationSession
 from app.models.responses import ClarificationResponse
 from app.services.llm.langchain_client import get_llm
-from app.utils.json_parser import safe_extract_json
 from app.services.sage_clarification.prompt_loader import render_prompt
 from app.services.sage_clarification.uncertainty import (
     EPSILON,
@@ -27,133 +26,46 @@ from app.services.sage_clarification.uncertainty import (
 logger = logging.getLogger(__name__)
 
 DIMENSIONS = ("I", "D", "L", "Cb", "Ce", "Cp")
+ANSWER_INTENTS = {"REQUIREMENT", "NO_PREFERENCE", "UNKNOWN", "REJECTED", "UNCLEAR"}
 STATUSES = {
     "SPECIFIED", "NOT_REQUESTED", "UNCONFIRMED_ABSENT", "AMBIGUOUS",
     "MISSING_CRITICAL",
 }
-UNKNOWN_ANSWERS = {"i don't know", "i don t know", "i do not know", "not sure", "unsure", "non lo so"}
-NO_PREFERENCE_ANSWERS = {
-    "any", "anything", "anywhere", "no preference", "no preference either way", "none",
-    "doesn't matter", "doesnt matter", "doesn t matter", "does not matter to me",
-    "not relevant", "don't care", "don t care", "non ho preferenze", "non mi interessa",
-    "non e rilevante", "non e importante", "nessun interesse",
-}
-REJECTION_ANSWERS = {"no", "neither", "none of those", "not any of those", "nessuna", "nessuno"}
-
-
-def _is_unknown(text: str) -> bool:
-    normalized = re.sub(r"[^a-zà-ÿ ]", " ", text.lower())
-    return " ".join(normalized.split()) in UNKNOWN_ANSWERS
-
-
-def _normalized_answer(text: str) -> str:
-    return " ".join(re.sub(r"[^a-zà-ÿ ]", " ", text.lower()).split())
+def _normalize_text(text: str) -> str:
+    normalized = unicodedata.normalize("NFKC", text).casefold()
+    return " ".join(
+        "".join(character if character.isalnum() else " " for character in normalized).split()
+    )
 
 
 def _normalize_phrase(text: str) -> str:
-    return " ".join(re.sub(r"[^a-z0-9à-ÿ ]", " ", text.lower()).split())
+    return _normalize_text(text)
 
 
-PROPERTY_TYPE_PATTERNS = (
-    re.compile(r"\b(?:uffici(?:o)?|office(?:s)?)\b", re.IGNORECASE),
-    re.compile(r"\b(?:residenzial[ei]|residential)\b", re.IGNORECASE),
-    re.compile(r"\b(?:commercial[ei]|commercial|negozi?|shops?)\b", re.IGNORECASE),
-    re.compile(r"\b(?:appartament[oi]|apartments?)\b", re.IGNORECASE),
-    re.compile(r"\b(?:magazzin[oi]|warehouses?|industrial[ei])\b", re.IGNORECASE),
-)
+def _llm_text(result: Any) -> str:
+    content = getattr(result, "content", result)
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        text_parts = []
+        for block in content:
+            if isinstance(block, str):
+                text_parts.append(block)
+            elif isinstance(block, dict) and block.get("type") in (None, "text"):
+                text = block.get("text")
+                if isinstance(text, str):
+                    text_parts.append(text)
+        return "\n".join(text_parts)
+    return str(content) if content is not None else ""
 
 
-def _explicit_property_type(query: str) -> Optional[str]:
-    """Return a clearly named physical typology without deriving one from use."""
-    for pattern in PROPERTY_TYPE_PATTERNS:
-        match = pattern.search(query)
-        if match:
-            return match.group(0)
-    return None
-
-
-_PROPER_PLACE = r"[A-ZÀ-ÖØ-Þ][\wÀ-ÖØ-öø-ÿ'’\-]*(?:\s+[A-ZÀ-ÖØ-Þ][\wÀ-ÖØ-öø-ÿ'’\-]*)*"
-_LOCATION_CUE = re.compile(
-    rf"(?i:\b(?:near|close to|by|vicino\s+(?:a|al|alla|allo|ai|alle)|nei\s+pressi\s+di|presso|accanto\s+a)\s+(?:the\s+)?)(?P<place>{_PROPER_PLACE})",
-)
-
-
-def _explicit_location_reference(query: str) -> Optional[dict[str, Any]]:
-    """Find a named place following a proximity cue and any explicit city suffix."""
-    match = _LOCATION_CUE.search(query)
-    if not match:
-        return None
-    place = match.group("place")
-    suffix = query[match.end():]
-    city_match = re.match(
-        rf"(?i:\s*,?\s*(?:(?:in|a)\s+(?:the\s+city\s+of\s+)?)?)(?P<city>{_PROPER_PLACE})",
-        suffix,
-    )
-    if city_match:
-        end = match.end() + city_match.end()
-        value = query[match.start("place"):end].strip()
-        return {"place": place, "value": value, "city_supplied": True}
-    return {"place": place, "value": place, "city_supplied": False}
-
-
-def _location_disambiguation_question(place: str, language: str) -> dict:
-    if language == "it":
-        question = (
-            f"Hai indicato «{place}»: in quale città si trova? "
-            "Basta aggiungere il nome della città."
-        )
-    else:
-        question = (
-            f"You mentioned “{place}”. Which city is it in? "
-            "Just add the city name."
-        )
-    return {
-        "question": question,
-        "target_dimensions": ["L"],
-        "target_parameters": ["city", f"place: {place}"],
-        "reason": "The query names a place but does not identify its city.",
-        "blocking": True,
-        "alternatives": [],
-        "kind": "location_disambiguation",
-    }
-
-
-def _looks_like_place_answer(text: str) -> bool:
-    """Conservative fallback for a direct answer to a city-name question."""
-    normalized = _normalize_phrase(text)
-    tokens = normalized.split()
-    invalid_tokens = {
-        "no", "not", "non", "neither", "voglio", "vorrei", "farci", "cerco",
-        "preferisco", "studentato", "student", "housing", "office", "offices",
-        "ufficio", "uffici", "energy", "energetica", "classe", "building", "edificio",
-    }
-    return (
-        bool(tokens)
-        and len(tokens) <= 8
-        and normalized not in NO_PREFERENCE_ANSWERS
-        and normalized not in UNKNOWN_ANSWERS
-        and not any(token in invalid_tokens for token in tokens)
-        and not any(token in {"o", "oppure", "or", "and", "e"} for token in tokens)
-    )
-
-
-def _generic_location_question(parameters: list[str], language: str = "en") -> str:
-    parameter_text = " ".join(parameters).lower()
-    if language == "it":
-        if "univers" in parameter_text:
-            return "A quale università ti riferisci? Puoi indicarne il nome o la sede."
-        if "city" in parameter_text or "town" in parameter_text or "citt" in parameter_text:
-            return "A quale città ti riferisci? Puoi indicare anche un quartiere o un comune vicino."
-        if "landmark" in parameter_text or "place" in parameter_text or "luogo" in parameter_text:
-            return "A quale luogo o punto di riferimento ti riferisci? Puoi indicarne il nome o la zona."
-        return "A quale località ti riferisci? Puoi indicare una città, un quartiere o un punto di riferimento."
-    if "univers" in parameter_text:
-        return "Which university do you mean? You can give its name or campus."
-    if "city" in parameter_text or "town" in parameter_text:
-        return "Which city do you mean? A neighborhood or nearby town works too."
-    if "landmark" in parameter_text or "place" in parameter_text:
-        return "Which landmark or place do you mean? You can give its name or area."
-    return "Which location are you referring to? You can name a city, neighborhood, or landmark."
+def _parse_llm_json(result: Any) -> Any:
+    """Parse the JSON-only response requested by a structured SAGE prompt."""
+    content = _llm_text(result).strip()
+    try:
+        return json.loads(content)
+    except (TypeError, json.JSONDecodeError) as exc:
+        raise ValueError("Clarification model returned invalid JSON") from exc
 
 
 DIMENSION_LABELS = {
@@ -238,15 +150,6 @@ def _omission_confirmation_question(dimensions: list[str], language: str) -> dic
     }
 
 
-def _explicitly_rejected(options: list[str], answer: str) -> list[str]:
-    rejected = []
-    for option in options:
-        escaped = re.escape(option.lower())
-        if re.search(rf"(?:\bnot\b|\bno\b|\bneither\b|\bnon\b)\s+(?:the\s+)?{escaped}\b", answer.lower()):
-            rejected.append(option)
-    return rejected
-
-
 class SageClarifier:
     """SAGE-inspired, query-dimension wrapper; never invokes MURENA agents."""
 
@@ -277,7 +180,7 @@ class SageClarifier:
             "questions": [{
                 "question": "...", "target_dimensions": ["L"],
                 "target_parameters": ["city"], "reason": "...",
-                "blocking": True, "alternatives": [],
+                "blocking": True, "alternatives": [], "kind": "location_disambiguation",
             }],
         }
         prompt = render_prompt(
@@ -287,7 +190,7 @@ class SageClarifier:
             QUERY=json.dumps(query, ensure_ascii=False),
         )
         result = self._model().invoke(prompt)
-        data = safe_extract_json(getattr(result, "content", result))
+        data = _parse_llm_json(result)
         if not isinstance(data, dict):
             raise ValueError("Clarification model returned invalid structured output")
         dims = data.get("dimensions") if isinstance(data.get("dimensions"), dict) else {}
@@ -310,15 +213,6 @@ class SageClarifier:
                 "reason": raw.get("reason") if isinstance(raw.get("reason"), str) else None,
             }
             if key == "L":
-                location_alternatives = [
-                    alternative for alternative in clean_dims[key]["alternatives"]
-                    if _normalize_phrase(alternative) in normalized_query
-                ]
-                clean_dims[key]["alternatives"] = (
-                    location_alternatives
-                    if len(location_alternatives) == len(clean_dims[key]["alternatives"])
-                    else []
-                )
                 if (
                     status == "SPECIFIED"
                     and (not isinstance(value, str)
@@ -339,40 +233,8 @@ class SageClarifier:
                 clean_dims[key]["value"] = None
             if status == "SPECIFIED" and value is None:
                 clean_dims[key]["status"] = "MISSING_CRITICAL"
-            if status in {"AMBIGUOUS", "MISSING_CRITICAL"}:
+            if status == "MISSING_CRITICAL":
                 clean_dims[key]["value"] = None
-
-        # Guard against a parser miss on an explicit, common physical typology.
-        # This only corrects omitted labels; it does not infer a type from the
-        # intended use or overwrite an actual ambiguity reported by the model.
-        explicit_type = _explicit_property_type(query)
-        if explicit_type and clean_dims["I"]["status"] in {
-            "UNCONFIRMED_ABSENT", "NOT_REQUESTED"
-        }:
-            clean_dims["I"].update({
-                "value": explicit_type,
-                "status": "SPECIFIED",
-                "evidence": explicit_type,
-                "reason": None,
-            })
-        location_reference = _explicit_location_reference(query)
-        if location_reference and clean_dims["L"]["status"] in {
-            "UNCONFIRMED_ABSENT", "NOT_REQUESTED", "MISSING_CRITICAL"
-        }:
-            if location_reference["city_supplied"]:
-                clean_dims["L"].update({
-                    "value": location_reference["value"],
-                    "status": "SPECIFIED",
-                    "evidence": location_reference["value"],
-                    "reason": None,
-                })
-            else:
-                clean_dims["L"].update({
-                    "value": location_reference["place"],
-                    "status": "AMBIGUOUS",
-                    "evidence": location_reference["place"],
-                    "reason": "A named place is explicit, but its city is not.",
-                })
 
         questions = []
         for raw in data.get("questions", []) if isinstance(data.get("questions"), list) else []:
@@ -394,26 +256,6 @@ class SageClarifier:
                 str(p) for p in raw.get("target_parameters", [])
             ] if isinstance(raw.get("target_parameters", []), list) else []
             question_text = raw["question"].strip()
-            if "L" in targets:
-                # No geographic catalog/context is available at this boundary.
-                # Keep only location candidates named in the user's text.
-                grounded_alternatives = [
-                    alternative for alternative in alternatives
-                    if _normalize_phrase(alternative) in normalized_query
-                ]
-                if len(grounded_alternatives) != len(alternatives):
-                    grounded_alternatives = []
-                alternatives = grounded_alternatives
-                if (
-                    location_reference and not location_reference["city_supplied"]
-                    and clean_dims["L"]["status"] == "AMBIGUOUS"
-                ):
-                    question_text = _location_disambiguation_question(
-                        location_reference["place"], language
-                    )["question"]
-                    target_parameters = ["city", f"place: {location_reference['place']}"]
-                elif not alternatives:
-                    question_text = _generic_location_question(target_parameters, language)
             questions.append({
                 "question": question_text,
                 "target_dimensions": targets,
@@ -421,6 +263,7 @@ class SageClarifier:
                 "reason": str(raw.get("reason") or "This detail changes the interpretation."),
                 "blocking": bool(raw.get("blocking", True)),
                 "alternatives": alternatives,
+                "kind": raw.get("kind"),
             })
         already_targeted = {
             dimension for question in questions
@@ -429,28 +272,14 @@ class SageClarifier:
         for dimension in DIMENSIONS:
             if dimension in already_targeted:
                 continue
-            if (
-                dimension == "L"
-                and location_reference
-                and not location_reference["city_supplied"]
-                and clean_dims["L"]["status"] == "AMBIGUOUS"
-            ):
-                questions.append(_location_disambiguation_question(
-                    location_reference["place"], language
-                ))
-                already_targeted.add(dimension)
-            elif clean_dims[dimension]["status"] == "UNCONFIRMED_ABSENT":
+            if clean_dims[dimension]["status"] == "UNCONFIRMED_ABSENT":
                 questions.append(_omission_confirmation_question([dimension], language))
                 already_targeted.add(dimension)
         return {"dimensions": clean_dims, "questions": questions}
 
     def _extract_omission_updates(self, state: dict, question: dict, answer: str) -> dict:
-        """Extract only explicit per-dimension confirmations from a grouped answer."""
+        """Let the model classify intent and extract explicit per-dimension updates."""
         targets = question.get("target_dimensions", [])
-        if _normalized_answer(answer) in NO_PREFERENCE_ANSWERS:
-            return {dimension: {"status": "NOT_REQUESTED", "value": None,
-                                "evidence": answer}
-                    for dimension in targets}
         schema = {
             dimension: {"status": "SPECIFIED|NOT_REQUESTED|UNCONFIRMED_ABSENT",
                         "value": None, "evidence": "exact supporting words from the answer"}
@@ -467,10 +296,29 @@ class SageClarifier:
             ANSWER=json.dumps(answer, ensure_ascii=False),
         )
         result = self._model().invoke(prompt)
-        data = safe_extract_json(getattr(result, "content", result))
+        data = _parse_llm_json(result)
+        intent = data.get("intent") if isinstance(data, dict) else None
+        if intent not in ANSWER_INTENTS:
+            intent = "UNCLEAR"
+        intent_evidence = data.get("evidence") if isinstance(data, dict) else None
+        if intent in {"NO_PREFERENCE", "UNKNOWN", "REJECTED"} and (
+            not isinstance(intent_evidence, str) or not intent_evidence.strip()
+            or _normalize_phrase(intent_evidence) not in _normalize_phrase(answer)
+        ):
+            intent = "UNCLEAR"
         raw_updates = data.get("updates", {}) if isinstance(data, dict) else {}
         updates = {}
         for dimension in targets:
+            if intent == "NO_PREFERENCE":
+                updates[dimension] = {
+                    "status": "NOT_REQUESTED", "value": None, "evidence": intent_evidence,
+                }
+                continue
+            if intent != "REQUIREMENT":
+                updates[dimension] = {
+                    "status": "UNCONFIRMED_ABSENT", "value": None, "evidence": None,
+                }
+                continue
             raw = raw_updates.get(dimension, {}) if isinstance(raw_updates, dict) else {}
             status = str(raw.get("status", "UNCONFIRMED_ABSENT")).upper()
             if status not in {"SPECIFIED", "NOT_REQUESTED", "UNCONFIRMED_ABSENT"}:
@@ -492,10 +340,64 @@ class SageClarifier:
                 "value": value if status == "SPECIFIED" else None,
                 "evidence": evidence if status in {"SPECIFIED", "NOT_REQUESTED"} else None,
             }
-        return updates
+        return {"intent": intent, "updates": updates, "evidence": intent_evidence}
 
-    def _classify_answer(self, state: dict, question: dict, answer: str) -> str:
-        """Check a new answer against original and previously confirmed evidence."""
+    def _interpret_location_answer(self, state: dict, question: dict, answer: str) -> dict:
+        """Use the model to interpret a response to a geographic clarification."""
+        prompt = render_prompt(
+            "location_answer",
+            PLACE=json.dumps(state["dimensions"]["L"].get("value"), ensure_ascii=False),
+            ALTERNATIVES=json.dumps(question.get("alternatives", []), ensure_ascii=False),
+            ORIGINAL_QUERY=json.dumps(state["original_query"], ensure_ascii=False),
+            QUESTION=json.dumps(question["question"], ensure_ascii=False),
+            ANSWER=json.dumps(answer, ensure_ascii=False),
+        )
+        result = self._model().invoke(prompt)
+        try:
+            data = _parse_llm_json(result)
+        except ValueError:
+            return {"intent": "UNCLEAR"}
+        if not isinstance(data, dict):
+            return {"intent": "UNCLEAR"}
+        intent = data.get("intent")
+        if intent not in ANSWER_INTENTS:
+            intent = "UNCLEAR"
+        evidence = data.get("evidence")
+        if intent in {"NO_PREFERENCE", "UNKNOWN", "REJECTED"}:
+            if (
+                not isinstance(evidence, str) or not evidence.strip()
+                or _normalize_phrase(evidence) not in _normalize_phrase(answer)
+            ):
+                intent = "UNCLEAR"
+            return {"intent": intent, "evidence": evidence}
+        if intent != "REQUIREMENT":
+            return {"intent": intent, "evidence": evidence}
+        city = data.get("city")
+        selected_alternative = data.get("selected_alternative")
+        if not isinstance(city, str) or not city.strip():
+            return {"intent": "UNCLEAR"}
+        if not isinstance(evidence, str) or not evidence.strip():
+            return {"intent": "UNCLEAR"}
+        if _normalize_phrase(evidence) not in _normalize_phrase(answer):
+            return {"intent": "UNCLEAR"}
+        if selected_alternative is not None:
+            offered = {
+                _normalize_phrase(option)
+                for option in question.get("alternatives", [])
+            }
+            if (
+                not isinstance(selected_alternative, str)
+                or _normalize_phrase(selected_alternative) not in offered
+                or _normalize_phrase(city) != _normalize_phrase(selected_alternative)
+            ):
+                return {"intent": "UNCLEAR"}
+        return {
+            "intent": "REQUIREMENT", "city": city.strip(), "evidence": evidence,
+            "selected_alternative": selected_alternative,
+        }
+
+    def _classify_answer(self, state: dict, question: dict, answer: str) -> dict:
+        """Ask the model to classify response intent and check consistency."""
         prompt = render_prompt(
             "answer_consistency",
             ORIGINAL_QUERY=json.dumps(state["original_query"], ensure_ascii=False),
@@ -513,12 +415,23 @@ class SageClarifier:
         )
         try:
             result = self._model().invoke(prompt)
-            data = safe_extract_json(getattr(result, "content", result))
+            data = _parse_llm_json(result)
             relation = data.get("relation") if isinstance(data, dict) else None
-            return relation if relation in {"consistent", "contradictory", "unclear"} else "unclear"
+            intent = data.get("intent") if isinstance(data, dict) else None
+            evidence = data.get("evidence") if isinstance(data, dict) else None
+            if intent in {"NO_PREFERENCE", "UNKNOWN", "REJECTED"} and (
+                not isinstance(evidence, str) or not evidence.strip()
+                or _normalize_phrase(evidence) not in _normalize_phrase(answer)
+            ):
+                intent = "UNCLEAR"
+            return {
+                "relation": relation if relation in {"consistent", "contradictory", "unclear"} else "unclear",
+                "intent": intent if intent in ANSWER_INTENTS else "UNCLEAR",
+                "evidence": evidence,
+            }
         except Exception:
             logger.warning("Could not validate clarification answer", exc_info=True)
-            return "unclear"
+            return {"relation": "unclear", "intent": "UNCLEAR", "evidence": None}
 
     @staticmethod
     def _question_belief(question: dict) -> tuple[dict[str, float], dict[str, Optional[str]]]:
@@ -527,9 +440,14 @@ class SageClarifier:
             # This records the SAGE epsilon viability only; it is not a
             # normalized probability over unknown values.
             return {"<UNK>": EPSILON}, {"<UNK>": None}
-        viability = parameter_specificity(specified=False, domain_size=len(options))
-        weights = {f"candidate_{i}": viability for i, _ in enumerate(options)}
-        outcomes = {f"candidate_{i}": str(option) for i, option in enumerate(options)}
+        possible_values: list[Optional[str]] = [str(option) for option in options]
+        if question.get("kind") == "location_disambiguation":
+            # The question always includes an open "another city" answer, so
+            # represent that outcome instead of treating suggestions as exhaustive.
+            possible_values.append(None)
+        viability = parameter_specificity(specified=False, domain_size=len(possible_values))
+        weights = {f"candidate_{i}": viability for i, _ in enumerate(possible_values)}
+        outcomes = {f"candidate_{i}": option for i, option in enumerate(possible_values)}
         return weights, outcomes
 
     @classmethod
@@ -678,39 +596,34 @@ class SageClarifier:
             turn=state["turn"],
         )
 
-    @staticmethod
-    def _refine(state: dict) -> str:
-        original = state["original_query"].strip()
-        if state.get("language") == "it":
-            additions = [
-                (
-                    f"Per {DIMENSION_LABELS['it'].get(dimension, dimension)}, "
-                    f"l'utente ha specificato: «{item.get('values', {}).get(dimension, item['text']).strip()}»"
-                    if dimension in item.get("values", {}) else
-                    f"Alla domanda «{item['question']}», l'utente ha precisato: «{item['text'].strip()}»"
-                )
-                for item in state.get("clarifications", [])
-                for dimension in (item.get("target_dimensions") or [None])
-                if item.get("text", "").strip()
-            ]
-            label = "Chiarimento fornito dall'utente: "
-        else:
-            additions = [
-                (
-                    f"For {DIMENSION_LABELS['en'].get(dimension, dimension)}, "
-                    f"the user specified: \"{item.get('values', {}).get(dimension, item['text']).strip()}\""
-                    if dimension in item.get("values", {}) else
-                    f"When asked \"{item['question']}\", the user clarified: \"{item['text'].strip()}\""
-                )
-                for item in state.get("clarifications", [])
-                for dimension in (item.get("target_dimensions") or [None])
-                if item.get("text", "").strip()
-            ]
-            label = "Clarification provided by the user: "
-        if not additions:
-            return original
-        separator = " " if original.endswith((".", "!", "?")) else ". "
-        return original + separator + label + "; ".join(additions) + "."
+    def _refine(self, state: dict) -> str:
+        """Ask the LLM to synthesize the original query and confirmed answers naturally."""
+        language = state.get("language", "en")
+        clarifications = []
+        for item in state.get("clarifications", []):
+            answer = item.get("text", "").strip()
+            if not answer:
+                continue
+            targets = item.get("target_dimensions") or []
+            clarifications.append({
+                "question": item.get("question"),
+                "answer": answer,
+                "dimensions": {
+                    dimension: DIMENSION_LABELS[language].get(dimension, dimension)
+                    for dimension in targets
+                },
+                "confirmed_requirements": item.get("values", {}),
+            })
+        prompt = render_prompt(
+            "query_rewriter",
+            ORIGINAL_QUERY=json.dumps(state["original_query"].strip(), ensure_ascii=False),
+            CLARIFICATIONS=json.dumps(clarifications, ensure_ascii=False),
+        )
+        result = self._model().invoke(prompt)
+        rewritten_query = _llm_text(result).strip()
+        if not rewritten_query:
+            raise ValueError("Clarification model returned an empty rewritten query")
+        return rewritten_query
 
     def process(self, *, db: Session, user_input: str,
                 session_id: Optional[str] = None, user_id: Optional[int] = None,
@@ -765,17 +678,23 @@ class SageClarifier:
             "question": pending["question"], "answer": answer,
             "target_dimensions": pending.get("target_dimensions", []),
         })
-        if answer and not _is_unknown(answer):
-            normalized_answer = _normalized_answer(answer)
-            if pending.get("kind") == "omission_confirmation":
-                # This asks about a dimension previously marked absent. Extract
-                # its explicit answer directly: the generic contradiction
-                # classifier can confuse independent dimensions (for example,
-                # current typology "offices" and future use "student housing").
-                updates = self._extract_omission_updates(state, pending, answer)
+        if not answer:
+            state.setdefault("unanswerable_aspects", []).extend(aspect_keys)
+        elif pending.get("kind") == "omission_confirmation":
+            result = self._extract_omission_updates(state, pending, answer)
+            intent = result["intent"]
+            if intent in {"UNKNOWN", "REJECTED", "UNCLEAR"}:
+                state.setdefault("unanswerable_aspects", []).extend(aspect_keys)
+                if intent == "REJECTED":
+                    for dimension in aspect_keys:
+                        state.setdefault("excluded_interpretations", {}).setdefault(dimension, []).extend(
+                            pending.get("alternatives", [])
+                        )
+            else:
                 specified = {}
+                not_requested = []
                 unresolved = []
-                for dimension, update in updates.items():
+                for dimension, update in result["updates"].items():
                     state["dimensions"][dimension].update({
                         "value": update["value"], "status": update["status"],
                         "evidence": update["evidence"], "reason": None,
@@ -783,113 +702,103 @@ class SageClarifier:
                     })
                     if update["status"] == "SPECIFIED":
                         specified[dimension] = str(update["value"])
-                    elif update["status"] == "UNCONFIRMED_ABSENT":
+                    elif update["status"] == "NOT_REQUESTED":
+                        not_requested.append(dimension)
+                    else:
                         unresolved.append(dimension)
-                if specified:
+                if specified or not_requested:
                     state.setdefault("clarifications", []).append({
                         "text": answer, "question": pending["question"],
-                        "target_dimensions": list(specified), "values": specified,
+                        "target_dimensions": list(specified) + not_requested,
+                        "values": specified,
+                        "not_requested_dimensions": not_requested,
                     })
-                # Keep the grouped question alive only for dimensions the user
-                # did not address; this lets a partial answer make progress.
                 if unresolved:
                     for question in state.get("questions", []):
                         if question.get("kind") == "omission_confirmation" and any(
                             dimension in unresolved for dimension in question.get("target_dimensions", [])
                         ):
-                            replacement = _omission_confirmation_question(unresolved, state["language"])
-                            question.update(replacement)
+                            question.update(_omission_confirmation_question(unresolved, state["language"]))
                             break
-            elif pending.get("kind") == "location_disambiguation":
-                relation = self._classify_answer(state, pending, answer)
-                if normalized_answer in NO_PREFERENCE_ANSWERS or not _looks_like_place_answer(answer):
-                    relation = "unclear"
-                # This question exists only because no city was explicit in the
-                # query. A direct place-name answer fills that slot and cannot
-                # conflict with a city requirement already in the state.
-                elif _looks_like_place_answer(answer):
-                    relation = "consistent"
-                if relation != "consistent":
-                    reason = (
-                        "The clarification conflicts with existing requirements."
-                        if relation == "contradictory"
-                        else "Please provide the city for the named location."
-                    )
-                    for dimension in aspect_keys:
-                        state["dimensions"][dimension].update({
-                            "value": None, "status": "MISSING_CRITICAL", "evidence": answer,
-                            "reason": reason,
-                        })
-                    state.setdefault("unanswerable_aspects", []).extend(aspect_keys)
-                    self._refresh_beliefs(state)
-                    self._save(db, row, state, "blocked")
-                    return ClarificationResponse(
-                        status="BLOCKED", session_id=session_id,
-                        message=reason + " Analysis was not started.", turn=state["turn"],
-                    )
+        elif pending.get("kind") == "location_disambiguation":
+            result = self._interpret_location_answer(state, pending, answer)
+            if result["intent"] == "REQUIREMENT":
                 place = state["dimensions"]["L"].get("value")
-                combined_location = f"{place}, {answer}" if place else answer
+                city = result["city"]
+                combined_location = f"{place}, {city}" if place else city
                 state.setdefault("clarifications", []).append({
                     "text": answer, "question": pending["question"],
                     "target_dimensions": ["L"],
                     "values": {"L": combined_location},
                 })
                 state["dimensions"]["L"].update({
-                    "value": combined_location, "status": "SPECIFIED", "evidence": answer,
+                    "value": combined_location, "status": "SPECIFIED",
+                    "evidence": result["evidence"], "alternatives": [], "reason": None,
+                })
+            elif result["intent"] == "NO_PREFERENCE":
+                state["dimensions"]["L"].update({
+                    "value": None, "status": "NOT_REQUESTED", "evidence": result["evidence"],
                     "alternatives": [], "reason": None,
                 })
-            elif normalized_answer in NO_PREFERENCE_ANSWERS:
-                for dimension in pending.get("target_dimensions", []):
-                    state["dimensions"][dimension].update({
-                        "value": None, "status": "NOT_REQUESTED", "evidence": answer,
-                        "alternatives": [], "reason": None,
-                    })
-            elif normalized_answer in REJECTION_ANSWERS:
-                for dimension in pending.get("target_dimensions", []):
-                    state["dimensions"][dimension].update({
-                        "value": None, "status": "MISSING_CRITICAL", "evidence": answer,
-                        "reason": "The user rejected the candidate interpretations without supplying a replacement.",
-                    })
-                    state.setdefault("excluded_interpretations", {}).setdefault(dimension, []).extend(
-                        pending.get("alternatives", [])
-                    )
-                state.setdefault("unanswerable_aspects", []).extend(aspect_keys)
-            else:
-                relation = self._classify_answer(state, pending, answer)
-                if relation != "consistent":
-                    reason = (
-                        "The clarification conflicts with existing requirements."
-                        if relation == "contradictory"
-                        else "The clarification could not be reconciled safely."
-                    )
-                    for dimension in pending.get("target_dimensions", []):
-                        state["dimensions"][dimension].update({
-                            "value": None, "status": "MISSING_CRITICAL", "evidence": answer,
-                            "reason": reason,
-                        })
-                    state.setdefault("unanswerable_aspects", []).extend(aspect_keys)
-                    self._refresh_beliefs(state)
-                    self._save(db, row, state, "blocked")
-                    return ClarificationResponse(
-                        status="BLOCKED", session_id=session_id,
-                        message=reason + " Analysis was not started.", turn=state["turn"],
-                    )
                 state.setdefault("clarifications", []).append({
                     "text": answer, "question": pending["question"],
-                    "target_dimensions": pending.get("target_dimensions", []),
+                    "target_dimensions": ["L"], "not_requested_dimensions": ["L"],
                 })
-                rejected = _explicitly_rejected(pending.get("alternatives", []), answer)
-                if rejected:
-                    for dimension in pending.get("target_dimensions", []):
-                        state.setdefault("excluded_interpretations", {}).setdefault(dimension, []).extend(rejected)
-                for dimension in pending.get("target_dimensions", []):
+            else:
+                state.setdefault("unanswerable_aspects", []).extend(aspect_keys)
+                if result["intent"] == "REJECTED":
+                    state.setdefault("excluded_interpretations", {}).setdefault("L", []).extend(
+                        pending.get("alternatives", [])
+                    )
+        else:
+            result = self._classify_answer(state, pending, answer)
+            intent = result["intent"]
+            if intent == "NO_PREFERENCE":
+                for dimension in aspect_keys:
+                    state["dimensions"][dimension].update({
+                        "value": None, "status": "NOT_REQUESTED", "evidence": result["evidence"],
+                        "alternatives": [], "reason": None,
+                    })
+                state.setdefault("clarifications", []).append({
+                    "text": answer, "question": pending["question"],
+                    "target_dimensions": aspect_keys,
+                    "not_requested_dimensions": aspect_keys,
+                })
+            elif intent in {"UNKNOWN", "REJECTED", "UNCLEAR"}:
+                state.setdefault("unanswerable_aspects", []).extend(aspect_keys)
+                if intent == "REJECTED":
+                    for dimension in aspect_keys:
+                        state.setdefault("excluded_interpretations", {}).setdefault(dimension, []).extend(
+                            pending.get("alternatives", [])
+                        )
+            elif result["relation"] != "consistent":
+                reason = (
+                    "The clarification conflicts with existing requirements."
+                    if result["relation"] == "contradictory"
+                    else "The clarification could not be reconciled safely."
+                )
+                for dimension in aspect_keys:
+                    state["dimensions"][dimension].update({
+                        "value": None, "status": "MISSING_CRITICAL", "evidence": answer,
+                        "reason": reason,
+                    })
+                state.setdefault("unanswerable_aspects", []).extend(aspect_keys)
+                self._refresh_beliefs(state)
+                self._save(db, row, state, "blocked")
+                return ClarificationResponse(
+                    status="BLOCKED", session_id=session_id,
+                    message=reason + " Analysis was not started.", turn=state["turn"],
+                )
+            else:
+                state.setdefault("clarifications", []).append({
+                    "text": answer, "question": pending["question"],
+                    "target_dimensions": aspect_keys,
+                })
+                for dimension in aspect_keys:
                     state["dimensions"][dimension].update({
                         "value": answer, "status": "SPECIFIED", "evidence": answer,
                         "alternatives": [], "reason": None,
                     })
-        else:
-            state.setdefault("unanswerable_aspects", []).extend(aspect_keys)
         self._refresh_beliefs(state)
-        # An unknown/empty reply leaves the uncertainty intact. The aspect count
-        # penalizes repetition; if no other question remains this returns BLOCKED.
+        # Non-requirement answers leave uncertainty intact and suppress repeats.
         return self._result(state, session_id, db, row)

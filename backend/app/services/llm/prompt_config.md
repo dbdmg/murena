@@ -363,7 +363,7 @@ Return EXCLUSIVELY a valid JSON:
 ## regulatory_agent.user
 ```prompt
 Regulatory Documentation:
-{normative_documents}
+{regulatory_documents}
 
 User Query: {query}
 

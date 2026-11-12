@@ -20,6 +20,8 @@ import {
     Sparkles,
     UserRound,
     RotateCcw,
+    ChevronDown,
+    ChevronUp,
 } from 'lucide-react';
 import { useAnalysis } from '../hooks/useAnalysis';
 import { useSettings } from '../contexts/SettingsContext';
@@ -64,6 +66,8 @@ export const SearchPage: React.FC = () => {
     const [clarificationError, setClarificationError] = useState<string | null>(null);
     const [clarificationOriginalQuery, setClarificationOriginalQuery] = useState('');
     const [clarificationMessages, setClarificationMessages] = useState<ClarificationMessage[]>([]);
+    const [isConversationCollapsed, setIsConversationCollapsed] = useState(false);
+    const [reviewQuery, setReviewQuery] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -162,6 +166,19 @@ export const SearchPage: React.FC = () => {
                         }
                         setClarificationSessionId(result.session_id);
                         setQuery('');
+                    } else if (result.status === 'REVIEW') {
+                        setClarificationSessionId(result.session_id);
+                        setReviewQuery(result.refined_query || original);
+                        setQuery('');
+                        setClarificationMessages((messages) => [
+                            ...messages,
+                            {
+                                role: 'assistant',
+                                content: language === 'it'
+                                    ? 'Abbiamo raccolto i requisiti. Rivedi la ricerca riscritta qui sotto: puoi modificarla prima di avviare l’analisi.'
+                                    : 'We have collected the requirements. Review the rewritten search below; you can edit it before starting the analysis.',
+                            },
+                        ]);
                     } else {
                         const message = result.message || 'Clarification cannot continue safely.';
                         if (isClarificationTurn) {
@@ -191,10 +208,41 @@ export const SearchPage: React.FC = () => {
         }
     };
 
+    const confirmReviewedQuery = async (e?: React.FormEvent) => {
+        e?.preventDefault();
+        if (!reviewQuery?.trim() || !clarificationSessionId || busy) return;
+        setIsSubmitting(true);
+        setClarificationError(null);
+        try {
+            const result = await analysisApi.submitAnalysis({
+                query: reviewQuery.trim(),
+                llm_limit: llmLimit,
+                map_limit: markersLimit,
+                output_language: language,
+                clarification_session_id: clarificationSessionId,
+                clarification_confirmed: true,
+            });
+            if ('session_id' in result) {
+                setClarificationError(result.message || 'The reviewed query could not be submitted.');
+                return;
+            }
+            setClarificationSessionId(null);
+            setReviewQuery(null);
+            navigate(`/processing/${result.run_id}`);
+        } catch (err) {
+            console.error('Failed to submit reviewed query:', err);
+            setClarificationError(err instanceof Error ? err.message : 'Failed to start analysis.');
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
     const startNewSearch = () => {
         setClarificationMessages([]);
         setClarificationSessionId(null);
         setClarificationError(null);
+        setReviewQuery(null);
+        setIsConversationCollapsed(false);
         setQuery(clarificationOriginalQuery);
     };
 
@@ -215,7 +263,11 @@ export const SearchPage: React.FC = () => {
     };
 
     return (
-        <div className="min-h-full relative flex flex-col items-center justify-center p-8 overflow-x-hidden bg-(--bg-main)">
+        <div className={`relative flex flex-col items-center overflow-x-hidden bg-(--bg-main) ${
+            clarificationMessages.length > 0
+                ? 'h-full min-h-0 p-2 sm:p-3'
+                : 'min-h-full justify-center p-8'
+        }`}>
             {/* Background Image with refined layer */}
             <div
                 className="absolute inset-0 z-0 opacity-40 scale-105 pointer-events-none"
@@ -231,16 +283,20 @@ export const SearchPage: React.FC = () => {
             <div className="absolute inset-0 z-0 bg-linear-to-t from-(--bg-main) via-transparent to-transparent opacity-80 pointer-events-none" />
 
             {/* Main Content */}
-            <div className="w-full max-w-3xl mx-auto relative z-10">
+            <div className={`relative z-10 mx-auto w-full ${
+                clarificationMessages.length > 0
+                    ? 'flex h-full min-h-0 max-w-5xl flex-col'
+                    : 'max-w-3xl'
+            }`}>
 
                 {/* Logo Murena */}
-                <motion.div
+                {clarificationMessages.length === 0 && <motion.div
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
                     className="flex justify-center mb-10"
                 >
                     <img src={murenaLogo217} alt="Murena" className="w-[300px] h-auto" />
-                </motion.div>
+                </motion.div>}
 
                 {/* Initial search composer */}
                 {clarificationMessages.length === 0 && (
@@ -314,11 +370,15 @@ export const SearchPage: React.FC = () => {
                     <motion.section
                         initial={{ opacity: 0, y: 16 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="-mt-2 mb-10 overflow-hidden rounded-3xl border border-(--border-light) bg-(--glass-bg)/90 shadow-2xl backdrop-blur-2xl"
+                        className={`flex w-full min-h-0 flex-col rounded-3xl border border-(--border-light) bg-(--glass-bg)/90 shadow-2xl backdrop-blur-2xl ${
+                            isConversationCollapsed
+                                ? 'h-auto shrink-0 overflow-hidden'
+                                : 'h-[calc(100vh-1.5rem)] max-h-full min-h-[20rem] resize-y overflow-hidden'
+                        }`}
                         aria-label={language === 'it' ? 'Conversazione di ricerca' : 'Search conversation'}
                     >
-                        <header className="border-b border-(--border-light) px-6 py-5 sm:px-8">
-                            <div className="flex items-center gap-3">
+                        <header className="flex shrink-0 items-center justify-between gap-3 border-b border-(--border-light) px-4 py-3 sm:px-6">
+                            <div className="flex min-w-0 items-center gap-3">
                                 <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-300">
                                     <Sparkles className="h-5 w-5" />
                                 </span>
@@ -333,9 +393,25 @@ export const SearchPage: React.FC = () => {
                                     </p>
                                 </div>
                             </div>
+                            <button
+                                type="button"
+                                onClick={() => setIsConversationCollapsed((collapsed) => !collapsed)}
+                                aria-expanded={!isConversationCollapsed}
+                                aria-label={isConversationCollapsed
+                                    ? (language === 'it' ? 'Mostra la conversazione' : 'Expand conversation')
+                                    : (language === 'it' ? 'Riduci la conversazione' : 'Collapse conversation')}
+                                title={isConversationCollapsed
+                                    ? (language === 'it' ? 'Mostra la conversazione' : 'Expand conversation')
+                                    : (language === 'it' ? 'Riduci la conversazione' : 'Collapse conversation')}
+                                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-(--text-tertiary) transition-colors hover:bg-white/5 hover:text-(--text-primary)"
+                            >
+                                {isConversationCollapsed
+                                    ? <ChevronDown className="h-5 w-5" />
+                                    : <ChevronUp className="h-5 w-5" />}
+                            </button>
                         </header>
 
-                        <div className="max-h-[48vh] space-y-5 overflow-y-auto px-5 py-6 sm:px-8" aria-live="polite">
+                        {!isConversationCollapsed && <div className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain px-5 py-5 sm:px-8" aria-live="polite">
                             {clarificationMessages.map((message, index) => (
                                 <div
                                     key={`${message.role}-${index}`}
@@ -383,10 +459,51 @@ export const SearchPage: React.FC = () => {
                                 </div>
                             )}
                             <div ref={messagesEndRef} />
-                        </div>
+                        </div>}
 
-                        {clarificationSessionId ? (
-                            <form onSubmit={handleSubmit} className="border-t border-(--border-light) bg-black/10 p-4 sm:px-6">
+                        {!isConversationCollapsed && (clarificationSessionId && reviewQuery !== null ? (
+                            <form onSubmit={confirmReviewedQuery} className="shrink-0 border-t border-(--border-light) bg-black/10 p-3 sm:px-6 sm:py-4">
+                                {clarificationError && (
+                                    <p className="mb-3 text-sm text-amber-200" role="alert">{clarificationError}</p>
+                                )}
+                                <label htmlFor="reviewed-query" className="mb-2 block text-sm font-semibold text-(--text-primary)">
+                                    {language === 'it' ? 'Prompt riscritto' : 'Rewritten prompt'}
+                                </label>
+                                <p className="mb-3 text-xs text-(--text-tertiary)">
+                                    {language === 'it'
+                                        ? 'Controlla tutte le indicazioni raccolte e modifica il testo come preferisci.'
+                                        : 'Review the collected requirements and edit the text as needed.'}
+                                </p>
+                                <textarea
+                                    id="reviewed-query"
+                                    value={reviewQuery}
+                                    onChange={(event) => setReviewQuery(event.target.value)}
+                                    rows={4}
+                                    disabled={busy}
+                                    className="max-h-[24vh] min-h-20 w-full resize-y overflow-y-auto rounded-2xl border border-(--border-light) bg-black/20 px-4 py-3 text-sm leading-relaxed text-(--text-primary) outline-none focus:border-(--accent-cyan)/50"
+                                />
+                                <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+                                    <button
+                                        type="button"
+                                        className="text-sm text-(--text-tertiary) underline underline-offset-2 hover:text-(--text-secondary)"
+                                        onClick={startNewSearch}
+                                        disabled={busy}
+                                    >
+                                        {language === 'it' ? 'Annulla e avvia una nuova ricerca' : 'Cancel and start a new search'}
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        disabled={!reviewQuery.trim() || busy}
+                                        className="flex h-11 items-center gap-2 rounded-xl bg-linear-to-r from-emerald-600 to-cyan-600 px-5 font-semibold text-white transition-opacity disabled:cursor-not-allowed disabled:opacity-40"
+                                    >
+                                        {busy
+                                            ? <Loader2 className="h-4 w-4 animate-spin" />
+                                            : <><span>{language === 'it' ? 'Conferma e avvia l’analisi' : 'Confirm and start analysis'}</span><ArrowRight className="h-4 w-4" /></>}
+                                    </button>
+                                </div>
+                            </form>
+                        ) : clarificationSessionId ? (
+                            <form onSubmit={handleSubmit} className="shrink-0 border-t border-(--border-light) bg-black/10 p-3 sm:px-6 sm:py-4">
                                 {clarificationError && (
                                     <p className="mb-3 text-sm text-amber-200" role="alert">{clarificationError}</p>
                                 )}
@@ -417,20 +534,13 @@ export const SearchPage: React.FC = () => {
                                         ? 'Dopo ogni risposta, MURENA passerà al prossimo requisito da chiarire.'
                                         : 'After each answer, MURENA will move to the next requirement to clarify.'}</span>
                                     <div className="flex items-center gap-4">
-                                        <button
-                                            type="button"
-                                            className="underline underline-offset-2 hover:text-(--text-secondary)"
-                                            onClick={() => setQuery(language === 'it' ? 'Non mi interessa' : 'Not relevant')}
-                                        >
-                                            {language === 'it' ? 'Non mi interessa' : 'Not relevant'}
-                                        </button>
                                         <button type="button" className="underline underline-offset-2 hover:text-(--text-secondary)" onClick={startNewSearch}>
                                             {language === 'it' ? 'Annulla' : 'Cancel'}
                                         </button>
                                     </div>
                                 </div>
                             </form>
-                        ) : null}
+                        ) : null)}
                     </motion.section>
                 )}
                 {clarificationError && (

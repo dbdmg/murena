@@ -2369,6 +2369,28 @@ class GraphOrchestratorAgent(BaseAgent):
         # Columns relevant for LLM evaluation (reduced set for clarity and token efficiency)
         EVAL_COLUMNS = [
             "id",
+            # Canonical inventory columns (estates.parquet)
+            "address",
+            "house_number",
+            "omi_zone",
+            "surface_area",
+            "property_type",
+            "construction_period",
+            "energy_class",
+            "energy_score_class",
+            "energy_score_plant",
+            "energy_score_envelope",
+            "energy_score_renewables",
+            "energy_score_total",
+            "healthcare",
+            "mobility",
+            "green",
+            "sport",
+            "commercial",
+            "education",
+            "latitude",
+            "longitude",
+            # Legacy aliases kept for datasets that already expose them
             "indirizzo",
             "numero_civico",
             "zona_omi",
@@ -2392,6 +2414,7 @@ class GraphOrchestratorAgent(BaseAgent):
             "educazione",
             # Travel times (if enriched)
             "distanza_km",
+            "poi_riferimento",
             # Agent scores
             "ape_score",
             "energy_score",

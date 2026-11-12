@@ -282,7 +282,7 @@ export interface AnalysisStartResponse {
 }
 
 export interface ClarificationResult {
-    status: 'ASK' | 'BLOCKED';
+    status: 'ASK' | 'REVIEW' | 'BLOCKED';
     session_id: string;
     question?: string | null;
     refined_query?: string | null;

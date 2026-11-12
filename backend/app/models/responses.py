@@ -30,7 +30,7 @@ class AnalysisResponse(BaseModel):
 class ClarificationResponse(BaseModel):
     """Response returned while SAGE is resolving a query before analysis."""
 
-    status: Literal["ASK", "READY", "BLOCKED"] = Field(..., description="Clarification result")
+    status: Literal["ASK", "READY", "REVIEW", "BLOCKED"] = Field(..., description="Clarification result")
     session_id: str
     question: Optional[str] = None
     refined_query: Optional[str] = None

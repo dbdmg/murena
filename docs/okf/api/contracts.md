@@ -38,10 +38,11 @@ sources:
 | `model_type` | `str|null` | `null` |
 | `clarification_session_id` | `str|null` | Sessione esistente quando si risponde a una domanda SAGE |
 | `clarification_response` | `str|null` | Risposta alla domanda in sospeso |
+| `clarification_confirmed` | `bool` | Conferma dell'utente dopo aver revisionato la query riscritta |
 
 Restituisce `AnalysisResponse`: `run_id`, `status`, `message`, `created_at`.
 
-Con `ENABLE_SAGE_CLARIFICATION=true`, lo stesso endpoint può restituire `ClarificationResponse` con `status=ASK` o `BLOCKED`, `session_id`, domanda o messaggio. Con `READY`, la normale risposta `AnalysisResponse` viene restituita dopo aver avviato la run sulla query raffinata. Flag disabilitato: risposta e flusso correnti invariati.
+Con `ENABLE_SAGE_CLARIFICATION=true`, lo stesso endpoint può restituire `ClarificationResponse` con `status=ASK`, `REVIEW` o `BLOCKED`. `ASK` include la domanda; `REVIEW` include `refined_query` e `session_id`, e non avvia ancora una run. Per procedere, il client rimanda la query confermata o modificata, lo stesso `clarification_session_id` e `clarification_confirmed=true`. La sessione deve essere `ready`, non ancora inviata e associata all'utente corrente. Flag disabilitato: richiesta ordinaria e pipeline correnti invariati.
 
 ### Esempio minimo
 

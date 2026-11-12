@@ -44,6 +44,10 @@ class AnalysisRequest(BaseModel):
     clarification_response: Optional[str] = Field(
         default=None, description="User response to the pending clarification question"
     )
+    clarification_confirmed: bool = Field(
+        default=False,
+        description="Whether the user approved the reviewed query before analysis",
+    )
 
     model_config = ConfigDict(
         json_schema_extra={
