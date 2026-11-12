@@ -26,6 +26,7 @@ MURENA (MUlti-Agent LLM pipeline for large-scale Real Estate maNAgement) è una 
 
 - **API e servizi:** FastAPI; autenticazione, esecuzione delle analisi, accesso a edifici e geodati, feedback, log e WebSocket.
 - **Motore di analisi:** agenti LLM coordinati da LangGraph, query SQL su DuckDB, ranking numerico, valutazione e sintesi.
+- **Chiarimento opzionale:** un wrapper pre-analisi, disabilitato per impostazione predefinita, può chiedere conferma delle dimensioni tecniche omesse e risolvere ambiguità bloccanti senza modificare il grafo.
 - **Interfaccia:** React + TypeScript + Vite; ricerca, elaborazione, mappa, cronologia, tracce e configurazione.
 - **Persistenza:** SQLite con SQLAlchemy per utenti, run e feedback; Parquet interrogato con DuckDB per l'inventario immobili.
 - **Ricerca:** esperimenti e protocolli valutativi descritti nel manoscritto, **non** automaticamente rappresentativi del dataset demo.

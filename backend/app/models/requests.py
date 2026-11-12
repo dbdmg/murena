@@ -38,6 +38,12 @@ class AnalysisRequest(BaseModel):
     model_type: Optional[str] = Field(
         default=None, description="LLM model type to use (e.g. 'vllm-gemma3-27b', 'vllm-qwen')"
     )
+    clarification_session_id: Optional[str] = Field(
+        default=None, description="Existing SAGE clarification session, if answering a question"
+    )
+    clarification_response: Optional[str] = Field(
+        default=None, description="User response to the pending clarification question"
+    )
 
     model_config = ConfigDict(
         json_schema_extra={

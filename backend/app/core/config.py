@@ -121,6 +121,9 @@ class Settings(BaseSettings):
         elif model_type == "gpt-5.4":
             self.LLM_MODEL = "gpt-5.4"
             self.OPENAI_API_BASE = None # Base OpenAI
+        elif model_type == "gpt-6-luna":
+            self.LLM_MODEL = "gpt-6-luna"
+            self.OPENAI_API_BASE = None
 
 
     # Agent Temperature - 0.0 for fully deterministic outputs (consistency)
@@ -130,6 +133,14 @@ class Settings(BaseSettings):
     # Enable JSON export of run results for LLM analysis/debugging
     # Set to False in production to avoid unnecessary file writes
     ENABLE_RUN_JSON_EXPORT: bool = False
+    ENABLE_SAGE_CLARIFICATION: bool = False
+    SAGE_MAX_TURNS: int = 6
+    SAGE_REDUNDANCY_LAMBDA: float = 0.5
+    SAGE_EVPI_STOP_ALPHA: float = 0.1
+    # Codex CLI is an optional provider in the centralized LLM factory.
+    CODEX_EXECUTABLE: str = "codex"
+    CODEX_REASONING_EFFORT: str = "low"
+    CODEX_TIMEOUT_SECONDS: int = 180
 
     # ==========================================================================
     # External APIs

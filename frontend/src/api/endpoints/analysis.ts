@@ -13,12 +13,30 @@ import type {
     AgentStep,
     AgentStepsResponse,
     AnalysisHistoryItem,
+    AnalysisSubmissionResponse,
 } from '../types';
 
 // API URL without base path (apiClient already has /api/v1)
 const ANALYSIS_BASE = '/analysis';
 
 export const analysisApi = {
+    submitAnalysis: async (request: AnalysisRequest & {
+        clarification_session_id?: string;
+        clarification_response?: string;
+    }): Promise<AnalysisSubmissionResponse> => {
+        const response = await apiClient.post<AnalysisSubmissionResponse>(ANALYSIS_BASE, {
+            query: request.query,
+            dataset_key: request.dataset_key ?? 'full',
+            map_limit: request.map_limit ?? 500,
+            llm_limit: request.llm_limit ?? 10,
+            analysis_mode: request.analysis_mode ?? 'agent',
+            output_language: request.output_language ?? 'en',
+            clarification_session_id: request.clarification_session_id,
+            clarification_response: request.clarification_response,
+        });
+        return response.data;
+    },
+
     /**
      * Start a new analysis run.
      * Returns immediately with run_id - use WebSocket to track progress.
@@ -27,20 +45,11 @@ export const analysisApi = {
      * @returns Promise with run_id and initial status
      */
     startAnalysis: async (request: AnalysisRequest): Promise<AnalysisStartResponse> => {
-        const payload = {
-            query: request.query,
-            dataset_key: request.dataset_key ?? 'full',
-            map_limit: request.map_limit ?? 500,
-            llm_limit: request.llm_limit ?? 10,
-            analysis_mode: request.analysis_mode ?? 'agent',
-            output_language: request.output_language ?? 'en',
-        };
-
-        const response = await apiClient.post<AnalysisStartResponse>(
-            ANALYSIS_BASE,
-            payload
-        );
-        return response.data;
+        const response = await analysisApi.submitAnalysis(request);
+        if ('session_id' in response) {
+            throw new Error(response.message || response.question || 'Clarification is required');
+        }
+        return response;
     },
 
     /**

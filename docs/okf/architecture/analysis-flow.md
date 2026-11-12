@@ -22,9 +22,9 @@ sources:
 
 ## Sequenza applicativa
 
-1. L'utente invia `POST /api/v1/analysis` con testo, dataset, limiti e lingua.
-2. L'API registra la run e avvia l'elaborazione, restituendo un `run_id`.
-3. `AnalysisService` carica o riusa un dataset e invoca `GraphOrchestratorAgent`.
+1. L'utente invia `POST /api/v1/analysis` con testo, dataset, limiti e lingua. Se `ENABLE_SAGE_CLARIFICATION=true`, un wrapper opzionale risolve prima le ambiguità bloccanti.
+2. Per una richiesta pronta, l'API registra la run e avvia l'elaborazione, restituendo un `run_id`; per una domanda di chiarimento restituisce `ASK` e non crea una run.
+3. `AnalysisService` riceve la query raffinata, carica o riusa un dataset e invoca `GraphOrchestratorAgent` senza modifiche al grafo.
 4. **Phase 1 — requirements extraction:** il grafo identifica ambiti e vincoli mediante gli agenti specializzati (location, building, energy, proximity, regulatory).
 5. **Phase 2 — SQL execution:** `SQLAgent` compone una query per DuckDB; l'esecutore valida la sintassi con `EXPLAIN` e interroga i dati. Sono previsti retry, fallback e rilassamento dei vincoli per zero risultati.
 6. **Phase 3 — scoring & synthesis:** arricchimento risultati, attribuzione pesi, ranking numerico, valutazione qualitativa e sintesi del broker quando prevista.
@@ -46,6 +46,8 @@ analyze_request -> generate_sql -> execute_sql
 ```
 
 Il grafo implementato ha rami condizionali e non è limitato a una sequenza rigida di tre nodi. La distinzione in tre fasi è un modello logico del paper.
+
+Il wrapper SAGE è descritto in [chiarimento pre-analisi](query-clarification.md). Il suo stato non entra nel grafo; il percorso con flag disabilitato conserva il comportamento diretto.
 
 ## Invarianti raccomandate
 

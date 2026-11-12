@@ -3,7 +3,7 @@ Pydantic models for API responses.
 """
 
 from pydantic import BaseModel, Field, ConfigDict
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Literal
 from datetime import datetime
 
 
@@ -25,6 +25,17 @@ class AnalysisResponse(BaseModel):
             }
         }
     )
+
+
+class ClarificationResponse(BaseModel):
+    """Response returned while SAGE is resolving a query before analysis."""
+
+    status: Literal["ASK", "READY", "BLOCKED"] = Field(..., description="Clarification result")
+    session_id: str
+    question: Optional[str] = None
+    refined_query: Optional[str] = None
+    message: Optional[str] = None
+    turn: int = 0
 
 
 class Coordinates(BaseModel):

@@ -281,6 +281,17 @@ export interface AnalysisStartResponse {
     created_at: string;
 }
 
+export interface ClarificationResult {
+    status: 'ASK' | 'BLOCKED';
+    session_id: string;
+    question?: string | null;
+    refined_query?: string | null;
+    message?: string | null;
+    turn: number;
+}
+
+export type AnalysisSubmissionResponse = AnalysisStartResponse | ClarificationResult;
+
 export interface LocationInfo {
     name: string;
     lat: number;

@@ -17,6 +17,8 @@ Supported providers (``LLM_PROVIDER`` env var / settings):
                      llama.cpp server, TGI, institutional gateways...
                      Used for on-premises open-weight models such as Gemma,
                      gpt-oss or Qwen (alias: ``vllm``, ``local``).
+``codex_exec``       Authenticated Codex CLI, invoked in a restricted,
+                     temporary workspace (alias: ``codex``).
 ===================  ==========================================================
 
 If ``LLM_PROVIDER`` is not set the provider is inferred from the model name
@@ -41,6 +43,7 @@ PROVIDER_ALIASES = {
     "institutional": "openai-compatible",
     "google": "gemini",
     "chatgpt": "openai",
+    "codex": "codex_exec",
 }
 
 KNOWN_PROVIDERS = (
@@ -50,11 +53,14 @@ KNOWN_PROVIDERS = (
     "grok",
     "ollama",
     "openai-compatible",
+    "codex_exec",
 )
 
 # Providers whose chat models reliably support structured output
 # (function calling). Open-weight models served locally usually do not.
-STRUCTURED_OUTPUT_PROVIDERS = {"openai", "gemini", "anthropic", "grok"}
+STRUCTURED_OUTPUT_PROVIDERS = {
+    "openai", "gemini", "anthropic", "grok", "codex_exec"
+}
 
 
 def _missing_dep(provider: str, package: str, exc: Exception) -> RuntimeError:
@@ -135,6 +141,16 @@ def build_chat_model(
         f"[LLM] provider={provider} model={model_name} "
         f"base_url={base_url or 'default'}"
     )
+
+    if provider == "codex_exec":
+        from app.services.llm.codex_exec import CodexExecChatModel
+        return CodexExecChatModel(
+            model_name=model_name,
+            temperature=temperature,
+            executable=settings.CODEX_EXECUTABLE,
+            reasoning_effort=settings.CODEX_REASONING_EFFORT,
+            timeout_seconds=settings.CODEX_TIMEOUT_SECONDS,
+        )
 
     if provider == "openai":
         try:

@@ -32,6 +32,8 @@ sources:
 | `/logs` | `LogsPage` | Log e trace browser/agent |
 | `/settings` | `SettingsPage` | Impostazioni e preferenze UI |
 
+Quando `ENABLE_SAGE_CLARIFICATION` è attivo, la schermata `/` passa dalla barra iniziale a una conversazione: la query appare come primo messaggio, ogni risposta e successiva domanda restano nel thread, e l'analisi parte solo quando l'API restituisce `READY`. `BLOCKED` mostra l'esito nel thread e offre l'avvio di una nuova ricerca.
+
 Le pagine eccetto `/login` sono incapsulate in `ProtectedRoute` e `AppLayout`. Gli import sono lazy con `Suspense`, e i provider di stato circondano il router.
 
 ## Componenti chiave

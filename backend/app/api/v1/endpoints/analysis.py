@@ -8,7 +8,7 @@ import ast
 import csv
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Union
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from sqlalchemy.orm import Session, sessionmaker
@@ -19,7 +19,7 @@ from app.api.deps import get_current_user_optional
 from app.database.connection import get_db
 from app.database.models import User
 from app.models.requests import AnalysisRequest
-from app.models.responses import AnalysisResponse, AnalysisResults, AgentStepsResponse, AnalysisHistoryItem
+from app.models.responses import AnalysisResponse, AnalysisResults, AgentStepsResponse, AnalysisHistoryItem, ClarificationResponse
 from app.repositories import RunRepository
 from app.core.config import settings
 from app.utils.json_sanitizer import make_json_safe
@@ -168,6 +168,34 @@ def _parse_list_literal(value: object) -> Optional[list]:
     except Exception:
         return None
     return None
+
+
+def _apply_sage_if_enabled(request: AnalysisRequest, db: Session,
+                           current_user: Optional[User]) -> tuple[Optional[ClarificationResponse], str]:
+    """Return a clarification result, or the query to pass to the unchanged pipeline."""
+    if not settings.ENABLE_SAGE_CLARIFICATION:
+        return None, request.query
+    from app.services.sage_clarification import SageClarifier
+
+    try:
+        result = SageClarifier().process(
+            db=db,
+            user_input=request.query,
+            session_id=request.clarification_session_id,
+            user_id=current_user.id if current_user else None,
+            clarification_response=request.clarification_response,
+            language=request.output_language,
+        )
+    except Exception:
+        logger.error("SAGE clarification failed", exc_info=True)
+        return ClarificationResponse(
+            status="BLOCKED",
+            session_id=request.clarification_session_id or str(uuid.uuid4()),
+            message="Clarification could not be completed; analysis was not started.",
+        ), request.query
+    if result.status != "READY":
+        return result, request.query
+    return None, result.refined_query or request.query
 
 
 def _load_demo_artifacts(demo_id: str, limit: int = 50) -> dict:
@@ -657,7 +685,7 @@ async def start_demo_run(
     )
 
 
-@router.post("", response_model=AnalysisResponse, status_code=status.HTTP_202_ACCEPTED)
+@router.post("", response_model=Union[AnalysisResponse, ClarificationResponse], status_code=status.HTTP_202_ACCEPTED)
 async def start_analysis(
     request: AnalysisRequest,
     background_tasks: BackgroundTasks,
@@ -701,10 +729,14 @@ async def start_analysis(
         settings.set_llm_model(request.model_type)
         logger.info(f"Using model configuration: {request.model_type}")
 
+    clarification, effective_query = _apply_sage_if_enabled(request, db, current_user)
+    if clarification is not None:
+        return clarification
+
     # Create run record (status=processing)
     RunRepository(db).create_run(
         run_id=run_id,
-        query=request.query,
+        query=effective_query,
         user_id=current_user.id if current_user else None,
         dataset_key=request.dataset_key,
         analysis_mode=request.analysis_mode,
@@ -731,14 +763,14 @@ async def start_analysis(
             prompt_id=run_id,
             run_number=1,
             timestamp=datetime.now().strftime("%Y%m%d_%H%M%S"),
-            user_query=request.query,
+            user_query=effective_query,
         )
         set_active_evaluation_logger(trace_logger)
 
         try:
             raw_results = await analysis_service.run_analysis(
                 run_id=run_id,
-                query=request.query,
+                query=effective_query,
                 dataset_key=request.dataset_key,
                 map_limit=request.map_limit,
                 llm_limit=request.llm_limit,
@@ -797,7 +829,7 @@ async def start_analysis(
     return AnalysisResponse(
         run_id=run_id,
         status="processing",
-        message=f"Analysis started for query: '{request.query}'",
+        message=f"Analysis started for query: '{effective_query}'",
         created_at=datetime.utcnow(),
     )
 

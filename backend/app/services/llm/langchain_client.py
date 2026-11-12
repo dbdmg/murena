@@ -51,7 +51,7 @@ def get_llm(
 
     Provider selection is configuration-driven: set ``LLM_PROVIDER`` in
     backend/.env (openai | gemini | anthropic | grok | ollama |
-    openai-compatible) or let it be inferred from the model name.
+    openai-compatible | codex_exec) or let it be inferred from the model name.
 
     Args:
         model_name: explicit model override (e.g. 'gpt-4o', 'claude-sonnet-5',

@@ -101,3 +101,16 @@ class Feedback(Base):
 
     def __repr__(self):
         return f"<Feedback(id={self.id}, building_id='{self.building_id}', rating={self.rating})>"
+
+
+class ClarificationSession(Base):
+    """Persistent state for an optional pre-analysis clarification exchange."""
+
+    __tablename__ = "clarification_sessions"
+
+    session_id = Column(String(100), primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
+    state = Column(JSON, nullable=False)
+    status = Column(String(30), nullable=False, default="active")
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)

@@ -27,7 +27,7 @@ sources:
 Browser (React / TypeScript / Vite)
    |  REST /api/v1                       WebSocket /api/v1/ws/analysis/{run_id}
    v                                    ^
-FastAPI -> endpoint -> AnalysisService -> ProgressManager
+FastAPI -> endpoint -> SAGE opzionale -> AnalysisService -> ProgressManager
                            |
                            v
                   LangGraph Orchestrator
@@ -37,7 +37,7 @@ FastAPI -> endpoint -> AnalysisService -> ProgressManager
                     +---- DuckDB <--+---- Parquet immobili
                            |
                     risultati JSON
-SQLite (SQLAlchemy): User, Run, Feedback
+SQLite (SQLAlchemy): User, Run, Feedback, ClarificationSession
 ```
 
 La pipeline è descritta in dettaglio nel [flusso analitico](analysis-flow.md). La parte browser è descritta in [frontend](frontend.md), la parte server in [backend](backend.md).
@@ -49,5 +49,6 @@ La pipeline è descritta in dettaglio nel [flusso analitico](analysis-flow.md). 
 - **DuckDB** legge Parquet o DataFrame; la query generata è ispezionabile.
 - **SQLite** conserva dati applicativi (non è il data warehouse degli EPC).
 - **Fornitori LLM** vengono selezionati tramite impostazioni e adapter; deployment locale e provider cloud hanno requisiti diversi.
+- Il wrapper di chiarimento è disabilitato per impostazione predefinita e opera prima della creazione della run. Vedere [chiarimento pre-analisi](query-clarification.md).
 
 L'architettura distingue inferenza semantica e calcolo dei risultati; non implica, da sola, che i suggerimenti testuali del modello siano garantiti corretti.
