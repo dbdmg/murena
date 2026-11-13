@@ -29,7 +29,7 @@ Il client è basato su React 19, TypeScript, React Router 7, Vite 6, TanStack Qu
 - `src/pages/`: ricerca, elaborazione, mappa, storico, log, impostazioni, login.
 - `src/components/map/`: mappa, legenda, risultati e layer.
 - `src/components/building/`: scheda edificio, dettagli, valutazione AI, energia.
-- `src/components/agent/`: tracce, SQL filters, refinement e feedback.
+- `src/components/agent/`: query SQL e feedback dell'utente.
 - `src/contexts/`: Auth, Map e Settings.
 - `src/api/`: client HTTP, endpoint tipizzati, DTO TypeScript.
 - `src/hooks/`: collegamento tra API e stato live, progressi, mappa.

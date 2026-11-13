@@ -30,6 +30,8 @@ sources:
   title: 'MURENA repository: backend/app/api/v1/endpoints/feedback.py'
 - resource: ../../../backend/app/api/v1/endpoints/logs.py
   title: 'MURENA repository: backend/app/api/v1/endpoints/logs.py'
+- resource: ../../../backend/app/api/v1/endpoints/layers.py
+  title: 'MURENA repository: backend/app/api/v1/endpoints/layers.py'
 ---
 
 # Catalogo endpoint HTTP e WebSocket
@@ -61,6 +63,7 @@ Prefisso principale `/api/v1`; `GET /health` è definito in `app/main.py`.
 | map | GET | `/api/v1/map/overlays/{overlay_type}` | `get_map_overlay` |
 | map | GET | `/api/v1/map/markers` | `get_map_markers` |
 | map | GET | `/api/v1/map/markers-lite` | `get_map_markers_lite` |
+| layers | GET | `/api/v1/layers/pois` | `get_pois` |
 | energy | GET | `/api/v1/energy/{filename}` | `get_energy_detail` |
 | prompts | GET | `/api/v1/prompts/overrides` | `list_prompt_overrides` |
 | prompts | GET | `/api/v1/prompts/overrides/{agent}/{key}` | `get_prompt_override` |
@@ -81,6 +84,10 @@ Prefisso principale `/api/v1`; `GET /health` è definito in `app/main.py`.
 | logs | GET | `/api/v1/logs/stream` | `stream_activity_log` |
 | logs | GET | `/api/v1/logs/traces` | `list_agent_traces` |
 | logs | GET | `/api/v1/logs/traces/{name}` | `get_agent_trace` |
+
+`GET /api/v1/layers/pois` accetta categorie separate da `|`, limiti geografici opzionali (`min_lat`, `max_lat`, `min_lon`, `max_lon`) e un limite massimo di record.
+
+`GET /api/v1/map/overlays/{overlay_type}` serve gli overlay `omi` e `urbanistiche`; il precedente overlay `municipi` non è più supportato.
 
 L'inventario è estratto staticamente dai decorator dei router; non costituisce una specifica OpenAPI ottenuta avviando il server. Controllare dipendenze di autenticazione e parametri degli handler prima dell'integrazione.
 

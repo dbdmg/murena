@@ -62,11 +62,9 @@ class MapService:
         Get GeoJSON overlay by type.
 
         Args:
-            overlay_type: 'municipalities', 'omi', or 'urban'
+            overlay_type: 'omi' or 'urban'
         """
-        if overlay_type == "municipalities" or overlay_type == "municipi":
-            return self._load_geojson(settings.MUNICIPI_GEOJSON)
-        elif overlay_type == "omi":
+        if overlay_type == "omi":
             return self._load_geojson(settings.ZONE_OMI_GEOJSON)
         elif overlay_type == "urban" or overlay_type == "urbanistiche":
             return self._load_geojson(settings.ZONE_URBANISTICHE_GEOJSON)

@@ -12,6 +12,7 @@ from app.api.v1.endpoints import (
     prompts,
     feedback,
     logs,
+    layers,
 )
 
 api_router = APIRouter()
@@ -26,6 +27,7 @@ api_router.include_router(energy.router, prefix="/energy", tags=["energy"])
 api_router.include_router(prompts.router, prefix="/prompts", tags=["prompts"])
 api_router.include_router(feedback.router, prefix="/feedback", tags=["feedback"])
 api_router.include_router(logs.router, prefix="/logs", tags=["logs"])
+api_router.include_router(layers.router, prefix="/layers", tags=["layers"])
 
 
 

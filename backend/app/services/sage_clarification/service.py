@@ -315,37 +315,63 @@ class SageClarifier:
             if status == "MISSING_CRITICAL":
                 clean_dims[key]["value"] = None
 
-        # The model can occasionally mark a fully stated Turin neighborhood as
-        # critical. Use MURENA's existing geocoder as corroboration before
-        # asking the user to repeat an explicit local place. This is a
-        # best-effort check: a miss or network failure leaves the LLM result
-        # unchanged and the normal clarification path can still ask the user.
+        # Use the existing geocoder for explicit place names instead of a
+        # manually maintained neighborhood list. A city plus a named place is
+        # already sufficient query precision; missing coordinates must not
+        # trigger a redundant sub-neighborhood question.
         location = clean_dims["L"]
         location_evidence = location.get("evidence")
+        location_value = location.get("value")
+        explicit_place = next((
+            candidate.strip()
+            for candidate in (location_value, location_evidence)
+            if isinstance(candidate, str)
+            and candidate.strip()
+            and _normalize_phrase(candidate) in normalized_query
+        ), None)
         if (
-            location["status"] == "MISSING_CRITICAL"
-            and isinstance(location_evidence, str)
-            and _normalize_phrase(location_evidence) in normalized_query
+            location["status"] in {"UNCONFIRMED_ABSENT", "MISSING_CRITICAL", "AMBIGUOUS"}
+            and explicit_place
         ):
             try:
                 from app.data.loaders import DEFAULT_CITY, get_coordinates
 
                 city_context = _normalize_phrase(query)
                 configured_city = _normalize_phrase(DEFAULT_CITY)
-                city_is_explicit = bool(configured_city and configured_city in city_context)
+                city_is_explicit = bool(
+                    configured_city and f" {configured_city} " in f" {city_context} "
+                )
                 if configured_city == "torino":
-                    city_is_explicit = city_is_explicit or "turin" in city_context
+                    city_is_explicit = city_is_explicit or " turin " in f" {city_context} "
                 if city_is_explicit:
-                    latitude, longitude = get_coordinates(location_evidence)
+                    latitude, longitude = get_coordinates(explicit_place)
+                    city_suffix = f", {DEFAULT_CITY}"
+                    explicit_place_normalized = _normalize_phrase(explicit_place)
+                    resolved_value = (
+                        explicit_place
+                        if any(
+                            f" {city} " in f" {explicit_place_normalized} "
+                            for city in ("torino", "turin")
+                        )
+                        else f"{explicit_place}{city_suffix}"
+                    )
+                    location.update({
+                        "value": resolved_value,
+                        "status": "SPECIFIED",
+                        "evidence": location_evidence or explicit_place,
+                        "reason": None,
+                        "alternatives": [],
+                    })
                     if latitude is not None and longitude is not None:
-                        location.update({
-                            "value": location_evidence,
-                            "status": "SPECIFIED",
-                            "reason": None,
-                        })
+                        location["coordinates"] = {"lat": latitude, "lon": longitude}
                         logger.info(
-                            "SAGE geocoder resolved explicit location evidence: %s",
-                            location_evidence,
+                            "SAGE geocoded explicit location: %s (%s, %s)",
+                            explicit_place, latitude, longitude,
+                        )
+                    else:
+                        logger.info(
+                            "SAGE kept explicit city/place location without geocoder coordinates: %s",
+                            explicit_place,
                         )
             except Exception:
                 logger.info(

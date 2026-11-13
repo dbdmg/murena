@@ -32,7 +32,7 @@ async def get_map_overlay(
     Get GeoJSON overlay data.
 
     Args:
-        overlay_type: 'municipi', 'omi', or 'urbanistiche'
+        overlay_type: 'omi' or 'urbanistiche'
     """
     service = MapService()
     data = await service.get_overlay(overlay_type)

@@ -29,7 +29,10 @@ When the request names both a city and a neighborhood/district within it, that i
 specified location: set L=SPECIFIED, preserve the neighborhood and city in the value, and cite the
 location wording as evidence. For example, "a spacious restaurant in Turin's San Salvario near
 public transport" specifies L as San Salvario, Turin; do not mark it MISSING_CRITICAL or ask which
-city. The qualitative size term specifies Cb and public transport specifies Cp=mobility. Other
+city. A neighborhood is sufficient location precision: do not ask which part, street, or sub-area
+of it the user prefers unless they explicitly request that level of precision. If the user says any
+location within the named neighborhood is suitable, treat that as confirmation rather than asking
+again. The qualitative size term specifies Cb and public transport specifies Cp=mobility. Other
 dimensions may remain unconfirmed and should be asked about separately.
 If a named landmark follows a proximity phrase but its city is absent, preserve that landmark
 as an explicit location and mark L=AMBIGUOUS; ask which city it is in instead of saying that

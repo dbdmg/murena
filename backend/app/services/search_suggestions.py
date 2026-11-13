@@ -106,9 +106,10 @@ def generate_suggested_searches() -> list[str]:
         suggestions = None
         for attempt in range(2):
             retry_instruction = (
-                "\n\nCorrection: regenerate all five queries. Every single query must explicitly "
-                "contain 'Turin' and the exact name of one area from the supplied official Turin "
-                "area list. Do not use any area outside that list."
+                "\n\nCorrection: regenerate all five queries. Each query must include the exact "
+                "name of one area from the supplied official Turin area list. Turin is implicit; "
+                "do not add the city name unless it is a natural part of a landmark or place name. "
+                "Do not use any area outside the supplied list."
                 if attempt
                 else ""
             )
@@ -122,7 +123,6 @@ def generate_suggested_searches() -> list[str]:
             if (
                 len(generated) == 5
                 and len({item.casefold() for item in generated}) == 5
-                and all("turin" in item.casefold() for item in generated)
                 and all(
                     any(area.casefold() in item.casefold() for area in areas)
                     for item in generated
@@ -132,7 +132,7 @@ def generate_suggested_searches() -> list[str]:
                 break
         if suggestions is None:
             raise ValueError(
-                "The model must return five distinct Turin searches that name a supplied area"
+                "The model must return five distinct searches that name an area from the supplied list"
             )
 
         _CACHE_KEY = cache_key

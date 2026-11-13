@@ -174,7 +174,6 @@ class Settings(BaseSettings):
     STATIONS_CSV: str
     ZONE_OMI_GEOJSON: str
     ZONE_URBANISTICHE_GEOJSON: str
-    MUNICIPI_GEOJSON: str
 
     TORINO_LAT: float = 45.116177
     TORINO_LON: float = 7.742615

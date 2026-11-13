@@ -262,20 +262,28 @@ const getPoiClusterIcon = (count: number) => {
 interface MapEventsProps {
     setBounds: (bounds: [number, number, number, number]) => void;
     setZoom: (zoom: number) => void;
+    onBoundsChange?: (bounds: { min_lat: number; max_lat: number; min_lon: number; max_lon: number }) => void;
 }
 
-const MapEvents: React.FC<MapEventsProps> = ({ setBounds, setZoom }) => {
+const MapEvents: React.FC<MapEventsProps> = ({ setBounds, setZoom, onBoundsChange }) => {
     const map = useMap();
 
     useEffect(() => {
         const updateMap = () => {
             const b = map.getBounds();
+            const bounds = {
+                min_lon: b.getSouthWest().lng,
+                min_lat: b.getSouthWest().lat,
+                max_lon: b.getNorthEast().lng,
+                max_lat: b.getNorthEast().lat,
+            };
             setBounds([
                 b.getSouthWest().lng,
                 b.getSouthWest().lat,
                 b.getNorthEast().lng,
                 b.getNorthEast().lat,
             ]);
+            onBoundsChange?.(bounds);
             setZoom(map.getZoom());
         };
 
@@ -285,7 +293,7 @@ const MapEvents: React.FC<MapEventsProps> = ({ setBounds, setZoom }) => {
         return () => {
             map.off('moveend', updateMap);
         };
-    }, [map, setBounds, setZoom]);
+    }, [map, setBounds, setZoom, onBoundsChange]);
     return null;
 };
 
@@ -295,9 +303,6 @@ interface MapProps {
     zoom: number;
     tileUrl?: string;
     tileAttribution?: string;
-    overlays?: {
-        municipi?: GeoJsonObject;
-    };
     pois?: POI[];
     zoneOMI?: GeoJsonObject;
     selectedBuildingIds?: string[];
@@ -307,6 +312,7 @@ interface MapProps {
     buildingRatings?: Record<string, number>;
     onMarkerClick?: (marker: MapMarker) => void;
     onClusterClick?: (markers: MapMarker[]) => void;
+    onBoundsChange?: (bounds: { min_lat: number; max_lat: number; min_lon: number; max_lon: number }) => void;
 }
 
 type EstatePointProperties = MapMarker & {
@@ -325,7 +331,6 @@ export const Map: React.FC<MapProps> = ({
     zoom,
     tileUrl,
     tileAttribution,
-    overlays,
     pois = [],
     zoneOMI,
     selectedBuildingIds = [],
@@ -335,6 +340,7 @@ export const Map: React.FC<MapProps> = ({
     buildingRatings = {},
     onMarkerClick,
     onClusterClick,
+    onBoundsChange,
 }) => {
     const [bounds, setBounds] = useState<[number, number, number, number] | null>(null);
     const [currentZoom, setCurrentZoom] = useState(zoom);
@@ -565,7 +571,7 @@ export const Map: React.FC<MapProps> = ({
                 ref={mapRef}
                 style={{ background: '#0f1115' }}
             >
-                <MapEvents setBounds={setBounds} setZoom={setCurrentZoom} />
+                <MapEvents setBounds={setBounds} setZoom={setCurrentZoom} onBoundsChange={onBoundsChange} />
 
                 <TileLayer
                     attribution={
@@ -638,21 +644,6 @@ export const Map: React.FC<MapProps> = ({
                             </div>
                         </Popup>
                     </Marker>
-                )}
-
-                {/* Municipi Overlay (controlled via MapPage props, not LayersControl) */}
-                {overlays?.municipi && (
-                    <GeoJSON
-                        key="municipi-overlay"
-                        data={overlays.municipi}
-                        style={{
-                            color: '#4fb589', // Murena Green
-                            weight: 2,
-                            opacity: 0.6,
-                            fillOpacity: 0.1,
-                            dashArray: '5, 5'
-                        }}
-                    />
                 )}
 
             </MapContainer>

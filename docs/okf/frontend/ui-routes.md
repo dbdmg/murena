@@ -27,7 +27,7 @@ sources:
 | `/login` | `LoginPage` | Autenticazione; pagina pubblica |
 | `/` | `SearchPage` | Inserimento requisiti, avvio analisi e suggerimenti di query generati dal modello |
 | `/processing/:runId` | `ProcessingPage` | Progresso e tracce della run |
-| `/map` | `MapPage` | Mappa, risultati, filtri, layer e dettagli |
+| `/map` | `MapPage` | Mappa, risultati, filtri, layer, dettagli e query SQL della run attiva |
 | `/history` | `HistoryPage` | Elenco delle analisi precedenti |
 | `/logs` | `LogsPage` | Log e trace browser/agent |
 | `/settings` | `SettingsPage` | Impostazioni e preferenze UI |
@@ -40,8 +40,12 @@ Le pagine eccetto `/login` sono incapsulate in `ProtectedRoute` e `AppLayout`. G
 
 ## Componenti chiave
 
-- Mappa: `Map`, `ResultsSidebar`, `ResultsCarousel`, `LayersPanel`, `MapRunSelector`.
+- Mappa: `Map`, `ResultsSidebar`, `ResultsCarousel`, `LayersPanel`, `MapRunSelector`, `SQLQueryPanel`.
 - Edifici: `BuildingSidebar`, `BuildingDetail`, `AIEvaluationCard`, `EnergyDetailModal`.
-- Agenti: `AgentTraceViewer`, `AgentRefinementHUD`, `SQLFiltersHUD`, `FeedbackPanel`.
+- Feedback: `FeedbackPanel`; le tracce restano consultabili nelle schermate di log e dettaglio run.
+
+La mappa non espone più la modifica dei prompt degli agenti. Nel pannello Layers, il layer OMI è etichettato `Cadastral Zones`; il toggle `Districts` è stato rimosso. Per la run selezionata, `SQL Query` è accanto al selettore delle run e mostra la query SQL, con copia negli appunti e schede per eventuali tentativi rilassati.
+
+I filtri della mappa includono tipologia, energia, superficie e periodo di costruzione, oltre ai filtri di visualizzazione. I valori di tipologia corrispondono alle etichette effettivamente presenti in `estates.parquet`. I filtri per utilizzo del bene, vincolo culturale e natura legale non sono esposti: il dataset caricato non contiene questi campi. Il filtro EPC è stato rimosso perché l'inventario disponibile contiene solo edifici con EPC.
 
 La protezione di route frontend **non sostituisce** la verifica dei permessi sul backend.

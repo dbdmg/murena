@@ -28,6 +28,7 @@ sources:
 
 - **OSM POI:** importazione e classificazione delle amenities, comprese geometrie puntuali e centroidi.
 - **OMI:** associazione a zone di mercato immobiliare (`omi_zone`); il progetto contiene `data/static_data/omi_zones.geojson`.
+- **Layer mappa:** l'endpoint `/api/v1/map/overlays/omi` serve il GeoJSON OMI configurato. In UI è etichettato `Cadastral Zones`, pur rappresentando le zone OMI di mercato; `/api/v1/layers/pois` legge `data/metadata/pois_by_category.json` e restituisce i punti delle categorie selezionate, filtrabili per viewport. L'overlay `municipi` non è più supportato.
 - **Geocoding:** `app.data.loaders.get_coordinates` risolve landmark locali o interroga Nominatim, con cache in memoria e su file. Il LocationAgent lo usa per filtrare i luoghi estratti; SAGE lo usa anche come verifica best-effort quando la query contiene una città esplicita ma il parser ha classificato la località come critica. La verifica non riuscita lascia attivo il chiarimento. Le richieste Nominatim usano `NOMINATIM_USER_AGENT`; le interazioni esterne inviano il testo del luogo.
 - **Macro-score:** colonne `healthcare`, `mobility`, `green`, `sport`, `commercial`, `education` nello schema corrente. Nel testo del paper sono descritte macro-categorie e soglie di camminabilità.
 
@@ -37,6 +38,6 @@ Le distanze ai POI vengono **precalcolate** all'ingestion, anziché ricercare tu
 
 ## Implementazione e cautele
 
-Il processo di ingestion e le trasformazioni risiedono nel codice di metadata e in `app/data/processors.py`. Non assumere che il dataset sintetico riproduca il procedimento OSM: il suo generatore usa una distribuzione parametrica semplificata.
+Il processo di ingestion e le trasformazioni risiedono nel codice di metadata e in `app/data/processors.py`. Il catalogo POI contiene ID e coordinate per categoria e sottotipo amenity; non include necessariamente nomi commerciali o dettagli descrittivi. Non assumere che il dataset sintetico riproduca il procedimento OSM: il suo generatore usa una distribuzione parametrica semplificata.
 
 [Schema Parquet](estate-schema.md) · [ProximityAgent](../agents/proximity.md).

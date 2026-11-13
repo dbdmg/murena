@@ -4,14 +4,12 @@ import { Layers, Map as MapIcon, ChevronDown, Check } from 'lucide-react';
 
 export interface LayersState {
     showZoneOMI: boolean;
-    showMunicipi: boolean;
     activePOICategories: string[];
 }
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const defaultLayersState: LayersState = {
     showZoneOMI: false,
-    showMunicipi: false,
     activePOICategories: [],
 };
 
@@ -22,21 +20,21 @@ interface LayersPanelProps {
 
 // Map POI types to their labels (6 main categories)
 const POI_LABELS: Record<string, string> = {
-    'sanità': 'Healthcare',
-    'mobilità': 'Mobility',
-    'verde': 'Green areas',
+    healthcare: 'Healthcare',
+    mobility: 'Mobility',
+    green: 'Green areas',
     'sport': 'Sport',
-    'commerciale': 'Commercial',
-    'educazione': 'Education',
+    commercial: 'Commercial',
+    education: 'Education',
 };
 
 const POI_ICONS: Record<string, string> = {
-    'sanità': '🏥',
-    'mobilità': '🚇',
-    'verde': '🌳',
+    healthcare: '🏥',
+    mobility: '🚇',
+    green: '🌳',
     'sport': '⚽',
-    'commerciale': '🛒',
-    'educazione': '🎓',
+    commercial: '🛒',
+    education: '🎓',
 };
 
 export const LayersPanel: React.FC<LayersPanelProps> = ({
@@ -53,13 +51,6 @@ export const LayersPanel: React.FC<LayersPanelProps> = ({
         });
     };
 
-    const toggleMunicipi = () => {
-        onLayersChange({
-            ...layers,
-            showMunicipi: !layers.showMunicipi,
-        });
-    };
-
     const togglePOICategory = (category: string) => {
         const isActive = layers.activePOICategories.includes(category);
         const newCategories = isActive
@@ -72,7 +63,7 @@ export const LayersPanel: React.FC<LayersPanelProps> = ({
         });
     };
 
-    const activeCount = (layers.showZoneOMI ? 1 : 0) + (layers.showMunicipi ? 1 : 0) + layers.activePOICategories.length;
+    const activeCount = (layers.showZoneOMI ? 1 : 0) + layers.activePOICategories.length;
 
     return (
         <div ref={panelRef} className="relative">
@@ -123,25 +114,9 @@ export const LayersPanel: React.FC<LayersPanelProps> = ({
                             >
                                 <div className="flex items-center gap-2">
                                     <MapIcon className="w-4 h-4" />
-                                    <span>Zone OMI</span>
+                                    <span>Cadastral Zones</span>
                                 </div>
                                 {layers.showZoneOMI && <Check className="w-3.5 h-3.5" />}
-                            </button>
-                            <button
-                                onClick={toggleMunicipi}
-                                className={`
-                                    w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-all border
-                                    ${layers.showMunicipi
-                                        ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/50'
-                                        : 'bg-white/5 text-gray-400 border-white/10 hover:border-white/20'
-                                    }
-                                `}
-                            >
-                                <div className="flex items-center gap-2">
-                                    <span>🗺️</span>
-                                    <span>Districts</span>
-                                </div>
-                                {layers.showMunicipi && <Check className="w-3.5 h-3.5" />}
                             </button>
                         </div>
 

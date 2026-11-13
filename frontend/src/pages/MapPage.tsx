@@ -1,5 +1,4 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import axios from 'axios';
 import type { GeoJsonObject } from 'geojson';
 import { Map } from '../components/map/Map';
 import { BuildingSidebar } from '../components/building/BuildingSidebar';
@@ -10,8 +9,7 @@ import type { LayersState } from '../components/map/LayersPanel';
 import { MapRunSelector } from '../components/map/MapRunSelector';
 import { ResultsCarousel } from '../components/map/ResultsCarousel';
 import { MapLegend } from '../components/map/MapLegend';
-import { AgentRefinementHUD } from '../components/agent/AgentRefinementHUD';
-import { SQLFiltersHUD } from '../components/agent/SQLFiltersHUD';
+import { SQLQueryPanel } from '../components/agent/SQLQueryPanel';
 import { ResultsSidebar } from '../components/map/ResultsSidebar';
 import { FeedbackPanel } from '../components/agent/FeedbackPanel';
 import { feedbackApi } from '../api/endpoints/feedback';
@@ -84,7 +82,6 @@ export const MapPage: React.FC = () => {
         topPicks,
         searchLocation,
         activeRunId,
-        currentQuery,
         isLoading: isLoadingRun,
         history,
         loadRun,
@@ -92,7 +89,6 @@ export const MapPage: React.FC = () => {
     } = useIntelligenceMap(markersLimit);
 
     const [config, setConfig] = useState<MapConfig | null>(null);
-    const [overlays, setOverlays] = useState<{ municipi?: GeoJsonObject }>({});
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -107,14 +103,13 @@ export const MapPage: React.FC = () => {
     // Layer state
     const [layers, setLayers] = useState<LayersState>(defaultLayersState);
     const [pois, setPois] = useState<POI[]>([]);
+    const [poiBounds, setPoiBounds] = useState<{ min_lat: number; max_lat: number; min_lon: number; max_lon: number } | null>(null);
     const [zoneOMIOverlay, setZoneOMIOverlay] = useState<GeoJsonObject | null>(null);
 
     // Filter state
     const [filters, setFilters] = useState<FilterState>(defaultFilters);
 
-    // Agent Tuner HUD state
-    const [isAgentHUDOpen, setIsAgentHUDOpen] = useState(false);
-    const [isSQLHUDOpen, setIsSQLHUDOpen] = useState(false);
+    const [isSQLPanelOpen, setIsSQLPanelOpen] = useState(false);
 
     // Results list sidebar state
     const [isListSidebarOpen, setIsListSidebarOpen] = useState(false);
@@ -186,23 +181,7 @@ export const MapPage: React.FC = () => {
             result = result.filter(m => m.property_type && filters.propertyTypes.includes(m.property_type));
         }
 
-        // 5. Filter by Usage
-        if (filters.usage.length > 0) {
-            result = result.filter(m => {
-                const desc = (m.description || '').toLowerCase();
-                return filters.usage.some(u => desc.includes(u.toLowerCase()));
-            });
-        }
-
-        // 6. Filter by Constraint
-        if (filters.constraints.length > 0) {
-            result = result.filter(m => {
-                const vinc = (m.cultural_constraint || '').toLowerCase();
-                return filters.constraints.some(v => vinc.includes(v.toLowerCase()));
-            });
-        }
-
-        // 7. Filter by Meta Building
+        // 5. Filter by Meta Building
         if (filters.isMetaBuilding !== null) {
             result = result.filter(m => {
                 const isMeta = m.is_meta_building === true || m.meta_building === true || m.meta_immobile === true;
@@ -210,21 +189,7 @@ export const MapPage: React.FC = () => {
             });
         }
 
-        // 8. Filter by Legal Nature
-        if (filters.legalNature) {
-            result = result.filter(m => m.legal_nature && m.legal_nature.toUpperCase() === filters.legalNature!.toUpperCase());
-        }
-
-        // 9. Filter by has EPC
-        if (filters.hasEPC !== null) {
-            result = result.filter(m => {
-                // Check if building has Energy Certificate (energy_files array or energy_class)
-                const hasEPC = (m.energy_files && m.energy_files.length > 0) || !!m.energy_class;
-                return filters.hasEPC ? hasEPC : !hasEPC;
-            });
-        }
-
-        // 10. Intelligence Map Tiers
+        // 6. Intelligence Map Tiers
         if (filters.showOnlyTopPicks) {
             result = result.filter(m => m.tier === 3);
         } else if (filters.showOnlyResults) {
@@ -250,7 +215,7 @@ export const MapPage: React.FC = () => {
         }
     }, [loadRun, activeRunId]);
 
-    // Initial load - config and overlays only
+    // Initial load - map configuration only
     useEffect(() => {
         const fetchInitialData = async () => {
             try {
@@ -269,32 +234,10 @@ export const MapPage: React.FC = () => {
         fetchInitialData();
     }, []);
 
-    useEffect(() => {
-        if (!layers.showMunicipi || overlays.municipi) {
-            return;
-        }
-
-        const loadMunicipiOverlay = async () => {
-            try {
-                const municipiData = await mapApi.getOverlay('municipi');
-                setOverlays((prev) => ({ ...prev, municipi: municipiData }));
-            } catch (err: unknown) {
-                const status = axios.isAxiosError(err) ? err.response?.status : undefined;
-                if (status === 404) {
-                    console.warn('Municipi overlay is not available on the backend. Skipping overlay load.');
-                } else {
-                    console.error('Error loading municipi overlay:', err);
-                }
-            }
-        };
-
-        loadMunicipiOverlay();
-    }, [layers.showMunicipi, overlays.municipi]);
-
-    // Fetch Zone OMI Only once when toggled
+    // Load the configured OMI overlay on demand.
     useEffect(() => {
         if (layers.showZoneOMI && !zoneOMIOverlay) {
-            layersApi.getZoneOMI().then(setZoneOMIOverlay).catch(console.error);
+            mapApi.getOverlay('omi').then(setZoneOMIOverlay).catch(console.error);
         }
     }, [layers.showZoneOMI, zoneOMIOverlay]);
 
@@ -310,14 +253,22 @@ export const MapPage: React.FC = () => {
             ? activePOICategoriesKey.split(',')
             : [];
 
-        if (activeCategories.length > 0) {
-            layersApi.getPOIs(activeCategories, undefined, undefined)
-                .then(data => setPois(data.pois))
-                .catch(err => console.error("Error fetching POIs:", err));
-        } else {
+        if (activeCategories.length === 0) {
             setPois([]);
+            return;
         }
-    }, [activePOICategoriesKey]);
+        if (!poiBounds) return;
+
+        let cancelled = false;
+        layersApi.getPOIs(activeCategories, poiBounds, 10000)
+            .then(data => {
+                if (!cancelled) setPois(data.pois);
+            })
+            .catch(err => {
+                if (!cancelled) console.error("Error fetching POIs:", err);
+            });
+        return () => { cancelled = true; };
+    }, [activePOICategoriesKey, poiBounds]);
 
     // Handle marker click from map
     const handleMarkerClick = useCallback(async (marker: MapMarker) => {
@@ -444,7 +395,7 @@ export const MapPage: React.FC = () => {
         <div className="h-full w-full relative flex flex-col overflow-hidden">
             {/* Top Controls Bar - Left side only */}
             <div className="absolute top-4 left-4 z-400 flex flex-col gap-2" style={{ marginLeft: isListSidebarOpen ? '320px' : '0', transition: 'margin-left 0.3s ease' }}>
-                {/* Row 1: List toggle, Filters, Layers, Legend & Agent Tuner */}
+                {/* Row 1: Map controls */}
                 <div className="flex items-start gap-2">
                     {/* List Sidebar Toggle */}
                     <button
@@ -468,25 +419,9 @@ export const MapPage: React.FC = () => {
                         onLayersChange={setLayers}
                     />
                     <MapLegend hasSearchLocation={!!searchLocation} />
-                    {activeRunId && (
-                        <>
-                            <AgentRefinementHUD
-                                activeRunId={activeRunId}
-                                currentQuery={currentQuery || ''}
-                                onRunSwitch={handleSelectRun}
-                                isOpen={isAgentHUDOpen}
-                                onToggle={() => setIsAgentHUDOpen(!isAgentHUDOpen)}
-                            />
-                            <SQLFiltersHUD
-                                activeRunId={activeRunId}
-                                isOpen={isSQLHUDOpen}
-                                onToggle={() => setIsSQLHUDOpen(!isSQLHUDOpen)}
-                            />
-                        </>
-                    )}
                 </div>
 
-                {/* Row 2: Run Selector & Stats */}
+                {/* Row 2: Run controls and SQL query access */}
                 <div className="flex items-center gap-2">
                     <div className="flex items-center gap-1.5">
                         <MapRunSelector
@@ -497,6 +432,14 @@ export const MapPage: React.FC = () => {
                             onClearResults={handleClearResults}
                         />
                     </div>
+
+                    {activeRunId && (
+                        <SQLQueryPanel
+                            activeRunId={activeRunId}
+                            isOpen={isSQLPanelOpen}
+                            onToggle={() => setIsSQLPanelOpen(!isSQLPanelOpen)}
+                        />
+                    )}
 
                     {/* Stats Badge */}
                     <div className="bg-slate-900/80 backdrop-blur-xl border border-white/10 rounded-2xl px-4 py-2.5 flex items-center gap-4 shadow-xl shadow-black/40">
@@ -578,7 +521,6 @@ export const MapPage: React.FC = () => {
                     markers={filteredMarkers}
                     center={config.center}
                     zoom={config.zoom}
-                    overlays={layers.showMunicipi ? overlays : undefined}
                     pois={pois}
                     zoneOMI={layers.showZoneOMI ? zoneOMIOverlay ?? undefined : undefined}
                     selectedBuildingIds={selectedBuildings.map(b => b.id)}
@@ -588,6 +530,7 @@ export const MapPage: React.FC = () => {
                     buildingRatings={buildingRatings}
                     onMarkerClick={handleMarkerClick}
                     onClusterClick={handleClusterClick}
+                    onBoundsChange={setPoiBounds}
                 />
             </div>
 

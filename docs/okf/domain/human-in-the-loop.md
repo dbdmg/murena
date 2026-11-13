@@ -26,7 +26,7 @@ MURENA propone una shortlist ordinata e motivata; la decisione finale è affidat
 
 ## Evidenze nel frontend
 
-`AIEvaluationCard`, `AgentTraceViewer`, `FeedbackPanel`, i dettagli degli edifici e le viste map rendono ispezionabili diversi aspetti della valutazione. Gli endpoint `feedback` registrano valutazioni relative all'app, agli agenti o ai singoli edifici.
+`AIEvaluationCard`, i dettagli degli edifici, le viste map e i dettagli delle run rendono ispezionabili diversi aspetti della valutazione. `FeedbackPanel` e gli endpoint `feedback` registrano valutazioni relative all'app, agli agenti o ai singoli edifici. Nella mappa, l'ispezione contestuale è limitata alla query SQL della run; le tracce sono consultabili nelle viste di log e dettaglio run.
 
 ## Regole d'uso
 

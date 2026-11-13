@@ -1,13 +1,9 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
     Settings,
     Map,
     Sliders,
-    Wand2,
-    RotateCcw,
-    AlertTriangle,
     Check,
-    Loader2,
     Cpu,
     Database,
     User,
@@ -19,7 +15,6 @@ import {
 } from 'lucide-react';
 import { useSettings, type LLMProvider } from '../contexts/SettingsContext';
 import { useAuth } from '../contexts/AuthContext';
-import apiClient from '../api/client';
 
 // ============================================================================
 // Constants
@@ -137,44 +132,6 @@ export const SettingsPage: React.FC = () => {
 
     const { user, logout } = useAuth();
 
-    // Prompt reset state
-    const [isResetting, setIsResetting] = useState(false);
-    const [resetStatus, setResetStatus] = useState<'idle' | 'success' | 'error'>('idle');
-    const [resetMessage, setResetMessage] = useState('');
-    const [showConfirm, setShowConfirm] = useState(false);
-
-    const handleResetPrompts = async () => {
-        setIsResetting(true);
-        setResetStatus('idle');
-        setResetMessage('');
-
-        try {
-            const response = await apiClient.post('/prompts/reload');
-            const data = response.data;
-
-            setResetStatus('success');
-            setResetMessage(data.message || 'Prompt cache reloaded successfully!');
-            setShowConfirm(false);
-
-            setTimeout(() => {
-                setResetStatus('idle');
-                setResetMessage('');
-            }, 5000);
-        } catch (err: unknown) {
-            setResetStatus('error');
-            if (err && typeof err === 'object' && 'response' in err) {
-                const axiosErr = err as { response?: { data?: { detail?: string } } };
-                setResetMessage(axiosErr.response?.data?.detail || 'Error during reset');
-            } else if (err instanceof Error) {
-                setResetMessage(err.message);
-            } else {
-                setResetMessage('Error during reset');
-            }
-        } finally {
-            setIsResetting(false);
-        }
-    };
-
     return (
         <div className="p-6 max-w-4xl mx-auto">
             {/* Header */}
@@ -190,7 +147,7 @@ export const SettingsPage: React.FC = () => {
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* ============================================================ */}
-                {/* Column 1: Intelligence & AI Prompts */}
+                {/* Column 1: Intelligence */}
                 {/* ============================================================ */}
                 <div className="space-y-6">
                     {/* Intelligence Section */}
@@ -282,87 +239,6 @@ export const SettingsPage: React.FC = () => {
                         </div>
                     </SectionCard>
 
-                    {/* AI Prompts Section */}
-                    <SectionCard
-                        icon={<Wand2 className="w-4 h-4" />}
-                        title="AI Prompts"
-                        iconColor="text-amber-400"
-                    >
-                        <p className="text-sm text-gray-400 mb-4">
-                            Prompts define how the AI agents analyze and evaluate properties.
-                            You can edit them through the Agent Tuner on the map.
-                        </p>
-
-                        {/* Reset Status */}
-                        {resetStatus !== 'idle' && (
-                            <div
-                                className={`mb-4 p-3 rounded-lg border ${resetStatus === 'success'
-                                    ? 'bg-emerald-500/10 border-emerald-500/20'
-                                    : 'bg-red-500/10 border-red-500/20'
-                                    }`}
-                            >
-                                <div className="flex items-center gap-2">
-                                    {resetStatus === 'success' ? (
-                                        <Check className="w-4 h-4 text-emerald-400" />
-                                    ) : (
-                                        <AlertTriangle className="w-4 h-4 text-red-400" />
-                                    )}
-                                    <p className={`text-sm ${resetStatus === 'success' ? 'text-emerald-400' : 'text-red-400'}`}>
-                                        {resetMessage}
-                                    </p>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Reset Confirmation */}
-                        {showConfirm ? (
-                            <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-xl">
-                                <div className="flex items-start gap-3 mb-4">
-                                    <AlertTriangle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
-                                    <div>
-                                        <h3 className="text-sm font-semibold text-red-400 mb-1">Confirm Reset</h3>
-                                        <p className="text-xs text-gray-400">
-                                            The backend will reload prompt_config.md and clear the in-memory prompt cache.
-                                        </p>
-                                    </div>
-                                </div>
-                                <div className="flex gap-2 justify-end">
-                                    <button
-                                        onClick={() => setShowConfirm(false)}
-                                        disabled={isResetting}
-                                        className="px-4 py-2 text-sm font-medium text-gray-400 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition-colors"
-                                    >
-                                        Cancel
-                                    </button>
-                                    <button
-                                        onClick={handleResetPrompts}
-                                        disabled={isResetting}
-                                        className="px-4 py-2 text-sm font-medium text-white bg-red-500/80 border border-red-500/50 rounded-lg hover:bg-red-500 transition-colors flex items-center gap-2"
-                                    >
-                                        {isResetting ? (
-                                            <>
-                                                <Loader2 className="w-4 h-4 animate-spin" />
-                                                Reloading...
-                                            </>
-                                        ) : (
-                                            <>
-                                                <RotateCcw className="w-4 h-4" />
-                                                Confirm
-                                            </>
-                                        )}
-                                    </button>
-                                </div>
-                            </div>
-                        ) : (
-                            <button
-                                onClick={() => setShowConfirm(true)}
-                                className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-gray-300 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 hover:text-white transition-colors"
-                            >
-                                <RotateCcw className="w-4 h-4" />
-                                Reload Prompts
-                            </button>
-                        )}
-                    </SectionCard>
                 </div>
 
                 {/* ============================================================ */}

@@ -9,8 +9,6 @@ import {
     Check,
     ChevronDown,
     Building2,
-    Activity,
-    Shield,
     Layers,
     Sparkles,
     Target
@@ -22,11 +20,7 @@ export interface FilterState {
     maxSurface: number | null;
     constructionPeriods: string[];
     propertyTypes: string[];
-    usage: string[];
-    constraints: string[];
     isMetaBuilding: boolean | null;
-    legalNature: string | null;
-    hasEPC: boolean | null;  // Filter for buildings with/without EPC
     // Intelligence Map filters
     showOnlyTopPicks: boolean;
     showOnlyResults: boolean;
@@ -39,11 +33,7 @@ export const defaultFilters: FilterState = {
     maxSurface: null,
     constructionPeriods: [],
     propertyTypes: [],
-    usage: [],
-    constraints: [],
     isMetaBuilding: null,
-    legalNature: null,
-    hasEPC: null,
     showOnlyTopPicks: false,
     showOnlyResults: false,
 };
@@ -68,52 +58,38 @@ const CONSTRUCTION_PERIODS = [
 ];
 
 const PROPERTY_TYPES = [
-    'Abitazioni adibite a residenza con carattere continuativo',
-    'Attività commerciali e assimilabili',
-    'Uffici e assimilabili',
-    'Attività industriali, artigianali e assimilabili',
-    'Bar, ristoranti, sale da ballo e assimilabili',
-    'Attività scolastiche',
-    'Ospedali, cliniche, case di cura e assimilabili',
-    'Edifici adibiti ad albergo, pensione ed attività similari',
-    'Palestre e assimilabili',
-    'Abitazioni adibite a residenza con occupazione saltuaria',
-    'Collegi, luoghi di ricovero, case di pena, caserme, conventi',
-    'Mostre, musei e biblioteche, luoghi di culto e assimilabili',
-    'Cinema e teatri, sale di riunione per congressi e assimilabili',
-    'Servizi di supporto alle attività sportive',
+    'Residential (Continuous)',
+    'Commercial activities and similar',
+    'Offices and similar',
+    'Industrial and artisanal activities',
+    'Bars, restaurants, dance halls and similar',
+    'Schools and educational activities',
+    'Hospitals, clinics, nursing homes and similar',
+    'Hotels, pensions, and similar',
+    'Gyms and similar',
+    'Residential (Temporary/Holiday)',
+    'Hospitals, retirement homes, prisons, barracks, convents',
+    'Exhibitions, museums, libraries, places of worship and similar',
+    'Cinemas, theaters, congress halls and similar',
+    'Sports support services',
 ];
 
 const PROPERTY_TYPE_LABELS: Record<string, string> = {
-    'Abitazioni adibite a residenza con carattere continuativo': 'Residential properties for permanent occupancy',
-    'Attività commerciali e assimilabili': 'Commercial activities and similar uses',
-    'Uffici e assimilabili': 'Offices and similar uses',
-    'Attività industriali, artigianali e assimilabili': 'Industrial, craft, and similar activities',
-    'Bar, ristoranti, sale da ballo e assimilabili': 'Bars, restaurants, dance halls, and similar venues',
-    'Attività scolastiche': 'Educational activities',
-    'Ospedali, cliniche, case di cura e assimilabili': 'Hospitals, clinics, care homes, and similar facilities',
-    'Edifici adibiti ad albergo, pensione ed attività similari': 'Hotels, guesthouses, and similar facilities',
-    'Palestre e assimilabili': 'Gyms and similar facilities',
-    'Abitazioni adibite a residenza con occupazione saltuaria': 'Residential properties for occasional occupancy',
-    'Collegi, luoghi di ricovero, case di pena, caserme, conventi': 'Colleges, shelters, prisons, barracks, and convents',
-    'Mostre, musei e biblioteche, luoghi di culto e assimilabili': 'Exhibitions, museums, libraries, places of worship, and similar venues',
-    'Cinema e teatri, sale di riunione per congressi e assimilabili': 'Cinemas, theaters, conference halls, and similar venues',
-    'Servizi di supporto alle attività sportive': 'Sports support services',
+    'Residential (Continuous)': 'Residential properties for permanent occupancy',
+    'Commercial activities and similar': 'Commercial activities and similar uses',
+    'Offices and similar': 'Offices and similar uses',
+    'Industrial and artisanal activities': 'Industrial, craft, and similar activities',
+    'Bars, restaurants, dance halls and similar': 'Bars, restaurants, dance halls, and similar venues',
+    'Schools and educational activities': 'Educational activities',
+    'Hospitals, clinics, nursing homes and similar': 'Hospitals, clinics, care homes, and similar facilities',
+    'Hotels, pensions, and similar': 'Hotels, guesthouses, and similar facilities',
+    'Gyms and similar': 'Gyms and similar facilities',
+    'Residential (Temporary/Holiday)': 'Residential properties for occasional occupancy',
+    'Hospitals, retirement homes, prisons, barracks, convents': 'Colleges, shelters, prisons, barracks, and convents',
+    'Exhibitions, museums, libraries, places of worship and similar': 'Exhibitions, museums, libraries, places of worship, and similar venues',
+    'Cinemas, theaters, congress halls and similar': 'Cinemas, theaters, conference halls, and similar venues',
+    'Sports support services': 'Sports support services',
 };
-
-const PROPERTY_USAGE = [
-    'Directly used',
-    'Unused',
-    'Under renovation/maintenance',
-    'Unusable',
-];
-
-const CONSTRAINTS = [
-    'None',
-    'Cultural interest declaration',
-    'Public interest declaration',
-    'Cultural interest verification in progress',
-];
 
 const getEnergyClassColor = (cls: string, isSelected: boolean) => {
     if (!isSelected) return 'bg-white/5 text-gray-500 border-white/10 hover:border-white/30';
@@ -130,7 +106,7 @@ const getEnergyClassColor = (cls: string, isSelected: boolean) => {
     }
 };
 
-type ActiveDropdown = 'energy' | 'surface' | 'period' | 'type' | 'usage' | 'constraint' | 'more' | null;
+type ActiveDropdown = 'energy' | 'surface' | 'period' | 'type' | 'more' | null;
 
 export const FilterPanel: React.FC<FilterPanelProps> = ({
     filters,
@@ -145,11 +121,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
         filters.minSurface !== null || filters.maxSurface !== null,
         filters.constructionPeriods.length > 0,
         filters.propertyTypes.length > 0,
-        filters.usage.length > 0,
-        filters.constraints.length > 0,
         filters.isMetaBuilding !== null,
-        filters.legalNature !== null,
-        filters.hasEPC !== null,
         filters.showOnlyTopPicks,
         filters.showOnlyResults,
     ].filter(Boolean).length;
@@ -168,7 +140,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
     }, []);
 
     // Toggle array filter
-    const toggleArrayFilter = (key: 'energyClasses' | 'constructionPeriods' | 'propertyTypes' | 'usage' | 'constraints', value: string) => {
+    const toggleArrayFilter = (key: 'energyClasses' | 'constructionPeriods' | 'propertyTypes', value: string) => {
         const current = filters[key] as string[];
         const newValues = current.includes(value)
             ? current.filter(v => v !== value)
@@ -200,14 +172,6 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
                 return filters.propertyTypes.length > 0
                     ? `${filters.propertyTypes.length} types`
                     : 'Type';
-            case 'usage':
-                return filters.usage.length > 0
-                    ? `${filters.usage.length} usage`
-                    : 'Usage';
-            case 'constraint':
-                return filters.constraints.length > 0
-                    ? `${filters.constraints.length} constraints`
-                    : 'Constraint';
             default:
                 return '';
         }
@@ -219,8 +183,6 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
             case 'surface': return filters.minSurface !== null || filters.maxSurface !== null;
             case 'period': return filters.constructionPeriods.length > 0;
             case 'type': return filters.propertyTypes.length > 0;
-            case 'usage': return filters.usage.length > 0;
-            case 'constraint': return filters.constraints.length > 0;
             default: return false;
         }
     };
@@ -299,30 +261,14 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
                         label={getChipLabel('type')}
                         onToggle={() => setActiveDropdown(activeDropdown === 'type' ? null : 'type')}
                     />
-                    <FilterChip
-                        type="usage"
-                        icon={<Activity className="w-3.5 h-3.5" />}
-                        isActive={isChipActive('usage')}
-                        isOpen={activeDropdown === 'usage'}
-                        label={getChipLabel('usage')}
-                        onToggle={() => setActiveDropdown(activeDropdown === 'usage' ? null : 'usage')}
-                    />
-                    <FilterChip
-                        type="constraint"
-                        icon={<Shield className="w-3.5 h-3.5" />}
-                        isActive={isChipActive('constraint')}
-                        isOpen={activeDropdown === 'constraint'}
-                        label={getChipLabel('constraint')}
-                        onToggle={() => setActiveDropdown(activeDropdown === 'constraint' ? null : 'constraint')}
-                    />
 
-                    {/* More Filters & Agent Tuner */}
+                    {/* More Filters */}
                     <button
                         onClick={() => setActiveDropdown(activeDropdown === 'more' ? null : 'more')}
                         className={`
                             flex items-center gap-1 px-2 py-2 rounded-lg text-xs
                             transition-all border whitespace-nowrap
-                            ${(filters.isMetaBuilding !== null || filters.legalNature !== null || filters.hasEPC !== null || filters.showOnlyTopPicks || filters.showOnlyResults)
+                            ${(filters.isMetaBuilding !== null || filters.showOnlyTopPicks || filters.showOnlyResults)
                                 ? 'bg-cyan-500/20 text-cyan-400 border-cyan-500/50'
                                 : 'bg-white/5 text-gray-500 border-white/10 hover:border-white/20'
                             }
@@ -496,84 +442,6 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
                             </div>
                         )}
 
-                        {/* Usage Dropdown */}
-                        {activeDropdown === 'usage' && (
-                            <div className="space-y-3 min-w-[260px]">
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-2 text-sm text-gray-300">
-                                        <Activity className="w-4 h-4 text-teal-400" />
-                                        Property Usage
-                                    </div>
-                                    <button onClick={() => setActiveDropdown(null)} className="text-gray-500 hover:text-gray-300">
-                                        <X className="w-4 h-4" />
-                                    </button>
-                                </div>
-                                <div className="space-y-1">
-                                    {PROPERTY_USAGE.map(uso => (
-                                        <button
-                                            key={uso}
-                                            onClick={() => toggleArrayFilter('usage', uso)}
-                                            className={`
-                                                w-full px-3 py-2 rounded-lg text-xs transition-all
-                                                border flex items-center gap-2 text-left
-                                                ${filters.usage.includes(uso)
-                                                    ? 'bg-teal-500/20 text-teal-400 border-teal-500/50'
-                                                    : 'bg-white/5 text-gray-400 border-white/10 hover:border-white/20'
-                                                }
-                                            `}
-                                        >
-                                            <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${filters.usage.includes(uso)
-                                                ? 'border-teal-400 bg-teal-500/30'
-                                                : 'border-white/20'
-                                                }`}>
-                                                {filters.usage.includes(uso) && <Check className="w-3 h-3" />}
-                                            </div>
-                                            <span>{uso}</span>
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Constraint Dropdown */}
-                        {activeDropdown === 'constraint' && (
-                            <div className="space-y-3 min-w-[280px]">
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-2 text-sm text-gray-300">
-                                        <Shield className="w-4 h-4 text-amber-400" />
-                                        Cultural Constraint
-                                    </div>
-                                    <button onClick={() => setActiveDropdown(null)} className="text-gray-500 hover:text-gray-300">
-                                        <X className="w-4 h-4" />
-                                    </button>
-                                </div>
-                                <div className="space-y-1">
-                                    {CONSTRAINTS.map(vincolo => (
-                                        <button
-                                            key={vincolo}
-                                            onClick={() => toggleArrayFilter('constraints', vincolo)}
-                                            className={`
-                                                w-full px-3 py-2 rounded-lg text-xs transition-all
-                                                border flex items-center gap-2 text-left
-                                                ${filters.constraints.includes(vincolo)
-                                                    ? 'bg-amber-500/20 text-amber-400 border-amber-500/50'
-                                                    : 'bg-white/5 text-gray-400 border-white/10 hover:border-white/20'
-                                                }
-                                            `}
-                                        >
-                                            <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${filters.constraints.includes(vincolo)
-                                                ? 'border-amber-400 bg-amber-500/30'
-                                                : 'border-white/20'
-                                                }`}>
-                                                {filters.constraints.includes(vincolo) && <Check className="w-3 h-3" />}
-                                            </div>
-                                            <span className="truncate">{vincolo}</span>
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
                         {/* More Filters Dropdown (Toggles) */}
                         {activeDropdown === 'more' && (
                             <div className="space-y-3 min-w-[280px]">
@@ -642,38 +510,6 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
                                     />
                                 </div>
 
-                                <div className="border-t border-white/10 pt-3">
-                                    <ToggleSwitch
-                                        label="Energy Certificates (EPC)"
-                                        value={filters.hasEPC}
-                                        onChange={(val) => onFiltersChange({ ...filters, hasEPC: val })}
-                                        options={{ on: 'With EPC', off: 'Without EPC' }}
-                                    />
-                                </div>
-
-                                <div className="border-t border-white/10 pt-3">
-                                    <div className="text-xs text-gray-400 mb-2">Legal Nature</div>
-                                    <div className="flex gap-2">
-                                        {['BUILDING', 'LAND'].map(natura => (
-                                            <button
-                                                key={natura}
-                                                onClick={() => onFiltersChange({
-                                                    ...filters,
-                                                    legalNature: filters.legalNature === natura ? null : natura
-                                                })}
-                                                className={`
-                                                    flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-all border
-                                                    ${filters.legalNature === natura
-                                                        ? 'bg-cyan-500/20 text-cyan-400 border-cyan-500/50'
-                                                        : 'bg-white/5 text-gray-500 border-white/10 hover:border-white/20'
-                                                    }
-                                                `}
-                                            >
-                                                {natura.charAt(0) + natura.slice(1).toLowerCase()}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
                             </div>
                         )}
                     </div>

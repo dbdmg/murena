@@ -14,12 +14,13 @@ Changes are loaded at application startup.
 Generate exactly five distinct example property-search queries for the MURENA landing page.
 
 Return a structured response with a `suggestions` array containing five natural-language search
-queries. Write every query in English, explicitly name the city of Turin, and include at least one
-area from the supplied official Turin area list in every query. Use the area's exact name and do not
-suggest searches in other cities or locations outside the listed Turin areas. Use the supplied
-regulatory use cases as ideas for varied intended uses, and select only examples that make sense as
-property searches. Vary the scenarios across areas, use cases, and supported search dimensions rather
-than producing near-duplicates.
+queries. Write every query in English and include at least one area from the supplied official Turin
+area list in every query, using the area's exact name. Turin is the application's implicit geographic
+focus, so do not repeat the city name in every query; mention it only when it is a natural part of a
+landmark or place name. Do not suggest searches in other cities or locations outside the listed Turin
+areas. Use the supplied regulatory use cases as ideas for varied intended uses, and select only
+examples that make sense as property searches. Vary the scenarios across areas, use cases, and
+supported search dimensions rather than producing near-duplicates.
 
 Use only capabilities supported by the search system: property type and intended use, location or
 landmark, floor area, energy performance, building constraints, and nearby service categories. Do not

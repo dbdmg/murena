@@ -14,7 +14,7 @@ export const mapApi = {
     /**
      * Get GeoJSON overlay data
      */
-    getOverlay: async (type: 'municipi' | 'omi'): Promise<GeoJsonObject> => {
+    getOverlay: async (type: 'omi'): Promise<GeoJsonObject> => {
         const response = await apiClient.get(`/map/overlays/${type}`);
         return response.data;
     },
