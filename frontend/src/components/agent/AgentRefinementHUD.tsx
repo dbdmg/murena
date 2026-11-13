@@ -441,7 +441,7 @@ export const AgentRefinementHUD: React.FC<AgentRefinementHUDProps> = ({
             const response = await analysisApi.startAnalysis({
                 query: currentQuery,
                 analysis_mode: 'agent',
-                output_language: language,
+                output_language: 'en',
             });
 
             let attempts = 0;
@@ -454,7 +454,7 @@ export const AgentRefinementHUD: React.FC<AgentRefinementHUDProps> = ({
                 // Update progress based on status
                 if (results.status === 'processing') {
                     const elapsed = attempts + 1;
-                    setSimulationProgress(`Elaborazione in corso... (${elapsed}s)`);
+                    setSimulationProgress(`Processing... (${elapsed}s)`);
                 } else if (results.status === 'completed') {
                     setSimulatedRunId(response.run_id);
                     onRunSwitch(response.run_id);
@@ -814,7 +814,7 @@ export const AgentRefinementHUD: React.FC<AgentRefinementHUDProps> = ({
                                                 `}
                                             >
                                                 <RotateCcw className="w-4 h-4" />
-                                                Annulla
+                                                Cancel
                                             </button>
 
                                             {/* Save as Default */}
@@ -832,7 +832,7 @@ export const AgentRefinementHUD: React.FC<AgentRefinementHUDProps> = ({
                                                 title={canSave ? 'Save as global default' : 'Run a simulation first'}
                                             >
                                                 <Save className="w-4 h-4" />
-                                                Salva Default
+                                                Save Default
                                             </button>
 
                                             {/* Simulate Button */}

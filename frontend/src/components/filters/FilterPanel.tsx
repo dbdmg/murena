@@ -84,6 +84,23 @@ const PROPERTY_TYPES = [
     'Servizi di supporto alle attività sportive',
 ];
 
+const PROPERTY_TYPE_LABELS: Record<string, string> = {
+    'Abitazioni adibite a residenza con carattere continuativo': 'Residential properties for permanent occupancy',
+    'Attività commerciali e assimilabili': 'Commercial activities and similar uses',
+    'Uffici e assimilabili': 'Offices and similar uses',
+    'Attività industriali, artigianali e assimilabili': 'Industrial, craft, and similar activities',
+    'Bar, ristoranti, sale da ballo e assimilabili': 'Bars, restaurants, dance halls, and similar venues',
+    'Attività scolastiche': 'Educational activities',
+    'Ospedali, cliniche, case di cura e assimilabili': 'Hospitals, clinics, care homes, and similar facilities',
+    'Edifici adibiti ad albergo, pensione ed attività similari': 'Hotels, guesthouses, and similar facilities',
+    'Palestre e assimilabili': 'Gyms and similar facilities',
+    'Abitazioni adibite a residenza con occupazione saltuaria': 'Residential properties for occasional occupancy',
+    'Collegi, luoghi di ricovero, case di pena, caserme, conventi': 'Colleges, shelters, prisons, barracks, and convents',
+    'Mostre, musei e biblioteche, luoghi di culto e assimilabili': 'Exhibitions, museums, libraries, places of worship, and similar venues',
+    'Cinema e teatri, sale di riunione per congressi e assimilabili': 'Cinemas, theaters, conference halls, and similar venues',
+    'Servizi di supporto alle attività sportive': 'Sports support services',
+};
+
 const PROPERTY_USAGE = [
     'Directly used',
     'Unused',
@@ -472,7 +489,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
                                                 }`}>
                                                 {filters.propertyTypes.includes(tipo) && <Check className="w-3 h-3" />}
                                             </div>
-                                            <span className="truncate">{tipo}</span>
+                                            <span className="truncate">{PROPERTY_TYPE_LABELS[tipo] ?? tipo}</span>
                                         </button>
                                     ))}
                                 </div>

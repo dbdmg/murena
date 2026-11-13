@@ -632,7 +632,7 @@ export const Map: React.FC<MapProps> = ({
                             <div className="p-2 min-w-[180px]">
                                 <div className="flex items-center gap-2 mb-1">
                                     <div className="w-3 h-3 rounded-full bg-linear-to-br from-red-500 to-rose-600"></div>
-                                    <span className="text-[10px] uppercase font-bold text-red-400 tracking-wider">Location Cercata</span>
+                                    <span className="text-[10px] uppercase font-bold text-red-400 tracking-wider">Searched Location</span>
                                 </div>
                                 <h3 className="font-bold text-sm text-white leading-tight">{searchLocation.name}</h3>
                             </div>

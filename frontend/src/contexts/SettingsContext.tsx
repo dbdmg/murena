@@ -22,7 +22,6 @@ interface SettingsContextType {
     setDemoMode: (enabled: boolean) => void;
     // Localization
     language: Language;
-    setLanguage: (lang: Language) => void;
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
@@ -47,7 +46,7 @@ const DEFAULT_SETTINGS: StoredSettings = {
     agentTemperature: 0.3,
     dataSource: 'live',
     demoMode: false,
-    language: 'it',
+    language: 'en',
 };
 
 const getStoredSettings = (): StoredSettings => {
@@ -58,6 +57,7 @@ const getStoredSettings = (): StoredSettings => {
             const merged = { ...DEFAULT_SETTINGS, ...parsed };
             return {
                 ...merged,
+                language: 'en',
                 llmProvider: 'google',
                 llmLimit: Math.min(
                     MAX_LLM_LIMIT,
@@ -102,7 +102,6 @@ export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }
     const setAgentTemperature = (temp: number) => updateSetting('agentTemperature', temp);
     const setDataSource = (source: DataSource) => updateSetting('dataSource', source);
     const setDemoMode = (enabled: boolean) => updateSetting('demoMode', enabled);
-    const setLanguage = (lang: Language) => updateSetting('language', lang);
 
     return (
         <SettingsContext.Provider value={{
@@ -119,7 +118,6 @@ export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }
             demoMode,
             setDemoMode,
             language,
-            setLanguage,
         }}>
             {children}
         </SettingsContext.Provider>

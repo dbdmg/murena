@@ -46,6 +46,10 @@ class AmenityResponse(BaseModel):
 class RegulatoryResponse(BaseModel):
     requirements: List[Dict[str, Any]] = Field(default_factory=list, description="Extracted regulatory requirements")
     found: bool = Field(default=False, description="True if pertinent requirements were found")
+    matched_use_cases: List[str] = Field(
+        default_factory=list,
+        description="Exact use_case labels from the supplied normative documents that apply to the user query, including when no binding requirement is extractable",
+    )
 
 
 class EnergyResponse(BaseModel):
@@ -151,7 +155,7 @@ class RelaxationProposal(BaseModel):
     condizione_relaxed: str = Field(..., description="La NUOVA condizione SQL rilassata (es. 'superficie > 80')")
     piani_progressivi: Optional[List[str]] = Field(default_factory=list, description="Eventuali step intermedi di rilassamento (opzionale)")
     strategia: str = Field(..., description="Tipo di intervento (es. 'Espansione raggio', 'Cambio soglia')")
-    motivazione: str = Field(..., description="Perché questo rilassamento è sensato rispetto alla query")
+    motivazione: str = Field(..., description="Why this relaxation is reasonable for the query")
     livello_rilassamento: str = Field(..., description="Indice di deviazione: 'low', 'medium' o 'high'")
 
 
@@ -164,7 +168,7 @@ class RelaxationAgentResult(AgentResult):
 class AgentContext(BaseModel):
     user_query: str = Field(..., description="Original user query")
     output_language: str = Field(
-        default="en", description="Language used for user-facing generated text"
+        default="en", description="Fixed language used for user-facing generated text: English"
     )
     locations: List[Place] = Field(
         default_factory=list, description="Identified places"

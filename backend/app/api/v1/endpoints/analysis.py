@@ -15,11 +15,11 @@ from sqlalchemy.orm import Session, sessionmaker
 import pandas as pd
 import logging
 
-from app.api.deps import get_current_user_optional
+from app.api.deps import get_current_user, get_current_user_optional
 from app.database.connection import get_db
 from app.database.models import ClarificationSession, User
 from app.models.requests import AnalysisRequest
-from app.models.responses import AnalysisResponse, AnalysisResults, AgentStepsResponse, AnalysisHistoryItem, ClarificationResponse
+from app.models.responses import AnalysisResponse, AnalysisResults, AgentStepsResponse, AnalysisHistoryItem, ClarificationResponse, SuggestedQueriesResponse
 from app.repositories import RunRepository
 from app.core.config import settings
 from app.utils.json_sanitizer import make_json_safe
@@ -911,6 +911,25 @@ async def get_analysis_history(
             continue
 
     return history_items
+
+
+@router.get("/suggested-queries", response_model=SuggestedQueriesResponse)
+def get_suggested_queries(
+    _current_user: User = Depends(get_current_user),
+):
+    """Generate landing-page searches from the configured LLM and project use cases."""
+    from app.services.search_suggestions import generate_suggested_searches
+
+    try:
+        return SuggestedQueriesResponse(
+            suggestions=generate_suggested_searches()
+        )
+    except Exception as exc:
+        logger.exception("Failed to generate suggested searches")
+        raise HTTPException(
+            status_code=503,
+            detail="Suggested searches are temporarily unavailable.",
+        ) from exc
 
 
 

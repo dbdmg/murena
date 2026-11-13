@@ -3,6 +3,7 @@ import json
 import os
 import time
 from datetime import datetime
+from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, TypedDict, Union
 
 from langgraph.graph import END, StateGraph
@@ -30,21 +31,11 @@ MAX_LLM_CAP = settings.MAX_LLM_CAP
 
 
 def _normalize_output_language(output_language: Optional[str]) -> str:
-    """Return the canonical output language code for user-facing text."""
-    value = (output_language or "en").strip().lower()
-    if value in {"it", "ita", "italian", "italiano"}:
-        return "it"
+    """Return the fixed language code for user-facing text."""
     return "en"
 
 
 def _build_output_language_instruction(output_language: Optional[str]) -> str:
-    language = _normalize_output_language(output_language)
-    if language == "it":
-        return (
-            "Italian. Write every user-facing natural-language field in Italian, "
-            "regardless of the user's query language. Keep IDs, addresses, column "
-            "names, numeric values, energy classes, and JSON keys unchanged."
-        )
     return (
         "English. Write every user-facing natural-language field in English, "
         "regardless of the user's query language. Keep IDs, addresses, column "
@@ -52,8 +43,34 @@ def _build_output_language_instruction(output_language: Optional[str]) -> str:
     )
 
 
+def _load_matched_normative_use_cases(labels: List[str]) -> List[Dict[str, Any]]:
+    """Return full normative entries whose exact labels were matched upstream."""
+    if not labels:
+        return []
+    normative_file = (
+        Path(__file__).resolve().parents[4]
+        / "docs"
+        / "knowledge"
+        / "normativa"
+        / "normativa.json"
+    )
+    try:
+        records = json.loads(normative_file.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return []
+    if not isinstance(records, list):
+        return []
+    matched_labels = {label.strip().casefold() for label in labels if label.strip()}
+    return [
+        record for record in records
+        if isinstance(record, dict)
+        and isinstance(record.get("use_case"), str)
+        and record["use_case"].strip().casefold() in matched_labels
+    ]
+
+
 def _localized_text(output_language: Optional[str], *, en: str, it: str) -> str:
-    return it if _normalize_output_language(output_language) == "it" else en
+    return en
 
 
 from app.data.loaders import get_coordinates
@@ -342,7 +359,7 @@ class GraphOrchestratorAgent(BaseAgent):
             use_data_knowledge: Whether to augment prompts with dataset statistics.
             analysis_mode: Selection of orchestration methodology.
             architecture: Architectural pattern for agent coordination.
-            output_language: Language for user-facing generated text ('en' or 'it').
+            output_language: Fixed language for user-facing generated text (English).
 
         Returns:
             An OrchestratorResult containing processed data and agentic traces.
@@ -771,9 +788,9 @@ class GraphOrchestratorAgent(BaseAgent):
                         else:
                             if score == 0:
                                 if not poi or pd.isna(dist):
-                                    formula_list = ["Località non identificata -> 0"]
+                                    formula_list = ["Location not identified -> 0"]
                                 else:
-                                    formula_list = [f"Distanza eccessiva ({dist:.2f}km) -> 0"]
+                                    formula_list = [f"Distance too large ({dist:.2f} km) -> 0"]
                             else:
                                 formula_list = [f"Score: {score}"]
                     elif "proximity" in agent_type or "energy" in agent_type or "regulatory" in agent_type:
@@ -1004,7 +1021,7 @@ class GraphOrchestratorAgent(BaseAgent):
                         stats[col] = {
                             "unique_values_count": int(unique_count),
                             "top_10_values": df[col].value_counts().head(10).to_dict(),
-                            "note": f"Colonna con alta cardinalità ({unique_count} valori). Mostrati solo i primi 10 per brevità."
+                            "note": f"High-cardinality column ({unique_count} values). Showing only the first 10 for brevity."
                         }
                         continue
 
@@ -1354,6 +1371,9 @@ class GraphOrchestratorAgent(BaseAgent):
         state["regulatory_result"] = regulatory_result
         state["context"].regulatory_result = regulatory_result
         reg_data = safe_extract_json(regulatory_result.raw_text, schema=RegulatoryResponse) if regulatory_result else None
+        matched_normative_cases = _load_matched_normative_use_cases(
+            reg_data.matched_use_cases if reg_data else []
+        )
         if regulatory_result:
             state["gemini_responses"]["regulatory_analysis"] = {
                 "prompt": regulatory_result.prompt.model_dump() if regulatory_result.prompt else None,
@@ -1377,7 +1397,17 @@ class GraphOrchestratorAgent(BaseAgent):
         if proximity_text:
             use_case_parts.append(proximity_text.strip())
         if regulatory_result:
-            use_case_parts.append(f"Regulatory: {regulatory_result.raw_text[:200]}")
+            regulatory_context = {
+                "regulatory_agent_result": (
+                    reg_data.model_dump() if reg_data else regulatory_result.raw_text
+                ),
+                "applicable_normative_entries": matched_normative_cases,
+                "sources": regulatory_result.sources or [],
+            }
+            use_case_parts.append(
+                "Regulatory context (complete structured result and matched source entries):\n"
+                + json.dumps(regulatory_context, ensure_ascii=False)
+            )
         state["use_case_str"] = "\n".join(use_case_parts)
 
         return state
@@ -1442,7 +1472,7 @@ class GraphOrchestratorAgent(BaseAgent):
                         val_str = f"'{val}'" if isinstance(val, str) else str(val)
                         formatted.append(f"{col} {op} {val_str}")
             
-            return "; ".join(formatted) if formatted else "Nessun requisito specifico identificato."
+            return "; ".join(formatted) if formatted else "No specific requirements identified."
         except Exception as e:
             logger.error(f"Error formatting agent requirements: {e}")
             # Fallback in caso di errore
@@ -1513,7 +1543,7 @@ class GraphOrchestratorAgent(BaseAgent):
             
             # BuildingAgent now also extracts structured requirements (ID, contracts, surfaces)
             building_fmt = self._format_agent_requirements(building_result)
-            if building_fmt != "N/D" and "Nessun requisito" not in building_fmt:
+            if building_fmt != "N/D" and "No specific requirements identified." not in building_fmt:
                 all_reqs.append(building_fmt)
 
         # 2. Locations
@@ -1527,15 +1557,15 @@ class GraphOrchestratorAgent(BaseAgent):
         # 3. Structured requirements (Energy, Proximity, Regulatory)
         # Use helper for Energy, Regulatory, and Proximity
         energy_fmt = self._format_agent_requirements(energy_result)
-        if energy_fmt != "N/D" and "Nessun requisito" not in energy_fmt:
+        if energy_fmt != "N/D" and "No specific requirements identified." not in energy_fmt:
             all_reqs.append(energy_fmt)
             
         regulatory_fmt = self._format_agent_requirements(regulatory_result)
-        if regulatory_fmt != "N/D" and "Nessun requisito" not in regulatory_fmt:
+        if regulatory_fmt != "N/D" and "No specific requirements identified." not in regulatory_fmt:
              all_reqs.append(regulatory_fmt)
  
         proximity_fmt = self._format_agent_requirements(proximity_result)
-        if proximity_fmt != "N/D" and "Nessun requisito" not in proximity_fmt:
+        if proximity_fmt != "N/D" and "No specific requirements identified." not in proximity_fmt:
             all_reqs.append(proximity_fmt)
 
         # 4. Relaxation Proposals (if active)
@@ -1957,10 +1987,10 @@ class GraphOrchestratorAgent(BaseAgent):
                     for token in parsed.tokens
                     if isinstance(token, sqlparse.sql.Where)
                 ),
-                "Nessuna clausola WHERE trovata.",
+                "No WHERE clause found.",
             )
         except Exception:
-            state["where_clause"] = "Nessuna clausola WHERE trovata."
+            state["where_clause"] = "No WHERE clause found."
 
         # ============================================================
         # CRITICAL: LEFT JOIN with full dataset to recover ALL columns
@@ -2666,8 +2696,8 @@ class GraphOrchestratorAgent(BaseAgent):
                 )
         except Exception as e:
             logger.warning(
-                f"Impossibile caricare il dataset completo per la mappa; "
-                f"uso il solo subset arricchito. Dettagli: {e}"
+                f"Unable to load the full dataset for the map; "
+                f"using only the enriched subset. Details: {e}"
             )
             base_df = None
 

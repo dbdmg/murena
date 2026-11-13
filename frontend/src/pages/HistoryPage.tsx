@@ -333,7 +333,7 @@ export const HistoryPage: React.FC = () => {
                     `}
                 >
                     <Star className={`w-4 h-4 ${showOnlyFavorites ? 'fill-amber-400' : ''}`} />
-                    Preferiti
+                    Favorites
                     {favorites.size > 0 && (
                         <span className="bg-amber-500/30 px-1.5 py-0.5 rounded text-[10px]">
                             {favorites.size}
@@ -356,7 +356,7 @@ export const HistoryPage: React.FC = () => {
                     `}
                 >
                     <Check className="w-4 h-4" />
-                    Seleziona
+                    Select
                 </button>
             </div>
 
@@ -370,8 +370,8 @@ export const HistoryPage: React.FC = () => {
                         className="mb-4 flex items-center gap-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl px-4 py-3"
                     >
                         <span className="text-sm text-emerald-300">
-                            {selectedIds.size} selezionati
-                            {selectedIds.size > 0 && ` su ${filteredRuns.length}`}
+                            {selectedIds.size} selected
+                            {selectedIds.size > 0 && ` of ${filteredRuns.length}`}
                         </span>
                         <div className="flex-1" />
 
@@ -381,7 +381,7 @@ export const HistoryPage: React.FC = () => {
                             className="flex items-center gap-1.5 text-xs text-emerald-400 hover:text-emerald-300 transition-colors"
                         >
                             <CheckSquare className={`w-3.5 h-3.5 ${allSelected ? 'fill-emerald-400' : ''}`} />
-                            {allSelected ? 'Deseleziona tutto' : `Seleziona tutto (${filteredRuns.length})`}
+                            {allSelected ? 'Deselect all' : `Select all (${filteredRuns.length})`}
                         </button>
 
                         <div className="w-px h-4 bg-emerald-500/30" />
@@ -390,7 +390,7 @@ export const HistoryPage: React.FC = () => {
                             onClick={selectCurrentPage}
                             className="text-xs text-gray-400 hover:text-white transition-colors"
                         >
-                            Solo questa pagina
+                            This page only
                         </button>
 
                         {selectedIds.size > 0 && (
@@ -406,7 +406,7 @@ export const HistoryPage: React.FC = () => {
                                     ) : (
                                         <Trash2 className="w-3.5 h-3.5" />
                                     )}
-                                    Elimina ({selectedIds.size})
+                                    Delete ({selectedIds.size})
                                 </button>
                             </>
                         )}
@@ -568,7 +568,7 @@ export const HistoryPage: React.FC = () => {
                                                 className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-emerald-500/10 rounded-lg text-sm text-emerald-400 hover:bg-emerald-500/20 transition-all"
                                             >
                                                 <MapIcon className="w-4 h-4" />
-                                                Mappa
+                                                Map
                                             </button>
                                         )}
 
@@ -606,13 +606,13 @@ export const HistoryPage: React.FC = () => {
                                                         ) : (
                                                             <Trash2 className="w-3.5 h-3.5" />
                                                         )}
-                                                        Elimina
+                                                        Delete
                                                     </button>
                                                     <button
                                                         onClick={() => setDeleteConfirmId(null)}
                                                         className="px-4 py-2 bg-white/5 text-gray-400 rounded-lg text-xs font-medium hover:bg-white/10 transition-all"
                                                     >
-                                                        Annulla
+                                                        Cancel
                                                     </button>
                                                 </div>
                                             </motion.div>

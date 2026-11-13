@@ -37,7 +37,7 @@ Estrae requisiti di conformità e categorie normative pertinenti.
 
 Il loader legge ricorsivamente file `.json`, `.md` e `.txt` da `backend/docs/knowledge/normativa/` e inserisce il contenuto nel prompt dell'agente. Le colonne esplicitamente disponibili sono `surface_area`, `property_type`, `legal_nature`, `cultural_constraint`; il prompt limita l'estrazione a requisiti presenti nelle fonti, soprattutto soglie minime di superficie. L'output è supporto analitico, non parere giuridico.
 
-La fonte `normativa.json` aggiunta nel repository definisce parametri per micro-nido, asilo nido, co-housing, centro diurno anziani e centro incontro. Non contiene una voce per studentati. Le norme e i valori riportati nel file sono forniti come fonte del progetto e non sono qui attestati come verifica giuridica indipendente.
+La fonte `normativa.json` contiene 46 casi d'uso in inglese. I campi `minimum_gross_property_area_status` e `gross_filter_parameter.status` distinguono le stime euristiche dai requisiti legali verificati; il prompt esclude le euristiche dai filtri vincolanti. L'output include `matched_use_cases` con le etichette esatte dei casi pertinenti anche quando non esistono requisiti vincolanti estraibili; il grafo usa queste etichette per passare all'EvaluationAgent le voci normative complete corrispondenti. Il loader non verifica autonomamente l'esattezza giuridica delle fonti o dei valori.
 
 ## Osservabilità e dipendenze
 

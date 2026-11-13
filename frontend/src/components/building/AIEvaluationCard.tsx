@@ -314,7 +314,7 @@ export const AIEvaluationCard: React.FC<AIEvaluationCardProps> = ({
 
                                     {/* Final Score Mathematical calculation */}
                                     <div className="mt-3 pt-2 border-t border-white/5 text-[10px] text-gray-400 bg-black/20 p-2 rounded-md font-mono flex flex-col gap-0.5">
-                                        <span className="text-[11px] text-amber-300 font-semibold mb-1">Formula Ponderata:</span>
+                                        <span className="text-[11px] text-amber-300 font-semibold mb-1">Weighted Formula:</span>
                                         <div className="leading-relaxed">
                                             ({poi} × {wProx.toFixed(2)}) + ({location} × {wLoc.toFixed(2)}) + ({energy} × {wEng.toFixed(2)}) + ({regulatory} × {wReg.toFixed(2)}) + ({building} × {wBld.toFixed(2)})
                                         </div>

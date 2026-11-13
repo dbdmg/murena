@@ -35,7 +35,7 @@ Produce valutazioni qualitative dei risultati selezionati.
 
 ## Comportamento rilevante
 
-Il paper descrive punti di forza e debolezza, di norma per la shortlist di testa; motivazioni da validare contro i dati strutturati. Il contesto inviato al modello deve usare i nomi effettivi del dataset (`address`, `property_type`, `energy_class`, `education`, ecc.) e includere i campi derivati disponibili come `distanza_km` e `poi_riferimento`. Il dataset demo usa nomi inglesi; affidarsi solo agli alias italiani causava la perdita di indirizzo, tipologia, classe energetica e punteggi di prossimità.
+Il paper descrive punti di forza e debolezza, di norma per la shortlist di testa; motivazioni da validare contro i dati strutturati. Il contesto inviato al modello deve usare i nomi effettivi del dataset (`address`, `property_type`, `energy_class`, `education`, ecc.) e includere i campi derivati disponibili come `distanza_km` e `poi_riferimento`. Il dataset demo usa nomi inglesi; affidarsi solo agli alias italiani causava la perdita di indirizzo, tipologia, classe energetica e punteggi di prossimità. Ora il contesto include il risultato RegulatoryAgent completo e le voci normative integrali corrispondenti alle etichette `matched_use_cases`; il prompt distingue requisiti legali verificati, stime euristiche e verifiche non risolte, e vieta di dedurre autorizzazione o idoneità funzionale da sola superficie/tipologia.
 
 Il calcolo di distanza supporta sia le coordinate canoniche `latitude`/`longitude` sia gli alias `latitudine`/`longitudine`. Questo mantiene disponibili distanza e luogo di riferimento per ranking e spiegazioni quando i dati provengono direttamente dall'inventario.
 

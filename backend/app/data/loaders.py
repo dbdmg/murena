@@ -220,7 +220,8 @@ def get_coordinates(place_name):
 
     # Geocoding attempts hierarchy
     url = "https://nominatim.openstreetmap.org/search"
-    headers = {"User-Agent": "DashApp/1.0"}
+    from app.core.config import settings
+    headers = {"User-Agent": settings.NOMINATIM_USER_AGENT}
     
     # Config descriptions
     # 1. Bounded search (strict)

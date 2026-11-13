@@ -63,7 +63,7 @@ class RankingAgent(BaseAgent):
         elif mode == "ranking":
             return self._run_ranking(**kwargs)
         else:
-            raise ValueError(f"Modalità '{mode}' non supportata dal RankingAgent.")
+            raise ValueError(f"Mode '{mode}' is not supported by RankingAgent.")
 
     def _run_filtering(self, query: str) -> RankingAgentResult:
         if not query:

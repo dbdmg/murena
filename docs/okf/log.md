@@ -1,5 +1,11 @@
 # MURENA OKF Update Log
 
+## 2026-11-13
+
+* **Località e percorso di chiarimento sicuro**: il prompt SAGE specifica che città più quartiere, come San Salvario a Torino, completano la località; il servizio genera una domanda LLM mirata se un dettaglio `MISSING_CRITICAL` non ha già una domanda bloccante. Evita che un'incoerenza del parser termini la sessione con “no safe clarification path” senza chiedere il dettaglio all'utente.
+* **Verifica geografica SAGE**: se la località è `MISSING_CRITICAL` ma l'evidenza contiene una località esplicita e la città configurata, SAGE prova il geocoder/cache già usato dal LocationAgent prima del chiarimento. Un esito positivo recupera la località; errori e assenza di risultati lasciano il flusso conversazionale attivo. Il geocoder usa l'identificativo Nominatim configurato.
+* **Contesto normativo per la valutazione**: RegulatoryAgent restituisce anche le etichette esatte dei casi d'uso pertinenti, indipendentemente dalla presenza di requisiti vincolanti. L'EvaluationAgent riceve il risultato regolatorio completo e le voci normative corrispondenti; il prompt distingue soglie verificate da stime euristiche e vieta di dedurre idoneità funzionale o autorizzazioni da superficie e tipologia soltanto.
+
 ## 2026-11-12
 
 * **CLI per benchmark conversazionali**: aggiunta `backend/experiments/benchmark_cli.py` per eseguire scenari JSON direttamente tramite `AnalysisService`, senza UI o server API; usa il modello predefinito del backend (lo stesso della UI), con ripetizioni, ripresa, tracce complete e riepilogo CSV. Risolti i percorsi dataset relativi alla root del repository e la conversione dei risultati Pydantic. Una prova smoke sul dataset sintetico demo, con `gpt-6-luna`/`codex_exec`, è terminata correttamente in 57,4 s; non è una valutazione scientifica né una replica del paper. Aggiunto un file d'esempio e documentato il protocollo.
@@ -21,6 +27,11 @@
 * **Audit dei testi di chiarimento**: rimosso il fallback UI hardcoded “Please clarify your request.” e il messaggio statico presentato come risposta assistant dopo la riscrittura; le domande nel thread provengono dal parser/generatore LLM. Gli esiti `BLOCKED` e le istruzioni della UI di revisione restano messaggi applicativi statici.
 * **Chiarimento di prossimità**: `Cp` ora è definita nei prompt come scelta delle categorie di servizi vicini; il modello deve chiedere quali servizi interessano e lasciare le soglie di distanza predefinite a MURENA.
 * **Capienza come vincolo edilizio**: chiarito che `Cb` include occupazione/capienza (es. almeno 100 persone); una risposta non chiara sulle omissioni genera un follow-up LLM invece di rendere l'aspetto non selezionabile.
+* **Chiarimenti in inglese**: prompt, domande, query revisionata e controlli dell'interfaccia SAGE sono ora sempre in inglese, indipendentemente dalla lingua della query o dell'interfaccia principale.
+* **Interfaccia solo in inglese**: rimossi i selettori di lingua da login e layout, l'impostazione caricata dal browser viene forzata a `en`, l'API accetta solo `output_language="en"` e i testi applicativi/diagnostici del backend sono stati allineati all'inglese.
+* **Documentazione normativa in inglese**: tradotti casi d'uso, chiavi descrittive, unità e note in `normativa.json`; aggiornati i riferimenti nei prompt RegulatoryAgent/SAGE e nella documentazione OKF. Riferimenti normativi e valori numerici sono rimasti invariati.
+* **Allineamento della normativa estesa**: il file contiene ora 46 casi d'uso; SAGE ne legge dinamicamente le etichette, mentre RegulatoryAgent esclude dai filtri vincolanti i valori marcati come euristiche non normative. Il JSON resta una fonte del progetto, non una verifica giuridica indipendente.
+* **Suggested searches generate tramite LLM**: rimosso l'elenco fisso dal frontend. Un endpoint autenticato genera cinque query in inglese dal modello backend configurato, usando casi d'uso normativi e dimensioni supportate; ogni query deve citare Turin e un'area della lista ufficiale `turin_areas.json`. La cache dura 30 minuti ed è invalidata da modifiche a prompt o fonti. In caso di errore non vengono mostrate query statiche di fallback.
 
 ## 2026-11-11
 

@@ -273,7 +273,7 @@ export const FeedbackPanel: React.FC<FeedbackPanelProps> = ({
                                             {isSubmitting ? (
                                                 <>
                                                     <Loader2 className="w-4 h-4 animate-spin" />
-                                                    <span>Invio...</span>
+                                                    <span>Sending...</span>
                                                 </>
                                             ) : (
                                                 <>
@@ -286,7 +286,7 @@ export const FeedbackPanel: React.FC<FeedbackPanelProps> = ({
                                             onClick={() => setIsExpanded(false)}
                                             className="px-4 py-2 bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white font-medium rounded-lg transition-colors"
                                         >
-                                            Annulla
+                                            Cancel
                                         </button>
                                     </>
                                 ) : (

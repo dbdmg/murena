@@ -240,11 +240,11 @@ try:
 except Exception as e:
     import sys
     print("\n" + "="*80)
-    print("ERRORE DI CONFIGURAZIONE (Environment Variables)")
+    print("CONFIGURATION ERROR (Environment Variables)")
     print("="*80)
-    print("Una o più variabili d'ambiente richieste non sono state trovate nel file .env")
-    print("o nell'ambiente di sistema.")
-    print("\nDettagli dell'errore:")
+    print("One or more required environment variables were not found in the .env file")
+    print("or in the system environment.")
+    print("\nError details:")
     print(str(e))
     print("="*80 + "\n")
     sys.exit(1)

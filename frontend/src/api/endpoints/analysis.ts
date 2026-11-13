@@ -14,12 +14,20 @@ import type {
     AgentStepsResponse,
     AnalysisHistoryItem,
     AnalysisSubmissionResponse,
+    SuggestedQueriesResponse,
 } from '../types';
 
 // API URL without base path (apiClient already has /api/v1)
 const ANALYSIS_BASE = '/analysis';
 
 export const analysisApi = {
+    getSuggestedQueries: async (): Promise<string[]> => {
+        const response = await apiClient.get<SuggestedQueriesResponse>(
+            `${ANALYSIS_BASE}/suggested-queries`
+        );
+        return response.data.suggestions;
+    },
+
     submitAnalysis: async (request: AnalysisRequest & {
         clarification_session_id?: string;
         clarification_response?: string;

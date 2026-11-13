@@ -3,7 +3,7 @@ import axios from 'axios';
 import { useAuth } from '../contexts/AuthContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { translations } from '../utils/translations';
-import { Lock, User as UserIcon, AlertCircle, ArrowRight, Languages } from 'lucide-react';
+import { Lock, User as UserIcon, AlertCircle, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 import googleIcon from '../assets/icons/icons8-google-48.png';
@@ -17,7 +17,7 @@ interface FastApiValidationError {
 
 export const LoginPage: React.FC = () => {
     const { login } = useAuth();
-    const { language, setLanguage } = useSettings();
+    const { language } = useSettings();
     const navigate = useNavigate();
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
@@ -59,29 +59,8 @@ export const LoginPage: React.FC = () => {
         }
     };
 
-    const toggleLanguage = () => {
-        setLanguage(language === 'it' ? 'en' : 'it');
-    };
-
-    const currentLanguageCode = language === 'it' ? 'IT' : 'EN';
-    const languageToggleTitle = language === 'it'
-        ? 'Lingua corrente: Italiano. Switch to English'
-        : 'Current language: English. Passa all\'Italiano';
-
     return (
         <div className="min-h-screen w-full flex items-center justify-center relative overflow-hidden bg-[#0a0d12]">
-            {/* Language Switcher - Floating for Login Page */}
-            <div className="absolute top-6 right-6 z-50">
-                <button
-                    onClick={toggleLanguage}
-                    title={languageToggleTitle}
-                    className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-gray-400 hover:text-white hover:bg-white/10 backdrop-blur-md transition-all font-medium text-xs"
-                >
-                    <Languages className="w-4 h-4 text-emerald-500" />
-                    <span>{currentLanguageCode}</span>
-                </button>
-            </div>
-
             {/* Ambient Background Effects - subtle blue glow */}
             <div className="absolute top-[-30%] left-[-15%] w-[700px] h-[700px] bg-emerald-900/30 rounded-full blur-[150px] pointer-events-none" />
             <div className="absolute bottom-[-25%] right-[-15%] w-[600px] h-[600px] bg-green-900/20 rounded-full blur-[130px] pointer-events-none" />

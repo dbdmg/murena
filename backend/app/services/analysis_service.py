@@ -132,7 +132,7 @@ class AnalysisService:
             analysis_mode: 'agent' or 'classic'
             progress_callback: Optional callback for progress updates
             dataset: Optional custom dataset DataFrame to use instead of loading from file
-            output_language: Language for user-facing generated text ('en' or 'it')
+            output_language: Fixed language for user-facing generated text (English)
 
         Returns:
             Dict containing analysis results

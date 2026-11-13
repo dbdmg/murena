@@ -295,11 +295,11 @@ def simulate_conversation(scenario: dict[str, Any], language: str) -> dict[str, 
                 reviewed_query = scenario.get("reviewed_query") or response.refined_query
                 messages.append({
                     "role": "assistant",
-                    "content": "Query proposta per la revisione: " + (response.refined_query or ""),
+                    "content": "Query submitted for review: " + (response.refined_query or ""),
                 })
                 messages.append({
                     "role": "user",
-                    "content": "Confermo." if reviewed_query == response.refined_query else reviewed_query,
+                    "content": "Confirmed." if reviewed_query == response.refined_query else reviewed_query,
                 })
                 return {
                     "status": "READY",

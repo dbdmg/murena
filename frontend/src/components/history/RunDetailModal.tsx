@@ -299,7 +299,7 @@ export const RunDetailModal: React.FC<RunDetailModalProps> = ({
                                         className="flex items-center gap-2 px-4 py-2.5 bg-linear-to-r from-emerald-600 to-green-600 rounded-xl text-sm font-medium text-white shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30 transition-all"
                                     >
                                         <MapIcon className="w-4 h-4" />
-                                        Carica sulla Mappa
+                                        Load on Map
                                     </button>
                                 )}
                                 <button
@@ -528,7 +528,7 @@ export const RunDetailModal: React.FC<RunDetailModalProps> = ({
                                                                             {step.response != null && (
                                                                                 <div>
                                                                                     <div className="flex items-center justify-between mb-2">
-                                                                                        <span className="text-xs text-emerald-400/70 uppercase tracking-wider font-medium">Risposta</span>
+                                                                                        <span className="text-xs text-emerald-400/70 uppercase tracking-wider font-medium">Response</span>
                                                                                         <button
                                                                                             onClick={() => copyToClipboard(
                                                                                                 typeof step.response === 'string'
@@ -567,7 +567,7 @@ export const RunDetailModal: React.FC<RunDetailModalProps> = ({
                                                                             {step.data != null && Object.keys(step.data).length > 0 && (
                                                                                 <div>
                                                                                     <div className="flex items-center justify-between mb-2">
-                                                                                        <span className="text-xs text-emerald-400/70 uppercase tracking-wider font-medium">Dati Estratti</span>
+                                                                                        <span className="text-xs text-emerald-400/70 uppercase tracking-wider font-medium">Extracted Data</span>
                                                                                         <button
                                                                                             onClick={() => copyToClipboard(formatJson(step.data as Record<string, unknown>), `data-${step.key}`)}
                                                                                             className="text-xs text-gray-500 hover:text-white flex items-center gap-1.5 transition-colors px-2.5 py-1 rounded-md hover:bg-white/5"

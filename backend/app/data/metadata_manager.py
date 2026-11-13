@@ -3,9 +3,9 @@ from app.utils.logger import logger
 
 class MetadataManager:
     """
-    Gestisce l'aggiornamento dei metadati a runtime. 
-    Ora centralizzato in memoria (app.core.constants.DB_METADATA) 
-    invece di utilizzare file JSON.
+    Manages runtime metadata updates.
+    Metadata is centralized in memory (app.core.constants.DB_METADATA)
+    instead of being written to JSON files.
     """
     
     def __init__(self, metadata_path: str = None, lite_metadata_path: str = None):
@@ -13,14 +13,14 @@ class MetadataManager:
         pass
 
     def update_metadata(self, df):
-        """Aggiorna i metadati in memoria basandosi sul dataframe attuale."""
+        """Update in-memory metadata from the current DataFrame."""
         if df is None or df.empty:
-            logger.warning("MetadataManager: DataFrame vuoto o nullo, salto aggiornamento.")
+            logger.warning("MetadataManager: DataFrame is empty or null; skipping update.")
             return
 
         try:
-            logger.info("Aggiornamento dinamico dei metadati in memoria...")
+            logger.info("Updating in-memory metadata...")
             update_runtime_metadata(df)
-            logger.info("Metadati in memoria aggiornati con successo.")
+            logger.info("In-memory metadata updated successfully.")
         except Exception as e:
-            logger.error(f"Errore durante l'aggiornamento dei metadati: {e}")
+            logger.error(f"Error updating metadata: {e}")

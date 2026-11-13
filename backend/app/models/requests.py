@@ -3,7 +3,7 @@ Pydantic models for API requests.
 """
 
 from pydantic import BaseModel, Field, ConfigDict
-from typing import Optional, List
+from typing import Literal, Optional, List
 
 
 class AnalysisRequest(BaseModel):
@@ -28,9 +28,9 @@ class AnalysisRequest(BaseModel):
     analysis_mode: str = Field(
         default="agent", description="Analysis mode: 'classic' or 'agent'"
     )
-    output_language: str = Field(
+    output_language: Literal["en"] = Field(
         default="en",
-        description="Language for user-facing generated text: 'en' or 'it'",
+        description="Fixed language for user-facing generated text: English",
     )
     use_relaxation: bool = Field(
         default=True, description="Whether to use query relaxation if 0 results found"

@@ -33,7 +33,7 @@ sources:
 | `map_limit` | `int` | 1000, tra 1 e 5000 |
 | `llm_limit` | `int` | 10, tra 1 e 10 |
 | `analysis_mode` | `str` | `agent` (`classic` ammesso) |
-| `output_language` | `str` | `en` (`it` disponibile) |
+| `output_language` | `Literal["en"]` | Fixed to English |
 | `use_relaxation` | `bool` | `true` |
 | `model_type` | `str|null` | `null` |
 | `clarification_session_id` | `str|null` | Sessione esistente quando si risponde a una domanda SAGE |
@@ -42,12 +42,14 @@ sources:
 
 Restituisce `AnalysisResponse`: `run_id`, `status`, `message`, `created_at`.
 
+`GET /api/v1/analysis/suggested-queries` richiede autenticazione e restituisce cinque query dimostrative generate dal modello configurato nel backend. Ogni query deve menzionare Turin e un'area della lista ufficiale in `backend/docs/knowledge/turin_areas.json`; il backend scarta una generazione che non rispetti questi vincoli. Le aree seguono l'elenco delle [circoscrizioni della Città di Torino](https://decentramento.comune.torino.it/). Il prompt riceve anche le etichette dei casi d'uso dal JSON normativo e le capacità di ricerca supportate; la risposta è memorizzata in cache per 30 minuti, o fino a una modifica delle fonti o del prompt.
+
 Con `ENABLE_SAGE_CLARIFICATION=true`, lo stesso endpoint può restituire `ClarificationResponse` con `status=ASK`, `REVIEW` o `BLOCKED`. `ASK` include la domanda; `REVIEW` include `refined_query` e `session_id`, e non avvia ancora una run. Per procedere, il client rimanda la query confermata o modificata, lo stesso `clarification_session_id` e `clarification_confirmed=true`. La sessione deve essere `ready`, non ancora inviata e associata all'utente corrente. Flag disabilitato: richiesta ordinaria e pipeline correnti invariati.
 
 ### Esempio minimo
 
 ```json
-{"query":"Find large buildings near the Polytechnic of Turin","output_language":"it","map_limit":500,"llm_limit":5}
+{"query":"Find large buildings near the Polytechnic of Turin","output_language":"en","map_limit":500,"llm_limit":5}
 ```
 
 ## Risultati e modelli

@@ -168,10 +168,10 @@ export const MapRunSelector: React.FC<MapRunSelectorProps> = ({
                                             </div>
                                             <div>
                                                 <p className={`text-sm ${!activeRunId ? 'text-cyan-400 font-medium' : 'text-gray-300'}`}>
-                                                    Mappa completa
+                                                    Full map
                                                 </p>
                                                 <p className="text-[10px] text-gray-500">
-                                                    Visualizza tutti i marker di background
+                                                    Show all background markers
                                                 </p>
                                             </div>
                                         </div>

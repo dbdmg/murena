@@ -28,7 +28,7 @@ sources:
 
 - **OSM POI:** importazione e classificazione delle amenities, comprese geometrie puntuali e centroidi.
 - **OMI:** associazione a zone di mercato immobiliare (`omi_zone`); il progetto contiene `data/static_data/omi_zones.geojson`.
-- **Geocoding:** risoluzione di luoghi e landmark richiesti dall'utente per vincoli di distanza; interazioni esterne possibili.
+- **Geocoding:** `app.data.loaders.get_coordinates` risolve landmark locali o interroga Nominatim, con cache in memoria e su file. Il LocationAgent lo usa per filtrare i luoghi estratti; SAGE lo usa anche come verifica best-effort quando la query contiene una città esplicita ma il parser ha classificato la località come critica. La verifica non riuscita lascia attivo il chiarimento. Le richieste Nominatim usano `NOMINATIM_USER_AGENT`; le interazioni esterne inviano il testo del luogo.
 - **Macro-score:** colonne `healthcare`, `mobility`, `green`, `sport`, `commercial`, `education` nello schema corrente. Nel testo del paper sono descritte macro-categorie e soglie di camminabilità.
 
 ## Metodo paper

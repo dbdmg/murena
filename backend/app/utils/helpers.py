@@ -110,7 +110,7 @@ def create_graph_metro(folder_linee="data/FOLDER_STATIC_ROME/Linee"):
     G = nx.Graph()
 
     if not os.path.exists(folder_linee):
-        print(f"La cartella '{folder_linee}' non esiste.")
+        print(f"Directory '{folder_linee}' does not exist.")
         return G
 
     for file in os.listdir(folder_linee):

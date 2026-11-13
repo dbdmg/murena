@@ -38,6 +38,12 @@ class ClarificationResponse(BaseModel):
     turn: int = 0
 
 
+class SuggestedQueriesResponse(BaseModel):
+    """LLM-generated example searches shown on the search landing page."""
+
+    suggestions: List[str]
+
+
 class Coordinates(BaseModel):
     """Geographic coordinates."""
 

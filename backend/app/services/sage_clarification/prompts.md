@@ -25,6 +25,12 @@ spaces (parks, gardens), sport (gyms, pools, courts), commercial (shops, superma
 whether proximity does not matter. Use MURENA's default distance thresholds; ask about distance only
 when the user's request itself makes a specific radius necessary to resolve.
 Mark AMBIGUOUS only when multiple plausible interpretations would materially change results.
+When the request names both a city and a neighborhood/district within it, that is a sufficiently
+specified location: set L=SPECIFIED, preserve the neighborhood and city in the value, and cite the
+location wording as evidence. For example, "a spacious restaurant in Turin's San Salvario near
+public transport" specifies L as San Salvario, Turin; do not mark it MISSING_CRITICAL or ask which
+city. The qualitative size term specifies Cb and public transport specifies Cp=mobility. Other
+dimensions may remain unconfirmed and should be asked about separately.
 If a named landmark follows a proximity phrase but its city is absent, preserve that landmark
 as an explicit location and mark L=AMBIGUOUS; ask which city it is in instead of saying that
 the user did not specify a location. Use your geographic knowledge to suggest up to three
@@ -44,20 +50,25 @@ Return JSON only matching this schema: {{OUTPUT_SCHEMA}}
 Every dimension must be included. Non-geographic candidate alternatives must be grounded in the
 request or supplied context; if their domain is unknown, use an empty alternatives list and state
 why. Geographic city suggestions may use your general knowledge under the rules above. Ask at most
-one concise, targeted question per unresolved issue. Write questions in {{LANGUAGE}}.
+one concise, targeted question per unresolved issue. Always write questions in English, even when
+the user's request is in another language.
 For every dimension marked UNCONFIRMED_ABSENT, formulate one user-facing question targeting only
 that dimension and set kind to "omission_confirmation". Ask naturally what information would help
 and make it clear the user may also say the dimension does not matter. Do not imply that an absent
 detail is required. The question wording must be written for this request, not copied from a fixed
 sentence or template.
+If a dimension is MISSING_CRITICAL and you cannot formulate a safe targeted clarification, still
+formulate a concise question that asks the user to supply or resolve that specific detail; do not
+leave it without a question. For MISSING_CRITICAL location, use the explicit place wording and ask
+only for the location detail that is unresolved.
 For Cb, ask about useful building constraints such as minimum floor area, occupancy/capacity, or
 structural features. A capacity requirement such as "at least 100 people" belongs to Cb.
-When asking about D (intended use), use examples only from MURENA's documented regulatory use cases:
-Micro-nido, Asilo Nido, Co-housing, Centro Diurno Anziani, and Centro Incontro. Include only examples
-that fit the user's request; do not substitute generic examples such as business activity or
-investment, and do not imply that any listed use case is required. Weave a relevant example directly
-into the question as a possible intended use. Never tell the user that an example is "documented",
-"in the regulations", or "in the catalog"; these are internal grounding constraints.
+When asking about D (intended use), use examples only from this list of MURENA regulatory use cases:
+{{REGULATORY_USE_CASES}}. Select at most two examples that fit the user's request; do not substitute
+generic examples such as business activity or investment, and do not imply that any listed use case is
+required. If the list is empty or no example fits, ask without examples. Weave a relevant example
+directly into the question as a possible intended use. Never tell the user that an example is
+"documented", "in the regulations", or "in the catalog"; these are internal grounding constraints.
 User request: {{QUERY}}
 <!-- /prompt:query_parser -->
 
@@ -65,19 +76,22 @@ User request: {{QUERY}}
 Write the actual user-facing clarification questions for dimensions that the query leaves
 unconfirmed. This is a new conversational turn, not a summary of the missing fields.
 Return JSON only matching this schema: {{OUTPUT_SCHEMA}}
-Write in {{LANGUAGE}}. Generate exactly one concise question for each supplied dimension and use
+Write in English. Generate exactly one concise question for each supplied dimension and use
 its exact dimension key in target_dimension. Ground the wording in the user's request, prior
 exchange, and the dimension meaning provided below. Ask directly for useful missing information
 while leaving room for the user to say it does not matter. Never assume a preference, invent a
 constraint, or present illustrative examples as user requirements. Avoid boilerplate and do not
 reuse one generic sentence with only the dimension name substituted; formulate each question for its
-dimension and context. When asking about D (intended use), draw examples only from MURENA's
-documented regulatory use cases: Micro-nido, Asilo Nido, Co-housing, Centro Diurno Anziani, and
-Centro Incontro. Include only examples that fit the user's request; do not use generic examples
-such as business activity or investment, and do not imply that a listed use case is required. Weave
-a relevant example directly into the question as a possible intended use; never call it "documented"
-or mention regulations or a catalog. If no example fits, ask without examples. If the context includes
+dimension and context. When asking about D (intended use), draw examples only from this list of MURENA
+regulatory use cases: {{REGULATORY_USE_CASES}}. Select at most two examples that fit the user's request;
+do not use generic examples such as business activity or investment, and do not imply that a listed use
+case is required. Weave a relevant example directly into the question as a possible intended use; never
+call it "documented" or mention regulations or a catalog. If the list is empty or no example fits, ask
+without examples. If the context includes
 an unclear answer, ask a useful follow-up without treating that answer as a confirmed requirement.
+The context may identify a dimension as MISSING_CRITICAL because parsing could not safely resolve
+it. In that case ask a focused question that resolves the specific detail; do not phrase it as a
+generic preference question and do not leave the dimension without a clarification path.
 When asking about Cb, examples may include minimum floor area, occupancy/capacity, or structural
 features. Do not conflate capacity with intended use (D) or nearby services (Cp).
 When asking about Cp (nearby services), ask which service categories matter: healthcare, mobility,
@@ -174,8 +188,8 @@ explicitly waived by the user may be removed from the original query, while all 
 dimensions must be preserved. Do not turn
 examples from questions into requirements, infer preferences, add thresholds, or invent facts.
 Keep independent concepts distinct: a building's current typology and its intended future use
-can both be stated. Omit dimensions explicitly confirmed as irrelevant. Use the same language as
-the original request.
+can both be stated. Omit dimensions explicitly confirmed as irrelevant. Always write the rewritten
+query in English, translating the original request and confirmed answers when needed.
 
 Original request (JSON string): {{ORIGINAL_QUERY}}
 Confirmed clarifications (JSON): {{CLARIFICATIONS}}

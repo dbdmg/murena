@@ -51,7 +51,7 @@ const itemPrettify = (content: string) => {
             <div className="flex flex-col gap-2.5">
                 <div className="flex items-center gap-2">
                     <span className="text-amber-400 font-bold bg-amber-400/10 px-2 py-0.5 rounded-md text-[13px] border border-amber-400/20 shadow-sm">{field}</span>
-                    <span className="text-gray-500 text-[10px] font-bold uppercase tracking-tight opacity-70">in lista</span>
+                    <span className="text-gray-500 text-[10px] font-bold uppercase tracking-tight opacity-70">in list</span>
                 </div>
                 <div className="flex flex-wrap gap-1.5 pl-1">
                     {values.map((v, i) => (
@@ -206,7 +206,7 @@ const TriggerButton: React.FC<{ isOpen: boolean; onClick: () => void }> = ({ isO
                         }
                     `}
                 >
-                    <span className="font-medium">Ispettore</span>
+                    <span className="font-medium">Inspector</span>
                 </button>
             </div>
         </div>
@@ -364,7 +364,7 @@ export const SQLFiltersHUD: React.FC<SQLFiltersHUDProps> = ({
                                         <SearchCode className="w-6 h-6 text-white" />
                                     </div>
                                     <div>
-                                        <h2 className="text-xl font-bold text-white">Ispettore Logico</h2>
+                                        <h2 className="text-xl font-bold text-white">Logical Inspector</h2>
                                         <p className="text-sm text-gray-500 italic">Granular analysis of the applied search parameters</p>
                                     </div>
                                 </div>
@@ -374,12 +374,12 @@ export const SQLFiltersHUD: React.FC<SQLFiltersHUDProps> = ({
                                         ? 'bg-amber-500/20 text-amber-400 border-amber-500/50'
                                         : 'bg-white/5 text-gray-400 border-white/10 hover:bg-white/10'
                                         }`}
-                                    title={viewMode === 'sql' ? "Visualizza Trace Completo" : "Visualizza SQL"}
+                                    title={viewMode === 'sql' ? "View Full Trace" : "View SQL"}
                                 >
                                     {viewMode === 'sql' ? (
                                         <>
                                             <FileText className="w-4 h-4" />
-                                            <span className="hidden sm:inline">Visualizza Trace</span>
+                                            <span className="hidden sm:inline">View Trace</span>
                                         </>
                                     ) : (
                                         <>

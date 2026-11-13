@@ -7,6 +7,7 @@ import logging
 import unicodedata
 import uuid
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any, Optional
 
 from sqlalchemy.orm import Session
@@ -87,6 +88,32 @@ DIMENSION_LABELS = {
     },
 }
 
+def _load_regulatory_use_cases() -> list[str]:
+    """Read use-case labels from the source shared with RegulatoryAgent."""
+    normative_file = (
+        Path(__file__).resolve().parents[3]
+        / "docs"
+        / "knowledge"
+        / "normativa"
+        / "normativa.json"
+    )
+    try:
+        records = json.loads(normative_file.read_text(encoding="utf-8"))
+        if not isinstance(records, list):
+            raise ValueError("Expected a JSON array")
+        labels = [
+            record["use_case"].strip()
+            for record in records
+            if isinstance(record, dict)
+            and isinstance(record.get("use_case"), str)
+            and record["use_case"].strip()
+        ]
+        return list(dict.fromkeys(labels))
+    except (OSError, json.JSONDecodeError, KeyError, TypeError, ValueError) as exc:
+        logger.warning("Could not load regulatory use cases for SAGE prompts: %s", exc)
+        return []
+
+
 class SageClarifier:
     """SAGE-inspired, query-dimension wrapper; never invokes MURENA agents."""
 
@@ -113,6 +140,7 @@ class SageClarifier:
         context: Optional[dict] = None,
     ) -> list[dict]:
         """Ask the configured LLM to write a natural question for each omitted dimension."""
+        language = "en"
         output_schema = {
             "questions": [
                 {"target_dimension": dimension, "question": "A natural, targeted user-facing question."}
@@ -122,7 +150,10 @@ class SageClarifier:
         prompt = render_prompt(
             "omission_question",
             OUTPUT_SCHEMA=json.dumps(output_schema, ensure_ascii=False),
-            LANGUAGE="Italian" if language == "it" else "English",
+            LANGUAGE="English",
+            REGULATORY_USE_CASES=json.dumps(
+                _load_regulatory_use_cases(), ensure_ascii=False
+            ),
             QUERY=json.dumps(query, ensure_ascii=False),
             DIMENSIONS=json.dumps(
                 {dimension: DIMENSION_LABELS[language][dimension] for dimension in dimensions},
@@ -167,27 +198,29 @@ class SageClarifier:
         ]
 
     def _ensure_omission_questions(self, state: dict) -> None:
-        """Keep each unconfirmed omission connected to its own generated question."""
+        """Keep each unresolved dimension connected to a selectable LLM question."""
         for question in state.get("questions", []):
             targets = question.get("target_dimensions", [])
             if (
                 question.get("kind") == "omission_confirmation"
                 and len(targets) == 1
-                and state["dimensions"][targets[0]]["status"] == "UNCONFIRMED_ABSENT"
+                and state["dimensions"][targets[0]]["status"]
+                in {"UNCONFIRMED_ABSENT", "MISSING_CRITICAL"}
             ):
-                # Readiness requires explicit confirmation for every omitted
-                # dimension, so the corresponding question must be selectable.
+                # Unresolved dimensions must always have a selectable path.
                 question["blocking"] = True
-        covered = {
-            targets[0]
+
+        blocking_targets = {
+            dimension
             for question in state.get("questions", [])
-            if question.get("kind") == "omission_confirmation"
-            and len(targets := question.get("target_dimensions", [])) == 1
+            if question.get("blocking", True)
+            for dimension in question.get("target_dimensions", [])
         }
         missing = [
             dimension for dimension in DIMENSIONS
-            if state["dimensions"][dimension]["status"] == "UNCONFIRMED_ABSENT"
-            and dimension not in covered
+            if state["dimensions"][dimension]["status"]
+            in {"UNCONFIRMED_ABSENT", "MISSING_CRITICAL"}
+            and dimension not in blocking_targets
         ]
         if missing:
             state.setdefault("questions", []).extend(
@@ -198,11 +231,20 @@ class SageClarifier:
                     context={
                         "confirmed_clarifications": state.get("clarifications", []),
                         "previous_turns": state.get("history", []),
+                        "unresolved_statuses": {
+                            dimension: state["dimensions"][dimension]["status"]
+                            for dimension in missing
+                        },
+                        "unresolved_reasons": {
+                            dimension: state["dimensions"][dimension].get("reason")
+                            for dimension in missing
+                        },
                     },
                 )
             )
 
     def _parse_query(self, query: str, language: str = "en") -> dict:
+        language = "en"
         normalized_query = _normalize_phrase(query)
         dimension_schema = {
             key: {"value": None, "status": "UNCONFIRMED_ABSENT", "evidence": None,
@@ -220,7 +262,10 @@ class SageClarifier:
         prompt = render_prompt(
             "query_parser",
             OUTPUT_SCHEMA=json.dumps(output_schema, ensure_ascii=False),
-            LANGUAGE="Italian" if language == "it" else "English",
+            LANGUAGE="English",
+            REGULATORY_USE_CASES=json.dumps(
+                _load_regulatory_use_cases(), ensure_ascii=False
+            ),
             QUERY=json.dumps(query, ensure_ascii=False),
         )
         result = self._model().invoke(prompt)
@@ -269,6 +314,44 @@ class SageClarifier:
                 clean_dims[key]["status"] = "MISSING_CRITICAL"
             if status == "MISSING_CRITICAL":
                 clean_dims[key]["value"] = None
+
+        # The model can occasionally mark a fully stated Turin neighborhood as
+        # critical. Use MURENA's existing geocoder as corroboration before
+        # asking the user to repeat an explicit local place. This is a
+        # best-effort check: a miss or network failure leaves the LLM result
+        # unchanged and the normal clarification path can still ask the user.
+        location = clean_dims["L"]
+        location_evidence = location.get("evidence")
+        if (
+            location["status"] == "MISSING_CRITICAL"
+            and isinstance(location_evidence, str)
+            and _normalize_phrase(location_evidence) in normalized_query
+        ):
+            try:
+                from app.data.loaders import DEFAULT_CITY, get_coordinates
+
+                city_context = _normalize_phrase(query)
+                configured_city = _normalize_phrase(DEFAULT_CITY)
+                city_is_explicit = bool(configured_city and configured_city in city_context)
+                if configured_city == "torino":
+                    city_is_explicit = city_is_explicit or "turin" in city_context
+                if city_is_explicit:
+                    latitude, longitude = get_coordinates(location_evidence)
+                    if latitude is not None and longitude is not None:
+                        location.update({
+                            "value": location_evidence,
+                            "status": "SPECIFIED",
+                            "reason": None,
+                        })
+                        logger.info(
+                            "SAGE geocoder resolved explicit location evidence: %s",
+                            location_evidence,
+                        )
+            except Exception:
+                logger.info(
+                    "SAGE geocoding corroboration unavailable; preserving parser result",
+                    exc_info=True,
+                )
 
         questions = []
         for raw in data.get("questions", []) if isinstance(data.get("questions"), list) else []:
@@ -700,8 +783,9 @@ class SageClarifier:
                 clarification_response: Optional[str] = None,
                 language: str = "en") -> ClarificationResponse:
         """Start a clarification session or apply one answer to an existing session."""
+        # Keep the SAGE dialogue and rewritten query in English regardless of UI locale.
+        language = "en"
         if not session_id:
-            language = language if language in {"en", "it"} else "en"
             state = self._parse_query(user_input, language)
             state.update({
                 "original_query": user_input,

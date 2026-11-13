@@ -30,23 +30,6 @@ import { analysisApi } from '../api/endpoints/analysis';
 import type { AnalysisHistoryItem } from '../api/types';
 import { HistoryItem } from '../components/search/HistoryItem';
 
-const SUGGESTED_QUERIES = {
-    it: [
-        'Trova un grande meta-edificio residenziale vicino a Porta Nuova adatto alla conversione in co-housing o social housing, con almeno 600 mq, classe energetica bassa E, F o G, ottima accessibilita al trasporto pubblico e preferibilmente vicino ad aree verdi o impianti sportivi',
-        'Trova edifici direzionali o commerciali vicino al Politecnico di Torino convertibili in residenze universitarie o servizi pubblici, con almeno 200 mq, classe energetica A, B o C, forte accessibilita al trasporto pubblico e buona prossimita a istruzione e aree verdi',
-        'Uffici vicino a Porta Nuova con classe energetica alta',
-        'Edifici di almeno 1000 mq vicino al Politecnico',
-        'Spazi commerciali in centro comodi ai trasporti',
-    ],
-    en: [
-        'Find a large residential meta-building near Porta Nuova suitable for co-housing or social housing conversion, with at least 600 sqm, low energy class E, F or G, excellent public transport accessibility, and preferably close to green areas or sports facilities',
-        'Find office or commercial buildings near the Politecnico di Torino that could be converted into student housing or public services, with at least 200 sqm, energy class A, B or C, strong public transport accessibility, and good proximity to education and green areas',
-        'Offices near Porta Nuova with a high energy class',
-        'Buildings of at least 1000 sqm near the Polytechnic University',
-        'Retail spaces in the city center with convenient public transport',
-    ],
-} as const;
-
 import murenaLogo217 from '../assets/brand/MURENA_217x34px.svg';
 
 type ClarificationMessage = {
@@ -62,6 +45,8 @@ export const SearchPage: React.FC = () => {
     const [recentHistory, setRecentHistory] = useState<AnalysisHistoryItem[]>([]);
     const [isLoadingHistory, setIsLoadingHistory] = useState(true);
     const [availableDemos, setAvailableDemos] = useState<string[]>([]);
+    const [suggestions, setSuggestions] = useState<string[]>([]);
+    const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(true);
     const [clarificationSessionId, setClarificationSessionId] = useState<string | null>(null);
     const [clarificationError, setClarificationError] = useState<string | null>(null);
     const [clarificationOriginalQuery, setClarificationOriginalQuery] = useState('');
@@ -76,8 +61,6 @@ export const SearchPage: React.FC = () => {
     const busy = isLoading || isSubmitting;
 
     const t = translations[language];
-    const suggestions = SUGGESTED_QUERIES[language];
-
     // Auto-resize textarea
     useEffect(() => {
         if (textareaRef.current) {
@@ -113,6 +96,24 @@ export const SearchPage: React.FC = () => {
         fetchData();
     }, []);
 
+    useEffect(() => {
+        let active = true;
+        analysisApi.getSuggestedQueries()
+            .then((generatedSuggestions) => {
+                if (active) setSuggestions(generatedSuggestions);
+            })
+            .catch((error) => {
+                console.warn('Could not load suggested searches:', error);
+            })
+            .finally(() => {
+                if (active) setIsLoadingSuggestions(false);
+            });
+
+        return () => {
+            active = false;
+        };
+    }, []);
+
     // Navigate to processing when analysis starts
     useEffect(() => {
         if (status === 'processing' && runId) {
@@ -146,7 +147,7 @@ export const SearchPage: React.FC = () => {
                     query: original,
                     llm_limit: llmLimit,
                     map_limit: markersLimit,
-                    output_language: language,
+                    output_language: 'en',
                     clarification_session_id: clarificationSessionId ?? undefined,
                     clarification_response: clarificationSessionId ? query.trim() : undefined,
                 });
@@ -213,7 +214,7 @@ export const SearchPage: React.FC = () => {
                 query: reviewQuery.trim(),
                 llm_limit: llmLimit,
                 map_limit: markersLimit,
-                output_language: language,
+                output_language: 'en',
                 clarification_session_id: clarificationSessionId,
                 clarification_confirmed: true,
             });
@@ -285,7 +286,7 @@ export const SearchPage: React.FC = () => {
             }`}>
 
                 {/* Logo Murena */}
-                {clarificationMessages.length === 0 && <motion.div
+                {clarificationMessages.length === 0 && (isLoadingSuggestions || suggestions.length > 0) && <motion.div
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
                     className="flex justify-center mb-10"
@@ -370,7 +371,7 @@ export const SearchPage: React.FC = () => {
                                 ? 'h-auto shrink-0 overflow-hidden'
                                 : 'h-[calc(100vh-1.5rem)] max-h-full min-h-[20rem] resize-y overflow-hidden'
                         }`}
-                        aria-label={language === 'it' ? 'Conversazione di ricerca' : 'Search conversation'}
+                        aria-label="Search conversation"
                     >
                         <header className="flex shrink-0 items-center justify-between gap-3 border-b border-(--border-light) px-4 py-3 sm:px-6">
                             <div className="flex min-w-0 items-center gap-3">
@@ -379,12 +380,10 @@ export const SearchPage: React.FC = () => {
                                 </span>
                                 <div>
                                     <h2 className="font-semibold text-(--text-primary)">
-                                        {language === 'it' ? 'Affiniamo la ricerca' : 'Let’s refine your search'}
+                                        Let’s refine your search
                                     </h2>
                                     <p className="text-xs text-(--text-tertiary)">
-                                        {language === 'it'
-                                            ? 'Una breve conversazione prima di avviare l’analisi.'
-                                            : 'A short conversation before the analysis starts.'}
+                                        A short conversation before the analysis starts.
                                     </p>
                                 </div>
                             </div>
@@ -392,12 +391,8 @@ export const SearchPage: React.FC = () => {
                                 type="button"
                                 onClick={() => setIsConversationCollapsed((collapsed) => !collapsed)}
                                 aria-expanded={!isConversationCollapsed}
-                                aria-label={isConversationCollapsed
-                                    ? (language === 'it' ? 'Mostra la conversazione' : 'Expand conversation')
-                                    : (language === 'it' ? 'Riduci la conversazione' : 'Collapse conversation')}
-                                title={isConversationCollapsed
-                                    ? (language === 'it' ? 'Mostra la conversazione' : 'Expand conversation')
-                                    : (language === 'it' ? 'Riduci la conversazione' : 'Collapse conversation')}
+                                aria-label={isConversationCollapsed ? 'Expand conversation' : 'Collapse conversation'}
+                                title={isConversationCollapsed ? 'Expand conversation' : 'Collapse conversation'}
                                 className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-(--text-tertiary) transition-colors hover:bg-white/5 hover:text-(--text-primary)"
                             >
                                 {isConversationCollapsed
@@ -433,14 +428,14 @@ export const SearchPage: React.FC = () => {
                                         }`}>
                                             {message.role === 'assistant' && (
                                                 <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-emerald-300">
-                                                    {language === 'it' ? 'MURENA · Chiarimento' : 'MURENA · Clarification'}
+                                                    MURENA · Clarification
                                                 </p>
                                             )}
                                             <p className="whitespace-pre-wrap">{message.content}</p>
                                             {message.role === 'system' && (
                                                 <button type="button" className="mt-3 inline-flex items-center gap-2 font-medium underline underline-offset-4" onClick={startNewSearch}>
                                                     <RotateCcw className="h-3.5 w-3.5" />
-                                                    {language === 'it' ? 'Avvia una nuova ricerca' : 'Start a new search'}
+                                                    Start a new search
                                                 </button>
                                             )}
                                         </div>
@@ -450,7 +445,7 @@ export const SearchPage: React.FC = () => {
                             {isSubmitting && (
                                 <div className="flex items-center gap-3 pl-10 text-xs text-(--text-tertiary)" role="status">
                                     <Loader2 className="h-4 w-4 animate-spin text-emerald-400" />
-                                    {language === 'it' ? 'Sto valutando la risposta…' : 'Considering your answer…'}
+                                    Considering your answer…
                                 </div>
                             )}
                             <div ref={messagesEndRef} />
@@ -462,12 +457,10 @@ export const SearchPage: React.FC = () => {
                                     <p className="mb-3 text-sm text-amber-200" role="alert">{clarificationError}</p>
                                 )}
                                 <label htmlFor="reviewed-query" className="mb-2 block text-sm font-semibold text-(--text-primary)">
-                                    {language === 'it' ? 'Prompt riscritto' : 'Rewritten prompt'}
+                                    Rewritten prompt
                                 </label>
                                 <p className="mb-3 text-xs text-(--text-tertiary)">
-                                    {language === 'it'
-                                        ? 'Controlla tutte le indicazioni raccolte e modifica il testo come preferisci.'
-                                        : 'Review the collected requirements and edit the text as needed.'}
+                                    Review the collected requirements and edit the text as needed.
                                 </p>
                                 <textarea
                                     id="reviewed-query"
@@ -484,7 +477,7 @@ export const SearchPage: React.FC = () => {
                                         onClick={startNewSearch}
                                         disabled={busy}
                                     >
-                                        {language === 'it' ? 'Annulla e avvia una nuova ricerca' : 'Cancel and start a new search'}
+                                        Cancel and start a new search
                                     </button>
                                     <button
                                         type="submit"
@@ -493,7 +486,7 @@ export const SearchPage: React.FC = () => {
                                     >
                                         {busy
                                             ? <Loader2 className="h-4 w-4 animate-spin" />
-                                            : <><span>{language === 'it' ? 'Conferma e avvia l’analisi' : 'Confirm and start analysis'}</span><ArrowRight className="h-4 w-4" /></>}
+                                            : <><span>Confirm and start analysis</span><ArrowRight className="h-4 w-4" /></>}
                                     </button>
                                 </div>
                             </form>
@@ -508,10 +501,10 @@ export const SearchPage: React.FC = () => {
                                         value={query}
                                         onChange={(event) => setQuery(event.target.value)}
                                         onKeyDown={handleKeyDown}
-                                        placeholder={language === 'it' ? 'Scrivi la tua risposta…' : 'Type your answer…'}
+                                        placeholder="Type your answer…"
                                         rows={1}
                                         disabled={busy}
-                                        aria-label={language === 'it' ? 'La tua risposta' : 'Your answer'}
+                                        aria-label="Your answer"
                                         className="max-h-36 min-h-11 flex-1 resize-none bg-transparent px-3 py-3 text-sm text-(--text-primary) outline-none placeholder:text-(--text-tertiary)"
                                     />
                                     <button
@@ -521,16 +514,14 @@ export const SearchPage: React.FC = () => {
                                     >
                                         {busy
                                             ? <Loader2 className="h-4 w-4 animate-spin" />
-                                            : <><span>{language === 'it' ? 'Invia' : 'Send'}</span><Send className="h-4 w-4" /></>}
+                                            : <><span>Send</span><Send className="h-4 w-4" /></>}
                                     </button>
                                 </div>
                                 <div className="mt-3 flex flex-wrap items-center justify-between gap-2 px-1 text-[11px] text-(--text-tertiary)">
-                                    <span>{language === 'it'
-                                        ? 'Dopo ogni risposta, MURENA passerà al prossimo requisito da chiarire.'
-                                        : 'After each answer, MURENA will move to the next requirement to clarify.'}</span>
+                                    <span>After each answer, MURENA will move to the next requirement to clarify.</span>
                                     <div className="flex items-center gap-4">
                                         <button type="button" className="underline underline-offset-2 hover:text-(--text-secondary)" onClick={startNewSearch}>
-                                            {language === 'it' ? 'Annulla' : 'Cancel'}
+                                            Cancel
                                         </button>
                                     </div>
                                 </div>
@@ -551,7 +542,7 @@ export const SearchPage: React.FC = () => {
                                 setClarificationMessages([]);
                                 setQuery(clarificationOriginalQuery);
                             }}
-                        >{language === 'it' ? 'Avvia una nuova ricerca' : 'Start a new search'}</button>
+                        >Start a new search</button>
                     </div>
                     )
                 )}
@@ -564,6 +555,7 @@ export const SearchPage: React.FC = () => {
                     className="flex flex-wrap items-center justify-center gap-4 mb-20"
                 >
                     <span className="text-sm text-(--text-tertiary) font-medium uppercase tracking-widest">{t.search.suggested}</span>
+                    {isLoadingSuggestions && <Loader2 className="h-4 w-4 animate-spin text-emerald-400/70" aria-label="Loading suggested searches" />}
                     {suggestions.map((suggestion, i) => (
                         <button
                             key={i}
