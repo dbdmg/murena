@@ -32,7 +32,7 @@ sources:
 | `/logs` | `LogsPage` | Log e trace browser/agent |
 | `/settings` | `SettingsPage` | Impostazioni e preferenze UI |
 
-Quando `ENABLE_SAGE_CLARIFICATION` è attivo, la schermata `/` passa dalla barra iniziale a una conversazione: la query appare come primo messaggio e ogni risposta e domanda successiva restano nel thread. Al termine, `REVIEW` mostra la query riscritta in un campo modificabile; l'analisi parte solo dopo la conferma dell'utente. `BLOCKED` mostra l'esito nel thread e offre l'avvio di una nuova ricerca.
+Quando `ENABLE_SAGE_CLARIFICATION` è attivo, la schermata `/` passa dalla barra iniziale a una conversazione: la query appare come primo messaggio e le domande generate dal modello e le risposte dell'utente restano nel thread. Al termine, `REVIEW` mostra la query riscritta in un campo modificabile con istruzioni UI; l'analisi parte solo dopo la conferma dell'utente. `BLOCKED` mostra un messaggio di stato nel thread e offre l'avvio di una nuova ricerca.
 
 Durante il chiarimento, il pannello usa l'altezza disponibile della finestra: la cronologia scorre in modo indipendente e il composer o i controlli di conferma restano fissi in fondo. L'utente può comprimere/riaprire la conversazione dall'intestazione e regolare verticalmente l'altezza del pannello.
 

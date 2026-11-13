@@ -152,16 +152,20 @@ export const SearchPage: React.FC = () => {
                 });
                 if ('session_id' in result) {
                     if (result.status === 'ASK') {
+                        const question = result.question?.trim();
+                        if (!question) {
+                            throw new Error('Clarification response did not include a generated question.');
+                        }
                         if (!isClarificationTurn) {
                             setClarificationOriginalQuery(submittedText);
                             setClarificationMessages([
                                 { role: 'user', content: submittedText },
-                                { role: 'assistant', content: result.question || 'Please clarify your request.' },
+                                { role: 'assistant', content: question },
                             ]);
                         } else {
                             setClarificationMessages((messages) => [
                                 ...messages,
-                                { role: 'assistant', content: result.question || 'Please clarify your request.' },
+                                { role: 'assistant', content: question },
                             ]);
                         }
                         setClarificationSessionId(result.session_id);
@@ -170,15 +174,6 @@ export const SearchPage: React.FC = () => {
                         setClarificationSessionId(result.session_id);
                         setReviewQuery(result.refined_query || original);
                         setQuery('');
-                        setClarificationMessages((messages) => [
-                            ...messages,
-                            {
-                                role: 'assistant',
-                                content: language === 'it'
-                                    ? 'Abbiamo raccolto i requisiti. Rivedi la ricerca riscritta qui sotto: puoi modificarla prima di avviare l’analisi.'
-                                    : 'We have collected the requirements. Review the rewritten search below; you can edit it before starting the analysis.',
-                            },
-                        ]);
                     } else {
                         const message = result.message || 'Clarification cannot continue safely.';
                         if (isClarificationTurn) {

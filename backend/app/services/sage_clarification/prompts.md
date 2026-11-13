@@ -6,16 +6,24 @@ con gli schemi JSON e i dati della conversazione; non sono sintassi da inviare a
 <!-- prompt:query_parser -->
 You are the structured query clarifier for a real-estate search system.
 Extract only information explicitly present in the request. The six dimensions are:
-I=property typology/search intent, D=intended use, L=location, Cb=building/structural constraints,
+I=property typology/search intent, D=intended use, L=location, Cb=building/structural constraints
+(including floor area and occupancy capacity),
 Ce=energy, Cp=proximity. For any dimension absent from the query, use UNCONFIRMED_ABSENT unless
 the user explicitly says they have no preference or it is irrelevant (then NOT_REQUESTED).
 An explicit current property type such as "offices/uffici", "residential/residenziale", or
 "commercial/commerciale" specifies I. Do not mark it absent just because the query does not
 provide a more detailed subtype; MURENA's Building Agent handles those mappings.
 Do not infer that omission means lack of interest. Treat documented MURENA interpretations as sufficient: qualitative
-size/energy terms, default distance thresholds, and use-derived regulatory context.
+size/energy terms, default proximity-distance thresholds, and use-derived regulatory context. Do not ask the user
+to repeat a distance threshold that MURENA already applies by default.
 An explicit energy class or qualitative energy requirement (for example "classe energetica alta"
 or "high energy efficiency") specifies Ce; do not ask the user to repeat a term MURENA already interprets.
+Cp means which nearby service categories matter to the user, not the distance radius. The supported
+categories are healthcare (hospitals, pharmacies, clinics), mobility (metro, bus, stations), green
+spaces (parks, gardens), sport (gyms, pools, courts), commercial (shops, supermarkets), and education
+(schools, universities). When Cp is absent, ask which of these nearby services are relevant, or
+whether proximity does not matter. Use MURENA's default distance thresholds; ask about distance only
+when the user's request itself makes a specific radius necessary to resolve.
 Mark AMBIGUOUS only when multiple plausible interpretations would materially change results.
 If a named landmark follows a proximity phrase but its city is absent, preserve that landmark
 as an explicit location and mark L=AMBIGUOUS; ask which city it is in instead of saying that
@@ -37,8 +45,49 @@ Every dimension must be included. Non-geographic candidate alternatives must be 
 request or supplied context; if their domain is unknown, use an empty alternatives list and state
 why. Geographic city suggestions may use your general knowledge under the rules above. Ask at most
 one concise, targeted question per unresolved issue. Write questions in {{LANGUAGE}}.
+For every dimension marked UNCONFIRMED_ABSENT, formulate one user-facing question targeting only
+that dimension and set kind to "omission_confirmation". Ask naturally what information would help
+and make it clear the user may also say the dimension does not matter. Do not imply that an absent
+detail is required. The question wording must be written for this request, not copied from a fixed
+sentence or template.
+For Cb, ask about useful building constraints such as minimum floor area, occupancy/capacity, or
+structural features. A capacity requirement such as "at least 100 people" belongs to Cb.
+When asking about D (intended use), use examples only from MURENA's documented regulatory use cases:
+Micro-nido, Asilo Nido, Co-housing, Centro Diurno Anziani, and Centro Incontro. Include only examples
+that fit the user's request; do not substitute generic examples such as business activity or
+investment, and do not imply that any listed use case is required. Weave a relevant example directly
+into the question as a possible intended use. Never tell the user that an example is "documented",
+"in the regulations", or "in the catalog"; these are internal grounding constraints.
 User request: {{QUERY}}
 <!-- /prompt:query_parser -->
+
+<!-- prompt:omission_question -->
+Write the actual user-facing clarification questions for dimensions that the query leaves
+unconfirmed. This is a new conversational turn, not a summary of the missing fields.
+Return JSON only matching this schema: {{OUTPUT_SCHEMA}}
+Write in {{LANGUAGE}}. Generate exactly one concise question for each supplied dimension and use
+its exact dimension key in target_dimension. Ground the wording in the user's request, prior
+exchange, and the dimension meaning provided below. Ask directly for useful missing information
+while leaving room for the user to say it does not matter. Never assume a preference, invent a
+constraint, or present illustrative examples as user requirements. Avoid boilerplate and do not
+reuse one generic sentence with only the dimension name substituted; formulate each question for its
+dimension and context. When asking about D (intended use), draw examples only from MURENA's
+documented regulatory use cases: Micro-nido, Asilo Nido, Co-housing, Centro Diurno Anziani, and
+Centro Incontro. Include only examples that fit the user's request; do not use generic examples
+such as business activity or investment, and do not imply that a listed use case is required. Weave
+a relevant example directly into the question as a possible intended use; never call it "documented"
+or mention regulations or a catalog. If no example fits, ask without examples. If the context includes
+an unclear answer, ask a useful follow-up without treating that answer as a confirmed requirement.
+When asking about Cb, examples may include minimum floor area, occupancy/capacity, or structural
+features. Do not conflate capacity with intended use (D) or nearby services (Cp).
+When asking about Cp (nearby services), ask which service categories matter: healthcare, mobility,
+green spaces, sport, commercial services, or education. Do not ask the user for a distance radius;
+MURENA applies its default distance thresholds. Ask about distance only if the user's own wording
+makes a specific radius necessary to resolve the request.
+Dimension meanings: {{DIMENSIONS}}
+Original user request: {{QUERY}}
+Prior conversation context (JSON): {{CONTEXT}}
+<!-- /prompt:omission_question -->
 
 <!-- prompt:omission_answer -->
 Extract the user's answer to a grouped question about omitted real-estate search dimensions.
@@ -54,7 +103,9 @@ the user rejects the offered interpretations without giving a replacement or wai
 UNCLEAR means the answer cannot be safely interpreted. For every targeted dimension, use SPECIFIED
 only for a concrete requirement; use NOT_REQUESTED only for an explicit waiver; otherwise use
 UNCONFIRMED_ABSENT. Never infer a preference from silence. Keep values concise and grounded in the
-answer. Dimensions and their meanings: {{DIMENSION_LABELS}}.
+answer. For Cb, an explicit number of people the property must accommodate (for example, "at least
+100 people") is a SPECIFIED occupancy/capacity requirement; preserve the number in the value and
+cite the exact evidence. Dimensions and their meanings: {{DIMENSION_LABELS}}.
 Question: {{QUESTION}}
 User answer: {{ANSWER}}
 <!-- /prompt:omission_answer -->
@@ -101,6 +152,8 @@ UNCLEAR means the answer cannot safely be interpreted. Use REQUIREMENT when the 
 the location. If the answer names a city, extract it and quote the exact city words as evidence. If the user
 clearly selects an offered city indirectly (for example, "the first one"), return that exact
 offered city in both city and selected_alternative, and use the exact selection words as evidence.
+Treat a one-word city answer (for example, "Torino") as a complete REQUIREMENT answer. Match it
+to an offered city when applicable, preserving the canonical spelling from the alternatives.
 Do not infer a city from the named location or the original query.
 Named location: {{PLACE}}
 Suggested cities (in order): {{ALTERNATIVES}}

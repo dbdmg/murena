@@ -1,0 +1,80 @@
+# MURENA conversation dimensions:
+#   I  = physical property type / search intent
+#   D  = intended use and regulatory requirements
+#   L  = location
+#   Cb = building or structural constraints
+#   Ce = energy performance
+#   Cp = nearby services and infrastructure
+#
+# expected_initial_missing lists dimensions intentionally omitted from the first message.
+# Question text is generated at runtime by the configured LLM. clarifications maps dimensions
+# to what the simulated user says if SAGE asks about them; these answer strings are scenario data.
+# expected_mapping checks each dimension's final status after the conversation:
+#   SPECIFIED          = a requirement was identified and confirmed.
+#   NOT_REQUESTED      = the user explicitly said this dimension does not matter.
+#   UNCONFIRMED_ABSENT = it is still absent and the user has not confirmed that omission.
+#   AMBIGUOUS          = the input supports more than one interpretation.
+#   MISSING_CRITICAL   = a required detail is absent, so analysis must remain blocked.
+# Answers for dimensions outside expected_initial_missing are useful fallbacks when SAGE
+# mistakenly asks about information that was already present in the initial query.
+
+- id: residential_energy
+  name: Specificare energia e destinazione dopo la domanda
+  tags: [residential, energy, multi-turn]
+  initial_query: Cerco appartamenti a Torino con una superficie di almeno 80 metri quadrati.
+  expected_initial_missing: [D, Ce, Cp]
+  clarifications:
+    I: Confermo che cerco appartamenti.
+    D: L'immobile sarà destinato a un progetto di co-housing.
+    L: Confermo che la città è Torino.
+    Cb: Confermo una superficie minima di 80 metri quadrati.
+    Ce: Vorrei una classe energetica B o superiore.
+    Cp: Mi interessa la vicinanza ai mezzi pubblici.
+  expected_mapping:
+    I: SPECIFIED
+    D: SPECIFIED
+    L: SPECIFIED
+    Cb: SPECIFIED
+    Ce: SPECIFIED
+    Cp: SPECIFIED
+  repeats: 1
+
+- id: underspecified_request
+  name: Richiesta generica con preferenza energetica aggiunta in seguito
+  tags: [underspecified, multi-turn]
+  initial_query: Cerco un immobile a Torino.
+  expected_initial_missing: [I, D, Cb, Ce, Cp]
+  clarifications:
+    I: Non ho preferenze sulla tipologia fisica dell'immobile.
+    D: Vorrei destinarlo a un progetto di co-housing.
+    L: Confermo che la città è Torino.
+    Cb: Mi serve una superficie di almeno 100 metri quadrati.
+    Ce: Preferisco la classe energetica C o superiore.
+    Cp: Mi interessa la vicinanza a servizi sanitari.
+  expected_mapping:
+    I: NOT_REQUESTED
+    D: SPECIFIED
+    L: SPECIFIED
+    Cb: SPECIFIED
+    Ce: SPECIFIED
+    Cp: SPECIFIED
+
+- id: no_energy_preference
+  name: Dichiarare esplicitamente una dimensione non rilevante
+  tags: [energy, no-preference, multi-turn]
+  initial_query: Cerco uffici a Torino, da convertire in alloggi per studenti.
+  expected_initial_missing: [Cb, Ce, Cp]
+  clarifications:
+    I: Confermo, la tipologia attuale è uffici.
+    D: Confermo, la destinazione futura sono alloggi per studenti.
+    L: Confermo che la città è Torino.
+    Cb: Non ho vincoli strutturali specifici.
+    Ce: La classe energetica non è importante per questa ricerca.
+    Cp: Vorrei essere vicino ai trasporti pubblici.
+  expected_mapping:
+    I: SPECIFIED
+    D: SPECIFIED
+    L: SPECIFIED
+    Cb: NOT_REQUESTED
+    Ce: NOT_REQUESTED
+    Cp: SPECIFIED

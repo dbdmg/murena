@@ -73,82 +73,19 @@ DIMENSION_LABELS = {
         "I": "tipologia dell'immobile / intento di ricerca",
         "D": "destinazione d'uso e requisiti normativi",
         "L": "località",
-        "Cb": "vincoli edilizi o strutturali",
+        "Cb": "vincoli edilizi o strutturali, inclusi superficie e capienza/occupazione",
         "Ce": "prestazioni energetiche",
-        "Cp": "servizi e infrastrutture di prossimità",
+        "Cp": "servizi vicini d'interesse: sanità, mobilità, verde, sport, commercio e istruzione",
     },
     "en": {
         "I": "property type / search intent",
         "D": "intended use and regulatory requirements",
         "L": "location",
-        "Cb": "building or structural constraints",
+        "Cb": "building or structural constraints, including floor area and occupancy capacity",
         "Ce": "energy performance",
-        "Cp": "nearby services and infrastructure",
+        "Cp": "nearby services of interest: healthcare, mobility, green spaces, sports, commerce, and education",
     },
 }
-
-DIMENSION_GUIDANCE = {
-    "it": {
-        "I": "Per esempio: uffici, residenziale, commerciale oppure qualsiasi tipologia.",
-        "D": "Per esempio: residenza universitaria, social housing o servizi pubblici.",
-        "L": "Puoi indicare una città, un quartiere o un punto di riferimento.",
-        "Cb": "Per esempio: superficie minima, capienza o una caratteristica strutturale; va bene anche una descrizione qualitativa.",
-        "Ce": "Per esempio: una classe energetica target, oppure un obiettivo qualitativo come alta o bassa efficienza.",
-        "Cp": "Per esempio: trasporti, aree verdi, sanità, istruzione, sport o negozi nelle vicinanze.",
-    },
-    "en": {
-        "I": "For example: offices, residential, commercial, or any property type.",
-        "D": "For example: student housing, social housing, or public services.",
-        "L": "You can name a city, neighborhood, or landmark.",
-        "Cb": "For example: minimum floor area, capacity, or a structural feature; a qualitative description is fine too.",
-        "Ce": "For example: a target energy class, or a qualitative goal such as high or low efficiency.",
-        "Cp": "For example: nearby transit, green areas, healthcare, education, sports, or shops.",
-    },
-}
-
-
-def _omission_confirmation_question(dimensions: list[str], language: str) -> dict:
-    labels = DIMENSION_LABELS[language]
-    guidance = DIMENSION_GUIDANCE[language]
-    details = ", ".join(labels[key] for key in dimensions)
-    if language == "it":
-        if len(dimensions) == 1:
-            question = (
-                f"Non hai specificato {details}. {guidance[dimensions[0]]} "
-                "È una dimensione che non ti interessa, oppure vuoi aggiungere un requisito? "
-                "Gli esempi sono solo spunti: userò soltanto ciò che confermi."
-            )
-        else:
-            question = (
-                f"Non hai specificato: {details}. Li hai omessi perché non ti interessano, "
-                "oppure vuoi aggiungere requisiti? Indica quello che ti interessa e conferma "
-                "che gli altri non sono rilevanti."
-            )
-        reason = "The user has not confirmed whether these omitted dimensions are intentional."
-    else:
-        if len(dimensions) == 1:
-            question = (
-                f"Your query does not specify {details}. {guidance[dimensions[0]]} "
-                "Is this dimension unimportant to you, or would you like to add a requirement? "
-                "These are only examples; I will use only what you confirm."
-            )
-        else:
-            question = (
-                f"Your query does not specify: {details}. Did you omit these because they do not "
-                "matter to you, or would you like to add requirements? List what matters and "
-                "confirm that the others are not relevant."
-            )
-        reason = "The user has not confirmed whether these omitted dimensions are intentional."
-    return {
-        "question": question,
-        "target_dimensions": dimensions,
-        "target_parameters": [labels[key] for key in dimensions],
-        "reason": reason,
-        "blocking": True,
-        "alternatives": [],
-        "kind": "omission_confirmation",
-    }
-
 
 class SageClarifier:
     """SAGE-inspired, query-dimension wrapper; never invokes MURENA agents."""
@@ -167,6 +104,103 @@ class SageClarifier:
     def _model(self):
         # SAGE and all MURENA agents use the same centralized provider choice.
         return self._llm or get_llm(temperature=0.0)
+
+    def _generate_omission_questions(
+        self,
+        query: str,
+        dimensions: list[str],
+        language: str,
+        context: Optional[dict] = None,
+    ) -> list[dict]:
+        """Ask the configured LLM to write a natural question for each omitted dimension."""
+        output_schema = {
+            "questions": [
+                {"target_dimension": dimension, "question": "A natural, targeted user-facing question."}
+                for dimension in dimensions
+            ]
+        }
+        prompt = render_prompt(
+            "omission_question",
+            OUTPUT_SCHEMA=json.dumps(output_schema, ensure_ascii=False),
+            LANGUAGE="Italian" if language == "it" else "English",
+            QUERY=json.dumps(query, ensure_ascii=False),
+            DIMENSIONS=json.dumps(
+                {dimension: DIMENSION_LABELS[language][dimension] for dimension in dimensions},
+                ensure_ascii=False,
+            ),
+            CONTEXT=json.dumps(context or {}, ensure_ascii=False),
+        )
+        data = _parse_llm_json(self._model().invoke(prompt))
+        raw_questions = data.get("questions") if isinstance(data, dict) else None
+        if not isinstance(raw_questions, list):
+            raise ValueError("Clarification model returned no questions for omitted dimensions")
+
+        generated: dict[str, str] = {}
+        allowed = set(dimensions)
+        for item in raw_questions:
+            if not isinstance(item, dict):
+                continue
+            dimension = item.get("target_dimension")
+            question = item.get("question")
+            if not isinstance(dimension, str) or dimension not in allowed or dimension in generated:
+                continue
+            if isinstance(question, str) and question.strip():
+                generated[dimension] = question.strip()
+        if set(generated) != allowed:
+            missing = sorted(allowed - set(generated))
+            raise ValueError(
+                "Clarification model failed to formulate a question for: " + ", ".join(missing)
+            )
+
+        return [
+            {
+                "question": generated[dimension],
+                "target_dimensions": [dimension],
+                "target_parameters": [DIMENSION_LABELS[language][dimension]],
+                "reason": None,
+                "blocking": True,
+                "alternatives": [],
+                "kind": "omission_confirmation",
+                "question_source": "llm_omission_question",
+            }
+            for dimension in dimensions
+        ]
+
+    def _ensure_omission_questions(self, state: dict) -> None:
+        """Keep each unconfirmed omission connected to its own generated question."""
+        for question in state.get("questions", []):
+            targets = question.get("target_dimensions", [])
+            if (
+                question.get("kind") == "omission_confirmation"
+                and len(targets) == 1
+                and state["dimensions"][targets[0]]["status"] == "UNCONFIRMED_ABSENT"
+            ):
+                # Readiness requires explicit confirmation for every omitted
+                # dimension, so the corresponding question must be selectable.
+                question["blocking"] = True
+        covered = {
+            targets[0]
+            for question in state.get("questions", [])
+            if question.get("kind") == "omission_confirmation"
+            and len(targets := question.get("target_dimensions", [])) == 1
+        }
+        missing = [
+            dimension for dimension in DIMENSIONS
+            if state["dimensions"][dimension]["status"] == "UNCONFIRMED_ABSENT"
+            and dimension not in covered
+        ]
+        if missing:
+            state.setdefault("questions", []).extend(
+                self._generate_omission_questions(
+                    state["original_query"],
+                    missing,
+                    state["language"],
+                    context={
+                        "confirmed_clarifications": state.get("clarifications", []),
+                        "previous_turns": state.get("history", []),
+                    },
+                )
+            )
 
     def _parse_query(self, query: str, language: str = "en") -> dict:
         normalized_query = _normalize_phrase(query)
@@ -246,7 +280,35 @@ class SageClarifier:
             targets = [d for d in raw_targets if d in DIMENSIONS]
             if not targets or not isinstance(raw.get("question"), str):
                 continue
-            if not any(clean_dims[d]["status"] in {"AMBIGUOUS", "MISSING_CRITICAL"} for d in targets):
+            kind = raw.get("kind")
+            if kind == "location_disambiguation":
+                if clean_dims["L"]["status"] not in {"AMBIGUOUS", "MISSING_CRITICAL"}:
+                    continue
+                targets = ["L"]
+            elif kind == "omission_confirmation":
+                targets = [
+                    dimension for dimension in targets
+                    if clean_dims[dimension]["status"] == "UNCONFIRMED_ABSENT"
+                ]
+                if len(targets) != 1:
+                    continue
+            else:
+                targets = [
+                    dimension for dimension in targets
+                    if clean_dims[dimension]["status"] in {"AMBIGUOUS", "MISSING_CRITICAL"}
+                ]
+                if not targets:
+                    continue
+            has_ambiguity = any(
+                clean_dims[d]["status"] in {"AMBIGUOUS", "MISSING_CRITICAL"}
+                for d in targets
+            )
+            is_omission_question = (
+                kind == "omission_confirmation"
+                and len(targets) == 1
+                and all(clean_dims[d]["status"] == "UNCONFIRMED_ABSENT" for d in targets)
+            )
+            if not has_ambiguity and not is_omission_question:
                 continue
             alternatives = raw.get("alternatives", [])
             if not isinstance(alternatives, list):
@@ -261,20 +323,27 @@ class SageClarifier:
                 "target_dimensions": targets,
                 "target_parameters": target_parameters,
                 "reason": str(raw.get("reason") or "This detail changes the interpretation."),
-                "blocking": bool(raw.get("blocking", True)),
+                "blocking": (
+                    True if kind == "omission_confirmation"
+                    else bool(raw.get("blocking", True))
+                ),
                 "alternatives": alternatives,
-                "kind": raw.get("kind"),
+                "kind": kind,
+                "question_source": "llm_query_parser",
             })
         already_targeted = {
             dimension for question in questions
             for dimension in question["target_dimensions"]
         }
-        for dimension in DIMENSIONS:
-            if dimension in already_targeted:
-                continue
-            if clean_dims[dimension]["status"] == "UNCONFIRMED_ABSENT":
-                questions.append(_omission_confirmation_question([dimension], language))
-                already_targeted.add(dimension)
+        missing_dimensions = [
+            dimension for dimension in DIMENSIONS
+            if dimension not in already_targeted
+            and clean_dims[dimension]["status"] == "UNCONFIRMED_ABSENT"
+        ]
+        if missing_dimensions:
+            questions.extend(
+                self._generate_omission_questions(query, missing_dimensions, language)
+            )
         return {"dimensions": clean_dims, "questions": questions}
 
     def _extract_omission_updates(self, state: dict, question: dict, answer: str) -> dict:
@@ -558,6 +627,7 @@ class SageClarifier:
 
     def _result(self, state: dict, session_id: str, db: Session,
                 row: ClarificationSession) -> ClarificationResponse:
+        self._ensure_omission_questions(state)
         unresolved = self._select_question(state)
         if self._ready(state):
             state["refined_query"] = self._refine(state)
@@ -683,13 +753,38 @@ class SageClarifier:
         elif pending.get("kind") == "omission_confirmation":
             result = self._extract_omission_updates(state, pending, answer)
             intent = result["intent"]
-            if intent in {"UNKNOWN", "REJECTED", "UNCLEAR"}:
+            if intent in {"UNKNOWN", "REJECTED"}:
                 state.setdefault("unanswerable_aspects", []).extend(aspect_keys)
                 if intent == "REJECTED":
                     for dimension in aspect_keys:
                         state.setdefault("excluded_interpretations", {}).setdefault(dimension, []).extend(
                             pending.get("alternatives", [])
                         )
+            elif intent == "UNCLEAR":
+                replacements = self._generate_omission_questions(
+                    state["original_query"],
+                    aspect_keys,
+                    state["language"],
+                    context={
+                        "previous_question": pending["question"],
+                        "previous_user_answer": answer,
+                        "answer_was_unclear": True,
+                        "confirmed_clarifications": state.get("clarifications", []),
+                    },
+                )
+                replacement_by_dimension = {
+                    question["target_dimensions"][0]: question
+                    for question in replacements
+                }
+                for question in state.get("questions", []):
+                    targets = question.get("target_dimensions", [])
+                    if question.get("kind") == "omission_confirmation" and len(targets) == 1:
+                        replacement = replacement_by_dimension.pop(targets[0], None)
+                        if replacement:
+                            question.clear()
+                            question.update(replacement)
+                if replacement_by_dimension:
+                    state.setdefault("questions", []).extend(replacement_by_dimension.values())
             else:
                 specified = {}
                 not_requested = []
@@ -714,12 +809,29 @@ class SageClarifier:
                         "not_requested_dimensions": not_requested,
                     })
                 if unresolved:
+                    replacements = self._generate_omission_questions(
+                        state["original_query"],
+                        unresolved,
+                        state["language"],
+                        context={
+                            "previous_question": pending["question"],
+                            "previous_user_answer": answer,
+                            "confirmed_clarifications": state.get("clarifications", []),
+                        },
+                    )
+                    replacement_by_dimension = {
+                        question["target_dimensions"][0]: question
+                        for question in replacements
+                    }
                     for question in state.get("questions", []):
-                        if question.get("kind") == "omission_confirmation" and any(
-                            dimension in unresolved for dimension in question.get("target_dimensions", [])
-                        ):
-                            question.update(_omission_confirmation_question(unresolved, state["language"]))
-                            break
+                        targets = question.get("target_dimensions", [])
+                        if question.get("kind") == "omission_confirmation" and len(targets) == 1:
+                            replacement = replacement_by_dimension.pop(targets[0], None)
+                            if replacement:
+                                question.clear()
+                                question.update(replacement)
+                    if replacement_by_dimension:
+                        state.setdefault("questions", []).extend(replacement_by_dimension.values())
         elif pending.get("kind") == "location_disambiguation":
             result = self._interpret_location_answer(state, pending, answer)
             if result["intent"] == "REQUIREMENT":
@@ -745,7 +857,9 @@ class SageClarifier:
                     "target_dimensions": ["L"], "not_requested_dimensions": ["L"],
                 })
             else:
-                state.setdefault("unanswerable_aspects", []).extend(aspect_keys)
+                # Keep unresolved location questions eligible even if the model
+                # classifies an answer as unknown, rejected, or unclear. Those
+                # labels alone must not permanently discard a critical location.
                 if result["intent"] == "REJECTED":
                     state.setdefault("excluded_interpretations", {}).setdefault("L", []).extend(
                         pending.get("alternatives", [])

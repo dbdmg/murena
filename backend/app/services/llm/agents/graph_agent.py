@@ -2432,7 +2432,9 @@ class GraphOrchestratorAgent(BaseAgent):
         def prepare_estates_json(batch_df: pd.DataFrame) -> str:
             """Convert DataFrame to JSON with only relevant columns for LLM evaluation."""
             # Select only columns that exist in the dataframe
-            available_cols = [c for c in EVAL_COLUMNS if c in batch_df.columns]
+            # EVAL_COLUMNS intentionally lists canonical and legacy fields; a few names
+            # overlap, so preserve order while selecting each DataFrame column once.
+            available_cols = list(dict.fromkeys(c for c in EVAL_COLUMNS if c in batch_df.columns))
             subset = batch_df[available_cols].copy()
 
             # Identify columns that are numeric scores to be rounded to nearest int
