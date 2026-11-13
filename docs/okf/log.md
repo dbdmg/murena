@@ -2,6 +2,7 @@
 
 ## 2026-11-13
 
+* **Sostituzione della fonte normativa**: il JSON fornito dall'utente è stato spostato in `backend/docs/knowledge/normativa/normativa.json` e contiene otto casi. Regole e prompt separano superficie netta funzionale e superficie lorda dell'immobile; capacità e metriche nette non generano più soglie SQL lorde. Gli standard concessi da bandi restano condizionati al programma e i record matched sono passati all'EvaluationAgent come contesto.
 * **Semplificazione dei layer mappa**: etichetta UI OMI rinominata `Cadastral Zones`; rimosso `Districts` dalla UI e l'overlay backend `municipi`, incluso il relativo setting e percorso d'esempio. Il dato del layer rinominato resta il GeoJSON OMI.
 * **Correzione dei filtri mappa**: il filtro `Type` usa ora i 14 valori effettivi di `property_type` in `estates.parquet`; rimossi `Usage` e `Constraint` dalla UI perché il dataset caricato non contiene i relativi campi e i marker non potevano soddisfarli.
 * **Rimozione dei filtri non discriminanti o non supportati**: rimosso `Legal Nature`, perché `legal_nature` non è presente nel dataset caricato; rimosso `EPC`, perché l'inventario attuale contiene soltanto edifici dotati di EPC.

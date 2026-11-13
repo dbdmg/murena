@@ -663,9 +663,19 @@ class GraphOrchestratorAgent(BaseAgent):
 
             # 5. Regulatory -> RegulatoryAgentResult
             reg = layer1.get("regulatory", layer1.get("normativa", {}))
-            if reg.get("found"):
-                dest = get_reqs(reg).get("use_destination") if isinstance(get_reqs(reg), dict) else "Other"
-                payload = {"found": True, "requirements": [{"notes": dest or "Regulatory analysis"}]}
+            if isinstance(reg, dict):
+                matched_use_cases = reg.get("matched_use_cases", [])
+                if not isinstance(matched_use_cases, list):
+                    matched_use_cases = []
+                matched_use_cases = [label for label in matched_use_cases if isinstance(label, str)]
+                regulatory_requirements = reg.get("requirements", [])
+                if not isinstance(regulatory_requirements, list):
+                    regulatory_requirements = []
+                payload = {
+                    "found": bool(regulatory_requirements),
+                    "matched_use_cases": matched_use_cases,
+                    "requirements": regulatory_requirements,
+                }
                 state["regulatory_result"] = RegulatoryAgentResult(raw_text=json.dumps(payload))
 
         # Trace and Gemini responses for UI compatibility

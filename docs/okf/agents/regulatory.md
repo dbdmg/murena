@@ -18,6 +18,8 @@ sources:
   title: 'MURENA repository: backend/app/services/llm/prompt_config.md'
 - resource: ../../../backend/app/services/llm/agents/graph_agent.py
   title: 'MURENA repository: backend/app/services/llm/agents/graph_agent.py'
+- resource: ../../../backend/docs/knowledge/normativa/normativa.json
+  title: 'MURENA repository: user-supplied Turin conversion metrics'
 ---
 
 # RegulatoryAgent
@@ -35,9 +37,9 @@ Estrae requisiti di conformità e categorie normative pertinenti.
 
 ## Comportamento rilevante
 
-Il loader legge ricorsivamente file `.json`, `.md` e `.txt` da `backend/docs/knowledge/normativa/` e inserisce il contenuto nel prompt dell'agente. Le colonne esplicitamente disponibili sono `surface_area`, `property_type`, `legal_nature`, `cultural_constraint`; il prompt limita l'estrazione a requisiti presenti nelle fonti, soprattutto soglie minime di superficie. L'output è supporto analitico, non parere giuridico.
+Il loader legge ricorsivamente file `.json`, `.md` e `.txt` da `backend/docs/knowledge/normativa/` e inserisce il contenuto nel prompt dell'agente. La fonte corrente contiene otto casi di conversione per servizi per l'infanzia, assistenza diurna/residenziale agli anziani e residenze universitarie legate a uno specifico programma CDP/PNRR. L'unica colonna abilitata per un filtro normativo è `surface_area`.
 
-La fonte `normativa.json` contiene 46 casi d'uso in inglese. I campi `minimum_gross_property_area_status` e `gross_filter_parameter.status` distinguono le stime euristiche dai requisiti legali verificati; il prompt esclude le euristiche dai filtri vincolanti. L'output include `matched_use_cases` con le etichette esatte dei casi pertinenti anche quando non esistono requisiti vincolanti estraibili; il grafo usa queste etichette per passare all'EvaluationAgent le voci normative complete corrispondenti. Il loader non verifica autonomamente l'esattezza giuridica delle fonti o dei valori.
+L'output include `matched_use_cases` con le etichette esatte dei record pertinenti anche quando non è possibile estrarre un filtro. Le metriche di superficie netta si riferiscono a funzioni o locali specifici e non vengono convertite nella superficie lorda del fabbricato; le soglie lorde nulle o `not_verified` non producono filtri. Le condizioni, i controlli e gli standard legati a bandi restano contesto per la valutazione. Il JSON deriva dal file fornito dall'utente e il loader non verifica autonomamente l'esattezza giuridica delle fonti, dei valori o della loro applicabilità.
 
 ## Osservabilità e dipendenze
 

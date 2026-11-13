@@ -16,6 +16,8 @@ sources:
   title: 'MURENA repository: AGENTS.md'
 - resource: ../references/paper/paper.tex
   title: Manoscritto LaTeX MURENA fornito dall’utente
+- resource: ../../../backend/docs/knowledge/normativa/normativa.json
+  title: Metriche di conversione immobiliare fornite dall'utente
 ---
 
 # Fonti e livelli di evidenza
@@ -25,6 +27,7 @@ sources:
 1. **Codice fornito** (`backend/`, `frontend/`, launcher e configurazioni): supporta la descrizione della struttura e dei percorsi implementativi. È stata svolta **lettura statica**, non esecuzione dell'applicazione.
 2. **Documentazione nel repository** (`README.md`, `AGENTS.md`): descrive uso previsto e comandi; può essere meno aggiornata del codice.
 3. **Manoscritto LaTeX caricato** (`references/paper/paper.tex`, più `metadata.tex` e supplemento): supporta metodo, dataset di ricerca e risultati sperimentali. Le prestazioni sono **rivendicazioni del paper**, non benchmark replicati per questo bundle.
+4. **Metriche di conversione fornite dall'utente** (ora in `backend/docs/knowledge/normativa/normativa.json`): il file è stato spostato nella posizione runtime della normativa precedente; il codice tratta i campi e i relativi status come contenuto di input. Il nome originario e gli status non equivalgono a una verifica legale indipendente da parte di MURENA.
 
 ## Casi che non vanno confusi
 

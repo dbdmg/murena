@@ -32,6 +32,8 @@ sources:
 
 Nel nodo di valutazione, i campi passati all'EvaluationAgent sono selezionati anche con i nomi canonici presenti nel Parquet. Il calcolo della distanza normalizza gli alias inglesi e italiani delle coordinate, così le spiegazioni possono usare `distanza_km` quando il riferimento geografico è disponibile.
 
+Il RegulatoryAgent abbina le query agli otto record in `backend/docs/knowledge/normativa/normativa.json`; il grafo passa i record completi corrispondenti all'EvaluationAgent. Le metriche riferite a superfici nette di locali o funzioni restano contesto valutativo e non diventano filtri sul campo `surface_area`. La capienza richiesta resta nel testo della ricerca, salvo che la fonte fornisca una soglia lorda verificata e applicabile.
+
 ## Grafo operativo
 
 ```text

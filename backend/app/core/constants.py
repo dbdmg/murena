@@ -66,9 +66,6 @@ BUILDING_AGENT_COLUMNS: List[str] = [
 # Columns for Regulatory agent
 REGULATORY_AGENT_COLUMNS: List[str] = [
     "surface_area",
-    "property_type",
-    "legal_nature",
-    "cultural_constraint",
 ]
 
 # Columns for Proximity agent

@@ -46,7 +46,7 @@ Il dataset fisico è `backend/data/metadata/estates.parquet`; DuckDB lo espone c
 
 ## Semantica e vincoli
 
-- Coordinate (`latitude`, `longitude`) in gradi geografici; `surface_area` esprime metri quadrati.
+- Coordinate (`latitude`, `longitude`) in gradi geografici; `surface_area` esprime metri quadrati. Il dataset non descrive superfici nette per singolo locale o funzione: i parametri normativi netti non sono confrontabili né convertibili automaticamente in questo campo.
 - `epglnren_ape` è un indicatore energetico; gli `energy_score_*` rappresentano sottopunteggi, non certificazioni.
 - Le macro-categorie POI sono score percentili 0–100; lo score totale energetico nella demo è somma di 4 valori nell'intervallo 1–5.
 - `backend/app/core/constants.py` definisce le **colonne visibili/filtrabili** dai technical agent. Alcuni campi del dataset restano solo per visualizzazione.
