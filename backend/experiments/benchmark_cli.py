@@ -157,6 +157,12 @@ def load_scenarios(path: Path) -> list[dict[str, Any]]:
     return raw
 
 
+def scenario_digest(scenario: dict[str, Any]) -> str:
+    """Hash one normalized scenario definition independently of file ordering/formatting."""
+    canonical = json.dumps(scenario, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
 def result_metrics(buildings: list[dict[str, Any]], expected_ids: list[str | int]) -> dict[str, Any]:
     returned = [str(item.get("id")) for item in buildings]
     expected = {str(item) for item in expected_ids}
@@ -362,6 +368,8 @@ async def run(args: argparse.Namespace) -> int:
             setattr(settings, attribute, str((BACKEND / value).resolve()))
 
     scenarios = load_scenarios(args.scenarios.resolve())
+    scenarios_sha256 = hashlib.sha256(args.scenarios.read_bytes()).hexdigest()
+    scenario_hashes = {scenario["id"]: scenario_digest(scenario) for scenario in scenarios}
     # The frontend omits model_type in its request, so the backend uses this same configured default.
     models = [settings.LLM_MODEL]
     dataset_path = settings.dataset_options.get(args.dataset)
@@ -382,16 +390,45 @@ async def run(args: argparse.Namespace) -> int:
     manifest_path = output_dir / "manifest.json"
 
     completed: set[tuple[str, str, int]] = set()
+    latest_status: dict[tuple[str, str, int], str] = {}
+    attempt_counts: dict[tuple[str, str, int, str], int] = {}
+    previous_manifest: dict[str, Any] | None = None
+    if args.resume and manifest_path.exists():
+        previous_manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    if args.retry_failed and (not runs_path.exists() or not manifest_path.exists()):
+        raise ValueError("Cannot retry failed runs: the output directory needs an existing manifest.json and runs.jsonl.")
     if args.resume and runs_path.exists():
         with runs_path.open(encoding="utf-8") as stream:
             for line in stream:
                 try:
                     row = json.loads(line)
+                    key = (row["model"], row["scenario_id"], row["repeat"])
+                    latest_status[key] = row.get("status", "")
+                    row_scenario_hash = row.get("scenario_sha256")
+                    if row_scenario_hash is None:
+                        artifact_file = row.get("artifact_file")
+                        legacy_record = None
+                        if artifact_file:
+                            artifact_path = output_dir / artifact_file
+                            if artifact_path.is_file():
+                                try:
+                                    legacy_record = json.loads(artifact_path.read_text(encoding="utf-8"))
+                                except json.JSONDecodeError:
+                                    pass
+                        if legacy_record is None and "scenario_definition" in row:
+                            legacy_record = row
+                        definition = (legacy_record or {}).get("scenario_definition")
+                        row_scenario_hash = (
+                            scenario_digest(definition) if isinstance(definition, dict)
+                            else (previous_manifest or {}).get("scenarios_sha256", "legacy")
+                        )
+                    attempt_key = (*key, row_scenario_hash or "legacy")
+                    attempt_counts[attempt_key] = attempt_counts.get(attempt_key, 0) + 1
                     if row.get("status") == "completed":
                         artifact_file = row.get("artifact_file")
                         if artifact_file and not (output_dir / artifact_file).is_file():
                             continue
-                        completed.add((row["model"], row["scenario_id"], row["repeat"]))
+                        completed.add(key)
                 except (json.JSONDecodeError, KeyError, TypeError):
                     continue
 
@@ -403,7 +440,8 @@ async def run(args: argparse.Namespace) -> int:
         "review_policy": "auto_accept_refined_query_unless_scenario_overrides_it",
         "dataset_key_default": args.dataset,
         "repeat_default": args.repeat,
-        "scenarios_sha256": hashlib.sha256(args.scenarios.read_bytes()).hexdigest(),
+        "scenarios_sha256": scenarios_sha256,
+        "scenario_hash_history": [scenarios_sha256],
         "python": platform.python_version(),
         "run_artifacts_directory": "runs",
         "run_artifact_schema_version": 1,
@@ -415,10 +453,20 @@ async def run(args: argparse.Namespace) -> int:
         },
     }
     if args.resume and manifest_path.exists():
-        previous_manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-        for field in ("scenarios_sha256", "models", "dataset_key_default", "repeat_default"):
+        for field in ("models", "dataset_key_default", "repeat_default"):
             if previous_manifest.get(field) != manifest.get(field):
                 raise ValueError(f"Cannot resume: benchmark setting '{field}' differs from the existing manifest.")
+        if previous_manifest.get("scenarios_sha256") != manifest["scenarios_sha256"] and not args.retry_failed:
+            raise ValueError(
+                "Cannot resume: scenario definitions differ from the existing run. "
+                "Use --retry-failed to retry only recorded failures against the current scenario definitions."
+            )
+        scenario_hash_history = previous_manifest.get(
+            "scenario_hash_history", [previous_manifest.get("scenarios_sha256")]
+        )
+        manifest["scenario_hash_history"] = list(dict.fromkeys(
+            [value for value in scenario_hash_history if value] + [scenarios_sha256]
+        ))
         previous_options = dict(previous_manifest.get("options", {}))
         # Manifests produced before bounded concurrency represented sequential runs.
         previous_options.setdefault("concurrency", 1)
@@ -456,6 +504,10 @@ async def run(args: argparse.Namespace) -> int:
             "tags": scenario.get("tags", []),
             "model": model,
             "repeat": repeat_index,
+            "attempt": attempt_counts.get(
+                (model, scenario["id"], repeat_index, scenario_hashes[scenario["id"]]), 0
+            ) + 1,
+            "scenario_sha256": scenario_hashes[scenario["id"]],
             "initial_query": scenario["initial_query"],
             "options": options,
             "started_at": datetime.now(timezone.utc).isoformat(),
@@ -511,6 +563,8 @@ async def run(args: argparse.Namespace) -> int:
                 "scenario_id": scenario["id"],
                 "model": model,
                 "repeat": repeat_index,
+                "attempt": record["attempt"],
+                "scenario_sha256": record["scenario_sha256"],
                 "status": record["status"],
                 "duration_seconds": record["duration_seconds"],
                 "artifact_file": record.get("artifact_file"),
@@ -552,7 +606,10 @@ async def run(args: argparse.Namespace) -> int:
                 for repeat_index in range(1, repeats + 1):
                     step += 1
                     key = (model, scenario["id"], repeat_index)
-                    if key in completed:
+                    if args.retry_failed and latest_status.get(key) != "error":
+                        print(f"[{step}/{total}] cached (not failed) {model} / {scenario['id']} / repeat {repeat_index}")
+                        continue
+                    if not args.retry_failed and key in completed:
                         print(f"[{step}/{total}] cached {model} / {scenario['id']} / repeat {repeat_index}")
                         continue
                     jobs.append((step, model, scenario, repeat_index, options, output))
@@ -567,17 +624,44 @@ async def run(args: argparse.Namespace) -> int:
                 if artifact_file:
                     artifact_path = output_dir / artifact_file
                     if artifact_path.is_file():
-                        all_runs.append(json.loads(artifact_path.read_text(encoding="utf-8")))
+                        run_record = json.loads(artifact_path.read_text(encoding="utf-8"))
+                        run_record.setdefault(
+                            "scenario_sha256",
+                            index_record.get("scenario_sha256")
+                            or (
+                                scenario_digest(run_record["scenario_definition"])
+                                if isinstance(run_record.get("scenario_definition"), dict)
+                                else (previous_manifest or {}).get("scenarios_sha256", "legacy")
+                            ),
+                        )
+                        all_runs.append(run_record)
                 else:
                     # Older runs stored the complete record directly in JSONL.
+                    index_record.setdefault(
+                        "scenario_sha256",
+                        index_record.get("scenario_sha256")
+                        or (
+                            scenario_digest(index_record["scenario_definition"])
+                            if isinstance(index_record.get("scenario_definition"), dict)
+                            else (previous_manifest or {}).get("scenarios_sha256", "legacy")
+                        ),
+                    )
                     all_runs.append(index_record)
             except json.JSONDecodeError:
                 continue
-    summary_rows: list[dict[str, Any]] = []
-    groups: dict[tuple[str, str], list[dict[str, Any]]] = {}
+    latest_runs: dict[tuple[str, str, int, str], dict[str, Any]] = {}
     for row in all_runs:
-        groups.setdefault((row.get("model", ""), row.get("scenario_id", "")), []).append(row)
-    for (model, scenario_id), rows in groups.items():
+        key = (
+            row.get("model", ""), row.get("scenario_id", ""),
+            row.get("repeat", 0), row.get("scenario_sha256", "legacy"),
+        )
+        latest_runs[key] = row
+    all_runs = list(latest_runs.values())
+    summary_rows: list[dict[str, Any]] = []
+    groups: dict[tuple[str, str, str], list[dict[str, Any]]] = {}
+    for row in all_runs:
+        groups.setdefault((row.get("model", ""), row.get("scenario_id", ""), row.get("scenario_sha256", "legacy")), []).append(row)
+    for (model, scenario_id, scenario_hash), rows in groups.items():
         successes = [row for row in rows if row.get("status") == "completed"]
         durations = [row["duration_seconds"] for row in successes]
         recalls = [row["quality"]["recall"] for row in successes if row.get("quality", {}).get("recall") is not None]
@@ -594,6 +678,7 @@ async def run(args: argparse.Namespace) -> int:
         summary_rows.append({
             "model": model,
             "scenario_id": scenario_id,
+            "scenario_sha256": scenario_hash,
             "runs": len(rows),
             "successes": len(successes),
             "errors": len(rows) - len(successes),
@@ -605,7 +690,7 @@ async def run(args: argparse.Namespace) -> int:
             "mean_initial_missing_f1": round(sum(missing_f1_values) / len(missing_f1_values), 4) if missing_f1_values else "",
         })
     with summary_path.open("w", encoding="utf-8", newline="") as stream:
-        fields = ["model", "scenario_id", "runs", "successes", "errors", "mean_duration_seconds", "mean_results_count", "mean_expected_recall", "mean_clarification_turns", "mean_mapping_accuracy", "mean_initial_missing_f1"]
+        fields = ["model", "scenario_id", "scenario_sha256", "runs", "successes", "errors", "mean_duration_seconds", "mean_results_count", "mean_expected_recall", "mean_clarification_turns", "mean_mapping_accuracy", "mean_initial_missing_f1"]
         writer = csv.DictWriter(stream, fieldnames=fields)
         writer.writeheader()
         writer.writerows(summary_rows)
@@ -629,6 +714,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--language", choices=["en", "it"], default="it")
     parser.add_argument("--use-relaxation", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--resume", action="store_true", help="Append to an existing run and skip completed model/scenario/repeat tuples.")
+    parser.add_argument("--retry-failed", action="store_true", help="With --resume, rerun only tuples whose latest recorded attempt failed; can use changed scenarios and keeps their results separate by scenario hash.")
     return parser
 
 
@@ -637,6 +723,8 @@ def main() -> None:
     args = parser.parse_args()
     if args.repeat < 1 or args.map_limit < 1 or args.llm_limit < 1 or args.concurrency < 1:
         parser.error("--repeat, --map-limit, --llm-limit and --concurrency must be positive integers.")
+    if args.retry_failed and not args.resume:
+        parser.error("--retry-failed requires --resume.")
     try:
         exit_code = asyncio.run(run(args))
     except ValueError as exc:

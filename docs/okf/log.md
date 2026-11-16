@@ -9,6 +9,7 @@
 * **Coordinate nei prompt SQL**: allineate le regole di filtro geografico e ordinamento ai nomi canonici `latitude` e `longitude`, normalizzati anche per i dataset storici. Evitato l'uso diretto degli alias legacy `latitudine` e `longitudine` nelle query DuckDB.
 * **Artefatti benchmark per singola run**: il runner salva ora `runs/<run_id>.json` con scenario/ground truth, conversazione e risposta API completa, incluso l'elenco integrale degli immobili e dei relativi score. `runs.jsonl` è ridotto a indice per resume e riepilogo; la documentazione distingue i JSON riproducibili dall'indice e precisa che la traccia dei prompt dipende dai dati registrati dagli agenti. Nessun benchmark è stato eseguito o risultato aggiunto.
 * **Revisione scenario EDBT UC08**: esplicitato nella query iniziale che il progetto prevede una conversione ma la destinazione d'uso non è ancora decisa; one-shot e conversational restano appaiati e ground truth/oracle invariati. La modifica mira a rendere chiara la rilevanza del requisito mancante, ma non è stata eseguita una nuova run e non dimostra la stabilità del chiarimento.
+* **Retry dei tentativi benchmark falliti**: aggiunto `--retry-failed` (insieme a `--resume`) per rieseguire solo le combinazioni il cui ultimo tentativo è fallito. I singoli artefatti e il riepilogo distinguono le versioni degli scenari via SHA-256, evitando di aggregare risultati di definizioni diverse; nessun benchmark è stato eseguito con la nuova opzione.
 
 ## 2026-11-13
 

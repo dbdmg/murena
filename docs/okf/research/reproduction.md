@@ -73,6 +73,18 @@ La cartella di output contiene `manifest.json`, `runs.jsonl`, la directory `runs
 
 `--resume` salta le combinazioni modello/scenario/ripetizione marcate come completate solo se il relativo JSON per-run esiste; run completate da output legacy JSONL senza `artifact_file` restano riconosciute. Run interrotte prima dell'indice o prive di artefatto vengono ripetute. L'indice viene accodato quando ogni run termina, consentendo la ripresa e il ricalcolo del riepilogo dagli artefatti.
 
+Per rilanciare **solo i tentativi falliti** nell'output esistente:
+
+```bash
+uv run python backend/experiments/benchmark_cli.py \
+  --scenarios backend/experiments/data/scenarios/conversational_scenarios.yaml \
+  --output backend/experiments/results/edbt_conversational \
+  --dataset full --repeat 3 --language it --concurrency 12 \
+  --resume --retry-failed
+```
+
+`--retry-failed` richiede `--resume`, seleziona le combinazioni il cui ultimo tentativo indicizzato ha stato `error` e non avvia quelle mai iniziate o già completate. Modello, dataset, ripetizioni e opzioni runtime devono corrispondere al manifest precedente. A differenza del resume ordinario, consente di usare definizioni degli scenari modificate: ogni nuovo artefatto e la relativa riga d'indice registrano lo SHA-256 della singola definizione; il `summary.csv` separa le righe per hash, così le versioni diverse dello stesso scenario non vengono aggregate insieme. Per output precedenti privi dell'hash per run, il riepilogo lo ricava da `scenario_definition` nell'artefatto e, se manca, usa l'hash del manifest. Nella stessa versione, il riepilogo considera l'ultimo tentativo per combinazione modello/scenario/ripetizione; gli artefatti precedenti restano conservati e l'indice resta append-only. Il manifest mantiene la cronologia degli hash dell'intero file scenari.
+
 La CLI richiede `backend/.env`, un provider LLM configurato e dataset accessibile tramite la configurazione del backend. Se manca il dataset demo locale, crearlo con `uv run python backend/data/metadata/create_demo_dataset.py`. La CLI risolve i percorsi relativi del backend rispetto alla directory `backend/`, anche quando viene invocata dalla root del repository. I risultati descrivono le esecuzioni fatte su quel setup; non sono da soli una replica dei benchmark del paper.
 
 Per mantenere leggibile l'output, la CLI filtra alcuni warning ripetitivi e noti di LangGraph, pandas e delle chiamate `datetime.utcnow()` del backend, anche durante l'import iniziale di LangGraph; altri warning restano visibili.
