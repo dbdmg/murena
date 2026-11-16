@@ -460,7 +460,6 @@ async def run(args: argparse.Namespace) -> int:
         "options": {
             "map_limit": args.map_limit,
             "llm_limit": args.llm_limit,
-            "output_language": "en",
             "concurrency": args.concurrency,
         },
     }
@@ -475,10 +474,8 @@ async def run(args: argparse.Namespace) -> int:
             [value for value in scenario_hash_history if value] + [scenarios_sha256]
         ))
         previous_options = dict(previous_manifest.get("options", {}))
-        # Older CLI manifests exposed Italian even though the app API now only accepts English.
-        # Treat that historical option as migrated to the fixed benchmark language.
-        if previous_options.get("output_language") in {None, "en", "it"}:
-            previous_options["output_language"] = "en"
+        # Language remains fixed internally to English but is no longer persisted as metadata.
+        previous_options.pop("output_language", None)
         # Manifests produced before bounded concurrency represented sequential runs.
         previous_options.setdefault("concurrency", 1)
         if previous_options != manifest["options"]:
@@ -536,9 +533,8 @@ async def run(args: argparse.Namespace) -> int:
                 (model, scenario["id"], repeat_index, scenario_hashes[scenario["id"]]), 0
             ) + 1,
             "scenario_sha256": scenario_hashes[scenario["id"]],
-            "output_language": "en",
             "initial_query": scenario["initial_query"],
-            "options": options,
+            "options": {key: value for key, value in options.items() if key != "output_language"},
             "started_at": datetime.now(timezone.utc).isoformat(),
         }
         print(f"[{index}/{total}] start {model} / {scenario['id']} / repeat {repeat_index}", flush=True)
@@ -593,7 +589,6 @@ async def run(args: argparse.Namespace) -> int:
                 "repeat": repeat_index,
                 "attempt": record["attempt"],
                 "scenario_sha256": record["scenario_sha256"],
-                "output_language": "en",
                 "status": record["status"],
                 "duration_seconds": record["duration_seconds"],
                 "artifact_file": record.get("artifact_file"),
@@ -666,11 +661,6 @@ async def run(args: argparse.Namespace) -> int:
                                 else (previous_manifest or {}).get("scenarios_sha256", "legacy")
                             ),
                         )
-                        run_record.setdefault(
-                            "output_language",
-                            run_record.get("options", {}).get("output_language")
-                            or (previous_manifest or {}).get("options", {}).get("output_language", "legacy"),
-                        )
                         all_runs.append(run_record)
                 else:
                     # Older runs stored the complete record directly in JSONL.
@@ -683,11 +673,6 @@ async def run(args: argparse.Namespace) -> int:
                             else (previous_manifest or {}).get("scenarios_sha256", "legacy")
                         ),
                     )
-                    index_record.setdefault(
-                        "output_language",
-                        index_record.get("options", {}).get("output_language")
-                        or (previous_manifest or {}).get("options", {}).get("output_language", "legacy"),
-                    )
                     all_runs.append(index_record)
             except json.JSONDecodeError:
                 continue
@@ -696,18 +681,17 @@ async def run(args: argparse.Namespace) -> int:
         key = (
             row.get("model", ""), row.get("scenario_id", ""),
             row.get("repeat", 0), row.get("scenario_sha256", "legacy"),
-            row.get("output_language", "legacy"),
         )
         latest_runs[key] = row
     all_runs = list(latest_runs.values())
     summary_rows: list[dict[str, Any]] = []
-    groups: dict[tuple[str, str, str, str], list[dict[str, Any]]] = {}
+    groups: dict[tuple[str, str, str], list[dict[str, Any]]] = {}
     for row in all_runs:
         groups.setdefault((
             row.get("model", ""), row.get("scenario_id", ""),
-            row.get("scenario_sha256", "legacy"), row.get("output_language", "legacy"),
+            row.get("scenario_sha256", "legacy"),
         ), []).append(row)
-    for (model, scenario_id, scenario_hash, output_language), rows in groups.items():
+    for (model, scenario_id, scenario_hash), rows in groups.items():
         successes = [row for row in rows if row.get("status") == "completed"]
         durations = [row["duration_seconds"] for row in successes]
         recalls = [row["quality"]["recall"] for row in successes if row.get("quality", {}).get("recall") is not None]
@@ -725,7 +709,6 @@ async def run(args: argparse.Namespace) -> int:
             "model": model,
             "scenario_id": scenario_id,
             "scenario_sha256": scenario_hash,
-            "output_language": output_language,
             "runs": len(rows),
             "successes": len(successes),
             "errors": len(rows) - len(successes),
@@ -737,7 +720,7 @@ async def run(args: argparse.Namespace) -> int:
             "mean_initial_missing_f1": round(sum(missing_f1_values) / len(missing_f1_values), 4) if missing_f1_values else "",
         })
     with summary_path.open("w", encoding="utf-8", newline="") as stream:
-        fields = ["model", "scenario_id", "scenario_sha256", "output_language", "runs", "successes", "errors", "mean_duration_seconds", "mean_results_count", "mean_expected_recall", "mean_clarification_turns", "mean_mapping_accuracy", "mean_initial_missing_f1"]
+        fields = ["model", "scenario_id", "scenario_sha256", "runs", "successes", "errors", "mean_duration_seconds", "mean_results_count", "mean_expected_recall", "mean_clarification_turns", "mean_mapping_accuracy", "mean_initial_missing_f1"]
         writer = csv.DictWriter(stream, fieldnames=fields)
         writer.writeheader()
         writer.writerows(summary_rows)
