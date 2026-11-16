@@ -148,7 +148,7 @@ def load_scenarios(path: Path) -> list[dict[str, Any]]:
         if not isinstance(options, dict):
             raise ValueError(f"Scenario '{scenario_id}' 'options' must be an object.")
         allowed_options = {
-            "dataset_key", "map_limit", "llm_limit", "analysis_mode", "output_language",
+            "dataset_key", "map_limit", "llm_limit", "analysis_mode",
             "use_relaxation", "use_data_knowledge", "architecture", "disabled_agents",
         }
         unknown = set(options) - allowed_options
@@ -177,7 +177,7 @@ def result_metrics(buildings: list[dict[str, Any]], expected_ids: list[str | int
     }
 
 
-def simulate_conversation(scenario: dict[str, Any], language: str) -> dict[str, Any]:
+def simulate_conversation(scenario: dict[str, Any]) -> dict[str, Any]:
     """Drive the same SAGE clarification service used by the frontend, in an isolated DB."""
     from sqlalchemy import create_engine
     from sqlalchemy.orm import Session
@@ -195,6 +195,7 @@ def simulate_conversation(scenario: dict[str, Any], language: str) -> dict[str, 
     messages: list[dict[str, str]] = [{"role": "user", "content": scenario["initial_query"]}]
     turns: list[dict[str, Any]] = []
     clarifier = SageClarifier()
+    language = "en"
 
     def snapshot(state: dict[str, Any]) -> dict[str, dict[str, Any]]:
         return {
@@ -448,7 +449,7 @@ async def run(args: argparse.Namespace) -> int:
         "options": {
             "map_limit": args.map_limit,
             "llm_limit": args.llm_limit,
-            "output_language": args.language,
+            "output_language": "en",
             "concurrency": args.concurrency,
         },
     }
@@ -468,6 +469,10 @@ async def run(args: argparse.Namespace) -> int:
             [value for value in scenario_hash_history if value] + [scenarios_sha256]
         ))
         previous_options = dict(previous_manifest.get("options", {}))
+        # Older CLI manifests exposed Italian even though the app API now only accepts English.
+        # Treat that historical option as migrated to the fixed benchmark language.
+        if previous_options.get("output_language") in {None, "en", "it"}:
+            previous_options["output_language"] = "en"
         # Manifests produced before bounded concurrency represented sequential runs.
         previous_options.setdefault("concurrency", 1)
         if previous_options != manifest["options"]:
@@ -508,6 +513,7 @@ async def run(args: argparse.Namespace) -> int:
                 (model, scenario["id"], repeat_index, scenario_hashes[scenario["id"]]), 0
             ) + 1,
             "scenario_sha256": scenario_hashes[scenario["id"]],
+            "output_language": "en",
             "initial_query": scenario["initial_query"],
             "options": options,
             "started_at": datetime.now(timezone.utc).isoformat(),
@@ -517,7 +523,6 @@ async def run(args: argparse.Namespace) -> int:
             conversation = await asyncio.to_thread(
                 simulate_conversation,
                 scenario,
-                options["output_language"],
             )
             record["conversation"] = conversation
             if conversation["status"] != "READY":
@@ -565,6 +570,7 @@ async def run(args: argparse.Namespace) -> int:
                 "repeat": repeat_index,
                 "attempt": record["attempt"],
                 "scenario_sha256": record["scenario_sha256"],
+                "output_language": "en",
                 "status": record["status"],
                 "duration_seconds": record["duration_seconds"],
                 "artifact_file": record.get("artifact_file"),
@@ -596,7 +602,7 @@ async def run(args: argparse.Namespace) -> int:
                     "map_limit": args.map_limit,
                     "llm_limit": args.llm_limit,
                     "analysis_mode": "agent",
-                    "output_language": args.language,
+                    "output_language": "en",
                     "use_relaxation": args.use_relaxation,
                     "use_data_knowledge": True,
                     "architecture": "multiagent",
@@ -634,6 +640,11 @@ async def run(args: argparse.Namespace) -> int:
                                 else (previous_manifest or {}).get("scenarios_sha256", "legacy")
                             ),
                         )
+                        run_record.setdefault(
+                            "output_language",
+                            run_record.get("options", {}).get("output_language")
+                            or (previous_manifest or {}).get("options", {}).get("output_language", "legacy"),
+                        )
                         all_runs.append(run_record)
                 else:
                     # Older runs stored the complete record directly in JSONL.
@@ -646,6 +657,11 @@ async def run(args: argparse.Namespace) -> int:
                             else (previous_manifest or {}).get("scenarios_sha256", "legacy")
                         ),
                     )
+                    index_record.setdefault(
+                        "output_language",
+                        index_record.get("options", {}).get("output_language")
+                        or (previous_manifest or {}).get("options", {}).get("output_language", "legacy"),
+                    )
                     all_runs.append(index_record)
             except json.JSONDecodeError:
                 continue
@@ -654,14 +670,18 @@ async def run(args: argparse.Namespace) -> int:
         key = (
             row.get("model", ""), row.get("scenario_id", ""),
             row.get("repeat", 0), row.get("scenario_sha256", "legacy"),
+            row.get("output_language", "legacy"),
         )
         latest_runs[key] = row
     all_runs = list(latest_runs.values())
     summary_rows: list[dict[str, Any]] = []
-    groups: dict[tuple[str, str, str], list[dict[str, Any]]] = {}
+    groups: dict[tuple[str, str, str, str], list[dict[str, Any]]] = {}
     for row in all_runs:
-        groups.setdefault((row.get("model", ""), row.get("scenario_id", ""), row.get("scenario_sha256", "legacy")), []).append(row)
-    for (model, scenario_id, scenario_hash), rows in groups.items():
+        groups.setdefault((
+            row.get("model", ""), row.get("scenario_id", ""),
+            row.get("scenario_sha256", "legacy"), row.get("output_language", "legacy"),
+        ), []).append(row)
+    for (model, scenario_id, scenario_hash, output_language), rows in groups.items():
         successes = [row for row in rows if row.get("status") == "completed"]
         durations = [row["duration_seconds"] for row in successes]
         recalls = [row["quality"]["recall"] for row in successes if row.get("quality", {}).get("recall") is not None]
@@ -679,6 +699,7 @@ async def run(args: argparse.Namespace) -> int:
             "model": model,
             "scenario_id": scenario_id,
             "scenario_sha256": scenario_hash,
+            "output_language": output_language,
             "runs": len(rows),
             "successes": len(successes),
             "errors": len(rows) - len(successes),
@@ -690,7 +711,7 @@ async def run(args: argparse.Namespace) -> int:
             "mean_initial_missing_f1": round(sum(missing_f1_values) / len(missing_f1_values), 4) if missing_f1_values else "",
         })
     with summary_path.open("w", encoding="utf-8", newline="") as stream:
-        fields = ["model", "scenario_id", "scenario_sha256", "runs", "successes", "errors", "mean_duration_seconds", "mean_results_count", "mean_expected_recall", "mean_clarification_turns", "mean_mapping_accuracy", "mean_initial_missing_f1"]
+        fields = ["model", "scenario_id", "scenario_sha256", "output_language", "runs", "successes", "errors", "mean_duration_seconds", "mean_results_count", "mean_expected_recall", "mean_clarification_turns", "mean_mapping_accuracy", "mean_initial_missing_f1"]
         writer = csv.DictWriter(stream, fieldnames=fields)
         writer.writeheader()
         writer.writerows(summary_rows)
@@ -711,10 +732,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--concurrency", type=int, default=2, help="Maximum number of scenario runs in flight (default: 2). Use 1 for sequential execution.")
     parser.add_argument("--map-limit", type=int, default=1000)
     parser.add_argument("--llm-limit", type=int, default=10)
-    parser.add_argument("--language", choices=["en", "it"], default="it")
     parser.add_argument("--use-relaxation", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--resume", action="store_true", help="Append to an existing run and skip completed model/scenario/repeat tuples.")
-    parser.add_argument("--retry-failed", action="store_true", help="With --resume, rerun only tuples whose latest recorded attempt failed; can use changed scenarios and keeps their results separate by scenario hash.")
+    parser.add_argument("--retry-failed", action="store_true", help="With --resume, rerun only tuples whose latest recorded attempt failed; can use changed scenarios and keeps results separate by scenario hash.")
     return parser
 
 
