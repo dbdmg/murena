@@ -635,6 +635,9 @@ async def run(args: argparse.Namespace) -> int:
                 for repeat_index in range(1, repeats + 1):
                     step += 1
                     key = (model, scenario["id"], repeat_index)
+                    if args.rerun_scenario and scenario["id"] not in args.rerun_scenario:
+                        print(f"[{step}/{total}] cached (outside selected scenarios) {model} / {scenario['id']} / repeat {repeat_index}")
+                        continue
                     if args.retry_failed and latest_status.get(key) != "error":
                         print(f"[{step}/{total}] cached (not failed) {model} / {scenario['id']} / repeat {repeat_index}")
                         continue
@@ -758,7 +761,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--use-relaxation", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--resume", action="store_true", help="Append to existing output, skip tuples whose latest attempt completed, and continue pending or failed tuples. Scenario revisions are tracked by hash.")
     parser.add_argument("--retry-failed", action="store_true", help="With --resume, rerun only tuples whose latest recorded attempt failed; can use changed scenarios and keeps results separate by scenario hash.")
-    parser.add_argument("--rerun-scenario", action="append", default=[], metavar="SCENARIO_ID", help="With --resume, rerun every configured repeat of this scenario, even if earlier attempts completed. May be repeated.")
+    parser.add_argument("--rerun-scenario", action="append", default=[], metavar="SCENARIO_ID", help="With --resume, run only every configured repeat of this scenario, even if earlier attempts completed. May be repeated.")
     return parser
 
 

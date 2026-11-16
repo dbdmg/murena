@@ -95,7 +95,7 @@ uv run python backend/experiments/benchmark_cli.py \
   --resume --rerun-scenario UC08_student_grant_missing_use
 ```
 
-L'opzione è ripetibile per selezionare più ID. Tutte le ripetizioni definite da `--repeat`/`repeats` vengono rilanciate anche se avevano già un artefatto completato; gli altri scenari seguono il comportamento ordinario di `--resume`. `--rerun-scenario` e `--retry-failed` sono alternative. Le nuove run hanno nuovi `run_id` e artefatti append-only; il manifest registra la selezione e il riepilogo mantiene separati gli hash delle definizioni. Per avere un batch composto solo dalla nuova versione dello scenario, usare una nuova directory di output.
+L'opzione è ripetibile per selezionare più ID. Tutte le ripetizioni definite da `--repeat`/`repeats` vengono rilanciate anche se avevano già un artefatto completato; gli altri scenari restano cached, inclusi quelli pendenti o falliti. `--rerun-scenario` e `--retry-failed` sono alternative. Le nuove run hanno nuovi `run_id` e artefatti append-only; il manifest registra la selezione e il riepilogo mantiene separati gli hash delle definizioni. Per avere un batch composto solo dalla nuova versione dello scenario, usare una nuova directory di output.
 
 La CLI richiede `backend/.env`, un provider LLM configurato e dataset accessibile tramite la configurazione del backend. Se manca il dataset demo locale, crearlo con `uv run python backend/data/metadata/create_demo_dataset.py`. La CLI risolve i percorsi relativi del backend rispetto alla directory `backend/`, anche quando viene invocata dalla root del repository. I risultati descrivono le esecuzioni fatte su quel setup; non sono da soli una replica dei benchmark del paper.
 
