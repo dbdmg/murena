@@ -21,6 +21,8 @@ sources:
 
 # Chiarimento pre-analisi
 
+Gli scenari sintetici per studiare questo passaggio sono descritti nel [benchmark conversazionale EDBT](../research/edbt-conversational-benchmark.md); il runner documentato lì esegue la sola condizione conversational.
+
 ## Confine e attivazione
 
 `ENABLE_SAGE_CLARIFICATION` è `false` per default. Quando è attivo, `POST /api/v1/analysis` analizza la query prima di creare una run. `ASK` richiede un'altra richiesta con `clarification_session_id` e `clarification_response`; quando tutte le dimensioni sono risolte, l'API restituisce `REVIEW` con la query raffinata e attende che l'utente la confermi o modifichi. La conferma invia `clarification_confirmed=true` e avvia la run usando il testo revisionato. `BLOCKED` non avvia l'analisi. Il grafo LangGraph, gli agenti e le fasi SQL/ranking non ricevono lo stato interno SAGE.

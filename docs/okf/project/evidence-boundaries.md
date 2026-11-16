@@ -28,6 +28,7 @@ sources:
 2. **Documentazione nel repository** (`README.md`, `AGENTS.md`): descrive uso previsto e comandi; può essere meno aggiornata del codice.
 3. **Manoscritto LaTeX caricato** (`references/paper/paper.tex`, più `metadata.tex` e supplemento): supporta metodo, dataset di ricerca e risultati sperimentali. Le prestazioni sono **rivendicazioni del paper**, non benchmark replicati per questo bundle.
 4. **Metriche di conversione fornite dall'utente** (ora in `backend/docs/knowledge/normativa/normativa.json`): il file è stato spostato nella posizione runtime della normativa precedente; il codice tratta i campi e i relativi status come contenuto di input. Il nome originario e gli status non equivalgono a una verifica legale indipendente da parte di MURENA.
+5. **Scenari EDBT** (`backend/experiments/data/scenarios/`): definiscono 24 casi sintetici, risposte simulate e query di riferimento per condizioni one-shot, conversational e oracle. La loro presenza, il validatore statico e i campi ground truth attestano una specifica sperimentale/tracciabilità, non osservazioni empiriche o risultati di benchmark. La CLI corrente esegue solo la condizione conversational; risultati osservati esistono solo dopo una run e vanno riferiti ai relativi artefatti, modello e dataset. Questi risultati restano distinti dai risultati pubblicati nel paper, che sono affermazioni del manoscritto.
 
 ## Casi che non vanno confusi
 
@@ -43,3 +44,5 @@ sources:
 I concetti OKF hanno `sources` tracciabili e un timestamp di generazione; non hanno un campo `verified`, perché non è stato eseguito un controllo funzionale end-to-end né un audit di un esperto di dominio. Nessuna credenziale o dato riservato è incluso nel bundle.
 
 Quando codice e paper divergono, per una **modifica software** privilegiare il codice; per una **citazione scientifica** privilegiare il paper, esplicitando il contesto.
+
+Per il benchmark EDBT distinguere quindi: **scenario sintetico** (input progettato); **ground truth** (query oracle e aspettative curate); **risultato osservato** (output di una specifica esecuzione registrata); **risultato pubblicato** (affermazione attribuita a una pubblicazione). Nessuna di queste categorie sostituisce le altre.

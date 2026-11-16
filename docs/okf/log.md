@@ -1,5 +1,9 @@
 # MURENA OKF Update Log
 
+## 2026-11-16
+
+* **Integrazione benchmark EDBT**: documentati i 24 scenari sintetici, la copertura per categoria e destinazione d'uso, la ground truth e il protocollo one-shot/conversational/oracle. Distinti il protocollo definito dal supporto effettivo della CLI (sola esecuzione conversational), le metriche implementate da quelle proposte e gli scenari/risultati osservati/risultati del paper. Aggiornati indici, riproducibilità, confini delle evidenze e riferimento architetturale; nessun risultato empirico o verifica legale indipendente è attribuito agli scenari.
+
 ## 2026-11-13
 
 * **Sostituzione della fonte normativa**: il JSON fornito dall'utente è stato spostato in `backend/docs/knowledge/normativa/normativa.json` e contiene otto casi. Regole e prompt separano superficie netta funzionale e superficie lorda dell'immobile; capacità e metriche nette non generano più soglie SQL lorde. Gli standard concessi da bandi restano condizionati al programma e i record matched sono passati all'EvaluationAgent come contesto.

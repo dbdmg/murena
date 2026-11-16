@@ -46,3 +46,7 @@ Il paper riporta una Domain Coverage F1 di **0,757** per le due baseline monolit
 ## Attribuzione
 
 Tutti questi numeri sono **trascritti dal manoscritto**: non sono misurazioni ottenute nel presente ambiente e non valgono per il dataset sintetico. Si raccomanda di usare la versione finale pubblicata del paper per citazioni esterne.
+
+## Separazione dal benchmark EDBT
+
+Gli esperimenti sopra riepilogano il protocollo e i risultati dichiarati nel paper originale. Gli scenari sintetici EDBT in [benchmark conversazionale](edbt-conversational-benchmark.md) studiano il recupero dialogico di requisiti omessi o ambigui e definiscono 24 triplette di query. Non sono parte dei risultati del paper e non ne replicano dataset o popolazione. Il runner corrente esegue soltanto la condizione conversational; la presenza di query one-shot e oracle nel dataset non implica che il confronto comparativo sia stato eseguito.
