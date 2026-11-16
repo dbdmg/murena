@@ -41,6 +41,10 @@ Check CLI arguments using `--help` before launching: the runner performs network
 - **Guided:** `UC20_senior_care_disambiguation`. Start with an ambiguous elder-care purpose, disambiguate **RSA vs senior day center**, specify capacity and personal gross-area requirement, then show the audit trail and ranked results.
 - **Open-ended:** `UC19_student_grant_multiturn` (or `UC21_childcare_disambiguation` if student-grant context is not applicable). Let the audience choose between valid user intents and illustrate how the structured query, agent matches, and resulting candidates change.
 
+## Scenario revision
+
+`UC08_student_grant_missing_use` now says that the office is for a conversion project but its future use is undecided. This keeps the intended use unresolved while making clear that it is relevant to the request. The one-shot and conversational initial queries remain paired; the simulated answer and oracle query are unchanged. This wording adjustment is a scenario-definition change, not evidence that clarification succeeds reliably.
+
 ## Static validation performed
 
 - Parses `conversational_scenarios.yaml` with `benchmark_cli.load_scenarios` from this repository.
