@@ -24,9 +24,9 @@ sources:
 
 1. L'utente invia `POST /api/v1/analysis` con testo, dataset, limiti e lingua. Se `ENABLE_SAGE_CLARIFICATION=true`, un wrapper opzionale risolve prima le ambiguità bloccanti.
 2. Per una richiesta pronta, l'API registra la run e avvia l'elaborazione, restituendo un `run_id`; per una domanda di chiarimento restituisce `ASK` e non crea una run.
-3. `AnalysisService` riceve la query raffinata, carica o riusa un dataset e invoca `GraphOrchestratorAgent` senza modifiche al grafo.
+3. `AnalysisService` riceve la query raffinata, carica o riusa un dataset, sincronizza i metadati di filtro con le colonne effettive e invoca `GraphOrchestratorAgent` senza modifiche al grafo.
 4. **Phase 1 — requirements extraction:** il grafo identifica ambiti e vincoli mediante gli agenti specializzati (location, building, energy, proximity, regulatory).
-5. **Phase 2 — SQL execution:** `SQLAgent` compone una query per DuckDB; l'esecutore valida la sintassi con `EXPLAIN` e interroga i dati. Sono previsti retry, fallback e rilassamento dei vincoli per zero risultati.
+5. **Phase 2 — SQL execution:** `SQLAgent` compone una query per DuckDB usando l'intersezione tra schema runtime e allowlist dei metadati; l'esecutore valida la query con `EXPLAIN` e interroga i dati. `comune_code` è il nome canonico del codice catastale comunale; i nomi di città non vengono convertiti in codici e sono rappresentati dai vincoli geografici del LocationAgent. Sono previsti retry, fallback e rilassamento dei vincoli per zero risultati.
 6. **Phase 3 — scoring & synthesis:** arricchimento risultati, attribuzione pesi, ranking numerico, valutazione qualitativa e sintesi del broker quando prevista.
 7. La run salva i risultati e comunica percentuale/stato tramite WebSocket; il client carica i dettagli REST, mostrando edifici, mappe e spiegazioni.
 

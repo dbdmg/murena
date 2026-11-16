@@ -400,13 +400,23 @@ async def run(args: argparse.Namespace) -> int:
         "repeat_default": args.repeat,
         "scenarios_sha256": hashlib.sha256(args.scenarios.read_bytes()).hexdigest(),
         "python": platform.python_version(),
-        "options": {"map_limit": args.map_limit, "llm_limit": args.llm_limit, "output_language": args.language},
+        "options": {
+            "map_limit": args.map_limit,
+            "llm_limit": args.llm_limit,
+            "output_language": args.language,
+            "concurrency": args.concurrency,
+        },
     }
     if args.resume and manifest_path.exists():
         previous_manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-        for field in ("scenarios_sha256", "models", "dataset_key_default", "repeat_default", "options"):
+        for field in ("scenarios_sha256", "models", "dataset_key_default", "repeat_default"):
             if previous_manifest.get(field) != manifest.get(field):
                 raise ValueError(f"Cannot resume: benchmark setting '{field}' differs from the existing manifest.")
+        previous_options = dict(previous_manifest.get("options", {}))
+        # Manifests produced before bounded concurrency represented sequential runs.
+        previous_options.setdefault("concurrency", 1)
+        if previous_options != manifest["options"]:
+            raise ValueError("Cannot resume: benchmark setting 'options' differs from the existing manifest.")
     elif args.resume and runs_path.exists():
         raise ValueError("Cannot safely resume: runs.jsonl exists but manifest.json is missing.")
     else:
@@ -415,10 +425,85 @@ async def run(args: argparse.Namespace) -> int:
     new_runs: list[dict[str, Any]] = []
     total = sum(max(args.repeat, scenario.get("repeats", 1)) for scenario in scenarios) * len(models)
     step = 0
+    output_lock = asyncio.Lock()
+    concurrency_limit = asyncio.Semaphore(args.concurrency)
+
+    # Load the shared dataset and graph before scheduling workers. This avoids
+    # concurrent cache initialization and keeps model selection fixed per batch.
+    await asyncio.to_thread(analysis_service._get_or_load_dataset, args.dataset)
+
+    async def execute_one(
+        index: int,
+        model: str,
+        scenario: dict[str, Any],
+        repeat_index: int,
+        options: dict[str, Any],
+        output: Any,
+    ) -> dict[str, Any]:
+        run_id = f"bench_{uuid.uuid4().hex[:12]}"
+        started = time.perf_counter()
+        record: dict[str, Any] = {
+            "run_id": run_id,
+            "scenario_id": scenario["id"],
+            "scenario_name": scenario.get("name"),
+            "tags": scenario.get("tags", []),
+            "model": model,
+            "repeat": repeat_index,
+            "initial_query": scenario["initial_query"],
+            "options": options,
+            "started_at": datetime.now(timezone.utc).isoformat(),
+        }
+        print(f"[{index}/{total}] start {model} / {scenario['id']} / repeat {repeat_index}", flush=True)
+        try:
+            conversation = await asyncio.to_thread(
+                simulate_conversation,
+                scenario,
+                options["output_language"],
+            )
+            record["conversation"] = conversation
+            if conversation["status"] != "READY":
+                raise ValueError(conversation.get("error", "Clarification did not reach review."))
+
+            record["submitted_query"] = conversation["reviewed_query"]
+            result = await analysis_service.run_analysis(
+                run_id=run_id, query=conversation["reviewed_query"], **options
+            )
+            buildings = [
+                item.model_dump(mode="json") if hasattr(item, "model_dump") else item
+                for item in result.get("buildings", [])
+            ]
+            record.update({
+                "status": "completed",
+                "results_count": result.get("results_count", len(buildings)),
+                "top_ids": [str(item.get("id")) for item in buildings[:10]],
+                "quality": result_metrics(buildings, scenario.get("expected_ids", [])),
+                "final_sql": (result.get("filters_applied") or {}).get("final_sql"),
+                "broker_summary": result.get("broker_summary"),
+                "agent_trace": result.get("agent_trace"),
+            })
+        except Exception as exc:  # Preserve failed runs in the artifact and continue the batch.
+            record.update({"status": "error", "error": str(exc)})
+
+        record["duration_seconds"] = round(time.perf_counter() - started, 3)
+        async with output_lock:
+            output.write(json.dumps(record, ensure_ascii=False, default=str) + "\n")
+            output.flush()
+            new_runs.append(record)
+            state = "OK" if record["status"] == "completed" else "ERR"
+            print(f"[{index}/{total}] {state} {model} / {scenario['id']} / repeat {repeat_index} ({record['duration_seconds']} s)", flush=True)
+            if record.get("error"):
+                print(f"  {record['error']}", flush=True)
+        return record
+
+    async def bounded_execute(*job: Any) -> dict[str, Any]:
+        async with concurrency_limit:
+            return await execute_one(*job)
+
     with runs_path.open("a", encoding="utf-8") as output:
         for model in models:
             settings.set_llm_model(model)
             initialize_analysis_agent(analysis_service)
+            jobs: list[tuple[int, str, dict[str, Any], int, dict[str, Any], Any]] = []
             for scenario in scenarios:
                 repeats = max(args.repeat, scenario.get("repeats", 1))
                 options = {
@@ -434,63 +519,13 @@ async def run(args: argparse.Namespace) -> int:
                     **scenario.get("options", {}),
                 }
                 for repeat_index in range(1, repeats + 1):
-                    key = (model, scenario["id"], repeat_index)
                     step += 1
+                    key = (model, scenario["id"], repeat_index)
                     if key in completed:
                         print(f"[{step}/{total}] cached {model} / {scenario['id']} / repeat {repeat_index}")
                         continue
-                    run_id = f"bench_{uuid.uuid4().hex[:12]}"
-                    started = time.perf_counter()
-                    record: dict[str, Any] = {
-                        "run_id": run_id,
-                        "scenario_id": scenario["id"],
-                        "scenario_name": scenario.get("name"),
-                        "tags": scenario.get("tags", []),
-                        "model": model,
-                        "repeat": repeat_index,
-                        "initial_query": scenario["initial_query"],
-                        "options": options,
-                        "started_at": datetime.now(timezone.utc).isoformat(),
-                    }
-                    print(f"[{step}/{total}] {model} / {scenario['id']} / repeat {repeat_index}", flush=True)
-                    try:
-                        conversation = await asyncio.to_thread(
-                            simulate_conversation,
-                            scenario,
-                            options["output_language"],
-                        )
-                        record["conversation"] = conversation
-                        if conversation["status"] != "READY":
-                            raise ValueError(conversation.get("error", "Clarification did not reach review."))
-
-                        record["submitted_query"] = conversation["reviewed_query"]
-                        result = await analysis_service.run_analysis(
-                            run_id=run_id, query=conversation["reviewed_query"], **options
-                        )
-                        elapsed = round(time.perf_counter() - started, 3)
-                        buildings = [
-                            item.model_dump(mode="json") if hasattr(item, "model_dump") else item
-                            for item in result.get("buildings", [])
-                        ]
-                        record.update({
-                            "status": "completed",
-                            "duration_seconds": elapsed,
-                            "results_count": result.get("results_count", len(buildings)),
-                            "top_ids": [str(item.get("id")) for item in buildings[:10]],
-                            "quality": result_metrics(buildings, scenario.get("expected_ids", [])),
-                            "final_sql": (result.get("filters_applied") or {}).get("final_sql"),
-                            "broker_summary": result.get("broker_summary"),
-                            "agent_trace": result.get("agent_trace"),
-                        })
-                    except Exception as exc:  # Keep batch progress and preserve failed cases in the artifact.
-                        record.update({"status": "error", "duration_seconds": round(time.perf_counter() - started, 3), "error": str(exc)})
-                    output.write(json.dumps(record, ensure_ascii=False, default=str) + "\n")
-                    output.flush()
-                    new_runs.append(record)
-                    state = "OK" if record["status"] == "completed" else "ERR"
-                    print(f"  {state} ({record['duration_seconds']} s)", flush=True)
-                    if record.get("error"):
-                        print(f"  {record['error']}", flush=True)
+                    jobs.append((step, model, scenario, repeat_index, options, output))
+            await asyncio.gather(*(bounded_execute(*job) for job in jobs))
 
     all_runs: list[dict[str, Any]] = []
     if runs_path.exists():
@@ -549,6 +584,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--output", type=Path, default=ROOT / "backend/experiments/results/cli-benchmark", help="Directory for manifest, JSONL runs, and CSV summary.")
     parser.add_argument("--dataset", default="full", choices=["full"], help="Configured dataset key (currently only 'full' is available).")
     parser.add_argument("--repeat", type=int, default=1, help="Minimum repeat count per scenario (scenario 'repeats' can request more).")
+    parser.add_argument("--concurrency", type=int, default=2, help="Maximum number of scenario runs in flight (default: 2). Use 1 for sequential execution.")
     parser.add_argument("--map-limit", type=int, default=1000)
     parser.add_argument("--llm-limit", type=int, default=10)
     parser.add_argument("--language", choices=["en", "it"], default="it")
@@ -560,8 +596,8 @@ def build_parser() -> argparse.ArgumentParser:
 def main() -> None:
     parser = build_parser()
     args = parser.parse_args()
-    if args.repeat < 1 or args.map_limit < 1 or args.llm_limit < 1:
-        parser.error("--repeat, --map-limit and --llm-limit must be positive integers.")
+    if args.repeat < 1 or args.map_limit < 1 or args.llm_limit < 1 or args.concurrency < 1:
+        parser.error("--repeat, --map-limit, --llm-limit and --concurrency must be positive integers.")
     try:
         exit_code = asyncio.run(run(args))
     except ValueError as exc:

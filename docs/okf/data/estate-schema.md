@@ -16,6 +16,10 @@ sources:
   title: 'MURENA repository: backend/app/core/constants.py'
 - resource: ../../../backend/app/services/analysis/executor.py
   title: 'MURENA repository: backend/app/services/analysis/executor.py'
+- resource: ../../../backend/app/data/loaders.py
+  title: 'MURENA repository: backend/app/data/loaders.py'
+- resource: ../../../backend/app/data/compatibility_aliases.json
+  title: Tabella JSON degli alias di colonna
 ---
 
 # Schema Parquet immobili
@@ -26,7 +30,7 @@ Il dataset fisico è `backend/data/metadata/estates.parquet`; DuckDB lo espone c
 
 ### Identificativi e localizzazione
 
-`id`, `address`, `house_number`, `latitude`, `longitude`, `city`, `codice_comune`, `omi_zone`.
+`id`, `address`, `house_number`, `latitude`, `longitude`, `city`, `comune_code`, `omi_zone`. Il loader applica gli alias definiti in `backend/app/data/compatibility_aliases.json`, normalizzando il nome storico `codice_comune` in `comune_code`.
 
 ### Catasto, tipologia e dimensioni
 
@@ -50,5 +54,6 @@ Il dataset fisico è `backend/data/metadata/estates.parquet`; DuckDB lo espone c
 - `epglnren_ape` è un indicatore energetico; gli `energy_score_*` rappresentano sottopunteggi, non certificazioni.
 - Le macro-categorie POI sono score percentili 0–100; lo score totale energetico nella demo è somma di 4 valori nell'intervallo 1–5.
 - `backend/app/core/constants.py` definisce le **colonne visibili/filtrabili** dai technical agent. Alcuni campi del dataset restano solo per visualizzazione.
+- `comune_code` è un codice catastale comunale, non un nome di città. I nomi di città sono risolti dal LocationAgent e rappresentati tramite coordinate e distanza.
 
 Attenzione al diverso naming di risposta: l'API `ProximityScores` usa `greenery` e `commerce`, mentre la tabella impiega `green` e `commercial`. È necessaria mappatura esplicita quando si modifica il contratto.

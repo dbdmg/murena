@@ -55,7 +55,7 @@ BUILDING_AGENT_COLUMNS: List[str] = [
     "property_type",
     "construction_period",
     "id",
-    "codice_comune",
+    "comune_code",
     "cadastral_sheet",
     "cadastral_parcel",
     "cadastral_subaltern",
@@ -170,7 +170,7 @@ def update_runtime_metadata(df):
         DB_METADATA["filterable_columns"] = [c for c in SQL_FILTERABLE_COLUMNS if c in df_columns]
         
         # Lists of columns to analyze
-        categorical = ["codice_comune", "property_type", "construction_period", "energy_class"]
+        categorical = ["comune_code", "property_type", "construction_period", "energy_class"]
         numerical = [
             "surface_area", "energy_score_total", 
             "healthcare", "mobility", "green", "sport", "commercial", "education"

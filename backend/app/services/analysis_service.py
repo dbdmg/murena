@@ -15,6 +15,7 @@ from app.services.agent_logger import AgentLogger
 from pathlib import Path
 from typing import Optional, Callable, Dict, Any, List, TYPE_CHECKING
 import asyncio
+import threading
 import pandas as pd
 from datetime import datetime
 import logging
@@ -40,6 +41,7 @@ class AnalysisService:
         # Typed as Any at runtime to avoid importing heavy dependencies on module import.
         self.graph_agent: Optional[Any] = None
         self._base_dataset_cache: Dict[str, pd.DataFrame] = {}
+        self._dataset_lock = threading.Lock()
         self._real_estate_service = RealEstateService()
 
     def _get_or_load_dataset(self, dataset_key: str) -> pd.DataFrame:
@@ -52,18 +54,24 @@ class AnalysisService:
         Returns:
             Loaded DataFrame
         """
-        if dataset_key not in self._base_dataset_cache:
-            dataset_path = settings.dataset_options.get(dataset_key)
-            if not dataset_path:
-                raise ValueError(f"Unknown dataset key: {dataset_key}")
+        with self._dataset_lock:
+            if dataset_key not in self._base_dataset_cache:
+                dataset_path = settings.dataset_options.get(dataset_key)
+                if not dataset_path:
+                    raise ValueError(f"Unknown dataset key: {dataset_key}")
 
-            logger.info(f"Loading dataset: {dataset_key} from {dataset_path}")
-            self._base_dataset_cache[dataset_key] = load_and_merge_data(dataset_path)
-            logger.info(
-                f"Dataset loaded: {len(self._base_dataset_cache[dataset_key])} records"
-            )
+                logger.info(f"Loading dataset: {dataset_key} from {dataset_path}")
+                dataset = load_and_merge_data(dataset_path)
+                self._base_dataset_cache[dataset_key] = dataset
+                logger.info(f"Dataset loaded: {len(dataset)} records")
 
-        return self._base_dataset_cache[dataset_key]
+                # API startup normally refreshes this metadata. Direct service
+                # callers, including benchmark_cli, bypass startup_event.
+                from app.core.constants import update_runtime_metadata
+
+                update_runtime_metadata(dataset)
+
+            return self._base_dataset_cache[dataset_key]
 
     def _init_graph_agent(self, force: bool = False):
         """

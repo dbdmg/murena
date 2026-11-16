@@ -203,7 +203,7 @@ def city_from_row(row: pd.Series) -> Optional[str]:
     if city:
         return str(city)
 
-    code = first_available(row, "codice_comune", "cadastral_code")
+    code = first_available(row, "comune_code", "codice_comune", "cadastral_code")
     target_code = getattr(settings, "TARGET_COMUNE_CODE", "L219")
     if code == "L219" or code == target_code:
         return getattr(settings, "TARGET_CITY", "Torino")
@@ -306,7 +306,7 @@ def aggregate_energy_response(
         construction_year=safe_str(first_available(row, "epoca_costruzione", "construction_year")),
         property_type_desc=safe_str(first_available(row, "tipologia_bene_immobile", "property_type")),
         target_energy_class=safe_str(first_available(row, "classe_target_ape", "target_energy_class")),
-        cadastral_code=safe_str(first_available(row, "codice_comune", "cadastral_code")),
+        cadastral_code=safe_str(first_available(row, "comune_code", "codice_comune", "cadastral_code")),
         sheet=safe_str(first_available(row, "foglio", "cadastral_sheet")),
         parcel=safe_str(first_available(row, "particella", "cadastral_parcel")),
         subaltern=safe_str(first_available(row, "subalterno", "cadastral_subaltern")),

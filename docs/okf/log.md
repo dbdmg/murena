@@ -3,6 +3,9 @@
 ## 2026-11-16
 
 * **Integrazione benchmark EDBT**: documentati i 24 scenari sintetici, la copertura per categoria e destinazione d'uso, la ground truth e il protocollo one-shot/conversational/oracle. Distinti il protocollo definito dal supporto effettivo della CLI (sola esecuzione conversational), le metriche implementate da quelle proposte e gli scenari/risultati osservati/risultati del paper. Aggiornati indici, riproducibilità, confini delle evidenze e riferimento architetturale; nessun risultato empirico o verifica legale indipendente è attribuito agli scenari.
+* **Concorrenza CLI benchmark**: aggiunto `--concurrency` (default 2, `1` per sequenziale), preload del dataset prima di pianificare le run e scrittura serializzata degli artefatti al completamento di ciascuna prova. Il livello di concorrenza entra nel manifest di riproducibilità e deve coincidere per `--resume`. Nessun risultato del benchmark è dedotto da questa modifica.
+* **Allineamento schema SQL e località**: l'AnalysisService aggiorna i metadati dinamici quando carica il dataset anche fuori dallo startup API; `codice_comune` storico è normalizzato al nome canonico runtime `comune_code`. Il SQL Agent usa solo colonne presenti sia nello schema runtime sia nell'allowlist, e i prompt vietano di tradurre una località naturale in un filtro catastale.
+* **Alias di schema esternalizzati**: spostata la mappatura tra colonne legacy e canoniche in `backend/app/data/compatibility_aliases.json`; il loader carica e valida il JSON all'avvio.
 
 ## 2026-11-13
 

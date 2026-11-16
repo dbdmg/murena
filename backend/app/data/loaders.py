@@ -14,6 +14,7 @@ import json
 import os
 import re
 import threading
+from pathlib import Path
 
 import pandas as pd
 import requests
@@ -38,38 +39,35 @@ if os.path.exists(GEOCODE_CACHE_FILE):
 
 DEFAULT_CITY = os.getenv("DEFAULT_CITY", "Torino")
 
-COMPATIBILITY_ALIASES = {
-    # Core geography and identity
-    "indirizzo": ["address"],
-    "numero_civico": ["house_number"],
-    "latitudine": ["latitude"],
-    "longitudine": ["longitude"],
-    "zona_omi": ["omi_zone"],
-    "foglio": ["cadastral_sheet"],
-    "particella": ["cadastral_parcel"],
-    "subalterno": ["cadastral_subaltern"],
-    # Building attributes
-    "superficie_di_riferimento_mq": ["surface_area"],
-    "tipologia_bene_immobile": ["property_type", "description"],
-    "epoca_costruzione": ["construction_year", "construction_period"],
-    "numero_immobili_per_catasto": ["cadastral_units_count"],
-    "meta_immobile": ["is_meta", "is_meta_estate", "meta_building"],
-    "data_decorrenza": ["effective_date"],
-    # Energy
-    "classe_energetica_ape": ["energy_class"],
-    "ape_score_classe": ["energy_score_class"],
-    "ape_score_impianto": ["energy_score_plant"],
-    "ape_score_involucro": ["energy_score_envelope"],
-    "ape_score_rinnovabili": ["energy_score_renewables"],
-    "ape_score_total": ["energy_score_total"],
-    "lista_file_ape": ["energy_files", "ape_file_list"],
-    # Proximity pillars
-    "sanita": ["healthcare"],
-    "mobilita": ["mobility"],
-    "verde": ["green", "greenery"],
-    "commerciale": ["commercial", "commerce"],
-    "educazione": ["education"],
-}
+def _load_compatibility_aliases() -> dict[str, list[str]]:
+    """Load and validate the source-column to canonical-column mapping."""
+    aliases_path = Path(__file__).with_name("compatibility_aliases.json")
+    try:
+        raw_aliases = json.loads(aliases_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise RuntimeError(f"Cannot load compatibility aliases from {aliases_path}: {exc}") from exc
+
+    if not isinstance(raw_aliases, dict) or not raw_aliases:
+        raise RuntimeError(f"Compatibility aliases in {aliases_path} must be a non-empty JSON object.")
+
+    aliases: dict[str, list[str]] = {}
+    for source, targets in raw_aliases.items():
+        if (
+            not isinstance(source, str)
+            or not source.strip()
+            or not isinstance(targets, list)
+            or not targets
+            or not all(isinstance(target, str) and target.strip() for target in targets)
+        ):
+            raise RuntimeError(
+                f"Invalid compatibility alias entry in {aliases_path}: "
+                f"{source!r} must map to a non-empty list of column names."
+            )
+        aliases[source] = list(dict.fromkeys(targets))
+    return aliases
+
+
+COMPATIBILITY_ALIASES = _load_compatibility_aliases()
 
 
 def _add_compatibility_aliases(pd_data: pd.DataFrame) -> pd.DataFrame:
@@ -87,10 +85,14 @@ def _add_compatibility_aliases(pd_data: pd.DataFrame) -> pd.DataFrame:
             if target not in pd_data.columns:
                 pd_data[target] = pd_data[source]
 
-    if "codice_comune" in pd_data.columns and "city" not in pd_data.columns:
+    municipality_code_column = next(
+        (column for column in ("comune_code", "codice_comune") if column in pd_data.columns),
+        None,
+    )
+    if municipality_code_column and "city" not in pd_data.columns:
         target_code = os.getenv("TARGET_COMUNE_CODE", "L219")
         target_city = os.getenv("TARGET_CITY", DEFAULT_CITY)
-        pd_data["city"] = pd_data["codice_comune"].apply(
+        pd_data["city"] = pd_data[municipality_code_column].apply(
             lambda value: target_city if str(value).strip() == target_code else value
         )
 

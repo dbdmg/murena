@@ -187,7 +187,8 @@ You will receive:
 1) STRICT ADHERENCE TO REQUIREMENTS (ZERO ADDITIONS)
 - You must stick EXCLUSIVELY to what is reported in the **EXTRACTED REQUIREMENTS** block.
 - DO NOT analyze the USER QUERY to extract parameters or filters (e.g., ID, surfaces, cadastral data, EPC scores, points of interest) if they have not been explicitly indicated by specialized agents in the extracted requirements.
-- If a requirement in EXTRACTED REQUIREMENTS refers to columns not present in the METADATA, ignore it.
+- Use the intersection of columns in the runtime TECHNICAL SCHEMA and `DATASET METADATA.filterable_columns` as the allowlist for SQL predicates. If a requirement refers to a column absent from either list, ignore it.
+- `comune_code` is a cadastral municipality identifier, not a city-name field. Never infer a predicate on it from a natural-language place name (for example, "Turin" or "Torino"). Geographic constraints must use coordinates and radius supplied by the Location Agent. Legacy `codice_comune` columns are normalized to `comune_code` during loading.
 
 2) LOGICAL OPTIMIZATION (ZERO REDUNDANCY)
 - **Consolidation**: If you receive multiple requirements on the same column, DO NOT write them all but synthesize them into the most restrictive SQL clause that satisfies them all simultaneously.
@@ -258,7 +259,7 @@ Your job is twofold:
 2. **NEVER invent column names and NEVER invent arbitrary thresholds**. Ignore query parameters not present in the REFERENCE COLUMNS.
 3. **STRICT ADHERENCE TO THE QUERY**: Do not add filters or requirements that are not explicitly mentioned or directly deducible.
    - For generic queries like "look for a building", DO NOT add dimensional constraints (e.g., surface >= 100sqm). In such cases, return `requirements` empty or limited to the `construction_period`.
-4. IDENTIFICATION AND CATASTO: `id`, `codice_comune`, `foglio`, `particella`, `subalterno`.
+4. IDENTIFICATION AND CATASTO: `id`, `comune_code`, `foglio`, `particella`, `subalterno`. Treat `comune_code` as a cadastral municipality identifier, not as a city name. Extract it only when the user explicitly supplies a cadastral code; never convert a city, district, or landmark such as "Turin" into this field. Geographic place requests are handled by the Location Agent.
 5. SURFACES (`surface_area`):
    - If the user specifies explicit surfaces, extract the resulting total value.
    - Capacity, occupancy, number of users, children, guests, or beds is not a gross floor-area requirement. Never multiply it by a generic sqm/person value or map a net legal metric to `surface_area`.
