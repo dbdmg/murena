@@ -392,6 +392,7 @@ async def run(args: argparse.Namespace) -> int:
 
     completed: set[tuple[str, str, int]] = set()
     latest_status: dict[tuple[str, str, int], str] = {}
+    latest_index_record: dict[tuple[str, str, int], dict[str, Any]] = {}
     attempt_counts: dict[tuple[str, str, int, str], int] = {}
     previous_manifest: dict[str, Any] | None = None
     if args.resume and manifest_path.exists():
@@ -405,6 +406,7 @@ async def run(args: argparse.Namespace) -> int:
                     row = json.loads(line)
                     key = (row["model"], row["scenario_id"], row["repeat"])
                     latest_status[key] = row.get("status", "")
+                    latest_index_record[key] = row
                     row_scenario_hash = row.get("scenario_sha256")
                     if row_scenario_hash is None:
                         artifact_file = row.get("artifact_file")
@@ -425,13 +427,15 @@ async def run(args: argparse.Namespace) -> int:
                         )
                     attempt_key = (*key, row_scenario_hash or "legacy")
                     attempt_counts[attempt_key] = attempt_counts.get(attempt_key, 0) + 1
-                    if row.get("status") == "completed":
-                        artifact_file = row.get("artifact_file")
-                        if artifact_file and not (output_dir / artifact_file).is_file():
-                            continue
-                        completed.add(key)
                 except (json.JSONDecodeError, KeyError, TypeError):
                     continue
+        for key, row in latest_index_record.items():
+            if row.get("status") != "completed":
+                continue
+            artifact_file = row.get("artifact_file")
+            if artifact_file and not (output_dir / artifact_file).is_file():
+                continue
+            completed.add(key)
 
     manifest = {
         "started_at": datetime.now(timezone.utc).isoformat(),
@@ -457,11 +461,6 @@ async def run(args: argparse.Namespace) -> int:
         for field in ("models", "dataset_key_default", "repeat_default"):
             if previous_manifest.get(field) != manifest.get(field):
                 raise ValueError(f"Cannot resume: benchmark setting '{field}' differs from the existing manifest.")
-        if previous_manifest.get("scenarios_sha256") != manifest["scenarios_sha256"] and not args.retry_failed:
-            raise ValueError(
-                "Cannot resume: scenario definitions differ from the existing run. "
-                "Use --retry-failed to retry only recorded failures against the current scenario definitions."
-            )
         scenario_hash_history = previous_manifest.get(
             "scenario_hash_history", [previous_manifest.get("scenarios_sha256")]
         )
@@ -733,7 +732,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--map-limit", type=int, default=1000)
     parser.add_argument("--llm-limit", type=int, default=10)
     parser.add_argument("--use-relaxation", action=argparse.BooleanOptionalAction, default=True)
-    parser.add_argument("--resume", action="store_true", help="Append to an existing run and skip completed model/scenario/repeat tuples.")
+    parser.add_argument("--resume", action="store_true", help="Append to existing output, skip tuples whose latest attempt completed, and continue pending or failed tuples. Scenario revisions are tracked by hash.")
     parser.add_argument("--retry-failed", action="store_true", help="With --resume, rerun only tuples whose latest recorded attempt failed; can use changed scenarios and keeps results separate by scenario hash.")
     return parser
 

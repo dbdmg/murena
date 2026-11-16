@@ -11,6 +11,7 @@
 * **Revisione scenario EDBT UC08**: esplicitato nella query iniziale che il progetto prevede una conversione ma la destinazione d'uso non è ancora decisa; one-shot e conversational restano appaiati e ground truth/oracle invariati. La modifica mira a rendere chiara la rilevanza del requisito mancante, ma non è stata eseguita una nuova run e non dimostra la stabilità del chiarimento.
 * **Retry dei tentativi benchmark falliti**: aggiunto `--retry-failed` (insieme a `--resume`) per rieseguire solo le combinazioni il cui ultimo tentativo è fallito. I singoli artefatti e il riepilogo distinguono le versioni degli scenari via SHA-256, evitando di aggregare risultati di definizioni diverse; nessun benchmark è stato eseguito con la nuova opzione.
 * **Lingua benchmark fissata a inglese**: rimosso `--language` e il supporto italiano dal runner EDBT; lingua conversazionale e output dell'analisi sono sempre `en`. Gli override lingua negli scenari sono rifiutati. I manifest precedenti con `output_language=it` vengono migrati per consentire resume/retry; gli output storici e quelli inglesi sono separati nel riepilogo. Nessuna run è stata eseguita.
+* **Ripresa del benchmark con scenari aggiornati**: `--resume` non rifiuta più un hash scenari diverso; continua le combinazioni non completate e ritenta quelle il cui ultimo tentativo è fallito, saltando solo gli ultimi tentativi completati con artefatto presente. Il riepilogo conserva la separazione per hash e lingua. `--retry-failed` resta disponibile per limitare il resume ai soli errori registrati.
 
 ## 2026-11-13
 
