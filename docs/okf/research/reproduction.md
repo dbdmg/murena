@@ -85,7 +85,17 @@ uv run python backend/experiments/benchmark_cli.py \
 
 `--retry-failed` è un filtro facoltativo da usare insieme a `--resume`: riesegue solo le combinazioni il cui ultimo tentativo indicizzato è `error`, senza avviare quelle mai iniziate. Modello, dataset, ripetizioni e opzioni runtime devono corrispondere al manifest precedente. Il benchmark usa ora solo inglese. Nei manifest creati dalla versione precedente, `output_language="it"` è trattato come opzione storica e migrato al valore fisso `en` per consentire la ripresa; le nuove run e i nuovi artefatti registrano `en`. Il riepilogo separa le righe per lingua e hash dello scenario, per non aggregare output di configurazioni o definizioni diverse. Ogni nuovo artefatto e la relativa riga d'indice registrano lo SHA-256 della singola definizione; per output precedenti privi dell'hash per run, il riepilogo lo ricava da `scenario_definition` nell'artefatto e, se manca, usa l'hash del manifest. Nella stessa versione e lingua, il riepilogo considera l'ultimo tentativo per combinazione modello/scenario/ripetizione; gli artefatti precedenti restano conservati e l'indice resta append-only. Il manifest mantiene la cronologia degli hash dell'intero file scenari.
 
-Nel caso di UC08, le ripetizioni già completate con la vecchia query restano cached; viene ripresa la ripetizione fallita con la definizione attuale. Per eseguire nuovamente tutte le ripetizioni con la nuova query e avere un batch omogeneo, usare una nuova directory di output.
+Per rieseguire **tutte le ripetizioni di un singolo scenario** mantenendo cached gli altri, passare `--rerun-scenario` insieme a `--resume`:
+
+```bash
+uv run python backend/experiments/benchmark_cli.py \
+  --scenarios backend/experiments/data/scenarios/conversational_scenarios.yaml \
+  --output backend/experiments/results/edbt_conversational \
+  --dataset full --repeat 3 --concurrency 12 \
+  --resume --rerun-scenario UC08_student_grant_missing_use
+```
+
+L'opzione è ripetibile per selezionare più ID. Tutte le ripetizioni definite da `--repeat`/`repeats` vengono rilanciate anche se avevano già un artefatto completato; gli altri scenari seguono il comportamento ordinario di `--resume`. `--rerun-scenario` e `--retry-failed` sono alternative. Le nuove run hanno nuovi `run_id` e artefatti append-only; il manifest registra la selezione e il riepilogo mantiene separati gli hash delle definizioni. Per avere un batch composto solo dalla nuova versione dello scenario, usare una nuova directory di output.
 
 La CLI richiede `backend/.env`, un provider LLM configurato e dataset accessibile tramite la configurazione del backend. Se manca il dataset demo locale, crearlo con `uv run python backend/data/metadata/create_demo_dataset.py`. La CLI risolve i percorsi relativi del backend rispetto alla directory `backend/`, anche quando viene invocata dalla root del repository. I risultati descrivono le esecuzioni fatte su quel setup; non sono da soli una replica dei benchmark del paper.
 

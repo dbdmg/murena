@@ -369,6 +369,12 @@ async def run(args: argparse.Namespace) -> int:
             setattr(settings, attribute, str((BACKEND / value).resolve()))
 
     scenarios = load_scenarios(args.scenarios.resolve())
+    scenario_ids = {scenario["id"] for scenario in scenarios}
+    unknown_rerun_scenarios = set(args.rerun_scenario) - scenario_ids
+    if unknown_rerun_scenarios:
+        raise ValueError(
+            "Cannot rerun unknown scenario(s): " + ", ".join(sorted(unknown_rerun_scenarios))
+        )
     scenarios_sha256 = hashlib.sha256(args.scenarios.read_bytes()).hexdigest()
     scenario_hashes = {scenario["id"]: scenario_digest(scenario) for scenario in scenarios}
     # The frontend omits model_type in its request, so the backend uses this same configured default.
@@ -447,6 +453,7 @@ async def run(args: argparse.Namespace) -> int:
         "repeat_default": args.repeat,
         "scenarios_sha256": scenarios_sha256,
         "scenario_hash_history": [scenarios_sha256],
+        "resume_actions": [],
         "python": platform.python_version(),
         "run_artifacts_directory": "runs",
         "run_artifact_schema_version": 1,
@@ -476,6 +483,23 @@ async def run(args: argparse.Namespace) -> int:
         previous_options.setdefault("concurrency", 1)
         if previous_options != manifest["options"]:
             raise ValueError("Cannot resume: benchmark setting 'options' differs from the existing manifest.")
+        manifest["resume_actions"] = list(previous_manifest.get("resume_actions", []))
+        if args.rerun_scenario:
+            manifest["resume_actions"].append({
+                "at": manifest["started_at"],
+                "action": "rerun_scenarios",
+                "scenario_ids": sorted(set(args.rerun_scenario)),
+            })
+        elif args.retry_failed:
+            manifest["resume_actions"].append({
+                "at": manifest["started_at"],
+                "action": "retry_failed",
+            })
+        else:
+            manifest["resume_actions"].append({
+                "at": manifest["started_at"],
+                "action": "resume_pending",
+            })
     elif args.resume and runs_path.exists():
         raise ValueError("Cannot safely resume: runs.jsonl exists but manifest.json is missing.")
     else:
@@ -614,7 +638,7 @@ async def run(args: argparse.Namespace) -> int:
                     if args.retry_failed and latest_status.get(key) != "error":
                         print(f"[{step}/{total}] cached (not failed) {model} / {scenario['id']} / repeat {repeat_index}")
                         continue
-                    if not args.retry_failed and key in completed:
+                    if scenario["id"] not in args.rerun_scenario and not args.retry_failed and key in completed:
                         print(f"[{step}/{total}] cached {model} / {scenario['id']} / repeat {repeat_index}")
                         continue
                     jobs.append((step, model, scenario, repeat_index, options, output))
@@ -734,6 +758,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--use-relaxation", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--resume", action="store_true", help="Append to existing output, skip tuples whose latest attempt completed, and continue pending or failed tuples. Scenario revisions are tracked by hash.")
     parser.add_argument("--retry-failed", action="store_true", help="With --resume, rerun only tuples whose latest recorded attempt failed; can use changed scenarios and keeps results separate by scenario hash.")
+    parser.add_argument("--rerun-scenario", action="append", default=[], metavar="SCENARIO_ID", help="With --resume, rerun every configured repeat of this scenario, even if earlier attempts completed. May be repeated.")
     return parser
 
 
@@ -744,6 +769,10 @@ def main() -> None:
         parser.error("--repeat, --map-limit, --llm-limit and --concurrency must be positive integers.")
     if args.retry_failed and not args.resume:
         parser.error("--retry-failed requires --resume.")
+    if args.rerun_scenario and not args.resume:
+        parser.error("--rerun-scenario requires --resume.")
+    if args.retry_failed and args.rerun_scenario:
+        parser.error("--retry-failed and --rerun-scenario cannot be used together.")
     try:
         exit_code = asyncio.run(run(args))
     except ValueError as exc:
