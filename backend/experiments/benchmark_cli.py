@@ -348,6 +348,7 @@ async def run(args: argparse.Namespace) -> int:
     quiet_known_warnings()
     from app.core.config import settings
     from app.services.analysis_service import analysis_service
+    from app.utils.json_sanitizer import make_json_safe
     # Imports may install their own default warning filters; reapply our CLI-specific filters.
     quiet_known_warnings()
 
@@ -376,6 +377,7 @@ async def run(args: argparse.Namespace) -> int:
         raise ValueError(f"Output directory already exists: {output_dir}. Choose another path or use --resume.")
     output_dir.mkdir(parents=True, exist_ok=args.resume)
     runs_path = output_dir / "runs.jsonl"
+    run_artifacts_dir = output_dir / "runs"
     summary_path = output_dir / "summary.csv"
     manifest_path = output_dir / "manifest.json"
 
@@ -386,6 +388,9 @@ async def run(args: argparse.Namespace) -> int:
                 try:
                     row = json.loads(line)
                     if row.get("status") == "completed":
+                        artifact_file = row.get("artifact_file")
+                        if artifact_file and not (output_dir / artifact_file).is_file():
+                            continue
                         completed.add((row["model"], row["scenario_id"], row["repeat"]))
                 except (json.JSONDecodeError, KeyError, TypeError):
                     continue
@@ -400,6 +405,8 @@ async def run(args: argparse.Namespace) -> int:
         "repeat_default": args.repeat,
         "scenarios_sha256": hashlib.sha256(args.scenarios.read_bytes()).hexdigest(),
         "python": platform.python_version(),
+        "run_artifacts_directory": "runs",
+        "run_artifact_schema_version": 1,
         "options": {
             "map_limit": args.map_limit,
             "llm_limit": args.llm_limit,
@@ -468,25 +475,49 @@ async def run(args: argparse.Namespace) -> int:
             result = await analysis_service.run_analysis(
                 run_id=run_id, query=conversation["reviewed_query"], **options
             )
-            buildings = [
-                item.model_dump(mode="json") if hasattr(item, "model_dump") else item
-                for item in result.get("buildings", [])
-            ]
+            api_response = make_json_safe(result)
+            buildings = api_response.get("buildings", [])
             record.update({
                 "status": "completed",
-                "results_count": result.get("results_count", len(buildings)),
+                "api_response": api_response,
+                "results_count": api_response.get("results_count", len(buildings)),
                 "top_ids": [str(item.get("id")) for item in buildings[:10]],
                 "quality": result_metrics(buildings, scenario.get("expected_ids", [])),
-                "final_sql": (result.get("filters_applied") or {}).get("final_sql"),
-                "broker_summary": result.get("broker_summary"),
-                "agent_trace": result.get("agent_trace"),
+                "final_sql": (api_response.get("filters_applied") or {}).get("final_sql"),
             })
         except Exception as exc:  # Preserve failed runs in the artifact and continue the batch.
             record.update({"status": "error", "error": str(exc)})
 
         record["duration_seconds"] = round(time.perf_counter() - started, 3)
+        record["scenario_definition"] = scenario
+        record["artifact_file"] = f"runs/{run_id}.json"
         async with output_lock:
-            output.write(json.dumps(record, ensure_ascii=False, default=str) + "\n")
+            artifact_path = run_artifacts_dir / f"{run_id}.json"
+            try:
+                artifact_path.parent.mkdir(parents=True, exist_ok=True)
+                temporary_path = artifact_path.with_suffix(".json.tmp")
+                temporary_path.write_text(
+                    json.dumps(make_json_safe(record), ensure_ascii=False, indent=2) + "\n",
+                    encoding="utf-8",
+                )
+                temporary_path.replace(artifact_path)
+            except Exception as exc:
+                record["status"] = "error"
+                record["artifact_file"] = None
+                record["error"] = f"Failed to save per-run JSON artifact: {exc}"
+
+            index_record = {
+                "run_id": run_id,
+                "scenario_id": scenario["id"],
+                "model": model,
+                "repeat": repeat_index,
+                "status": record["status"],
+                "duration_seconds": record["duration_seconds"],
+                "artifact_file": record.get("artifact_file"),
+            }
+            if record.get("error"):
+                index_record["error"] = record["error"]
+            output.write(json.dumps(index_record, ensure_ascii=False) + "\n")
             output.flush()
             new_runs.append(record)
             state = "OK" if record["status"] == "completed" else "ERR"
@@ -531,7 +562,15 @@ async def run(args: argparse.Namespace) -> int:
     if runs_path.exists():
         for line in runs_path.read_text(encoding="utf-8").splitlines():
             try:
-                all_runs.append(json.loads(line))
+                index_record = json.loads(line)
+                artifact_file = index_record.get("artifact_file")
+                if artifact_file:
+                    artifact_path = output_dir / artifact_file
+                    if artifact_path.is_file():
+                        all_runs.append(json.loads(artifact_path.read_text(encoding="utf-8")))
+                else:
+                    # Older runs stored the complete record directly in JSONL.
+                    all_runs.append(index_record)
             except json.JSONDecodeError:
                 continue
     summary_rows: list[dict[str, Any]] = []

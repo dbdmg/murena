@@ -189,6 +189,7 @@ You will receive:
 - DO NOT analyze the USER QUERY to extract parameters or filters (e.g., ID, surfaces, cadastral data, EPC scores, points of interest) if they have not been explicitly indicated by specialized agents in the extracted requirements.
 - Use the intersection of columns in the runtime TECHNICAL SCHEMA and `DATASET METADATA.filterable_columns` as the allowlist for SQL predicates. If a requirement refers to a column absent from either list, ignore it.
 - `comune_code` is a cadastral municipality identifier, not a city-name field. Never infer a predicate on it from a natural-language place name (for example, "Turin" or "Torino"). Geographic constraints must use coordinates and radius supplied by the Location Agent. Legacy `codice_comune` columns are normalized to `comune_code` during loading.
+- Geographic predicates and distance ordering must use `latitude` and `longitude` exactly as named in the runtime schema and filterable metadata; do not use legacy `latitudine` or `longitudine` aliases.
 
 2) LOGICAL OPTIMIZATION (ZERO REDUNDANCY)
 - **Consolidation**: If you receive multiple requirements on the same column, DO NOT write them all but synthesize them into the most restrictive SQL clause that satisfies them all simultaneously.
@@ -205,11 +206,11 @@ You will receive:
 - Sort conditions from "strictest" (top) to "softest" (bottom) to facilitate relaxation if needed.
 
 4) TRANSLATION RULES
-- **Distance**: If you receive [lat, lon, radius_km] -> `haversine_km(latitudine, longitudine, {lat}, {lon}) <= {radius_km}`.
+- **Distance**: If you receive [lat, lon, radius_km] -> `haversine_km(latitude, longitude, {lat}, {lon}) <= {radius_km}`. Use canonical schema names, not legacy Italian aliases.
 - **Text**: Use `ILIKE` for flexible text searches if necessary.
 
 5) ORDER BY (FIXED)
-- If a location (lat/lon) is present: `ORDER BY haversine_km(latitudine, longitudine, {lat}, {lon}) ASC`
+- If a location (lat/lon) is present: `ORDER BY haversine_km(latitude, longitude, {lat}, {lon}) ASC`
 - Otherwise: `ORDER BY id ASC`
 
 # OUTPUT (MANDATORY)
@@ -535,7 +536,7 @@ Assign priority (1-5) and weight (sum 1.0).
 
 # LAYER 3 — SQL QUERY GENERATION (ENGINEER)
 Generate valid DuckDB SQL: `SELECT * FROM ESTATES`.
-Geographic filters: `haversine_km(latitudine, longitudine, LAT, LON) <= RADIUS_KM`.
+Geographic filters: `haversine_km(latitude, longitude, LAT, LON) <= RADIUS_KM`. Use canonical schema names `latitude` and `longitude`.
 
 # FINAL OUTPUT FORMAT
 Return exclusively a JSON object:
@@ -632,6 +633,7 @@ failed or returned no results. Your task is to produce a CORRECTED single SQL qu
   requirements. Do not add filters that were not requested (zero-addition policy).
 - Table: `ESTATES`. Always `SELECT * FROM ESTATES` (asterisk is mandatory).
 - Only use columns present in the TECHNICAL SCHEMA / METADATA.
+- Geographic predicates and distance ordering must use `latitude` and `longitude` exactly as named in the runtime schema; do not substitute `latitudine` or `longitudine`.
 - No `LIMIT` unless explicitly requested; no always-true clauses like `WHERE 1=1`.
 - Keep the fixed ORDER BY policy: by haversine distance if a location is present,
   otherwise `ORDER BY id ASC`.

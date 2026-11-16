@@ -35,7 +35,7 @@ Sintetizza vincoli tecnici in una SELECT DuckDB e restituisce la query.
 
 ## Comportamento rilevante
 
-Il codice usa `sqlglot` per parsing/formattazione e controlli di keyword; l’esecutore DuckDB applica `EXPLAIN` prima dell’esecuzione. Il prompt limita le colonne alla loro intersezione tra schema runtime e allowlist dei metadati del dataset; i nomi di località non vengono tradotti in `comune_code`, che è un codice catastale. Le colonne storiche `codice_comune` sono normalizzate dal loader. La validazione non costituisce un sandbox SQL formalmente completo.
+Il codice usa `sqlglot` per parsing/formattazione e controlli di keyword; l’esecutore DuckDB applica `EXPLAIN` prima dell’esecuzione. Il prompt limita le colonne alla loro intersezione tra schema runtime e allowlist dei metadati del dataset; usa `latitude`/`longitude` canoniche per le distanze e non traduce i nomi di località in `comune_code`, che è un codice catastale. Le colonne storiche `codice_comune`, `latitudine` e `longitudine` sono normalizzate dal loader. La validazione non costituisce un sandbox SQL formalmente completo.
 
 ## Osservabilità e dipendenze
 

@@ -6,6 +6,8 @@
 * **Concorrenza CLI benchmark**: aggiunto `--concurrency` (default 2, `1` per sequenziale), preload del dataset prima di pianificare le run e scrittura serializzata degli artefatti al completamento di ciascuna prova. Il livello di concorrenza entra nel manifest di riproducibilità e deve coincidere per `--resume`. Nessun risultato del benchmark è dedotto da questa modifica.
 * **Allineamento schema SQL e località**: l'AnalysisService aggiorna i metadati dinamici quando carica il dataset anche fuori dallo startup API; `codice_comune` storico è normalizzato al nome canonico runtime `comune_code`. Il SQL Agent usa solo colonne presenti sia nello schema runtime sia nell'allowlist, e i prompt vietano di tradurre una località naturale in un filtro catastale.
 * **Alias di schema esternalizzati**: spostata la mappatura tra colonne legacy e canoniche in `backend/app/data/compatibility_aliases.json`; il loader carica e valida il JSON all'avvio.
+* **Coordinate nei prompt SQL**: allineate le regole di filtro geografico e ordinamento ai nomi canonici `latitude` e `longitude`, normalizzati anche per i dataset storici. Evitato l'uso diretto degli alias legacy `latitudine` e `longitudine` nelle query DuckDB.
+* **Artefatti benchmark per singola run**: il runner salva ora `runs/<run_id>.json` con scenario/ground truth, conversazione e risposta API completa, incluso l'elenco integrale degli immobili e dei relativi score. `runs.jsonl` è ridotto a indice per resume e riepilogo; la documentazione distingue i JSON riproducibili dall'indice e precisa che la traccia dei prompt dipende dai dati registrati dagli agenti. Nessun benchmark è stato eseguito o risultato aggiunto.
 
 ## 2026-11-13
 
