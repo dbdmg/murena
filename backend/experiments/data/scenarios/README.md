@@ -43,7 +43,7 @@ Check CLI arguments using `--help` before launching: the runner performs network
 
 ## Scenario revision
 
-`UC08_student_grant_missing_use` now says that the office is for a conversion project but its future use is undecided. This keeps the intended use unresolved while making clear that it is relevant to the request. The one-shot and conversational initial queries remain paired; the simulated answer and oracle query are unchanged. This wording adjustment is a scenario-definition change, not evidence that clarification succeeds reliably.
+`UC08_student_grant_missing_use` omits the intended use from its initial query; the simulated answer then supplies the specific student-residence use and CDP/PNRR context. A trial with wording that explicitly said the future use was undecided caused SAGE to classify D as `SPECIFIED`, so that wording was removed. The one-shot and conversational initial queries remain paired. This scenario revision addresses an observed parser classification, but does not establish that clarification succeeds reliably.
 
 ## Static validation performed
 
