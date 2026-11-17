@@ -245,6 +245,19 @@ logged), and the 89,200-property MURENA dataset. Run-to-run variability
 is measured rather than assumed absent. The oracle ranking is a
 \emph{reference query output}, not ground truth on property relevance.
 
+% Verbatim submitted_query values from missingness_v3/runs.jsonl:
+% one_shot bench_b8213f8cebdf; refined bench_a9cf4b8903e0;
+% oracle bench_2eb0d7722958. See OKF for provenance.
+For example, the recorded nursery case ($k=2$, $C_b$ and $C_e$
+omitted) supplied the following actual inputs to the analysis pipeline:
+\emph{One-shot ($q_0$)}: ``I am looking for an existing school building. I intend to convert it into a nursery. The location is in Turin. I prefer properties near green spaces.''
+\emph{Refined ($\hat q$)}: ``I am looking for an existing school building in Turin to convert into a nursery. It must have at least 600 sqm of gross floor area and capacity for 45 people. I prefer a property near green spaces and in energy class D or better.''
+\emph{Oracle ($q^*$)}: ``Find an existing school building to convert it into a nursery for 45 children in Turin with at least 600 sqm of gross floor area in energy class D or better near green spaces.''
+The refined text was generated after two clarification turns; the
+oracle was predefined. They express corresponding requirements with
+different wording, including ``capacity for 45 people'' versus ``for 45
+children''; the oracle text is never substituted for the refined output.
+
 \paragraph{Metrics.} \emph{Clarification}: precision, recall, and $F_1$
 of detecting the initially omitted dimensions; number of turns;
 completion; the rate of unnecessary turns at $k=0$. \emph{Ranking

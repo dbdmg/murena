@@ -259,3 +259,18 @@ Gli scenari sono sintetici e costruiti per coprire dimensioni, omissioni, ambigu
 Nel controllo di funzionamento del 2026-11-17, una singola run end-to-end `MS01_k1` è terminata con `gpt-6-luna` e dataset `full` in 66.056 secondi: zero errori, un turno, F1 iniziale 1.0 e accuratezza del mapping finale 1.0. La run ha restituito 147 risultati. Questo smoke test verifica un percorso eseguibile, ma non è una valutazione scientifica, una replica del paper o evidenza di stabilità sulle 40 istanze. Il 2026-11-17 i file v2 sono stati rigenerati nel repository: l'unica differenza è il checksum sorgente in `generation_manifest.json`, ora allineato a `scenario_triplets.json`. Il validatore statico è passato (40 scenari, 8 per ciascun `k=1..5`, 8 controlli `k=0`, 120 configurazioni, annidamento, testi, fonti, etichette e YAML) e `benchmark_cli.load_scenarios` carica i 40 casi. Nessun benchmark v2 completo è stato eseguito.
 
 Per i comandi supportati e le lacune operative, vedere [riproduzione](reproduction.md); per i risultati dichiarati nel manoscritto, vedere [benchmark del paper](benchmarks.md).
+
+### Esempio delle tre condizioni nel paper (2026-11-17)
+
+Il paragrafo `Conditions` del manoscritto riporta integralmente i campi
+`submitted_query` di tre run già registrati in
+`backend/experiments/results/missingness_v3/runs.jsonl`:
+`one_shot` **bench_b8213f8cebdf** (`MS02_k2`, repeat 1),
+`refined` **bench_a9cf4b8903e0** (`MS02_k2`, repeat 1) e
+`oracle` **bench_2eb0d7722958** (`UC02_nursery_missing_use`, repeat 1).
+Il caso omette inizialmente `Cb` e `Ce`; la run refined registra due turni.
+L'esempio conserva le formulazioni osservate, compresa la differenza tra
+“capacity for 45 people” e “for 45 children”. L'oracle è un input predefinito,
+la refined una riscrittura osservata; non viene sostituita con l'oracle.
+È una spiegazione del protocollo con dati esistenti, senza nuove esecuzioni
+o variazioni dei risultati.

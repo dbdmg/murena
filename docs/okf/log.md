@@ -2,6 +2,8 @@
 
 ## 2026-11-17
 
+* **Esempio reale delle tre condizioni nel paper**: aggiunte in `Conditions` le query complete one-shot, refined e oracle del caso nursery `MS02_k2` / `UC02`, trascritte dai campi `submitted_query` delle run registrate; esplicitati i due turni e la differenza fra riscrittura osservata e riferimento predefinito. Provenienza con run ID in `research/edbt-conversational-benchmark.md` e nei commenti LaTeX. Nessun nuovo esperimento o risultato. PDF rigenerato con Tectonic in copia temporanea: 4 pagine incluse referenze, controllo visivo senza regressioni maggiori.
+
 * **Integrazione pull `bb02883`**: risolti i conflitti tra risultati preliminari remoti e revisioni editoriali locali in `paper/edbt-paper-template.tex`, README e PDF. Conservati i risultati importati (113 run completati: 54 refined, 43 one-shot, 16 oracle), l'unico scenario preparato e l'assenza di etichette di versione nel manoscritto. Allineati i README del paper e `research/conversational-paper-audit.md`; PDF rigenerato e controllato (4 pagine, avviso minore di overfull verticale 1,17 pt). Frontend identico al backup precedente all'integrazione; nessun benchmark rieseguito.
 
 * **Benchmark senza cronologia nel paper**: eliminate le etichette v3/v2/v1 e la suite storica di 24 scenari dal manoscritto, con allineamento di abstract, conclusione, blocco risultati non compilato e README editoriali. Il protocollo corrente resta descritto tramite scenari, condizioni e metriche; nessun risultato storico è trasferito al benchmark corrente. Provenienza e risultati precedenti conservati in OKF e negli artefatti. Aggiornato `research/conversational-paper-audit.md`; PDF rigenerato con Tectonic e controllato visivamente (3 pagine, nessun errore o overfull segnalato).
