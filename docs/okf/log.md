@@ -2,6 +2,12 @@
 
 ## 2026-11-17
 
+* **Carosello benchmark nella mappa demo**: il carosello inferiore usa i dieci marker della run locale in modalità scenari ed è etichettato `Benchmark Top 10`; nelle modalità normali mantiene `Top Picks AI`. Aggiornata la documentazione per distinguere i risultati precomputati dalle valutazioni AI non disponibili.
+
+* **Selettore limitato agli scenari completati**: filtrate le varianti del catalogo offline tramite l'indice statico dei risultati refined completati; i casi e le combinazioni senza una run disponibile non sono selezionabili/caricabili. Chiarito nel pannello che risultati e immobili sono caricati dagli asset locali.
+
+* **Risultati benchmark statici nella demo**: la mappa riattiva la basemap; aggiunto export locale delle run refined completate e l'adapter compone i top-10 con i dettagli degli immobili dal JSON del dataset. Sono disponibili 67 scenari con run refined completate nello snapshot esportato. L'artefatto compatto non include output dell'EvaluationAgent, quindi non viene sintetizzato o inventato. La demo continua a non contattare il backend.
+
 * **Ripristinato isolamento rete della modalità demo**: annullato l'inoltro al backend introdotto per l'analisi; `demoAdapter` torna a gestire le API e il proxy Vite resta disattivato in modalità demo. La demo continua a leggere `estates.json` statico per mostrare i marker d'inventario, ma run, risultati e dettagli non contattano il backend. La voce precedente “Scenari demo sul dataset reale” è superata da questa decisione.
 
 * **Inventario statico per la mappa demo**: esportati i 36.328 record di `estates.parquet` in `frontend/public/data/estates.json` con coordinate e attributi di visualizzazione; aggiunto script ripetibile `frontend/scripts/export_estates.py`. In modalità scenari la mappa carica marker localmente senza endpoint inventario/config e può aprire i dettagli disponibili nell'export; risultati di analisi continuano a provenire dal backend. Dimensione export corrente circa 18 MB. Nessuna esecuzione benchmark.

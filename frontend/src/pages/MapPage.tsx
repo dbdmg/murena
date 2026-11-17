@@ -434,7 +434,8 @@ export const MapPage: React.FC = () => {
         );
     }
 
-    const hasTopPicks = topPicks.length > 0;
+    const carouselMarkers = OFFLINE_DEMO && activeRunId ? searchResults.slice(0, 10) : topPicks;
+    const hasTopPicks = carouselMarkers.length > 0;
 
     return (
         <div className="h-full w-full relative flex flex-col overflow-hidden">
@@ -521,8 +522,8 @@ export const MapPage: React.FC = () => {
                                         <Sparkles className="w-3.5 h-3.5 text-amber-400" />
                                     </div>
                                     <div className="flex flex-col">
-                                        <span className="text-xs text-slate-400 leading-none">AI Top Picks</span>
-                                        <span className="text-sm text-amber-400 font-bold leading-tight">{topPicks.length}</span>
+                                        <span className="text-xs text-slate-400 leading-none">{OFFLINE_DEMO ? 'Benchmark Top 10' : 'AI Top Picks'}</span>
+                                        <span className="text-sm text-amber-400 font-bold leading-tight">{carouselMarkers.length}</span>
                                     </div>
                                 </div>
                             </>
@@ -586,7 +587,8 @@ export const MapPage: React.FC = () => {
                     style={{ marginLeft: isListSidebarOpen ? '320px' : '0', transition: 'margin-left 0.3s ease' }}
                 >
                     <ResultsCarousel
-                        topPicks={topPicks}
+                        topPicks={carouselMarkers}
+                        title={OFFLINE_DEMO ? 'Benchmark Top 10' : 'Top Picks AI'}
                         selectedId={carouselSelectedId}
                         hoveredId={hoveredMarkerId}
                         onCardClick={handleCarouselCardClick}

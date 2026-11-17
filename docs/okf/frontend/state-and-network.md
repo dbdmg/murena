@@ -44,4 +44,4 @@ Controllare [contratti API](../api/contracts.md) e [WebSocket](../api/progress-e
 
 Nella modalità scenari (`VITE_DEMO_MODE=true`) il contesto auth crea un utente locale e Axios usa `demoAdapter`; il proxy Vite è disattivato. Le richieste API sono simulate localmente e non raggiungono il backend. La sessione e la run sono in memoria; la run simulata non contiene immobili.
 
-I marker di inventario in modalità scenari vengono caricati da `public/data/estates.json`, esportato dal Parquet con `frontend/scripts/export_estates.py`; questo file statico viene letto dal browser senza chiamate al backend. Gli attributi visualizzati sono limitati all'export.
+Marker e dettagli essenziali in modalità scenari vengono caricati da `public/data/estates.json`; i top-10 refined precomputati sono esportati separatamente in `public/data/benchmark_runs.json`. Entrambi i file vengono letti localmente senza chiamate al backend. Gli artefatti sorgente non conservano output dell'EvaluationAgent.

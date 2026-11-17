@@ -5,6 +5,7 @@ import type { MapMarker } from '../../api/types';
 
 interface ResultsCarouselProps {
     topPicks: MapMarker[];
+    title?: string;
     selectedId: string | null;
     hoveredId: string | null;
     onCardClick: (marker: MapMarker) => void;
@@ -35,6 +36,7 @@ const getEnergyClassColor = (cls?: string) => {
 
 export const ResultsCarousel: React.FC<ResultsCarouselProps> = ({
     topPicks,
+    title = 'Top Picks AI',
     selectedId,
     hoveredId,
     onCardClick,
@@ -159,7 +161,7 @@ export const ResultsCarousel: React.FC<ResultsCarouselProps> = ({
                     </div>
                     <div className="flex flex-col">
                         <span className="text-sm font-bold bg-linear-to-r from-amber-300 to-yellow-400 bg-clip-text text-transparent">
-                            Top Picks AI
+                            {title}
                         </span>
                         <span className="text-[10px] text-amber-200/50">
                             {topPicks.length} selected properties

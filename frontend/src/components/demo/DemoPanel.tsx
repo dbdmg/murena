@@ -30,12 +30,19 @@ export function DemoPanel({ enabled, busy, onSelectScenario }: Props) {
 
     useEffect(() => {
         let cancelled = false;
-        import('@demo-scenarios')
-            .then(data => {
+        Promise.all([
+            import('@demo-scenarios'),
+            fetch('/data/benchmark_runs.json').then(response => {
+                if (!response.ok) throw new Error('Could not load completed benchmark runs.');
+                return response.json() as Promise<Record<string, unknown>>;
+            }),
+        ])
+            .then(([data, completedRuns]) => {
                 const parsed = parseDemoScenarios(data.default);
-                if (!cancelled) setScenarios(parsed);
+                const completedIds = new Set(Object.keys(completedRuns));
+                if (!cancelled) setScenarios(parsed.filter(scenario => completedIds.has(scenario.case_id)));
             })
-            .catch(() => { if (!cancelled) setError('Could not load the configured scenario catalog.'); })
+            .catch(() => { if (!cancelled) setError('Could not load the scenario catalog and completed benchmark results.'); })
             .finally(() => { if (!cancelled) setLoading(false); });
         return () => { cancelled = true; };
     }, []);
@@ -43,12 +50,12 @@ export function DemoPanel({ enabled, busy, onSelectScenario }: Props) {
     return <aside className="mb-4 shrink-0 rounded-2xl border border-(--border-light) bg-(--glass-bg) p-3 text-(--text-primary)">
         <h2 className="text-sm font-semibold">Select scenario</h2>
         {enabled && <div className="mt-3 max-h-[60vh] space-y-3 overflow-y-auto">
-            <p className="text-xs text-(--text-secondary)">Scripted local conversation. No backend or LLM connection. Choose a scenario to load the complete conversation and its final query for review. Property results are not included in the scenario triplets.</p>
+            <p className="text-xs text-(--text-secondary)">Choose a case and missing dimensions with a completed refined benchmark result. The stored top 10 and inventory details load locally; no backend or LLM is contacted.</p>
             {loading && <p role="status" className="text-xs">Loading scenarios…</p>}
             {error && <p role="alert" className="text-xs text-amber-200">{error}</p>}
             {!loading && !error && scenarios.length === 0 && <p role="status" className="text-xs">No scenarios are enabled in the configured catalog.</p>}
             {scenarios.length > 0 && <>
-                <label className="block text-xs">{baseScenarios.length} base cases · {scenarios.length} variants
+                <label className="block text-xs">{baseScenarios.length} completed base cases · {scenarios.length} completed variants
                     <select aria-label="Demo base case" value={selectedBaseId} disabled={busy} onChange={event => {
                         setSelectedBaseId(event.target.value);
                         setSelectedDimensions([]);
