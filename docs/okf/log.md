@@ -2,6 +2,8 @@
 
 ## 2026-11-17
 
+* **Rigenerazione scenari v2**: eseguito `generate_missingness.py` dai triplets correnti; l'unico file cambiato è `generation_manifest.json` (checksum sorgente riallineato). `validate_missingness.py` passa e la CLI carica i 40 casi. Aggiornati riproduzione, benchmark EDBT e confini delle evidenze; nessuna run del benchmark eseguita.
+
 * **Documentazione scenari a omissione controllata v2**: allineata la README ai percorsi effettivi sotto `scenarios_v2/`, rimossi i riferimenti al flag CLI inesistente `--language` e documentata la lingua inglese fissata dal runner. Aggiornati riproduzione, protocollo EDBT e confini delle evidenze per descrivere i 40 casi `k=1..5`, gli 8 controlli `k=0` non supportati, il checksum manifest non allineato e i limiti della condizione conversational. Registrato uno smoke test end-to-end sul solo caso `MS01_k1` (66.056 s, completato); non è una valutazione del benchmark.
 * **Stato dell'arte**: aggiunto `research/related-work.md` con cinque filoni (chiarimento guidato dall'incertezza, text-to-SQL ambiguo e interfacce ai dati, NL su dati spaziali, ricerca immobiliare ed energia, normativa edilizia e LLM), una tabella di posizionamento e le implicazioni per il demo paper. I lavori sono stati consultati tramite abstract e indici, non sul full text; i numeri citati sono quelli dichiarati dagli autori.
 * **Venue di pubblicazione**: aggiunto `research/publication-venues.md`. EDBT 2027 (Lille, 6–9 aprile 2027) è verificato sul sito ufficiale; la call del demo track non è stata trovata. Scadenze di ICDE, SIGMOD e VLDB 2027 riportate con il relativo stato di verifica.

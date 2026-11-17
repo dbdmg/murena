@@ -62,7 +62,7 @@ uv run python backend/experiments/benchmark_cli.py \
 
 The CLI fixes the conversation language to English; `--language` is not a supported option. The command above is a one-repeat run, not a recommended statistical sample. To collect three repetitions, set `--repeat 3`; the full run then covers 120 scenario executions. The CLI runs the **conversational condition only**. One-shot and oracle still require separate pipeline invocations under matching model, data and settings.
 
-In the checked-in snapshot, the source hash in `generation_manifest.json` is stale after changes to the source triplets. The validator checks this hash and will ask for regeneration before validating the generated set.
+The validator checks the source hash stored in `generation_manifest.json` and asks for regeneration whenever the source triplets change. The checked-in files were regenerated on 2026-11-17 and pass validation.
 
 ## What to measure
 
