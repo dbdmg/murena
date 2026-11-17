@@ -23,6 +23,16 @@ from app.utils.json_parser import safe_extract_json
 
 logger = logging.getLogger(__name__)
 
+_CODEX_ENV_ALLOWLIST = {
+    "HOME", "PATH", "CODEX_HOME", "LANG", "LC_ALL", "TMPDIR",
+    "SSL_CERT_FILE", "REQUESTS_CA_BUNDLE",
+}
+_CODEX_WINDOWS_ENV = {
+    "SYSTEMROOT", "WINDIR", "SYSTEMDRIVE", "COMSPEC", "PATHEXT",
+    "USERPROFILE", "HOMEDRIVE", "HOMEPATH", "APPDATA", "LOCALAPPDATA",
+    "PROGRAMDATA", "TEMP", "TMP",
+}
+
 
 def _message_text(content: Any) -> str:
     if isinstance(content, str):
@@ -193,14 +203,14 @@ class CodexExecChatModel(BaseChatModel):
             raise RuntimeError("Codex CLI executable was not found")
 
         # Keep the process in an empty temporary workspace and omit API keys and
-        # application secrets from its environment. Codex auth is read from HOME.
+        # application secrets from its environment. Codex auth is read from HOME
+        # (USERPROFILE on Windows). On Windows the CLI's Node runtime aborts at
+        # startup without SYSTEMROOT, so non-secret OS variables are kept too.
+        allowed = _CODEX_ENV_ALLOWLIST | (_CODEX_WINDOWS_ENV if os.name == "nt" else set())
         env = {
             key: value
             for key, value in os.environ.items()
-            if key in {
-                "HOME", "PATH", "CODEX_HOME", "LANG", "LC_ALL", "TMPDIR",
-                "SSL_CERT_FILE", "REQUESTS_CA_BUNDLE",
-            }
+            if key.upper() in allowed
         }
         with tempfile.TemporaryDirectory(prefix="murena-codex-") as workdir:
             command = [
@@ -234,6 +244,10 @@ class CodexExecChatModel(BaseChatModel):
                     command,
                     input=prompt,
                     text=True,
+                    # Codex speaks UTF-8; the Windows locale default (cp1252)
+                    # would garble prompts and crash on reply bytes.
+                    encoding="utf-8",
+                    errors="replace",
                     capture_output=True,
                     check=False,
                     timeout=self.timeout_seconds,

@@ -125,6 +125,28 @@ Errori osservati:
 
 Questi risultati riguardano solo la condizione conversational. Non permettono di stimare il beneficio del chiarimento finché one-shot e oracle non vengono eseguiti con le stesse impostazioni. La bassa stabilità tra ripetizioni va riportata insieme a qualsiasi confronto. Il fenomeno delle ambiguità non riconosciute è coerente con quanto riportato in letteratura (vedi [stato dell'arte](related-work.md)).
 
+## Risultati osservati: famiglia v2 a omissione controllata, 2026-11-17
+
+Run completo dei 40 scenari v2 con 3 ripetizioni (120 run): `gpt-6-luna` via `codex_exec` (reasoning `low`) su Windows, dataset `full` locale (89.200 immobili), `map_limit=1000`, `llm_limit=10`, concorrenza 4. Artefatti in `backend/experiments/results/missingness_v2/`; valori calcolati con `analyze_conversational_results.py`.
+
+| k | Run (ok) | P | R | F1 | Rilevamento esatto | Turni medi | Durata mediana |
+|---:|---:|---:|---:|---:|---:|---:|---:|
+| 1 | 24 (18) | 1,00 | 0,75 | 0,86 | 18/24 | 1,00 | 86 s |
+| 2 | 24 (24) | 1,00 | 0,88 | 0,93 | 18/24 | 1,75 | 89 s |
+| 3 | 24 (24) | 1,00 | 0,88 | 0,93 | 15/24 | 2,62 | 95 s |
+| 4 | 24 (24) | 1,00 | 0,97 | 0,98 | 21/24 | 3,88 | 103 s |
+| 5 | 24 (24) | 1,00 | 0,95 | 0,97 | 18/24 | 4,75 | 109 s |
+| **Totale** | **120 (114)** | **1,00** | **0,92** | **0,96** | **90/120** | **2,89** | **97 s** |
+
+Sui 114 run completati: accuratezza dello stato finale 1,00; `matched_use_cases` uguale all'atteso per la configurazione `refined` in 114/114; nessun requisito normativo vincolante (0/114); SQL finale identica nelle 3 ripetizioni in 11/38 scenari, Jaccard medio dei top-5 tra ripetizioni 0,69 (top-10 0,74). I 6 run non completati (`MS02_k1`, `MS07_k1`) sono terminati senza alcun turno di chiarimento.
+
+Nessun falso positivo: tutte le 30 rilevazioni non esatte sono omissioni di `Cb` non riconosciute (30 dei 72 run in cui `Cb` è omessa). Le cause osservate nello stato iniziale del parser sono due:
+
+- **Capienza nella destinazione d'uso** (24 run: MS02, MS07, MS08): la query omette la superficie ma mantiene, nel testo della destinazione, una capienza come "for 45 children" o "for 30 residents". SAGE classifica la capienza come `Cb` (comportamento documentato), quindi la considera specificata. È un disallineamento tra generatore v2 e definizione di `Cb`, non un errore del parser: va corretto nella costruzione degli scenari o nella definizione attesa.
+- **Stato dell'immobile** (6 run: MS02, MS03, MS04): "existing building" o "existing unit" viene letto come vincolo edilizio specificato. È un'interpretazione discutibile del parser.
+
+Il numero di turni cresce quasi linearmente con `k`, e la durata cresce di circa 5–6 secondi per dimensione omessa. Come per v1, la sola condizione conversational non stima il beneficio del chiarimento rispetto a one-shot e oracle.
+
 ## Limiti
 
 Gli scenari sono sintetici e costruiti per coprire dimensioni, omissioni, ambiguità e casi normativi selezionati. Non costituiscono una user study e non rappresentano la distribuzione di richieste reali. Le risposte simulate e gli oracle riflettono scelte di costruzione del benchmark. Le run conversational documentate sopra sono risultati osservati su questo setup, ma non stimano il beneficio del chiarimento senza condizioni one-shot e oracle appaiate. La copertura normativa segue il catalogo fornito e non certifica autorizzazioni o aggiornamento giuridico. Il protocollo EDBT va mantenuto distinto dai risultati riportati nel paper originale.

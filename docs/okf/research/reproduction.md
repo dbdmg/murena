@@ -79,6 +79,16 @@ La famiglia `backend/experiments/data/scenarios_v2/` aggiunge 40 casi conversazi
 
 Validazione statica e rigenerazione sono descritte in `backend/experiments/data/scenarios_v2/README.md`. Il validatore confronta il checksum del sorgente registrato nel manifest: dopo ogni modifica di `scenarios/scenario_triplets.json` occorre rigenerare la famiglia v2 prima di validarla. Al 2026-11-17 manifest e sorgente sono allineati e la validazione passa. Il runner accetta il YAML v2 e usa l'inglese fissato internamente; non passare `--language`.
 
+`backend/experiments/analyze_conversational_results.py` aggrega una directory di output del runner senza chiamate al modello: rilevamento delle dimensioni mancanti (P/R/F1 micro, corrispondenza esatta, inclusi i run terminati senza turno), turni, accuratezza dello stato finale, `matched_use_cases` rispetto all'atteso, requisiti normativi vincolanti, stabilità tra ripetizioni, stratificati per `missing_count` (v2) o `category` (v1). Usa l'ultimo tentativo registrato per ogni coppia (scenario, ripetizione). Esempio dalla radice del repository:
+
+```bash
+python backend/experiments/analyze_conversational_results.py \
+  --results backend/experiments/results/missingness_v2 \
+  --triplets backend/experiments/data/scenarios_v2/scenario_triplets.json
+```
+
+Su Windows il provider `codex_exec` richiede le correzioni dell'adapter descritte in [chiarimento pre-analisi](../architecture/query-clarification.md); le variabili `LLM_PROVIDER`, `LLM_MODEL` e `CODEX_REASONING_EFFORT` possono essere passate come variabili d'ambiente del processo senza modificare `.env`.
+
 Una prova end-to-end di `MS01_k1` con `gpt-6-luna` e dataset `full` è stata completata in 66.056 secondi: una run, zero errori, un turno di chiarimento, F1 di rilevamento iniziale 1.0, accuratezza mapping 1.0 e 147 risultati. È un controllo di funzionamento su un caso, non un benchmark comparativo né una stima di prestazione. Il set v2 non definisce `expected_ids`; non misura quindi la rilevanza o la qualità del ranking.
 
 La cartella di output contiene `manifest.json`, `runs.jsonl`, la directory `runs/` e `summary.csv`. Viene scritto un file JSON autonomo per ogni run, `runs/<run_id>.json`, così l'artefatto può essere usato in seguito per riprodurre nel frontend i dati restituiti dall'API. Il JSON contiene definizione dello scenario e ground truth, query iniziale e inviata, transcript user/assistant con le risposte simulate, stati e metriche conversazionali, durata, errori eventuali e `api_response` serializzata in forma JSON-safe. La risposta conserva l'intero array `buildings` con i campi e gli score restituiti dall'AnalysisService, oltre a località, filtri/SQL, sintesi broker, contesto e traccia degli agenti. La traccia contiene input e output registrati dagli agenti e può includere i prompt effettivamente inviati (`[SYSTEM]`/`[USER]`) e i metadati del dataset; la disponibilità dei dettagli dipende da ciò che il logger degli agenti registra.

@@ -2,6 +2,10 @@
 
 ## 2026-11-17
 
+* **Benchmark v2 eseguito**: 40 scenari × 3 ripetizioni con `gpt-6-luna` via Codex su Windows. 114/120 run completati; F1 del rilevamento iniziale 0,96, nessun falso positivo, `matched_use_cases` corretto 114/114, nessun requisito normativo vincolante. Le 30 rilevazioni mancate riguardano tutte `Cb`: 24 per capienza mantenuta nel testo della destinazione (disallineamento del generatore v2), 6 per "existing building/unit" letto come vincolo edilizio. Risultati in `research/edbt-conversational-benchmark.md`.
+* **Adapter Codex su Windows**: `codex_exec.py` inoltra le variabili di sistema Windows non segrete (senza `SYSTEMROOT` il CLI terminava con exit 134) e codifica stdin/stdout in UTF-8 invece di cp1252. Le chiavi API restano escluse.
+* **Script di analisi**: aggiunto `backend/experiments/analyze_conversational_results.py`, che riproduce le metriche v1 calcolate a mano e stratifica v2 per `k`.
+
 * **Rigenerazione scenari v2**: eseguito `generate_missingness.py` dai triplets correnti; l'unico file cambiato è `generation_manifest.json` (checksum sorgente riallineato). `validate_missingness.py` passa e la CLI carica i 40 casi. Aggiornati riproduzione, benchmark EDBT e confini delle evidenze; nessuna run del benchmark eseguita.
 
 * **Documentazione scenari a omissione controllata v2**: allineata la README ai percorsi effettivi sotto `scenarios_v2/`, rimossi i riferimenti al flag CLI inesistente `--language` e documentata la lingua inglese fissata dal runner. Aggiornati riproduzione, protocollo EDBT e confini delle evidenze per descrivere i 40 casi `k=1..5`, gli 8 controlli `k=0` non supportati, il checksum manifest non allineato e i limiti della condizione conversational. Registrato uno smoke test end-to-end sul solo caso `MS01_k1` (66.056 s, completato); non è una valutazione del benchmark.
