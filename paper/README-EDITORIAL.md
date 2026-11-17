@@ -21,9 +21,21 @@ The EDBT demonstration's specific delta is:
    and visual analytics without changing those methods.
 
 The diagram and demonstration steps follow precisely this sequence. Related
-Work is placed after the walkthrough and focuses on COOL, FISQL, AmbiSQL,
-and SAGE-Agent. Broader spatial/OLAP demos are omitted because the novelty
-here is clarification rather than spatial querying or ranking.
+Work (Section 2) covers clarification in LLMs (CLAMBER, QuestBench,
+SAGE-Agent) and ambiguity/interaction for data access (AmbiQT, AMBROSIA,
+PRACTIQ, AmbiSQL, FISQL, COOL). Broader spatial/OLAP demos are omitted
+because the novelty here is clarification rather than spatial querying or
+ranking.
+
+Revision of 2026-11-17: the guided demo path now uses the nursery request of
+scenario MS02_k2 (C_b and C_e omitted, two questions), because the earlier
+"older adults" path relied on ambiguity resolution that failed in all v1
+runs (UC20/UC21). The unsupported claim that answer updates "preserve
+negations" was removed. The UI does not display per-dimension states; the
+paper says they are kept by the backend and explained with Fig. 1. The
+regulatory catalogue in `backend/docs/knowledge/normativa/normativa.json`
+currently has eight use cases (the "46 cases" in the OKF audit refers to an
+earlier version of the file).
 
 ## Implementation-aligned caveats
 
@@ -45,12 +57,11 @@ here is clarification rather than spatial querying or ranking.
    the multi-turn dialogue and the final map/ranking interface.
 3. Confirm the actual audience deployment and the dataset it will use.
 4. Check the final EDBT demo-track formatting and page limits.
-5. If claiming measurable improvement, run a controlled comparison against
-   MURENA's single-shot interface with incomplete/ambiguous inputs.
+5. Fill the `RESULTS-PENDING (v3)` block only with verified results of the
+   v3 three-condition run, documented first in OKF; do not mix v2 and v3.
 
 ## Build
 
-Run `pdflatex edbt-paper-template.tex`, `bibtex edbt-paper-template` (or
-`bibtex.original` on systems with a broken BibTeX alternative), then
-`pdflatex` twice in this directory. Bundled class, bibliography and EDBT
-macros are retained from the user's source template.
+See `README.md` (Tectonic build in a copy of this directory). Bundled
+class, bibliography and EDBT macros are retained from the user's source
+template.

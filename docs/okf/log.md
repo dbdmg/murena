@@ -2,6 +2,14 @@
 
 ## 2026-11-17
 
+* **Revisione strutturale del paper EDBT** (`paper/`):
+  * Abstract, introduzione e valutazione riscritti sul protocollo v3 a tre condizioni; le equazioni sono rimosse e l'EVPI è descritto come euristica di ordinamento attribuita a SAGE-Agent.
+  * Nuova figura TikZ dell'architettura (`paper/figures/architecture.tex`), che distingue le parti ereditate da MURENA da quelle nuove; la Discussione è confluita nella Conclusione con i limiti.
+  * Percorso guidato della demo sostituito con il caso nursery `MS02_k2`: il caso UC20 non era supportato dai risultati v1. Rimossa la garanzia non dimostrata sulle negazioni.
+  * Citazioni aggiunte e verificate: CLAMBER, AMBROSIA, PRACTIQ, AmbiQT (EMNLP 2023 main), QuestBench. Corrette le voci di FISQL, MURENA e AmbiSQL.
+  * Tabella e figura dei risultati v3 restano in un blocco `RESULTS-PENDING` non compilato finché il benchmark non è concluso; compilazione Tectonic di 3 pagine.
+  * Corretto in `research/conversational-paper-audit.md` il conteggio del catalogo normativo (8 casi, non 46).
+
 * **Harness a tre condizioni e scenari v3**: runner esteso a `refined`/`one_shot`/`oracle` con schema `runs.jsonl` v2 e manifest completo; nuovo `compare_conditions.py` (Jaccard, RBO, versione tie-aware, concordanza dei filtri, bootstrap a cluster); scenari v3 con capienza spostata in `Cb`. Smoke test 4/4. Aggiornati `research/edbt-conversational-benchmark.md`, `research/reproduction.md`, `operations/code-review-2026-11.md`.
 
 * **Code review approfondita**: revisione di pipeline, chiarimento SAGE con API e UI, harness sperimentale e bozza del paper; esiti e stato in `operations/code-review-2026-11.md`.
