@@ -18,6 +18,16 @@ sources:
   title: Query per le tre configurazioni
 - resource: ../../../backend/experiments/data/scenarios/catalog_snapshot_sha256.txt
   title: Impronta dello snapshot normativo sorgente
+- resource: ../../../backend/experiments/data/scenarios_v2/README.md
+  title: Specifica della famiglia a omissione controllata v2
+- resource: ../../../backend/experiments/data/scenarios_v2/scenario_triplets.json
+  title: Triplette degli scenari v2
+- resource: ../../../backend/experiments/data/scenarios_v2/conversational_scenarios.yaml
+  title: Scenari v2 eseguibili dalla CLI
+- resource: ../../../backend/experiments/data/scenarios_v2/generation_manifest.json
+  title: Manifest di generazione v2
+- resource: ../../../backend/experiments/data/scenarios_v2/validate_missingness.py
+  title: Validatore statico v2
 - resource: ../../../backend/experiments/benchmark_cli.py
   title: Runner per scenari conversazionali
 - resource: ../../../backend/docs/knowledge/normativa/normativa.json
@@ -37,6 +47,10 @@ Il paper originale MURENA valuta query iniziali sufficientemente specificate per
 Il dataset contiene **24 scenari** sintetici, rappresentati come triplette appaiate in `scenario_triplets.json`. Le tre forme sono: `one_shot` (query sottospecificata), `conversational` (query iniziale più risposte simulate) e `oracle` (query completa di riferimento). `queries_by_configuration.csv` appiattisce le 72 richieste, 24 per configurazione; per il caso conversational la query registrata è quella iniziale, non la riscrittura prodotta da SAGE.
 
 Le categorie e il numero di scenari sono: omissione della destinazione d'uso (`missing_use`, 8); omissione di prossimità (`missing_proximity`, 3); omissione di vincoli edilizi/capienza (`missing_building`, 2); omissione energetica (`missing_energy`, 2); nessuna preferenza d'uso (`no_preference`, 2); uso ambiguo (`ambiguous_use`, 2); località ambigua (`ambiguous_location`, 1); località omessa (`missing_location`, 1); chiarimento multi-turno (`multi_turn`, 1); destinazione fuori catalogo (`negative_no_match`, 1); distinzione di ambito del contributo (`grant_scope_negative`, 1). La copertura comprende omissioni delle dimensioni `I`, `D`, `L`, `Cb`, `Ce`, `Cp`, ambiguità semantiche, casi negativi e distinzioni di applicabilità normativa.
+
+La famiglia separata `backend/experiments/data/scenarios_v2/` contiene 40 casi di omissione controllata: otto casi per ciascun livello `k=1..5`, costruiti dagli otto intenti completi UC01–UC08. `I` resta sempre specificata; i cinque criteri `D`, `L`, `Cb`, `Ce` e `Cp` vengono omessi secondo maschere annidate, con ordine variabile tra gli intenti. Otto casi `k=0` sono conservati in `zero_missing_controls.json` come controlli, ma il runner corrente li rifiuta perché `expected_initial_missing` deve essere non vuoto. I 40 casi sono il formato compatibile con la condizione conversational, non una sostituzione dei 24 casi di robustezza originari.
+
+Questa è una prova di stress a omissione controllata: ogni criterio omesso è trattato dagli autori come un requisito latente desiderato. Non misura rinunce volontarie o la distribuzione naturale dell'ambiguità. `queries_by_configuration.csv` contiene 120 righe che descrivono le condizioni one-shot, refined e oracle, ma la CLI esegue solo conversational; refined rappresenta l'avvio della conversazione, non una query già prodotta dal sistema.
 
 La provenienza dichiarata nel README degli scenari è il bundle `murena-demo(4).zip` e il catalogo normativo in esso contenuto. `catalog_snapshot_sha256.txt` registra l'impronta dello snapshot normativo usato nella costruzione. Il validatore statico presente nella directory controlla coerenza strutturale e copertura rispetto al catalogo corrente. Queste tracce documentano la provenienza e la coerenza interna dei dati, **non** una validazione empirica con utenti, una verifica indipendente delle norme o l'esecuzione del benchmark.
 
@@ -80,10 +94,14 @@ La CLI conversazionale implementa e riporta per la sola esecuzione conversationa
 
 Nei 24 scenari eseguibili attuali `expected_ids` non è valorizzato: per questo `mean_expected_recall` resta vuota nel riepilogo. Le etichette normative e le query oracle descrivono l'intento e i vincoli, ma non assegnano ID di immobili attesi; non vanno trasformate automaticamente in ground truth dei candidati.
 
+Anche nella famiglia v2 `expected_ids` non è valorizzato. La CLI può verificare il completamento dell'analisi e riportare il numero di risultati, ma non calcolare la recall di immobili attesi né stabilire se il ranking sia migliore.
+
 Non sono implementati nel runner il **Requirement F1** su vincoli atomici, il **Top-5 Jaccard** tra condizioni, il punteggio di **use-case matching** rispetto alle aspettative per configurazione, il confronto delle query one-shot/oracle, né il controllo comparativo dei filtri SQL. Sono obiettivi del protocollo o metadati presenti negli scenari, non metriche già calcolate. La CLI non produce misure comparative di turn count o latency tra configurazioni.
 
 ## Limiti
 
 Gli scenari sono sintetici e costruiti per coprire dimensioni, omissioni, ambiguità e casi normativi selezionati. Non costituiscono una user study, non rappresentano la distribuzione di richieste reali e non forniscono risultati sperimentali finché le esecuzioni non vengono effettuate e analizzate. Le risposte simulate e gli oracle riflettono scelte di costruzione del benchmark. La copertura normativa segue il catalogo fornito e non certifica autorizzazioni o aggiornamento giuridico. Il protocollo EDBT va quindi mantenuto distinto dagli esperimenti, dai dataset e dai risultati riportati nel paper originale.
+
+Nel controllo di funzionamento del 2026-11-17, una singola run end-to-end `MS01_k1` è terminata con `gpt-6-luna` e dataset `full` in 66.056 secondi: zero errori, un turno, F1 iniziale 1.0 e accuratezza del mapping finale 1.0. La run ha restituito 147 risultati. Questo smoke test verifica un percorso eseguibile, ma non è una valutazione scientifica, una replica del paper o evidenza di stabilità sulle 40 istanze. Il validatore applicato ai file v2 presenti si arresta sul checksum sorgente del manifest; la rigenerazione temporanea dai sorgenti attuali ha superato i controlli statici di conteggio, annidamento, testi e mapping. Occorre rigenerare i file v2 nel repository per riallineare il manifest prima di ripetere la validazione.
 
 Per i comandi supportati e le lacune operative, vedere [riproduzione](reproduction.md); per i risultati dichiarati nel manoscritto, vedere [benchmark del paper](benchmarks.md).

@@ -1,5 +1,9 @@
 # MURENA OKF Update Log
 
+## 2026-11-17
+
+* **Documentazione scenari a omissione controllata v2**: allineata la README ai percorsi effettivi sotto `scenarios_v2/`, rimossi i riferimenti al flag CLI inesistente `--language` e documentata la lingua inglese fissata dal runner. Aggiornati riproduzione, protocollo EDBT e confini delle evidenze per descrivere i 40 casi `k=1..5`, gli 8 controlli `k=0` non supportati, il checksum manifest non allineato e i limiti della condizione conversational. Registrato uno smoke test end-to-end sul solo caso `MS01_k1` (66.056 s, completato); non è una valutazione del benchmark.
+
 ## 2026-11-16
 
 * **Integrazione benchmark EDBT**: documentati i 24 scenari sintetici, la copertura per categoria e destinazione d'uso, la ground truth e il protocollo one-shot/conversational/oracle. Distinti il protocollo definito dal supporto effettivo della CLI (sola esecuzione conversational), le metriche implementate da quelle proposte e gli scenari/risultati osservati/risultati del paper. Aggiornati indici, riproducibilità, confini delle evidenze e riferimento architetturale; nessun risultato empirico o verifica legale indipendente è attribuito agli scenari.
