@@ -29,8 +29,19 @@ class Extract(BaseModel):
 class ClaudeCliAdapterTest(unittest.TestCase):
     def _model(self):
         return ClaudeCliChatModel(
-            model_name="claude-haiku-5-5", effort="medium", executable="claude", timeout_seconds=30
+            model_name="claude-haiku-5-5", effort="medium", executable="claude",
+            timeout_seconds=30, retry_backoff_seconds=0.0,
         )
+
+    def test_transient_failure_is_retried(self):
+        replies = iter([
+            SimpleNamespace(returncode=1, stdout="", stderr="transient"),
+            _result({"type": "result", "subtype": "success", "is_error": False, "result": "OK"}),
+        ])
+        with patch("app.services.llm.claude_cli.shutil.which", return_value="/usr/bin/claude"), \
+             patch("app.services.llm.claude_cli.subprocess.run", side_effect=lambda *a, **k: next(replies)) as run:
+            self.assertEqual(self._model().invoke("x").content, "OK")
+        self.assertEqual(run.call_count, 2)
 
     def test_command_isolated_and_system_prompt_separated(self):
         seen = {}

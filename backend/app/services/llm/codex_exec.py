@@ -212,7 +212,9 @@ class CodexExecChatModel(BaseChatModel):
             for key, value in os.environ.items()
             if key.upper() in allowed
         }
-        with tempfile.TemporaryDirectory(prefix="murena-codex-") as workdir:
+        with tempfile.TemporaryDirectory(
+            prefix="murena-codex-", ignore_cleanup_errors=True
+        ) as workdir:
             command = [
                 executable,
                 "exec",

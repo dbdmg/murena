@@ -17,6 +17,7 @@ import os
 import shutil
 import subprocess
 import tempfile
+import time
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
@@ -52,6 +53,10 @@ _DEFAULT_SYSTEM_PROMPT = (
 )
 
 
+class _TransientCliError(RuntimeError):
+    """A CLI call that produced no usable result and may succeed on retry."""
+
+
 def _split_messages(messages: Sequence[BaseMessage]) -> tuple[str, str]:
     """Return (system prompt, conversation text for stdin)."""
     system_parts = [
@@ -84,6 +89,8 @@ class ClaudeCliChatModel(BaseChatModel):
     effort: str = Field(default_factory=lambda: settings.CLAUDE_CLI_EFFORT)
     executable: str = Field(default_factory=lambda: settings.CLAUDE_CLI_EXECUTABLE)
     timeout_seconds: int = Field(default_factory=lambda: settings.CLAUDE_CLI_TIMEOUT_SECONDS)
+    max_retries: int = 2
+    retry_backoff_seconds: float = 2.0
 
     @property
     def _llm_type(self) -> str:
@@ -170,13 +177,40 @@ class ClaudeCliChatModel(BaseChatModel):
         *,
         json_schema: dict[str, Any] | None = None,
     ) -> tuple[str, Any]:
+        """Run one CLI call, retrying transient failures (no result payload or
+        a CLI-reported error) a bounded number of times. Timeouts are not
+        retried."""
+        last_error: RuntimeError | None = None
+        for attempt in range(1 + max(0, self.max_retries)):
+            if attempt:
+                time.sleep(self.retry_backoff_seconds * attempt)
+            try:
+                return self._run_claude_once(system_prompt, conversation, json_schema=json_schema)
+            except _TransientCliError as exc:
+                last_error = exc
+                logger.warning("Claude CLI transient failure (attempt %d): %s", attempt + 1, exc)
+        assert last_error is not None
+        raise RuntimeError(str(last_error)) from last_error
+
+    def _run_claude_once(
+        self,
+        system_prompt: str,
+        conversation: str,
+        *,
+        json_schema: dict[str, Any] | None = None,
+    ) -> tuple[str, Any]:
         executable = shutil.which(self.executable)
         if not executable:
             raise RuntimeError("Claude CLI executable was not found")
 
         allowed = _CLAUDE_ENV_ALLOWLIST | (_CLAUDE_WINDOWS_ENV if os.name == "nt" else set())
         env = {k: v for k, v in os.environ.items() if k.upper() in allowed}
-        with tempfile.TemporaryDirectory(prefix="murena-claude-") as workdir:
+        # On Windows a CLI child process can still hold the directory briefly
+        # after the call returns; a failed cleanup must not discard a valid
+        # reply (it would surface as an agent failure).
+        with tempfile.TemporaryDirectory(
+            prefix="murena-claude-", ignore_cleanup_errors=True
+        ) as workdir:
             system_file = Path(workdir) / "system-prompt.txt"
             system_file.write_text(system_prompt, encoding="utf-8")
             command = self._build_command(executable, system_file, json_schema)
@@ -207,11 +241,17 @@ class ClaudeCliChatModel(BaseChatModel):
                 payload = candidate
                 break
         if payload is None:
-            logger.error("Claude CLI returned no result (exit=%s)", result.returncode)
-            raise RuntimeError("Claude CLI returned no LLM response")
+            logger.error(
+                "Claude CLI returned no result (exit=%s, stderr=%r)",
+                result.returncode, (result.stderr or "")[-500:],
+            )
+            raise _TransientCliError("Claude CLI returned no LLM response")
         if payload.get("is_error") or payload.get("subtype") != "success":
-            logger.error("Claude CLI LLM call failed (subtype=%s)", payload.get("subtype"))
-            raise RuntimeError(f"Claude CLI LLM call failed: {payload.get('subtype')}")
+            logger.error(
+                "Claude CLI LLM call failed (subtype=%s, result=%r)",
+                payload.get("subtype"), str(payload.get("result"))[:300],
+            )
+            raise _TransientCliError(f"Claude CLI LLM call failed: {payload.get('subtype')}")
         text = payload.get("result")
         if not isinstance(text, str):
             text = json.dumps(payload.get("structured_output"), ensure_ascii=False)
