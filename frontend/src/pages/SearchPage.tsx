@@ -1,4 +1,4 @@
-import { selectDemoScenario } from '../demo/backend';
+import { loadDemoConversation } from '../demo/backend';
 import type { DemoScenario } from '../utils/demoScenarios';
 import { OFFLINE_DEMO } from '../demo/mode';
 /**
@@ -231,7 +231,6 @@ export const SearchPage: React.FC = () => {
     const openDemoScenario = async (scenario: DemoScenario) => {
         if (!OFFLINE_DEMO || busy) return;
         const initialQuery = scenario.conversational.initial_query;
-        selectDemoScenario(scenario);
         setQuery('');
         setClarificationOriginalQuery(initialQuery);
         setClarificationSessionId(null);
@@ -241,20 +240,10 @@ export const SearchPage: React.FC = () => {
         setClarificationMessages([{ role: 'user', content: initialQuery }]);
         setIsSubmitting(true);
         try {
-            const result = await analysisApi.submitAnalysis({ query: initialQuery });
-            if (!('session_id' in result)) throw new Error('Expected a local demo conversation.');
-            if (result.status === 'ASK' && result.question?.trim()) {
-                setClarificationSessionId(result.session_id);
-                setClarificationMessages([
-                    { role: 'user', content: initialQuery },
-                    { role: 'assistant', content: result.question.trim() },
-                ]);
-            } else if (result.status === 'REVIEW') {
-                setClarificationSessionId(result.session_id);
-                setReviewQuery(result.refined_query || initialQuery);
-            } else {
-                throw new Error(result.message || 'Could not open the demo conversation.');
-            }
+            const conversation = loadDemoConversation(scenario);
+            setClarificationMessages(conversation.messages);
+            setClarificationSessionId(conversation.sessionId);
+            setReviewQuery(conversation.reviewQuery);
         } catch (err) {
             setClarificationError(apiErrorMessage(err, 'Could not open the demo conversation.'));
         } finally {
@@ -347,9 +336,7 @@ export const SearchPage: React.FC = () => {
                     enabled={demoMode}
                     busy={busy}
                     inConversation={clarificationMessages.length > 0}
-                    canAnswer={Boolean(clarificationSessionId) && reviewQuery === null}
                     onSelectScenario={openDemoScenario}
-                    onAnswer={handleSuggestionClick}
                 />}
 
                 {/* Logo Murena */}

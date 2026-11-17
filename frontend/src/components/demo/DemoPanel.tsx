@@ -1,17 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
-import { dimensionLabels, dimensions, parseDemoScenarios } from '../../utils/demoScenarios';
+import { dimensionLabels, parseDemoScenarios } from '../../utils/demoScenarios';
 import type { DemoScenario } from '../../utils/demoScenarios';
 
 type Props = {
     enabled: boolean;
     busy: boolean;
     inConversation: boolean;
-    canAnswer: boolean;
     onSelectScenario: (scenario: DemoScenario) => void;
-    onAnswer: (answer: string) => void;
 };
 
-export function DemoPanel({ enabled, busy, inConversation, canAnswer, onSelectScenario, onAnswer }: Props) {
+export function DemoPanel({ enabled, busy, inConversation, onSelectScenario }: Props) {
     const [scenarios, setScenarios] = useState<DemoScenario[]>([]);
     const [selectedId, setSelectedId] = useState('');
     const [source, setSource] = useState('');
@@ -19,7 +17,6 @@ export function DemoPanel({ enabled, busy, inConversation, canAnswer, onSelectSc
     const [loading, setLoading] = useState(true);
     const uploadVersion = useRef(0);
     const selected = scenarios.find(item => item.case_id === selectedId);
-    const buttonClass = 'rounded-lg border border-(--border-light) px-3 py-2 text-xs hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed';
 
     const replaceScenarios = (value: unknown, name: string) => {
         const parsed = parseDemoScenarios(value);
@@ -43,7 +40,7 @@ export function DemoPanel({ enabled, busy, inConversation, canAnswer, onSelectSc
     return <aside className="mb-4 shrink-0 rounded-2xl border border-(--border-light) bg-(--glass-bg) p-3 text-(--text-primary)">
         <h2 className="text-sm font-semibold">Offline demo · Backend disconnected</h2>
         {enabled && <div className="mt-3 max-h-[30vh] space-y-3 overflow-y-auto">
-            <p className="text-xs text-(--text-secondary)">Scripted local conversation. No backend or LLM connection. Choose a scenario to open its conversation automatically. Answers remain editable; send them manually. Property results are not included in the scenario triplets.</p>
+            <p className="text-xs text-(--text-secondary)">Scripted local conversation. No backend or LLM connection. Choose a scenario to load the complete conversation and its final query for review. Property results are not included in the scenario triplets.</p>
             <label className="block text-xs">Import scenario triplets JSON
                 <input type="file" accept=".json,application/json" disabled={busy || inConversation} className="mt-1 block w-full text-xs" onChange={async event => {
                     const file = event.target.files?.[0];
@@ -69,13 +66,7 @@ export function DemoPanel({ enabled, busy, inConversation, canAnswer, onSelectSc
                 </label>
                 {selected && <>
                     <p className="text-xs">Missing dimensions: {selected.missing_dimensions.map(d => dimensionLabels[d]).join(', ') || 'None'}</p>
-                    {inConversation && <div className="flex flex-wrap gap-2" aria-label="Prepared answers">
-                        {dimensions.map(d => {
-                            const answer = selected.conversational.simulated_user_answers_by_dimension[d];
-                            return answer && <button key={d} type="button" title={answer} className={buttonClass} disabled={busy || !canAnswer} onClick={() => onAnswer(answer)}>{d} · {dimensionLabels[d]}</button>;
-                        })}
-                    </div>}
-                    {inConversation && <p className="text-xs text-(--text-tertiary)">Choose the answer matching the current question. Selecting another scenario replaces this conversation.</p>}
+                    <p className="text-xs text-(--text-tertiary)">Selecting another scenario replaces this conversation. Review the final query below before confirming.</p>
                 </>}
             </>}
         </div>}

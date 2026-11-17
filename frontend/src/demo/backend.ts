@@ -12,6 +12,28 @@ export function selectDemoScenario(scenario: DemoScenario) {
 const sessions = new Map<string, { remaining: Dimension[]; text: string; turn: number }>();
 const runs = new Map<string, AnalysisResults>();
 
+const questionFor = (dimension: Dimension) =>
+    `Please specify your requirements for ${dimensionLabels[dimension].toLowerCase()}.`;
+
+/** Load the complete local script and leave its session ready for review. */
+export function loadDemoConversation(scenario: DemoScenario) {
+    const messages: { role: 'user' | 'assistant'; content: string }[] = [
+        { role: 'user', content: scenario.conversational.initial_query },
+    ];
+    let text = scenario.conversational.initial_query;
+    for (const dimension of scenario.missing_dimensions) {
+        const answer = scenario.conversational.simulated_user_answers_by_dimension[dimension];
+        if (!answer?.trim()) throw new Error(`Missing prepared answer for ${dimension}.`);
+        messages.push({ role: 'assistant', content: questionFor(dimension) }, { role: 'user', content: answer });
+        text += ` ${answer}`;
+    }
+    selectDemoScenario(scenario);
+    const sessionId = `demo-session-${crypto.randomUUID()}`;
+    sessions.set(sessionId, { remaining: [], text, turn: scenario.missing_dimensions.length });
+    return { sessionId, messages, reviewQuery: text };
+}
+
+
 /** Local-only API transport. Unsupported requests fail closed, without a network fallback. */
 export const demoAdapter: AxiosAdapter = async config => {
     const path = (config.url || '').split('?')[0].replace(/\/$/, '');
@@ -62,7 +84,7 @@ export const demoAdapter: AxiosAdapter = async config => {
         }
         const dimension = session.remaining[0];
         return respond(dimension
-            ? { session_id: id, status: 'ASK', turn: session.turn, question: `Please specify your requirements for ${dimensionLabels[dimension].toLowerCase()}.` }
+            ? { session_id: id, status: 'ASK', turn: session.turn, question: questionFor(dimension) }
             : { session_id: id, status: 'REVIEW', turn: session.turn, refined_query: session.text });
     }
     const match = path.match(/^\/analysis\/([^/]+)(?:\/(agent_steps|gemini_responses))?$/);

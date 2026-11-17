@@ -2,6 +2,8 @@
 
 ## 2026-11-17
 
+* **Conversazione demo completa alla selezione**: caricamento immediato di query iniziale, tutte le domande e risposte simulate e query finale in review; rimossi i pulsanti delle risposte pronte in alto. La review resta modificabile e richiede conferma per avviare la run locale. Test sui 48 casi e sostituzione sessione, build normale/demo e lint mirato; aggiornato `frontend/ui-routes.md`. Nessuna modifica scientifica al paper richiesta: comportamento della sola demo offline.
+
 * **CSV comparativo con copertura esplicita**: sostituito `n_bases` con conteggi per refined, one-shot e coppie; aggiunte medie appaiate, stato del confronto e medie aggregate/IC coerenti con il delta. Rigenerati gli artefatti missingness_v3 dalle stesse run; verifica automatica di invarianza di tutti i campi JSON preesistenti e suite metriche superate. Documentato il formato in `research/edbt-conversational-benchmark.md`. Paper invariato: nessun cambiamento di protocollo o risultato scientifico.
 
 * **Esempio reale delle tre condizioni nel paper**: aggiunte in `Conditions` le query complete one-shot, refined e oracle del caso nursery `MS02_k2` / `UC02`, trascritte dai campi `submitted_query` delle run registrate; esplicitati i due turni e la differenza fra riscrittura osservata e riferimento predefinito. Provenienza con run ID in `research/edbt-conversational-benchmark.md` e nei commenti LaTeX. Nessun nuovo esperimento o risultato. PDF rigenerato con Tectonic in copia temporanea: 4 pagine incluse referenze, controllo visivo senza regressioni maggiori.

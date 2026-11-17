@@ -17,7 +17,7 @@ const backendUrl = await moduleUrl('../src/demo/backend.ts', {
     "'axios'": JSON.stringify(import.meta.resolve('axios')),
     "'../utils/demoScenarios'": JSON.stringify(utilsUrl),
 });
-const { demoAdapter, selectDemoScenario } = await import(backendUrl);
+const { demoAdapter, selectDemoScenario, loadDemoConversation } = await import(backendUrl);
 const client = axios.create({ adapter: demoAdapter });
 const scenarios = JSON.parse(await readFile(new URL('../../backend/experiments/data/scenarios_v3/scenario_triplets.json', import.meta.url)));
 
@@ -55,4 +55,24 @@ test('oracle skips scripted omissions, unknown endpoints fail without network fa
     assert.equal(data.status, 'REVIEW');
     await assert.rejects(client.get('https://example.invalid/api/v1/unknown'), /Unavailable in offline demo/);
     await assert.rejects(client.post('/auth/login', { username: 'demo' }), /Unavailable in offline demo/);
+});
+
+test('scenario selection preloads every turn and a confirmable review for all 48 cases', async () => {
+    for (const scenario of scenarios) {
+        const loaded = loadDemoConversation(scenario);
+        assert.equal(loaded.messages.length, 1 + 2 * scenario.missing_dimensions.length);
+        assert.equal(loaded.messages[0].content, scenario.conversational.initial_query);
+        scenario.missing_dimensions.forEach((dimension, i) => {
+            assert.equal(loaded.messages[2 * i + 1].role, 'assistant');
+            assert.equal(loaded.messages[2 * i + 2].content, scenario.conversational.simulated_user_answers_by_dimension[dimension]);
+        });
+        const { data: review } = await client.post('/analysis', { clarification_session_id: loaded.sessionId });
+        assert.equal(review.status, 'REVIEW');
+        assert.equal(review.refined_query, loaded.reviewQuery);
+        const next = loadDemoConversation(scenario);
+        await assert.rejects(client.post('/analysis', { clarification_session_id: loaded.sessionId }), /expired/);
+        const { data: run } = await client.post('/analysis', { clarification_session_id: next.sessionId, clarification_confirmed: true, query: next.reviewQuery });
+        assert.equal(run.status, 'completed');
+        await client.delete(`/analysis/${run.run_id}`);
+    }
 });
