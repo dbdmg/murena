@@ -1,0 +1,790 @@
+{
+  "run_id": "bench_40cedaf53d8e",
+  "condition": "refined",
+  "unit_id": "S01_k3_D_L_Cp",
+  "scenario_id": "S01_k3_D_L_Cp",
+  "base_case_id": "S01",
+  "missing_count": 3,
+  "scenario_name": "3 omitted dimensions; intended use: Micro-nursery",
+  "tags": [
+    "edbt",
+    "controlled_missingness_v3",
+    "missing_3",
+    "UC01_micro_nursery_missing_use"
+  ],
+  "model": "gpt-6-luna",
+  "repeat": 3,
+  "attempt": 1,
+  "input_sha256": "4d6d2210d81fcbf441ac47386ca78d3b345445fec57aded29a4e888d2f22365c",
+  "scenario_sha256": "4d6d2210d81fcbf441ac47386ca78d3b345445fec57aded29a4e888d2f22365c",
+  "initial_query": "I am looking for an existing residential dwelling. I need a property with at least 140 sqm of gross floor area and capacity for 18 people. I prefer a property in energy class C or better.",
+  "options": {
+    "dataset_key": "full",
+    "map_limit": 1000,
+    "llm_limit": 10,
+    "analysis_mode": "agent",
+    "use_relaxation": true,
+    "use_data_knowledge": true,
+    "architecture": "multiagent",
+    "disabled_agents": null
+  },
+  "started_at": "2026-11-17T16:36:38.009323+00:00",
+  "clarification_seconds": 84.044,
+  "analysis_seconds": 163.603,
+  "conversation": {
+    "session_id": "910d834e-1f53-45fd-9591-f4da9d42967b",
+    "initial_dimension_state": {
+      "I": {
+        "status": "SPECIFIED",
+        "value": "residential dwelling",
+        "evidence": "\"residential dwelling\""
+      },
+      "D": {
+        "status": "UNCONFIRMED_ABSENT",
+        "value": null,
+        "evidence": null
+      },
+      "L": {
+        "status": "UNCONFIRMED_ABSENT",
+        "value": null,
+        "evidence": null
+      },
+      "Cb": {
+        "status": "SPECIFIED",
+        "value": "At least 140 sqm gross floor area; capacity for 18 people",
+        "evidence": "\"at least 140 sqm of gross floor area and capacity for 18 people\""
+      },
+      "Ce": {
+        "status": "SPECIFIED",
+        "value": "Energy class C or better",
+        "evidence": "\"energy class C or better\""
+      },
+      "Cp": {
+        "status": "UNCONFIRMED_ABSENT",
+        "value": null,
+        "evidence": null
+      }
+    },
+    "initial_missing": [
+      "Cp",
+      "D",
+      "L"
+    ],
+    "expected_initial_missing": [
+      "Cp",
+      "D",
+      "L"
+    ],
+    "missing_detection": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "turns": [
+      {
+        "question": "What would you use the dwelling for—for example, a Senior Residential Care (RSA)—or does intended use not matter?",
+        "target_dimensions": [
+          "D"
+        ],
+        "answer": "I intend to convert it into a micro-nursery.",
+        "question_source": "llm_query_parser",
+        "status_after": "ASK",
+        "turn_after": 1,
+        "dimension_state_after": {
+          "I": {
+            "status": "SPECIFIED",
+            "value": "residential dwelling",
+            "evidence": "\"residential dwelling\""
+          },
+          "D": {
+            "status": "SPECIFIED",
+            "value": "Convert the dwelling into a micro-nursery",
+            "evidence": "I intend to convert it into a micro-nursery."
+          },
+          "L": {
+            "status": "UNCONFIRMED_ABSENT",
+            "value": null,
+            "evidence": null
+          },
+          "Cb": {
+            "status": "SPECIFIED",
+            "value": "At least 140 sqm gross floor area; capacity for 18 people",
+            "evidence": "\"at least 140 sqm of gross floor area and capacity for 18 people\""
+          },
+          "Ce": {
+            "status": "SPECIFIED",
+            "value": "Energy class C or better",
+            "evidence": "\"energy class C or better\""
+          },
+          "Cp": {
+            "status": "UNCONFIRMED_ABSENT",
+            "value": null,
+            "evidence": null
+          }
+        }
+      },
+      {
+        "question": "Which city or area would you prefer, or does location not matter?",
+        "target_dimensions": [
+          "L"
+        ],
+        "answer": "The location is in Turin.",
+        "question_source": "llm_query_parser",
+        "status_after": "ASK",
+        "turn_after": 2,
+        "dimension_state_after": {
+          "I": {
+            "status": "SPECIFIED",
+            "value": "residential dwelling",
+            "evidence": "\"residential dwelling\""
+          },
+          "D": {
+            "status": "SPECIFIED",
+            "value": "Convert the dwelling into a micro-nursery",
+            "evidence": "I intend to convert it into a micro-nursery."
+          },
+          "L": {
+            "status": "SPECIFIED",
+            "value": "Turin",
+            "evidence": "The location is in Turin."
+          },
+          "Cb": {
+            "status": "SPECIFIED",
+            "value": "At least 140 sqm gross floor area; capacity for 18 people",
+            "evidence": "\"at least 140 sqm of gross floor area and capacity for 18 people\""
+          },
+          "Ce": {
+            "status": "SPECIFIED",
+            "value": "Energy class C or better",
+            "evidence": "\"energy class C or better\""
+          },
+          "Cp": {
+            "status": "UNCONFIRMED_ABSENT",
+            "value": null,
+            "evidence": null
+          }
+        }
+      },
+      {
+        "question": "Which nearby services matter to you, such as healthcare, public transport, green spaces, sport, shops, or education, or does proximity not matter?",
+        "target_dimensions": [
+          "Cp"
+        ],
+        "answer": "I prefer properties near public transport.",
+        "question_source": "llm_query_parser",
+        "status_after": "READY",
+        "turn_after": 3,
+        "dimension_state_after": {
+          "I": {
+            "status": "SPECIFIED",
+            "value": "residential dwelling",
+            "evidence": "\"residential dwelling\""
+          },
+          "D": {
+            "status": "SPECIFIED",
+            "value": "Convert the dwelling into a micro-nursery",
+            "evidence": "I intend to convert it into a micro-nursery."
+          },
+          "L": {
+            "status": "SPECIFIED",
+            "value": "Turin",
+            "evidence": "The location is in Turin."
+          },
+          "Cb": {
+            "status": "SPECIFIED",
+            "value": "At least 140 sqm gross floor area; capacity for 18 people",
+            "evidence": "\"at least 140 sqm of gross floor area and capacity for 18 people\""
+          },
+          "Ce": {
+            "status": "SPECIFIED",
+            "value": "Energy class C or better",
+            "evidence": "\"energy class C or better\""
+          },
+          "Cp": {
+            "status": "SPECIFIED",
+            "value": "public transport",
+            "evidence": "near public transport"
+          }
+        }
+      }
+    ],
+    "messages": [
+      {
+        "role": "user",
+        "content": "I am looking for an existing residential dwelling. I need a property with at least 140 sqm of gross floor area and capacity for 18 people. I prefer a property in energy class C or better."
+      },
+      {
+        "role": "assistant",
+        "content": "What would you use the dwelling for—for example, a Senior Residential Care (RSA)—or does intended use not matter?"
+      },
+      {
+        "role": "user",
+        "content": "I intend to convert it into a micro-nursery."
+      },
+      {
+        "role": "assistant",
+        "content": "Which city or area would you prefer, or does location not matter?"
+      },
+      {
+        "role": "user",
+        "content": "The location is in Turin."
+      },
+      {
+        "role": "assistant",
+        "content": "Which nearby services matter to you, such as healthcare, public transport, green spaces, sport, shops, or education, or does proximity not matter?"
+      },
+      {
+        "role": "user",
+        "content": "I prefer properties near public transport."
+      },
+      {
+        "role": "assistant",
+        "content": "Query submitted for review: I’m looking for an existing residential dwelling in Turin, with at least 140 sqm of gross floor area and capacity for 18 people, to convert into a micro-nursery. I prefer a property in energy class C or better and near public transport."
+      },
+      {
+        "role": "user",
+        "content": "Confirmed."
+      }
+    ],
+    "dimension_state": {
+      "I": {
+        "status": "SPECIFIED",
+        "value": "residential dwelling",
+        "evidence": "\"residential dwelling\""
+      },
+      "D": {
+        "status": "SPECIFIED",
+        "value": "Convert the dwelling into a micro-nursery",
+        "evidence": "I intend to convert it into a micro-nursery."
+      },
+      "L": {
+        "status": "SPECIFIED",
+        "value": "Turin",
+        "evidence": "The location is in Turin."
+      },
+      "Cb": {
+        "status": "SPECIFIED",
+        "value": "At least 140 sqm gross floor area; capacity for 18 people",
+        "evidence": "\"at least 140 sqm of gross floor area and capacity for 18 people\""
+      },
+      "Ce": {
+        "status": "SPECIFIED",
+        "value": "Energy class C or better",
+        "evidence": "\"energy class C or better\""
+      },
+      "Cp": {
+        "status": "SPECIFIED",
+        "value": "public transport",
+        "evidence": "near public transport"
+      }
+    },
+    "mapping": {
+      "I": "SPECIFIED",
+      "D": "SPECIFIED",
+      "L": "SPECIFIED",
+      "Cb": "SPECIFIED",
+      "Ce": "SPECIFIED",
+      "Cp": "SPECIFIED"
+    },
+    "expected_mapping": {
+      "I": "SPECIFIED",
+      "D": "SPECIFIED",
+      "L": "SPECIFIED",
+      "Cb": "SPECIFIED",
+      "Ce": "SPECIFIED",
+      "Cp": "SPECIFIED"
+    },
+    "mapping_accuracy": 1.0,
+    "no_clarification": false,
+    "status": "READY",
+    "refined_query": "I’m looking for an existing residential dwelling in Turin, with at least 140 sqm of gross floor area and capacity for 18 people, to convert into a micro-nursery. I prefer a property in energy class C or better and near public transport.",
+    "reviewed_query": "I’m looking for an existing residential dwelling in Turin, with at least 140 sqm of gross floor area and capacity for 18 people, to convert into a micro-nursery. I prefer a property in energy class C or better and near public transport."
+  },
+  "submitted_query": "I’m looking for an existing residential dwelling in Turin, with at least 140 sqm of gross floor area and capacity for 18 people, to convert into a micro-nursery. I prefer a property in energy class C or better and near public transport.",
+  "status": "completed",
+  "results_count": 240,
+  "top_ids": [
+    "16419",
+    "16429",
+    "M03079",
+    "16425",
+    "M02885",
+    "M05127",
+    "18978",
+    "M03593",
+    "16428",
+    "16465"
+  ],
+  "quality": {
+    "expected_count": 0,
+    "matched_expected": null,
+    "precision_at_returned": null,
+    "recall": null
+  },
+  "final_sql": "SELECT * FROM ESTATES WHERE haversine_km(latitude, longitude, 45.0677551, 7.6824892) <= 3.0 AND surface_area >= 140 AND energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C') AND mobility >= 88 ORDER BY haversine_km(latitude, longitude, 45.0677551, 7.6824892) ASC",
+  "duration_seconds": 247.668,
+  "scenario_definition": {
+    "id": "S01_k3_D_L_Cp",
+    "name": "3 omitted dimensions; intended use: Micro-nursery",
+    "tags": [
+      "edbt",
+      "controlled_missingness_v3",
+      "missing_3",
+      "UC01_micro_nursery_missing_use"
+    ],
+    "base_case_id": "S01",
+    "source_case_id": "UC01_micro_nursery_missing_use",
+    "missing_count": 3,
+    "initial_query": "I am looking for an existing residential dwelling. I need a property with at least 140 sqm of gross floor area and capacity for 18 people. I prefer a property in energy class C or better.",
+    "one_shot_query": "I am looking for an existing residential dwelling. I need a property with at least 140 sqm of gross floor area and capacity for 18 people. I prefer a property in energy class C or better.",
+    "oracle_query": "Find an existing residential dwelling to convert it into a micro-nursery for 18 children in Turin with at least 140 sqm of gross floor area in energy class C or better near public transport.",
+    "expected_initial_missing": [
+      "D",
+      "L",
+      "Cp"
+    ],
+    "clarifications": {
+      "I": "I am looking for an existing residential dwelling.",
+      "D": "I intend to convert it into a micro-nursery.",
+      "L": "The location is in Turin.",
+      "Cb": "I need a property with at least 140 sqm of gross floor area and capacity for 18 people.",
+      "Ce": "I prefer a property in energy class C or better.",
+      "Cp": "I prefer properties near public transport."
+    },
+    "expected_mapping": {
+      "I": "SPECIFIED",
+      "D": "SPECIFIED",
+      "L": "SPECIFIED",
+      "Cb": "SPECIFIED",
+      "Ce": "SPECIFIED",
+      "Cp": "SPECIFIED"
+    },
+    "repeats": 1
+  },
+  "artifact_file": "runs/bench_40cedaf53d8e.json",
+  "artifact_schema_version": 3,
+  "ranking_ids": [
+    "16419",
+    "16429",
+    "M03079",
+    "16425",
+    "M02885",
+    "M05127",
+    "18978",
+    "M03593",
+    "16428",
+    "16465",
+    "M03088",
+    "M02221",
+    "M04547",
+    "18842",
+    "M03582",
+    "M03071",
+    "M03624",
+    "17251",
+    "3125",
+    "M00035",
+    "16224",
+    "16747",
+    "M03152",
+    "12669",
+    "16427",
+    "M03611",
+    "M03577",
+    "3507",
+    "3508",
+    "M00534",
+    "M01555",
+    "M02977",
+    "M03126",
+    "M03185",
+    "22192",
+    "18988",
+    "M03547",
+    "M04443",
+    "16494",
+    "18989",
+    "19126",
+    "M03612",
+    "19122",
+    "19129",
+    "24973",
+    "M00232",
+    "M00233",
+    "M00296",
+    "M00297",
+    "M02015",
+    "M02200",
+    "M03027",
+    "M03256",
+    "M03544",
+    "M04366",
+    "18830",
+    "18829",
+    "18827",
+    "M03576",
+    "18832",
+    "16735",
+    "M05693",
+    "M03521",
+    "16706",
+    "18499",
+    "18501",
+    "18504",
+    "18512",
+    "18514",
+    "M03513",
+    "M03581",
+    "M04781",
+    "M03565",
+    "12696",
+    "16482",
+    "16234",
+    "15899",
+    "18715",
+    "18883",
+    "22355",
+    "23095",
+    "23101",
+    "23102",
+    "23107",
+    "2863",
+    "5695",
+    "M00234",
+    "M00441",
+    "M01361",
+    "M02068",
+    "M02459",
+    "M02697",
+    "M03553",
+    "M04633",
+    "M01320",
+    "28978",
+    "18696",
+    "18835",
+    "M03584",
+    "18836",
+    "16423",
+    "M03529",
+    "16040",
+    "18513",
+    "18562",
+    "15988",
+    "M03018",
+    "M02465",
+    "M03645",
+    "M00802",
+    "18982",
+    "M02440",
+    "22364",
+    "16870",
+    "23757",
+    "M03623",
+    "23219",
+    "22082",
+    "18670",
+    "M04269",
+    "15887",
+    "18694",
+    "23094",
+    "M02995",
+    "16041",
+    "19440",
+    "M03147",
+    "24917",
+    "10533",
+    "16745",
+    "12698",
+    "18971",
+    "19050",
+    "16663",
+    "23189",
+    "16426",
+    "15796",
+    "18838",
+    "18695",
+    "16083",
+    "M01349",
+    "18823",
+    "M04296",
+    "18503",
+    "18979",
+    "18507",
+    "19128",
+    "M02489",
+    "19116",
+    "23177",
+    "23178",
+    "M04448",
+    "15227",
+    "M03840",
+    "16421",
+    "16194",
+    "19051",
+    "16314",
+    "16466",
+    "19127",
+    "18591",
+    "M03587",
+    "15794",
+    "M02410",
+    "18976",
+    "18881",
+    "M01504",
+    "15791",
+    "15806",
+    "23113",
+    "16462",
+    "19104",
+    "16905",
+    "5026",
+    "M00728",
+    "16260",
+    "15237",
+    "18834",
+    "16548",
+    "M01846",
+    "5568",
+    "M03745",
+    "8963",
+    "16278",
+    "22405",
+    "23106",
+    "M05487",
+    "17109",
+    "18511",
+    "23099",
+    "M05192",
+    "16275",
+    "15793",
+    "18771",
+    "13017",
+    "16128",
+    "M04055",
+    "M03077",
+    "22783",
+    "18824",
+    "15790",
+    "15805",
+    "18650",
+    "M03073",
+    "15238",
+    "M03467",
+    "29838",
+    "19612",
+    "23100",
+    "26703",
+    "18509",
+    "18840",
+    "19070",
+    "27743",
+    "24043",
+    "M02016",
+    "M00275",
+    "19297",
+    "7207",
+    "11240",
+    "21277",
+    "23312",
+    "23104",
+    "15976",
+    "M04199",
+    "19172",
+    "18754",
+    "M04273",
+    "16442",
+    "16066",
+    "19085",
+    "M00017",
+    "M03488",
+    "18909",
+    "M02768",
+    "M04219",
+    "13279",
+    "13280",
+    "12754",
+    "M01956"
+  ],
+  "top": [
+    {
+      "id": "16419",
+      "score": 92.951,
+      "distance_km": 0.35
+    },
+    {
+      "id": "16429",
+      "score": 92.951,
+      "distance_km": 0.35
+    },
+    {
+      "id": "M03079",
+      "score": 92.951,
+      "distance_km": 0.35
+    },
+    {
+      "id": "16425",
+      "score": 92.71999999999998,
+      "distance_km": 0.35
+    },
+    {
+      "id": "M02885",
+      "score": 92.656,
+      "distance_km": 0.18
+    },
+    {
+      "id": "M05127",
+      "score": 92.656,
+      "distance_km": 0.18
+    },
+    {
+      "id": "18978",
+      "score": 91.37299999999999,
+      "distance_km": 0.26
+    },
+    {
+      "id": "M03593",
+      "score": 91.37299999999999,
+      "distance_km": 0.26
+    },
+    {
+      "id": "16428",
+      "score": 91.136,
+      "distance_km": 0.35
+    },
+    {
+      "id": "16465",
+      "score": 91.109,
+      "distance_km": 0.53
+    }
+  ],
+  "api_response": {
+    "agent_trace": [
+      {
+        "agent_name": "building-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "typologies": [],
+          "found": true,
+          "requirements": [
+            {
+              "target_column": "surface_area",
+              "operator": ">=",
+              "value": 140,
+              "description": "The request explicitly requires at least 140 sqm of gross floor area."
+            }
+          ]
+        }
+      },
+      {
+        "agent_name": "location-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "places": [
+            {
+              "name": "Turin",
+              "city": "Turin",
+              "lat": 45.0677551,
+              "lon": 7.6824892,
+              "radius_km": 3.0
+            }
+          ],
+          "found": true
+        }
+      },
+      {
+        "agent_name": "regulatory-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "found": false,
+          "matched_use_cases": [
+            "Micro-nursery"
+          ],
+          "requirements": []
+        }
+      },
+      {
+        "agent_name": "proximity-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "requirements": [
+            {
+              "target_column": "mobility",
+              "operator": ">=",
+              "value": 88,
+              "description": "Near public transport; threshold meets the 75th percentile of 87.77."
+            }
+          ]
+        }
+      },
+      {
+        "agent_name": "energy-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "requirements": [
+            {
+              "target_column": "energy_class",
+              "operator": "IN",
+              "value": [
+                "A1",
+                "A2",
+                "A3",
+                "A4",
+                "B",
+                "C"
+              ],
+              "description": "Prefers energy class C or better."
+            }
+          ],
+          "found": true
+        }
+      },
+      {
+        "agent_name": "ranking-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "ranking": [
+            {
+              "agent_name": "location",
+              "rank": 1
+            },
+            {
+              "agent_name": "regulatory",
+              "rank": 1
+            },
+            {
+              "agent_name": "building",
+              "rank": 1
+            },
+            {
+              "agent_name": "energy",
+              "rank": 2
+            },
+            {
+              "agent_name": "proximity",
+              "rank": 2
+            }
+          ],
+          "weights": {
+            "location": 0.26,
+            "regulatory": 0.25,
+            "energy": 0.12,
+            "building": 0.25,
+            "proximity": 0.12
+          }
+        }
+      },
+      {
+        "agent_name": "sql-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "sql": "SELECT * FROM ESTATES WHERE haversine_km(latitude, longitude, 45.0677551, 7.6824892) <= 3.0 AND surface_area >= 140 AND energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C') AND mobility >= 88 ORDER BY haversine_km(latitude, longitude, 45.0677551, 7.6824892) ASC",
+          "explanation": "Filters by the supplied radius, minimum surface area, allowed energy classes, and mobility threshold; orders by distance from the supplied coordinates."
+        }
+      }
+    ],
+    "relaxation_applied": false,
+    "relaxation_count": 0,
+    "fallback_activated": false,
+    "agent_errors": []
+  }
+}

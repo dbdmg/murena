@@ -16,6 +16,7 @@ const MapPage = lazy(() => import('./pages/MapPage').then(module => ({ default: 
 const SettingsPage = lazy(() => import('./pages/SettingsPage').then(module => ({ default: module.SettingsPage })));
 const HistoryPage = lazy(() => import('./pages/HistoryPage').then(module => ({ default: module.HistoryPage })));
 const LogsPage = lazy(() => import('./pages/LogsPage').then(module => ({ default: module.LogsPage })));
+const BenchmarkPage = lazy(() => import('./pages/BenchmarkPage').then(module => ({ default: module.BenchmarkPage })));
 
 // Create Query Client
 const queryClient = new QueryClient({
@@ -87,6 +88,16 @@ function App() {
                                             <ProtectedRoute>
                                                 <AppLayout>
                                                     <LogsPage />
+                                                </AppLayout>
+                                            </ProtectedRoute>
+                                        }
+                                    />
+                                    <Route
+                                        path="/benchmark"
+                                        element={
+                                            <ProtectedRoute>
+                                                <AppLayout>
+                                                    <BenchmarkPage />
                                                 </AppLayout>
                                             </ProtectedRoute>
                                         }

@@ -1,0 +1,564 @@
+{
+  "run_id": "bench_06b55dc11dec",
+  "condition": "refined",
+  "unit_id": "S02_k2_D_Cp",
+  "scenario_id": "S02_k2_D_Cp",
+  "base_case_id": "S02",
+  "missing_count": 2,
+  "scenario_name": "2 omitted dimensions; intended use: Nursery",
+  "tags": [
+    "edbt",
+    "controlled_missingness_v3",
+    "missing_2",
+    "UC02_nursery_missing_use"
+  ],
+  "model": "gpt-6-luna",
+  "repeat": 2,
+  "attempt": 1,
+  "input_sha256": "9d9935ef806b88d02fb7e318449789f445f81cf7fdeef30ab33779295876edb6",
+  "scenario_sha256": "9d9935ef806b88d02fb7e318449789f445f81cf7fdeef30ab33779295876edb6",
+  "initial_query": "I am looking for an existing school building. The location is in Turin. I need a property with at least 600 sqm of gross floor area and capacity for 45 people. I prefer a property in energy class D or better.",
+  "options": {
+    "dataset_key": "full",
+    "map_limit": 1000,
+    "llm_limit": 10,
+    "analysis_mode": "agent",
+    "use_relaxation": true,
+    "use_data_knowledge": true,
+    "architecture": "multiagent",
+    "disabled_agents": null
+  },
+  "started_at": "2026-11-17T16:41:40.018765+00:00",
+  "clarification_seconds": 107.373,
+  "analysis_seconds": 192.77,
+  "conversation": {
+    "session_id": "70dcb448-4108-4f9d-a6ff-0344771e0f1d",
+    "initial_dimension_state": {
+      "I": {
+        "status": "SPECIFIED",
+        "value": "school building",
+        "evidence": "“school building”"
+      },
+      "D": {
+        "status": "UNCONFIRMED_ABSENT",
+        "value": null,
+        "evidence": null
+      },
+      "L": {
+        "status": "SPECIFIED",
+        "value": "Turin",
+        "evidence": "“The location is in Turin”"
+      },
+      "Cb": {
+        "status": "SPECIFIED",
+        "value": "At least 600 sqm of gross floor area and capacity for 45 people",
+        "evidence": "“at least 600 sqm of gross floor area and capacity for 45 people”"
+      },
+      "Ce": {
+        "status": "SPECIFIED",
+        "value": "Energy class D or better",
+        "evidence": "“I prefer a property in energy class D or better”"
+      },
+      "Cp": {
+        "status": "UNCONFIRMED_ABSENT",
+        "value": null,
+        "evidence": null
+      }
+    },
+    "initial_missing": [
+      "Cp",
+      "D"
+    ],
+    "expected_initial_missing": [
+      "Cp",
+      "D"
+    ],
+    "missing_detection": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "turns": [
+      {
+        "question": "What intended use do you have in mind—for example, a Nursery or a Micro-nursery—or does the use not matter?",
+        "target_dimensions": [
+          "D"
+        ],
+        "answer": "I intend to convert it into a nursery.",
+        "question_source": "llm_query_parser",
+        "status_after": "ASK",
+        "turn_after": 1,
+        "dimension_state_after": {
+          "I": {
+            "status": "SPECIFIED",
+            "value": "school building",
+            "evidence": "“school building”"
+          },
+          "D": {
+            "status": "SPECIFIED",
+            "value": "nursery",
+            "evidence": "I intend to convert it into a nursery."
+          },
+          "L": {
+            "status": "SPECIFIED",
+            "value": "Turin",
+            "evidence": "“The location is in Turin”"
+          },
+          "Cb": {
+            "status": "SPECIFIED",
+            "value": "At least 600 sqm of gross floor area and capacity for 45 people",
+            "evidence": "“at least 600 sqm of gross floor area and capacity for 45 people”"
+          },
+          "Ce": {
+            "status": "SPECIFIED",
+            "value": "Energy class D or better",
+            "evidence": "“I prefer a property in energy class D or better”"
+          },
+          "Cp": {
+            "status": "UNCONFIRMED_ABSENT",
+            "value": null,
+            "evidence": null
+          }
+        }
+      },
+      {
+        "question": "Which nearby services matter to you, such as healthcare, public transport, green spaces, sport, shops, or education, or does proximity not matter?",
+        "target_dimensions": [
+          "Cp"
+        ],
+        "answer": "I prefer properties near green spaces.",
+        "question_source": "llm_query_parser",
+        "status_after": "READY",
+        "turn_after": 2,
+        "dimension_state_after": {
+          "I": {
+            "status": "SPECIFIED",
+            "value": "school building",
+            "evidence": "“school building”"
+          },
+          "D": {
+            "status": "SPECIFIED",
+            "value": "nursery",
+            "evidence": "I intend to convert it into a nursery."
+          },
+          "L": {
+            "status": "SPECIFIED",
+            "value": "Turin",
+            "evidence": "“The location is in Turin”"
+          },
+          "Cb": {
+            "status": "SPECIFIED",
+            "value": "At least 600 sqm of gross floor area and capacity for 45 people",
+            "evidence": "“at least 600 sqm of gross floor area and capacity for 45 people”"
+          },
+          "Ce": {
+            "status": "SPECIFIED",
+            "value": "Energy class D or better",
+            "evidence": "“I prefer a property in energy class D or better”"
+          },
+          "Cp": {
+            "status": "SPECIFIED",
+            "value": "green spaces",
+            "evidence": "near green spaces"
+          }
+        }
+      }
+    ],
+    "messages": [
+      {
+        "role": "user",
+        "content": "I am looking for an existing school building. The location is in Turin. I need a property with at least 600 sqm of gross floor area and capacity for 45 people. I prefer a property in energy class D or better."
+      },
+      {
+        "role": "assistant",
+        "content": "What intended use do you have in mind—for example, a Nursery or a Micro-nursery—or does the use not matter?"
+      },
+      {
+        "role": "user",
+        "content": "I intend to convert it into a nursery."
+      },
+      {
+        "role": "assistant",
+        "content": "Which nearby services matter to you, such as healthcare, public transport, green spaces, sport, shops, or education, or does proximity not matter?"
+      },
+      {
+        "role": "user",
+        "content": "I prefer properties near green spaces."
+      },
+      {
+        "role": "assistant",
+        "content": "Query submitted for review: I am looking for an existing school building in Turin with at least 600 sqm of gross floor area and capacity for 45 people, to convert into a nursery. I prefer a property in energy class D or better and near green spaces."
+      },
+      {
+        "role": "user",
+        "content": "Confirmed."
+      }
+    ],
+    "dimension_state": {
+      "I": {
+        "status": "SPECIFIED",
+        "value": "school building",
+        "evidence": "“school building”"
+      },
+      "D": {
+        "status": "SPECIFIED",
+        "value": "nursery",
+        "evidence": "I intend to convert it into a nursery."
+      },
+      "L": {
+        "status": "SPECIFIED",
+        "value": "Turin",
+        "evidence": "“The location is in Turin”"
+      },
+      "Cb": {
+        "status": "SPECIFIED",
+        "value": "At least 600 sqm of gross floor area and capacity for 45 people",
+        "evidence": "“at least 600 sqm of gross floor area and capacity for 45 people”"
+      },
+      "Ce": {
+        "status": "SPECIFIED",
+        "value": "Energy class D or better",
+        "evidence": "“I prefer a property in energy class D or better”"
+      },
+      "Cp": {
+        "status": "SPECIFIED",
+        "value": "green spaces",
+        "evidence": "near green spaces"
+      }
+    },
+    "mapping": {
+      "I": "SPECIFIED",
+      "D": "SPECIFIED",
+      "L": "SPECIFIED",
+      "Cb": "SPECIFIED",
+      "Ce": "SPECIFIED",
+      "Cp": "SPECIFIED"
+    },
+    "expected_mapping": {
+      "I": "SPECIFIED",
+      "D": "SPECIFIED",
+      "L": "SPECIFIED",
+      "Cb": "SPECIFIED",
+      "Ce": "SPECIFIED",
+      "Cp": "SPECIFIED"
+    },
+    "mapping_accuracy": 1.0,
+    "no_clarification": false,
+    "status": "READY",
+    "refined_query": "I am looking for an existing school building in Turin with at least 600 sqm of gross floor area and capacity for 45 people, to convert into a nursery. I prefer a property in energy class D or better and near green spaces.",
+    "reviewed_query": "I am looking for an existing school building in Turin with at least 600 sqm of gross floor area and capacity for 45 people, to convert into a nursery. I prefer a property in energy class D or better and near green spaces."
+  },
+  "submitted_query": "I am looking for an existing school building in Turin with at least 600 sqm of gross floor area and capacity for 45 people, to convert into a nursery. I prefer a property in energy class D or better and near green spaces.",
+  "status": "completed",
+  "results_count": 66,
+  "top_ids": [
+    "12669",
+    "M04236",
+    "18501",
+    "18504",
+    "18514",
+    "M03513",
+    "22364",
+    "M03546",
+    "18805",
+    "M04443"
+  ],
+  "quality": {
+    "expected_count": 0,
+    "matched_expected": null,
+    "precision_at_returned": null,
+    "recall": null
+  },
+  "final_sql": "SELECT * FROM ESTATES WHERE surface_area >= 600 AND haversine_km(latitude, longitude, 45.0677551, 7.6824892) <= 3.0 AND energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C', 'D') AND green >= 89 ORDER BY haversine_km(latitude, longitude, 45.0677551, 7.6824892) ASC",
+  "duration_seconds": 300.161,
+  "scenario_definition": {
+    "id": "S02_k2_D_Cp",
+    "name": "2 omitted dimensions; intended use: Nursery",
+    "tags": [
+      "edbt",
+      "controlled_missingness_v3",
+      "missing_2",
+      "UC02_nursery_missing_use"
+    ],
+    "base_case_id": "S02",
+    "source_case_id": "UC02_nursery_missing_use",
+    "missing_count": 2,
+    "initial_query": "I am looking for an existing school building. The location is in Turin. I need a property with at least 600 sqm of gross floor area and capacity for 45 people. I prefer a property in energy class D or better.",
+    "one_shot_query": "I am looking for an existing school building. The location is in Turin. I need a property with at least 600 sqm of gross floor area and capacity for 45 people. I prefer a property in energy class D or better.",
+    "oracle_query": "Find an existing school building to convert it into a nursery for 45 children in Turin with at least 600 sqm of gross floor area in energy class D or better near green spaces.",
+    "expected_initial_missing": [
+      "D",
+      "Cp"
+    ],
+    "clarifications": {
+      "I": "I am looking for an existing school building.",
+      "D": "I intend to convert it into a nursery.",
+      "L": "The location is in Turin.",
+      "Cb": "I need a property with at least 600 sqm of gross floor area and capacity for 45 people.",
+      "Ce": "I prefer a property in energy class D or better.",
+      "Cp": "I prefer properties near green spaces."
+    },
+    "expected_mapping": {
+      "I": "SPECIFIED",
+      "D": "SPECIFIED",
+      "L": "SPECIFIED",
+      "Cb": "SPECIFIED",
+      "Ce": "SPECIFIED",
+      "Cp": "SPECIFIED"
+    },
+    "repeats": 1
+  },
+  "artifact_file": "runs/bench_06b55dc11dec.json",
+  "artifact_schema_version": 3,
+  "ranking_ids": [
+    "12669",
+    "M04236",
+    "18501",
+    "18504",
+    "18514",
+    "M03513",
+    "22364",
+    "M03546",
+    "18805",
+    "M04443",
+    "22363",
+    "M02069",
+    "18621",
+    "M03510",
+    "15853",
+    "23189",
+    "M03547",
+    "M04448",
+    "15851",
+    "15852",
+    "19627",
+    "M03717",
+    "18513",
+    "15850",
+    "24885",
+    "M02057",
+    "M03228",
+    "M04299",
+    "23017",
+    "25094",
+    "23177",
+    "M04376",
+    "M02976",
+    "13319",
+    "M04000",
+    "M02465",
+    "22423",
+    "M04730",
+    "11005",
+    "M04749",
+    "24265",
+    "M04648",
+    "24684",
+    "18656",
+    "21002",
+    "24857",
+    "18398",
+    "M03953",
+    "25095",
+    "M01012",
+    "25096",
+    "M04818",
+    "17103",
+    "M04422",
+    "M01991",
+    "M03225",
+    "12286",
+    "24264",
+    "10600",
+    "M01931",
+    "25097",
+    "20896",
+    "M04463",
+    "13516",
+    "25769",
+    "10882"
+  ],
+  "top": [
+    {
+      "id": "12669",
+      "score": 90.702,
+      "distance_km": 0.99
+    },
+    {
+      "id": "M04236",
+      "score": 87.732,
+      "distance_km": 1.2
+    },
+    {
+      "id": "18501",
+      "score": 87.7,
+      "distance_km": 1.01
+    },
+    {
+      "id": "18504",
+      "score": 87.7,
+      "distance_km": 1.01
+    },
+    {
+      "id": "18514",
+      "score": 87.7,
+      "distance_km": 1.01
+    },
+    {
+      "id": "M03513",
+      "score": 87.7,
+      "distance_km": 1.01
+    },
+    {
+      "id": "22364",
+      "score": 85.344,
+      "distance_km": 0.87
+    },
+    {
+      "id": "M03546",
+      "score": 84.94200000000001,
+      "distance_km": 0.34
+    },
+    {
+      "id": "18805",
+      "score": 84.745,
+      "distance_km": 0.53
+    },
+    {
+      "id": "M04443",
+      "score": 83.399,
+      "distance_km": 1.42
+    }
+  ],
+  "api_response": {
+    "agent_trace": [
+      {
+        "agent_name": "regulatory-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "found": false,
+          "matched_use_cases": [
+            "Nursery"
+          ],
+          "requirements": []
+        }
+      },
+      {
+        "agent_name": "energy-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "requirements": [
+            {
+              "target_column": "energy_class",
+              "operator": "IN",
+              "value": [
+                "A1",
+                "A2",
+                "A3",
+                "A4",
+                "B",
+                "C",
+                "D"
+              ],
+              "description": "Prefers energy class D or better."
+            }
+          ],
+          "found": true
+        }
+      },
+      {
+        "agent_name": "building-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "typologies": [],
+          "found": true,
+          "requirements": [
+            {
+              "target_column": "surface_area",
+              "operator": ">=",
+              "value": 600,
+              "description": "The user explicitly requests at least 600 sqm of gross floor area."
+            }
+          ]
+        }
+      },
+      {
+        "agent_name": "proximity-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "requirements": [
+            {
+              "target_column": "green",
+              "operator": ">=",
+              "value": 89,
+              "description": "Near green spaces; threshold rounded from the 75th percentile of 89.49."
+            }
+          ]
+        }
+      },
+      {
+        "agent_name": "ranking-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "ranking": [
+            {
+              "agent_name": "building",
+              "rank": 1
+            },
+            {
+              "agent_name": "regulatory",
+              "rank": 1
+            },
+            {
+              "agent_name": "location",
+              "rank": 1
+            },
+            {
+              "agent_name": "energy",
+              "rank": 2
+            },
+            {
+              "agent_name": "proximity",
+              "rank": 3
+            }
+          ],
+          "weights": {
+            "location": 0.26,
+            "regulatory": 0.26,
+            "energy": 0.13,
+            "building": 0.26,
+            "proximity": 0.09
+          }
+        }
+      },
+      {
+        "agent_name": "location-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "places": [
+            {
+              "name": "Turin",
+              "city": "Turin",
+              "lat": 45.0677551,
+              "lon": 7.6824892,
+              "radius_km": 3.0
+            }
+          ],
+          "found": true
+        }
+      },
+      {
+        "agent_name": "sql-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "sql": "SELECT * FROM ESTATES WHERE surface_area >= 600 AND haversine_km(latitude, longitude, 45.0677551, 7.6824892) <= 3.0 AND energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C', 'D') AND green >= 89 ORDER BY haversine_km(latitude, longitude, 45.0677551, 7.6824892) ASC",
+          "explanation": "Filters by minimum area, supplied location radius, allowed energy classes, and green score, then orders by distance."
+        }
+      }
+    ],
+    "relaxation_applied": false,
+    "relaxation_count": 0,
+    "fallback_activated": false,
+    "agent_errors": []
+  }
+}

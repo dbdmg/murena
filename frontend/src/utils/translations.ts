@@ -81,7 +81,7 @@ export const translations = {
             recentHistory: 'Recent Insights',
             noHistory: 'No completed analysis. Start your first search above!',
             found: 'found',
-            demoMode: 'Demo Mode Active',
+            demoMode: 'DEMO MODE',
             demoModeDesc: 'Using pre-calculated results (no token consumption)',
             status: {
                 completed: 'COMPLETED',

@@ -2,6 +2,26 @@
 
 ## 2026-11-17
 
+* **Ripristinato isolamento rete della modalità demo**: annullato l'inoltro al backend introdotto per l'analisi; `demoAdapter` torna a gestire le API e il proxy Vite resta disattivato in modalità demo. La demo continua a leggere `estates.json` statico per mostrare i marker d'inventario, ma run, risultati e dettagli non contattano il backend. La voce precedente “Scenari demo sul dataset reale” è superata da questa decisione.
+
+* **Inventario statico per la mappa demo**: esportati i 36.328 record di `estates.parquet` in `frontend/public/data/estates.json` con coordinate e attributi di visualizzazione; aggiunto script ripetibile `frontend/scripts/export_estates.py`. In modalità scenari la mappa carica marker localmente senza endpoint inventario/config e può aprire i dettagli disponibili nell'export; risultati di analisi continuano a provenire dal backend. Dimensione export corrente circa 18 MB. Nessuna esecuzione benchmark.
+
+* **Scenari demo sul dataset reale**: la modalità scenari mantiene l'utente locale e il catalogo guidato, ma inoltra ora le chiamate al backend tramite proxy Vite. Alla conferma la query assemblata apre una sessione SAGE reale (senza riusare l'ID locale demo); chiarimenti, analisi, polling risultati e mappa usano le API backend e il dataset `full`. Rimosso il percorso che restituiva run locali senza immobili; aggiornate le note UI e architettura. Nessuna esecuzione benchmark avviata.
+
+* **Sidebar nascosta in demo**: nascosta tutta la barra laterale durante la modalità demo e rimosso il margine del contenuto riservato alla sidebar, lasciando la pagina a larghezza piena. Aggiornata la documentazione UI. Paper invariato.
+
+* **Navigazione laterale disabilitata in demo**: i collegamenti Home, Map, History, Logs e Settings restano visibili ma non navigabili, non raggiungibili da tastiera e marcati `aria-disabled` quando è attiva la demo offline. Aggiornata la documentazione UI. Paper invariato.
+
+* **Indicatore demo e selettore scenario**: l'etichetta `DEMO MODE` appare solo nell'indicatore d'angolo; rinominato il titolo del pannello in `Select scenario` e rimossi gli altri messaggi visibili che ripetevano l'etichetta della modalità. Aggiornati route UI e traduzione. Paper invariato.
+
+* **Layout affiancato della demo**: durante la conversazione, il selettore del caso e delle dimensioni mancanti rimane nella colonna sinistra e il pannello `Let’s refine your search` si dispone a destra; su schermi stretti il layout torna in colonna. Aggiornata la documentazione UI. Paper invariato: modifica di presentazione della demo.
+
+* **Selezione demo per caso e dimensioni mancanti**: sostituita la scelta diretta della variante con una selezione in due passaggi: caso base, poi dimensioni mancanti. La UI cerca nel catalogo abilitato la combinazione esatta, ne mostra l'ID e consente di caricarla esplicitamente; il thread non viene ricaricato a ogni checkbox. Aggiornati i documenti delle route frontend. Paper invariato: cambia solo la navigazione della demo locale.
+
+* **Consultazione frontend degli artefatti benchmark**: aggiunta la route autenticata `/benchmark` per leggere `manifest.json` e `runs.jsonl` del benchmark configurato, con riepilogo, filtri per condizione/scenario/esito e dettaglio delle singole run. Il percorso Vite è configurabile tramite `VITE_BENCHMARK_RESULTS_DIR` e predefinito su `backend/experiments/results/all_scenarios_codex`. Il frontend incorpora gli artefatti nella build; le nuove run richiedono un reload in sviluppo o una nuova build statica. Modifica di sola consultazione, senza cambi al protocollo, ai risultati o al paper.
+
+* **Tipologie canoniche nel contesto SQL**: corretto l’orchestratore che passava `tipologia_bene_immobile` all’agente SQL pur usando un dataset con `property_type`; corretti anche percorso metadati `fields.property_type.values` e riepilogo delle tipologie. Superati 15 test della pipeline, inclusa regressione building→SQL con DuckDB, e verificato lo schema Parquet reale. Nessun benchmark LLM rieseguito, nessun risultato storico sovrascritto. Aggiornati `agents/sql.md` e `research/reproduction.md`; paper invariato perché è una correzione del contratto software ereditato, senza nuovo metodo o evidenza scientifica.
+
 * **Attivazione completa S01–S08 e snapshot Codex**: abilitati gli otto scenari nel YAML; piano corrente ×3 su tutte le condizioni = 1.536 job. Inclusi gli artefatti presenti in `results/all_scenarios_codex/`: manifest incompleto e un tentativo S01_k1_D in errore per dettaglio irrisolto. Aggiornata riproduzione; paper invariato perché lo snapshot parziale non modifica i risultati scientifici riportati.
 
 * **Smoke test Qwen vLLM su S01_k0**: un solo job refined con `qwen9b` su 130.192.163.76:8000, ripetizione e concorrenza 1, configurazione permanente invariata. Run `bench_b709ce5268e6` fallita in 122,083 s al parsing JSON del chiarimento, prima dell’analisi immobiliare. Artefatti isolati in `results/qwen9b_s01_k0/`, input e impostazioni conservati; risposta grezza non registrata, causa specifica non verificata. Nessun retry. Aggiornata `research/reproduction.md`; paper invariato: sola prova tecnica fallita, senza nuove evidenze scientifiche.

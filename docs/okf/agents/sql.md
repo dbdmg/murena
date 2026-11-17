@@ -42,3 +42,15 @@ La risposta di analisi espone `sql_agent_sql` (SQL dell'agente prima di qualsias
 ## Osservabilità e dipendenze
 
 L'esito è incluso nel contesto e nelle tracce del [GraphOrchestratorAgent](orchestrator.md) e del [flusso end-to-end](../architecture/analysis-flow.md). Il comportamento concreto dipende da prompt, modello, dati caricati e fallback.
+
+## Tipologie e schema canonico (2026-11-17)
+
+L’orchestratore passa le tipologie estratte all’agente SQL con il nome
+`property_type`, coerente con lo schema runtime. Il nome storico
+`tipologia_bene_immobile` era ancora inserito nel contesto dei requisiti e
+poteva indurre una SELECT su una colonna inesistente. Il contesto iniziale
+legge ora `base_dataset.property_type`; i valori disponibili per il building
+agent provengono da `db_metadata.fields.property_type.values`.
+La correzione riguarda il passaggio dei vincoli, senza riscritture automatiche
+della SQL generata o nuove regole di filtro. Test senza LLM verificano il
+contesto passato all’agente e l’esecuzione sullo schema canonico.

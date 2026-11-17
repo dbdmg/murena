@@ -70,12 +70,12 @@ export const demoAdapter: AxiosAdapter = async config => {
             const result: AnalysisResults = {
                 run_id: runId, status: 'completed', query: body.query,
                 created_at: now, completed_at: now, buildings: [], location: [],
-                broker_summary: 'Offline demo completed. This scenario contains query and answer scripts only; no property results have been preloaded. No backend or LLM was contacted.',
+                broker_summary: 'Simulation completed. This scenario contains query and answer scripts only; no property results have been preloaded. No backend or LLM was contacted.',
                 agent_trace: [],
             };
             runs.set(runId, result);
             sessions.delete(id);
-            return respond({ run_id: runId, status: 'completed', created_at: now, message: 'Offline demo completed.' });
+            return respond({ run_id: runId, status: 'completed', created_at: now, message: 'Simulation completed.' });
         }
         if (body.clarification_response) {
             session.text += ` ${body.clarification_response}`;
@@ -95,12 +95,12 @@ export const demoAdapter: AxiosAdapter = async config => {
         if (match[2] === 'gemini_responses') return respond({});
         return respond(runs.get(match[1]));
     }
-    if (path === '/map/config') return respond({ center: { lat: 45.07, lng: 7.69 }, zoom: 12, style: '', attribution: 'Offline demo' });
+    if (path === '/map/config') return respond({ center: { lat: 45.07, lng: 7.69 }, zoom: 12, style: '', attribution: 'Local simulation' });
     if (path.startsWith('/map/overlays/')) return respond({ type: 'FeatureCollection', features: [] });
     if (path === '/map/markers' || path === '/map/markers-lite') return respond([]);
     if (path === '/layers/pois') return respond({ count: 0, categories: [], pois: [] });
     if (path === '/buildings') return respond({ buildings: [], total: 0, limit: 0, offset: 0, has_more: false });
     if (path === '/logs/stream') return respond({ events: [], last_id: 0 });
     if (path === '/logs/traces' || (path.startsWith('/feedback/') && method === 'get')) return respond([]);
-    return fail(`Unavailable in offline demo: ${method.toUpperCase()} ${path}`);
+    return fail(`Unavailable in local simulation: ${method.toUpperCase()} ${path}`);
 };

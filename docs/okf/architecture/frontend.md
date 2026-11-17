@@ -35,3 +35,5 @@ Il client è basato su React 19, TypeScript, React Router 7, Vite 6, TanStack Qu
 - `src/hooks/`: collegamento tra API e stato live, progressi, mappa.
 
 Il browser usa `VITE_API_URL` o, in mancanza, `/api/v1`; Axios legge il bearer token da `localStorage`. Il WebSocket è legato al `run_id` della ricerca. Vedi [routing UI](../frontend/ui-routes.md) e [stato/rete](../frontend/state-and-network.md).
+
+La modalità `dev:demo` sostituisce il login con un utente frontend locale e mostra il catalogo degli scenari. L'adapter Axios e il proxy disattivato impediscono le chiamate API al backend; le ricerche sono simulate localmente e non restituiscono immobili. La mappa può mostrare l'inventario statico esportato dal Parquet, senza analisi o risultati calcolati.

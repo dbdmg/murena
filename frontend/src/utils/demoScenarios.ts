@@ -6,6 +6,7 @@ export const dimensionLabels: Record<Dimension, string> = {
 };
 export interface DemoScenario {
     case_id: string;
+    base_case_id?: string;
     regulatory_use_case: string;
     missing_dimensions: Dimension[];
     conversational: {

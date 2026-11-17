@@ -41,3 +41,7 @@ In `App.tsx` il `QueryClient` disabilita il refetch al focus, configura un retry
 `apiClient` usa `VITE_API_URL || '/api/v1'`. L'interceptor prova ad allegare l'header `Authorization: Bearer ...` e il timeout è di 30 secondi per la singola richiesta HTTP. L'analisi completa è asincrona e può richiedere più tempo.
 
 Controllare [contratti API](../api/contracts.md) e [WebSocket](../api/progress-events.md) prima di cambiare i DTO.
+
+Nella modalità scenari (`VITE_DEMO_MODE=true`) il contesto auth crea un utente locale e Axios usa `demoAdapter`; il proxy Vite è disattivato. Le richieste API sono simulate localmente e non raggiungono il backend. La sessione e la run sono in memoria; la run simulata non contiene immobili.
+
+I marker di inventario in modalità scenari vengono caricati da `public/data/estates.json`, esportato dal Parquet con `frontend/scripts/export_estates.py`; questo file statico viene letto dal browser senza chiamate al backend. Gli attributi visualizzati sono limitati all'export.

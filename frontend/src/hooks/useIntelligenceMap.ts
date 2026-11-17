@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { OFFLINE_DEMO } from '../demo/mode';
 import type { MapMarker, MarkerTier, AnalysisHistoryItem } from '../api/types';
 import { analysisApi } from '../api/endpoints/analysis';
 import { mapApi } from '../api/endpoints/map';
@@ -71,6 +72,7 @@ export function useIntelligenceMap(
 
     // Load background markers on mount
     useEffect(() => {
+        if (OFFLINE_DEMO) return;
         const loadBackground = async () => {
             try {
                 // Use new lightweight endpoint

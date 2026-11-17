@@ -266,7 +266,19 @@ export const SearchPage: React.FC = () => {
                 clarification_confirmed: true,
             });
             if ('session_id' in result) {
-                setClarificationError(result.message || 'The reviewed query could not be submitted.');
+                if (result.status === 'ASK') {
+                    const question = result.question?.trim();
+                    if (!question) throw new Error('Clarification response did not include a generated question.');
+                    setClarificationMessages(messages => [...messages, { role: 'assistant', content: question }]);
+                    setClarificationSessionId(result.session_id);
+                    setReviewQuery(null);
+                } else if (result.status === 'REVIEW') {
+                    setClarificationSessionId(result.session_id);
+                    setReviewQuery(result.refined_query || reviewQuery.trim());
+                } else {
+                    setClarificationError(result.message || 'Clarification cannot continue safely.');
+                    setClarificationSessionId(null);
+                }
                 return;
             }
             setClarificationSessionId(null);
@@ -328,7 +340,7 @@ export const SearchPage: React.FC = () => {
             {/* Main Content */}
             <div className={`relative z-10 mx-auto w-full ${
                 clarificationMessages.length > 0
-                    ? 'flex h-full min-h-0 max-w-5xl flex-col'
+                    ? 'grid h-full min-h-0 max-w-7xl grid-cols-1 content-start gap-4 md:grid-cols-[minmax(18rem,0.8fr)_minmax(0,1.2fr)] md:items-start'
                     : 'max-w-3xl'
             }`}>
 

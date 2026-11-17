@@ -300,7 +300,7 @@ export const SettingsPage: React.FC = () => {
                         iconColor="text-emerald-400"
                     >
                         <p className="text-xs text-gray-500 mb-4">
-                            {OFFLINE_DEMO ? 'Offline demo is fixed at startup. Restart with npm run dev to use the backend.' : 'Select the data source for the analyses.'}
+                            {OFFLINE_DEMO ? 'This mode is fixed at startup. Restart with npm run dev to use the backend.' : 'Select the data source for the analyses.'}
                         </p>
 
                         <div className="grid grid-cols-2 gap-3">

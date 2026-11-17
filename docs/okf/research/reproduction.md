@@ -323,3 +323,19 @@ un solo record, `bench_a9c86f0197c9` / `S01_k1_D`, fallito dopo 8,836 s
 per dettaglio necessario ancora irrisolto, senza avviare l’analisi.
 È un artefatto parziale, non un benchmark completato o una nuova misura
 comparativa. Nessuna modifica ai risultati storici del paper.
+
+### Correzione del contesto SQL delle tipologie (2026-11-17)
+
+Durante il batch Codex è stato segnalato un Binder Error su
+`tipologia_bene_immobile`. Verificato sul Parquet locale: la colonna presente
+è `property_type`, il vecchio nome è assente. L’orchestratore inseriva
+ancora il vecchio nome nei requisiti passati all’agente SQL e cercava le
+categorie nel percorso metadati obsoleto. Corretti nome nel contesto SQL,
+lettura di `fields.property_type.values` e riepilogo iniziale del dataset.
+Superati 15 test della pipeline senza LLM, incluso il confine building→SQL
+con esecuzione DuckDB; verificato anche il filtro canonico sul Parquet.
+Non è stata rieseguita una chiamata LLM per misurare l’effetto della correzione.
+Un runner già attivo mantiene il codice caricato: per valutare la correzione
+avviare un nuovo processo e usare output separati dai tentativi precedenti.
+I risultati storici del paper restano invariati; la correzione ripristina il
+contratto di schema della pipeline ereditata, senza cambiare il metodo.

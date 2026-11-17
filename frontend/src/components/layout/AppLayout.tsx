@@ -23,6 +23,7 @@ import {
     Settings,
     Info,
     ScrollText,
+    FlaskConical,
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { AboutModal } from '../AboutModal';
@@ -48,19 +49,20 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
         { label: t.nav.map, path: '/map', icon: MapIcon },
         { label: t.nav.history, path: '/history', icon: History },
         { label: t.nav.logs, path: '/logs', icon: ScrollText },
+        { label: 'Benchmark', path: '/benchmark', icon: FlaskConical },
         { label: t.nav.settings, path: '/settings', icon: Settings },
     ];
 
     return (
         <div className="min-h-screen w-full relative bg-(--bg-main) text-(--text-primary) overflow-hidden tracking-tight">
-            {OFFLINE_DEMO && <div className="fixed right-3 top-2 z-50 rounded-lg bg-amber-950 px-3 py-1 text-xs text-amber-100">Offline demo · Backend disconnected</div>}
+            {OFFLINE_DEMO && <div className="fixed right-3 top-2 z-50 rounded-lg bg-amber-950 px-3 py-1 text-xs font-semibold tracking-wide text-amber-100">DEMO MODE</div>}
             {/* Ambient Background Effects */}
             <div className="fixed top-[-20%] left-[-10%] w-[600px] h-[600px] bg-emerald-600/10 rounded-full blur-[150px] pointer-events-none z-0" />
             <div className="fixed bottom-[-20%] right-[-10%] w-[500px] h-[500px] bg-blue-500/5 rounded-full blur-[120px] pointer-events-none z-0" />
             <div className="fixed top-[40%] right-[20%] w-[300px] h-[300px] bg-purple-500/5 rounded-full blur-[100px] pointer-events-none z-0" />
 
             {/* Sidebar Navigation - Fixed position */}
-            <motion.aside
+            {!OFFLINE_DEMO && <motion.aside
                 className="fixed left-0 top-0 h-screen z-20 flex flex-col border-r border-(--border-light) bg-(--glass-bg) backdrop-blur-xl"
                 initial={false}
                 animate={{ width: isExpanded ? 240 : 72 }}
@@ -109,9 +111,15 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
                             <Link
                                 key={item.path}
                                 to={item.path}
+                                aria-disabled={OFFLINE_DEMO}
+                                tabIndex={OFFLINE_DEMO ? -1 : undefined}
+                                onClick={event => {
+                                    if (OFFLINE_DEMO) event.preventDefault();
+                                }}
                                 className={`
                                     flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group relative
                                     ${isExpanded ? '' : 'justify-center'}
+                                    ${OFFLINE_DEMO ? 'cursor-not-allowed opacity-40' : ''}
                                     ${isActive
                                         ? 'bg-linear-to-r from-emerald-600/20 to-green-500/10 text-white shadow-lg shadow-emerald-900/10 border border-white/5'
                                         : 'text-gray-400 hover:text-white hover:bg-white/5 border border-transparent'
@@ -233,10 +241,10 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
                         </AnimatePresence>
                     </div>
                 </div>
-            </motion.aside>
+            </motion.aside>}
 
             {/* Main Content Area */}
-            <main className="ml-[72px] relative z-10 overflow-auto h-screen">
+            <main className={`${OFFLINE_DEMO ? '' : 'ml-[72px]'} relative z-10 h-screen overflow-auto`}>
                 <AnimatePresence mode="wait">
                     <motion.div
                         key={location.pathname + language} // Add language to key to force re-render on switch

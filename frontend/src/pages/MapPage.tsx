@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import { OFFLINE_DEMO } from '../demo/mode';
 import type { GeoJsonObject } from 'geojson';
 import { Map } from '../components/map/Map';
 import { BuildingSidebar } from '../components/building/BuildingSidebar';
@@ -78,7 +79,8 @@ export const MapPage: React.FC = () => {
 
     // Intelligence Map hook
     const {
-        allMarkers,
+        allMarkers: apiMarkers,
+        searchResults,
         topPicks,
         searchLocation,
         activeRunId,
@@ -87,6 +89,44 @@ export const MapPage: React.FC = () => {
         loadRun,
         clearResults,
     } = useIntelligenceMap(markersLimit);
+
+    const [localInventory, setLocalInventory] = useState<MapMarker[]>([]);
+    const allMarkers = useMemo(() => {
+        if (!OFFLINE_DEMO) return apiMarkers;
+        const merged = new globalThis.Map(localInventory.map(marker => [marker.id, marker]));
+        [...searchResults, ...topPicks].forEach(marker => merged.set(marker.id, marker));
+        return [...merged.values()];
+    }, [apiMarkers, localInventory, searchResults, topPicks]);
+
+    useEffect(() => {
+        if (!OFFLINE_DEMO) return;
+        fetch('/data/estates.json')
+            .then(response => {
+                if (!response.ok) throw new Error(`Inventory request failed (${response.status})`);
+                return response.json() as Promise<Array<Record<string, unknown>>>;
+            })
+            .then(rows => setLocalInventory(rows.flatMap(row => {
+                const lat = Number(row.latitude);
+                const lng = Number(row.longitude);
+                if (!row.id || !Number.isFinite(lat) || !Number.isFinite(lng)) return [];
+                return [{
+                    id: String(row.id), lat, lng, tier: 1 as const,
+                    address: typeof row.address === 'string' ? row.address : undefined,
+                    surface_area: typeof row.surface_area === 'number' ? row.surface_area : undefined,
+                    construction_year: typeof row.construction_period === 'string' ? row.construction_period : undefined,
+                    energy_class: typeof row.energy_class === 'string' ? row.energy_class : undefined,
+                    property_type: typeof row.property_type === 'string' ? row.property_type : undefined,
+                    is_meta_building: row.is_meta_estate === true,
+                    energy_scores: row.energy_scores as MapMarker['energy_scores'],
+                    proximity_scores: row.proximity_scores as MapMarker['proximity_scores'],
+                    energy_files: Array.isArray(row.ape_file_list_filtered) ? row.ape_file_list_filtered.filter((item): item is string => typeof item === 'string') : undefined,
+                }];
+            })))
+            .catch(err => {
+                console.error('Failed to load local estate inventory:', err);
+                setError('Could not load the local estate inventory.');
+            });
+    }, []);
 
     const [config, setConfig] = useState<MapConfig | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -211,12 +251,17 @@ export const MapPage: React.FC = () => {
         const runId = queryParams.get('run_id');
         if (runId && !activeRunId) {
             loadRun(runId);
-            setFilters(prev => ({ ...prev, showOnlyResults: true }));
+            setFilters(prev => ({ ...prev, showOnlyResults: !OFFLINE_DEMO }));
         }
     }, [loadRun, activeRunId]);
 
     // Initial load - map configuration only
     useEffect(() => {
+        if (OFFLINE_DEMO) {
+            setConfig({ center: { lat: 45.07, lng: 7.69 }, zoom: 12, style: '', attribution: 'Estate inventory' });
+            setIsLoading(false);
+            return;
+        }
         const fetchInitialData = async () => {
             try {
                 setIsLoading(true);
@@ -236,7 +281,7 @@ export const MapPage: React.FC = () => {
 
     // Load the configured OMI overlay on demand.
     useEffect(() => {
-        if (layers.showZoneOMI && !zoneOMIOverlay) {
+        if (!OFFLINE_DEMO && layers.showZoneOMI && !zoneOMIOverlay) {
             mapApi.getOverlay('omi').then(setZoneOMIOverlay).catch(console.error);
         }
     }, [layers.showZoneOMI, zoneOMIOverlay]);
@@ -282,7 +327,7 @@ export const MapPage: React.FC = () => {
         }
 
         // Check if we need to fetch details (Tier 1 background markers usually lack details)
-        if (marker.tier === 1 || !marker.proximity_scores) {
+        if (!OFFLINE_DEMO && (marker.tier === 1 || !marker.proximity_scores)) {
             try {
                 // Fetch details
                 const fullBuilding = await buildingsApi.getBuilding(marker.id);
@@ -313,7 +358,7 @@ export const MapPage: React.FC = () => {
         // Fetch details for the first one at least, so something shows up.
         if (clusterMarkers.length > 0) {
             const first = clusterMarkers[0];
-            if (first.tier === 1 || !first.proximity_scores) {
+            if (!OFFLINE_DEMO && (first.tier === 1 || !first.proximity_scores)) {
                 try {
                     const fullBuilding = await buildingsApi.getBuilding(first.id);
                     const richMarker: MapMarker = {
@@ -356,7 +401,7 @@ export const MapPage: React.FC = () => {
     // Handle run selection from dropdown
     const handleSelectRun = useCallback((runId: string) => {
         loadRun(runId);
-        setFilters(prev => ({ ...prev, showOnlyResults: true }));
+        setFilters(prev => ({ ...prev, showOnlyResults: !OFFLINE_DEMO }));
         // Update URL without reload
         const url = new URL(window.location.href);
         url.searchParams.set('run_id', runId);

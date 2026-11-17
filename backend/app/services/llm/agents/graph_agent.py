@@ -403,11 +403,11 @@ class GraphOrchestratorAgent(BaseAgent):
         
         if (
             base_dataset is not None
-            and "tipologia_bene_immobile" in base_dataset.columns
+            and "property_type" in base_dataset.columns
         ):
             dataset_metadata["typologies"] = [
                 str(x)
-                for x in base_dataset["tipologia_bene_immobile"].unique()
+                for x in base_dataset["property_type"].unique()
                 if pd.notna(x)
             ]
 
@@ -1197,7 +1197,7 @@ class GraphOrchestratorAgent(BaseAgent):
                 )
             result = self.building_agent.run(
                 query=query, mode="filtering",
-                available_typologies=str(state["db_metadata"].get("tipologia_bene_immobile", {}).get("values", [])),
+                available_typologies=str(state["db_metadata"].get("fields", {}).get("property_type", {}).get("values", [])),
                 statistics=prop_stats
             )
             logger.info("Building agent completed")
@@ -1623,7 +1623,7 @@ class GraphOrchestratorAgent(BaseAgent):
                 t_data = safe_extract_json(building_result.raw_text)
                 if t_data and isinstance(t_data, dict) and t_data.get("typologies"):
                     typs = t_data['typologies']
-                    all_reqs.append(f"tipologia_bene_immobile: {', '.join(typs)}")
+                    all_reqs.append(f"property_type: {', '.join(typs)}")
             except: pass
             
             # BuildingAgent now also extracts structured requirements (ID, contracts, surfaces)

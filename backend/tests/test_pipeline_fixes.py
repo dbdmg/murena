@@ -273,3 +273,33 @@ class AgentErrorSurfacingTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class CanonicalTypologySqlTests(unittest.TestCase):
+    def test_building_typologies_reach_sql_with_the_runtime_column_name(self):
+        import json
+        captured = {}
+        agent = _bare_orchestrator()
+        agent._log_execution = lambda *args, **kwargs: None
+        def generate(**kwargs):
+            captured.update(kwargs)
+            # Fake the model while verifying the real orchestration boundary.
+            self.assertIn("property_type: Residential (Continuous)", kwargs["all_requirements"])
+            self.assertNotIn("tipologia_bene_immobile", kwargs["all_requirements"])
+            return SimpleNamespace(
+                sql="SELECT * FROM ESTATES WHERE property_type = 'Residential (Continuous)'",
+                raw_text="sql", prompt=None,
+            )
+        agent.sql_agent = SimpleNamespace(run=generate)
+        state = _state(
+            query="Find a residential dwelling", retry_count=0, sql_query="",
+            location_payload=[], db_schema={"types": {"id": "VARCHAR", "property_type": "VARCHAR"}},
+            db_metadata={"fields": {"property_type": {"values": ["Residential (Continuous)"]}}},
+            building_result=SimpleNamespace(raw_text=json.dumps({"typologies": ["Residential (Continuous)"]})),
+        )
+        agent._generate_sql(state)
+        frame = pd.DataFrame({"id": ["a", "b"], "property_type": ["Residential (Continuous)", "Office"]})
+        rows, error = execute_sql_query(state["sql_query"], frame)
+        self.assertFalse(error, error)
+        self.assertEqual(rows["id"].tolist(), ["a"])
+        self.assertEqual(captured["scheme"], "id: VARCHAR\nproperty_type: VARCHAR")

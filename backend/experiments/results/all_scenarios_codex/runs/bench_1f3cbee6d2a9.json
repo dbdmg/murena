@@ -1,23 +1,23 @@
 {
-  "run_id": "bench_a9c86f0197c9",
+  "run_id": "bench_1f3cbee6d2a9",
   "condition": "refined",
-  "unit_id": "S01_k1_D",
-  "scenario_id": "S01_k1_D",
+  "unit_id": "S01_k2_D_Ce",
+  "scenario_id": "S01_k2_D_Ce",
   "base_case_id": "S01",
-  "missing_count": 1,
-  "scenario_name": "1 omitted dimensions; intended use: Micro-nursery",
+  "missing_count": 2,
+  "scenario_name": "2 omitted dimensions; intended use: Micro-nursery",
   "tags": [
     "edbt",
     "controlled_missingness_v3",
-    "missing_1",
+    "missing_2",
     "UC01_micro_nursery_missing_use"
   ],
   "model": "gpt-6-luna",
   "repeat": 1,
   "attempt": 1,
-  "input_sha256": "506d0d74f9323d4ff00c6622f7133b63576094fc9792063690c5b86f31e504d5",
-  "scenario_sha256": "506d0d74f9323d4ff00c6622f7133b63576094fc9792063690c5b86f31e504d5",
-  "initial_query": "I am looking for an existing residential dwelling. The location is in Turin. I need a property with at least 140 sqm of gross floor area and capacity for 18 people. I prefer a property in energy class C or better. I prefer properties near public transport.",
+  "input_sha256": "f50598ca659ef260c1acecc1e284831639ea324b10aef0a9c89fcebe76075616",
+  "scenario_sha256": "f50598ca659ef260c1acecc1e284831639ea324b10aef0a9c89fcebe76075616",
+  "initial_query": "I am looking for an existing residential dwelling. The location is in Turin. I need a property with at least 140 sqm of gross floor area and capacity for 18 people. I prefer properties near public transport.",
   "options": {
     "dataset_key": "full",
     "map_limit": 1000,
@@ -28,11 +28,11 @@
     "architecture": "multiagent",
     "disabled_agents": null
   },
-  "started_at": "2026-11-17T16:31:50.519814+00:00",
-  "clarification_seconds": 8.836,
+  "started_at": "2026-11-17T16:33:52.854105+00:00",
+  "clarification_seconds": 13.442,
   "analysis_seconds": null,
   "conversation": {
-    "session_id": "d07785d3-7a46-498f-976a-bcc9e1b86c5d",
+    "session_id": "8e86bd0d-7ee8-4392-a1e6-7c3525676fd5",
     "initial_dimension_state": {
       "I": {
         "status": "SPECIFIED",
@@ -47,7 +47,7 @@
       "L": {
         "status": "SPECIFIED",
         "value": "Turin",
-        "evidence": "“The location is in Turin.”"
+        "evidence": "“The location is in Turin”"
       },
       "Cb": {
         "status": "SPECIFIED",
@@ -55,20 +55,22 @@
         "evidence": "“at least 140 sqm of gross floor area and capacity for 18 people”"
       },
       "Ce": {
-        "status": "SPECIFIED",
-        "value": "Energy class C or better",
-        "evidence": "“energy class C or better”"
+        "status": "UNCONFIRMED_ABSENT",
+        "value": null,
+        "evidence": null
       },
       "Cp": {
         "status": "SPECIFIED",
-        "value": "Mobility: public transport",
+        "value": "mobility",
         "evidence": "“near public transport”"
       }
     },
     "initial_missing": [
+      "Ce",
       "D"
     ],
     "expected_initial_missing": [
+      "Ce",
       "D"
     ],
     "missing_detection": {
@@ -76,11 +78,62 @@
       "recall": 1.0,
       "f1": 1.0
     },
-    "turns": [],
+    "turns": [
+      {
+        "question": "Would an energy-efficiency preference help narrow the search, or does it not matter?",
+        "target_dimensions": [
+          "Ce"
+        ],
+        "answer": "I prefer a property in energy class C or better.",
+        "question_source": "llm_query_parser",
+        "status_after": "BLOCKED",
+        "turn_after": 1,
+        "dimension_state_after": {
+          "I": {
+            "status": "SPECIFIED",
+            "value": "residential dwelling",
+            "evidence": "“residential dwelling”"
+          },
+          "D": {
+            "status": "UNCONFIRMED_ABSENT",
+            "value": null,
+            "evidence": null
+          },
+          "L": {
+            "status": "SPECIFIED",
+            "value": "Turin",
+            "evidence": "“The location is in Turin”"
+          },
+          "Cb": {
+            "status": "SPECIFIED",
+            "value": "At least 140 sqm of gross floor area and capacity for 18 people",
+            "evidence": "“at least 140 sqm of gross floor area and capacity for 18 people”"
+          },
+          "Ce": {
+            "status": "SPECIFIED",
+            "value": "Energy class C or better",
+            "evidence": "energy class C or better"
+          },
+          "Cp": {
+            "status": "SPECIFIED",
+            "value": "mobility",
+            "evidence": "“near public transport”"
+          }
+        }
+      }
+    ],
     "messages": [
       {
         "role": "user",
-        "content": "I am looking for an existing residential dwelling. The location is in Turin. I need a property with at least 140 sqm of gross floor area and capacity for 18 people. I prefer a property in energy class C or better. I prefer properties near public transport."
+        "content": "I am looking for an existing residential dwelling. The location is in Turin. I need a property with at least 140 sqm of gross floor area and capacity for 18 people. I prefer properties near public transport."
+      },
+      {
+        "role": "assistant",
+        "content": "Would an energy-efficiency preference help narrow the search, or does it not matter?"
+      },
+      {
+        "role": "user",
+        "content": "I prefer a property in energy class C or better."
       },
       {
         "role": "assistant",
@@ -101,7 +154,7 @@
       "L": {
         "status": "SPECIFIED",
         "value": "Turin",
-        "evidence": "“The location is in Turin.”"
+        "evidence": "“The location is in Turin”"
       },
       "Cb": {
         "status": "SPECIFIED",
@@ -111,11 +164,11 @@
       "Ce": {
         "status": "SPECIFIED",
         "value": "Energy class C or better",
-        "evidence": "“energy class C or better”"
+        "evidence": "energy class C or better"
       },
       "Cp": {
         "status": "SPECIFIED",
-        "value": "Mobility: public transport",
+        "value": "mobility",
         "evidence": "“near public transport”"
       }
     },
@@ -136,30 +189,31 @@
       "Cp": "SPECIFIED"
     },
     "mapping_accuracy": 0.8333,
-    "no_clarification": true,
+    "no_clarification": false,
     "status": "BLOCKED",
     "error": "A necessary query detail remains unresolved; analysis was not started."
   },
   "status": "error",
   "error": "A necessary query detail remains unresolved; analysis was not started.",
-  "duration_seconds": 8.836,
+  "duration_seconds": 13.442,
   "scenario_definition": {
-    "id": "S01_k1_D",
-    "name": "1 omitted dimensions; intended use: Micro-nursery",
+    "id": "S01_k2_D_Ce",
+    "name": "2 omitted dimensions; intended use: Micro-nursery",
     "tags": [
       "edbt",
       "controlled_missingness_v3",
-      "missing_1",
+      "missing_2",
       "UC01_micro_nursery_missing_use"
     ],
     "base_case_id": "S01",
     "source_case_id": "UC01_micro_nursery_missing_use",
-    "missing_count": 1,
-    "initial_query": "I am looking for an existing residential dwelling. The location is in Turin. I need a property with at least 140 sqm of gross floor area and capacity for 18 people. I prefer a property in energy class C or better. I prefer properties near public transport.",
-    "one_shot_query": "I am looking for an existing residential dwelling. The location is in Turin. I need a property with at least 140 sqm of gross floor area and capacity for 18 people. I prefer a property in energy class C or better. I prefer properties near public transport.",
+    "missing_count": 2,
+    "initial_query": "I am looking for an existing residential dwelling. The location is in Turin. I need a property with at least 140 sqm of gross floor area and capacity for 18 people. I prefer properties near public transport.",
+    "one_shot_query": "I am looking for an existing residential dwelling. The location is in Turin. I need a property with at least 140 sqm of gross floor area and capacity for 18 people. I prefer properties near public transport.",
     "oracle_query": "Find an existing residential dwelling to convert it into a micro-nursery for 18 children in Turin with at least 140 sqm of gross floor area in energy class C or better near public transport.",
     "expected_initial_missing": [
-      "D"
+      "D",
+      "Ce"
     ],
     "clarifications": {
       "I": "I am looking for an existing residential dwelling.",
@@ -179,7 +233,7 @@
     },
     "repeats": 1
   },
-  "artifact_file": "runs/bench_a9c86f0197c9.json",
+  "artifact_file": "runs/bench_1f3cbee6d2a9.json",
   "artifact_schema_version": 3,
   "ranking_ids": [],
   "top": [],
