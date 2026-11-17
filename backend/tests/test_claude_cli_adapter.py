@@ -30,7 +30,7 @@ class ClaudeCliAdapterTest(unittest.TestCase):
     def _model(self):
         return ClaudeCliChatModel(
             model_name="claude-haiku-5-5", effort="medium", executable="claude",
-            timeout_seconds=30, retry_backoff_seconds=0.0,
+            timeout_seconds=30, retry_backoff_seconds=0.0, launch_spacing_seconds=0.0,
         )
 
     def test_transient_failure_is_retried(self):
@@ -48,7 +48,7 @@ class ClaudeCliAdapterTest(unittest.TestCase):
 
         def fake_run(command, **kwargs):
             seen["command"] = command
-            seen["input"] = kwargs["input"]
+            seen["input"] = kwargs["stdin"].read().decode("utf-8")
             seen["env"] = kwargs["env"]
             idx = command.index("--system-prompt-file")
             seen["system"] = Path(command[idx + 1]).read_text(encoding="utf-8")
@@ -118,6 +118,16 @@ class ClaudeCliAdapterTest(unittest.TestCase):
         model = build_chat_model(provider="claude_cli", model_name="claude-haiku-5-5", temperature=0.0)
         self.assertIsInstance(model, ClaudeCliChatModel)
         self.assertEqual(model.model_name, "claude-haiku-5-5")
+
+
+class SageJsonParsingTest(unittest.TestCase):
+    def test_single_fence_is_unwrapped_other_text_rejected(self):
+        from app.services.sage_clarification.service import _parse_llm_json
+
+        self.assertEqual(_parse_llm_json('```json\n{"a": 1}\n```'), {"a": 1})
+        self.assertEqual(_parse_llm_json('{"a": 1}'), {"a": 1})
+        with self.assertRaises(ValueError):
+            _parse_llm_json('Here it is: {"a": 1}')
 
 
 if __name__ == "__main__":

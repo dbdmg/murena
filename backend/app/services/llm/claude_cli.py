@@ -17,6 +17,7 @@ import os
 import shutil
 import subprocess
 import tempfile
+import threading
 import time
 from pathlib import Path
 from typing import Any, Mapping, Sequence
@@ -51,6 +52,27 @@ _DEFAULT_SYSTEM_PROMPT = (
     "You are a component of a data-analysis pipeline. Follow the user's "
     "instructions exactly and reply only with the requested content."
 )
+
+
+_LAUNCH_LOCK = threading.Lock()
+_last_launch = 0.0
+
+
+def _space_launch(spacing: float) -> None:
+    """Keep CLI process starts at least ``spacing`` seconds apart.
+
+    Each CLI start rewrites the user's ``~/.claude.json``; simultaneous starts
+    from many pipeline threads were observed to corrupt it transiently (the CLI
+    restores it from a backup). Staggering starts makes those races rare.
+    """
+    global _last_launch
+    if spacing <= 0:
+        return
+    with _LAUNCH_LOCK:
+        wait = _last_launch + spacing - time.monotonic()
+        if wait > 0:
+            time.sleep(wait)
+        _last_launch = time.monotonic()
 
 
 class _TransientCliError(RuntimeError):
@@ -91,6 +113,7 @@ class ClaudeCliChatModel(BaseChatModel):
     timeout_seconds: int = Field(default_factory=lambda: settings.CLAUDE_CLI_TIMEOUT_SECONDS)
     max_retries: int = 2
     retry_backoff_seconds: float = 2.0
+    launch_spacing_seconds: float = 0.3
 
     @property
     def _llm_type(self) -> str:
@@ -213,20 +236,26 @@ class ClaudeCliChatModel(BaseChatModel):
         ) as workdir:
             system_file = Path(workdir) / "system-prompt.txt"
             system_file.write_text(system_prompt, encoding="utf-8")
+            # Feed stdin from a file: under load a piped write can arrive after
+            # the CLI's 3 s stdin wait, which then exits with "no input".
+            input_file = Path(workdir) / "input.txt"
+            input_file.write_text(conversation, encoding="utf-8")
             command = self._build_command(executable, system_file, json_schema)
+            _space_launch(self.launch_spacing_seconds)
             try:
-                result = subprocess.run(
-                    command,
-                    input=conversation,
-                    text=True,
-                    encoding="utf-8",
-                    errors="replace",
-                    capture_output=True,
-                    check=False,
-                    timeout=self.timeout_seconds,
-                    cwd=workdir,
-                    env=env,
-                )
+                with input_file.open("rb") as stdin:
+                    result = subprocess.run(
+                        command,
+                        stdin=stdin,
+                        text=True,
+                        encoding="utf-8",
+                        errors="replace",
+                        capture_output=True,
+                        check=False,
+                        timeout=self.timeout_seconds,
+                        cwd=workdir,
+                        env=env,
+                    )
             except subprocess.TimeoutExpired as exc:
                 logger.warning("Claude CLI LLM call timed out")
                 raise RuntimeError("Claude CLI LLM call timed out") from exc

@@ -5,6 +5,7 @@ from __future__ import annotations
 import copy
 import json
 import logging
+import re
 import unicodedata
 import uuid
 from datetime import datetime, timezone
@@ -69,6 +70,11 @@ def _llm_text(result: Any) -> str:
 def _parse_llm_json(result: Any) -> Any:
     """Parse the JSON-only response requested by a structured SAGE prompt."""
     content = _llm_text(result).strip()
+    # Some models wrap a JSON-only reply in a single Markdown code fence;
+    # unwrap exactly that case and keep rejecting any other non-JSON text.
+    fenced = re.fullmatch(r"```(?:json)?\s*\n(.*)\n?```", content, flags=re.DOTALL | re.IGNORECASE)
+    if fenced:
+        content = fenced.group(1).strip()
     try:
         return json.loads(content)
     except (TypeError, json.JSONDecodeError) as exc:
