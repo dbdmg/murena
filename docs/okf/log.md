@@ -2,6 +2,8 @@
 
 ## 2026-11-17
 
+* **Screenshot della demo nel paper**: percorso guidato nursery (`MS02_k2`) eseguito dal vivo sull'app locale con `gpt-6-luna`. Due domande (`Cb`, `Ce`), revisione della richiesta riscritta, 144 immobili corrispondenti con top-10 sulla mappa. Figura `fig:screens` in `paper/` (`figures/screen-dialogue.png`, `screen-review.png`, `screen-results.jpg`); il paper compila a 4 pagine.
+
 * **Revisione strutturale del paper EDBT** (`paper/`):
   * Abstract, introduzione e valutazione riscritti sul protocollo v3 a tre condizioni; le equazioni sono rimosse e l'EVPI è descritto come euristica di ordinamento attribuita a SAGE-Agent.
   * Nuova figura TikZ dell'architettura (`paper/figures/architecture.tex`), che distingue le parti ereditate da MURENA da quelle nuove; la Discussione è confluita nella Conclusione con i limiti.
