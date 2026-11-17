@@ -17,4 +17,4 @@ The architecture figure is `figures/architecture.tex` (TikZ). Build in a copy of
 tectonic -X compile edbt-paper-template.tex
 ```
 
-With Tectonic/XeTeX, copy the Libertinus OTF fonts into the build directory with lowercase file names (e.g. `libertinusmath-regular.otf`). A pdfLaTeX + BibTeX build (`pdflatex`, `bibtex`, `pdflatex` ×2) should also work. Current length: 3 pages including references, before results and screenshots (EDBT demo limit: 4 pages plus references; confirm in the 2027 call).
+With Tectonic/XeTeX, copy the Libertinus OTF fonts into the build directory with lowercase file names (e.g. `libertinusmath-regular.otf`). A pdfLaTeX + BibTeX build (`pdflatex`, `bibtex`, `pdflatex` ×2) should also work. Current length: 4 pages including references, with demo screenshots and the preliminary v3 results (EDBT demo limit: 4 pages plus references; confirm in the 2027 call). The per-k figure reads `data/per_k.csv`, exported from `backend/experiments/results/missingness_v3/comparison_per_k.csv`.

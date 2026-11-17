@@ -174,7 +174,83 @@ L'oracle è un riferimento di query, non una ground truth sulla rilevanza degli 
 - `MS02_k2` rileva entrambe le omissioni, `Cb` compresa, in 2 turni e ottiene gli stessi 144 risultati dell'oracle.
 - Il `one_shot` restituisce 10.006 risultati con top-5 diverso.
 
-Questo è solo un controllo di funzionamento; il benchmark completo (304 job) è in esecuzione.
+Questo è solo un controllo di funzionamento.
+
+## Risultati osservati: benchmark v3 a tre condizioni, 2026-11-17 (parziale)
+
+**Esecuzione.**
+
+- Configurazione: `gpt-6-luna` via Codex CLI, `model_reasoning_effort=low`; dataset `full` (89.200 immobili); rilassamento attivo; seed 13; concorrenza 4. Commit del codice `61545ba`.
+- Run pianificati: 304 (refined 144, one_shot 120, oracle 40). Il benchmark è stato **sospeso su richiesta dell'utente** dopo 113 run completati: 54 refined, 43 one_shot, 16 oracle, nessun fallimento.
+- Nessun run è stato rieseguito o selezionato. Dati in `backend/experiments/results/missingness_v3/`: `runs.jsonl`, `manifest.json`, `comparison.json`, `comparison_per_k.csv`, `comparison_operational.csv`. Gli artefatti completi `runs/` restano locali.
+
+**Copertura risultante.**
+
+- Ogni cella (k, condizione) contiene 5–7 degli 8 intenti.
+- L'intento `UC08` non ha run oracle.
+- Il tetto di rumore oracle-vs-oracle si basa sui 5 intenti con almeno due ripetizioni oracle.
+- I risultati sono quindi preliminari e gli intervalli larghi.
+
+**Rallentamento del servizio Codex.** Tempi osservati (ora locale, finestre di 15 minuti per fine run):
+
+| Finestra | Run completati | Durata mediana (s) | Analisi mediana (s) | Analisi max (s) | Chiarimento mediano (s) |
+|---|---|---|---|---|---|
+| 14:00 | 34 | 90 | 76 | 112 | 40 |
+| 14:15 | 26 | 109 | 84 | 167 | 45 |
+| 14:30 | 24 | 106 | 90 | 320 | 34 |
+| 14:45 | 23 | 122 | 89 | 232 | 52 |
+| 15:00 | 4 | 604 | 543 | 689 | 74 |
+| 15:15 | 2 | 926 | 925 | 1111 | – |
+
+Una chiamata minima di prova (`codex exec … "Reply with OK"`) ha richiesto 63 s alle 15:05 e 167 s alle 15:15.
+
+- I log locali di Codex (`~/.codex/logs_2.sqlite`) non contengono avvisi o errori nell'ultima mezz'ora.
+- Gli hook locali completano subito.
+- La causa è dunque lato servizio o account; non è stata identificata più precisamente.
+- Un'unica chiamata del RankingAgent è andata in timeout (registrata in `agent_errors`, pesi di default).
+- Il rilassamento è scattato in 2 run (un oracle `UC03`, un refined `MS07_k2`).
+
+**Chiarimento (refined, 54 run).**
+
+- Rilevamento delle dimensioni omesse esatto in 54/54 (P/R/F1 micro = 1,00).
+- Numero di turni uguale a `k` in tutti i run.
+- Nessuna domanda nei controlli `k=0` (0/8).
+- `mapping_accuracy` 1,0 e use case uguale all'atteso in tutti i run.
+- La correzione v3 della capienza e la regola `Cb` del parser eliminano entrambe le cause di mancata rilevazione osservate in v2.
+
+**Accordo con l'oracle** (media sugli intenti [IC 95% bootstrap a cluster], `k≥1` aggregato):
+
+| Condizione | J5 | RBO (p=0,8, top-10) | J5 tie-aware |
+|---|---|---|---|
+| one_shot | 0,04 [0,00; 0,12] | 0,05 [0,00; 0,14] | 0,04 [0,00; 0,11] |
+| refined | 0,73 [0,61; 0,85] | 0,74 [0,64; 0,83] | 0,70 [0,56; 0,83] |
+| refined, k=0 | 0,86 [0,72; 0,97] | 0,84 [0,70; 0,95] | 0,82 [0,63; 0,97] |
+| oracle vs oracle | 0,74 [0,34; 1,00] | 0,76 [0,37; 0,99] | 0,74 [0,34; 1,00] |
+| Δ refined − one_shot | 0,70 [0,58; 0,84] | 0,72 [0,63; 0,83] | 0,67 [0,52; 0,83] |
+
+Il test di sign-flip esatto su 7 intenti dà p=0,016 per tutti e tre gli indici. Per singolo `k` gli intenti sono 5–7 e p varia tra 0,06 e 0,25.
+
+**Concordanza dei filtri** rispetto al riferimento a maggioranza stretta delle ripetizioni oracle:
+
+- refined: F1 tra 0,99 e 1,00 a ogni `k`; atomi inventati rari (0,17 per run a k=2, 0,05 a k=4).
+- one_shot: da 0,89 (k=1) a 0,00 (k=5).
+- Δ aggregato 0,38 [0,24; 0,52].
+- Auto-concordanza dell'oracle: F1 0,98.
+
+**Dimensione dei risultati.** One_shot restituisce mediane da 1.075 immobili (k=1) all'intero dataset (k=5), contro 446 dell'oracle; refined restituisce 144–446.
+
+**Latenza** (mediane):
+
+- Chiarimento: 17 s a k=0, poi 29, 36, 41, 52 e 97 s da k=1 a k=5.
+- Analisi: 74–104 s per refined, ~88 s per one_shot, 75 s per oracle.
+
+**Interpretazione e cautele.**
+
+- Con il chiarimento, la query rivista recupera i filtri dell'oracle e raggiunge un accordo con l'oracle sul top-5 paragonabile a quello tra due run dell'oracle stesso. Il divario residuo riflette quindi soprattutto la variabilità della pipeline; senza chiarimento, il top-5 non si sovrappone quasi mai.
+- L'oracle è un riferimento di query, non un giudizio di rilevanza.
+- L'utente simulato rivela esattamente i frammenti omessi: l'accordo refined-oracle è un limite superiore del recupero con utenti reali.
+- Il tetto di rumore è molto variabile tra intenti: `UC03` ha accordo 0 tra due run oracle, `UC04` e `UC05` 1,0.
+- Questi numeri non vanno combinati con quelli v1 o v2, ottenuti con versioni precedenti del codice e degli scenari.
 
 ## Limiti
 

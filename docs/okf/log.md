@@ -3,6 +3,10 @@
 ## 2026-11-17
 
 * **Dettagli del modello nel manoscritto**: rimossi da `paper/edbt-paper-template.tex` i riferimenti espliciti al modello, al backend Codex e al reasoning effort nella didascalia della demo e nel protocollo sperimentale. Conservata la misura della variabilità tra run; i metadati di esecuzione e la provenienza restano documentati nel registro di ricerca OKF e negli artefatti sperimentali. Nessuna configurazione runtime o risultato modificato.
+* **Benchmark v3 a tre condizioni, esecuzione parziale**:
+  * Run avviato alle 13:59 con `gpt-6-luna`, sospeso alle 15:20 su richiesta dell'utente dopo 113 run su 304, per un forte rallentamento del servizio Codex (chiamata minima 63–167 s; analisi fino a 1.111 s per run). Tempi per finestra documentati in `research/edbt-conversational-benchmark.md`.
+  * Esiti: rilevamento esatto 54/54; J5 contro l'oracle 0,73 per refined contro 0,04 per one_shot (tetto oracle-vs-oracle 0,74); Δ 0,70 [0,58; 0,84], sign-flip p=0,016 su 7 intenti; F1 dei filtri ≥0,99 per refined.
+  * Inseriti nel paper (tabella `tab:results`, figura `fig:perk`, abstract) come risultati preliminari. Aggiornati `project/evidence-boundaries.md` e `research/edbt-conversational-benchmark.md`.
 
 * **Screenshot della demo nel paper**: percorso guidato nursery (`MS02_k2`) eseguito dal vivo sull'app locale con `gpt-6-luna`. Due domande (`Cb`, `Ce`), revisione della richiesta riscritta, 144 immobili corrispondenti con top-10 sulla mappa. Figura `fig:screens` in `paper/` (`figures/screen-dialogue.png`, `screen-review.png`, `screen-results.jpg`); il paper compila a 4 pagine.
 

@@ -1,7 +1,8 @@
 %% Conversational MURENA -- EDBT 2027 demo paper, editable LaTeX source.
-%% Evaluation section describes the v3 three-condition protocol
-%% (refined / one_shot / oracle). Measured v3 results are NOT inserted:
-%% search for "RESULTS-PENDING" to find the blocks to fill.
+%% Evaluation reports the v3 three-condition benchmark (refined / one_shot /
+%% oracle): 113 of 304 planned runs completed on 2026-11-17 before the run
+%% was stopped for model-service latency (see docs/okf/research/
+%% edbt-conversational-benchmark.md). Figure data: data/per_k.csv.
 \documentclass[sigconf,review]{acmart}
 \geometry{twoside=true, head=13pt, a4paper, includeheadfoot,
  columnsep=2pc, top=57pt, bottom=73pt, inner=54pt, outer=54pt,
@@ -11,8 +12,6 @@
 \usetikzlibrary{arrows.meta,positioning,fit,backgrounds}
 \usepackage{pgfplots}
 \pgfplotsset{compat=1.18}
-%% Placeholder for pending v3 numbers (used only inside RESULTS-PENDING).
-\newcommand{\RP}{\textbf{??}}
 %% Keep only rows whose column #1 equals #2 (used by the per-k figure).
 \pgfplotsset{discard if not/.style 2 args={x filter/.append code={%
   \edef\tempa{\thisrow{#1}}\edef\tempb{#2}%
@@ -37,8 +36,11 @@ review and confirm a rewritten request. Query template, agents, SQL
 construction, and ranking are inherited unchanged. We describe a
 controlled-omission benchmark (8 intents, 0--5 omitted dimensions, 48
 scenarios) that compares refined, one-shot, and complete (oracle) queries
-under the same pipeline, and report robustness observations from an
-earlier 24-scenario suite. Two demonstration paths let attendees see how
+under the same pipeline. In a preliminary run (113 of 304 planned runs),
+clarification detected every omission, and refined queries reached
+top-5 agreement with the oracle of 0.73, close to the oracle's own
+run-to-run agreement (0.74), against 0.04 for one-shot queries. We also
+report robustness observations from an earlier 24-scenario suite. Two demonstration paths let attendees see how
 clarification changes the interpreted request and the resulting
 portfolio screening.
 \end{abstract}
@@ -244,7 +246,7 @@ clarification with the simulated user, the rewritten $\hat q$ is
 accepted without edits, and $\hat q$ (never $q^*$) is analysed; all 48
 scenarios, 3 repetitions. \emph{One-shot}: $q_0$ is analysed directly;
 40 scenarios with $k\ge1$, 3 repetitions. \emph{Oracle}: $q^*$ is
-analysed directly, 5 repetitions per intent. This yields 304 runs in a
+analysed directly, 5 repetitions per intent. The plan comprises 304 runs in a
 seeded interleaved order, all with the same code version, pipeline
 options (including MURENA's result relaxation, whose activation is
 logged), and the 89,200-property MURENA dataset. Run-to-run variability
@@ -280,38 +282,55 @@ are stratified by $k$ and not read as a causal effect of the count. At
 $k=0$, $q_0$ and $q^*$ differ only in wording, which bounds
 wording-induced variation.
 
-%% ===================== RESULTS-PENDING (v3) =====================
-%% Fill from backend/experiments/results/missingness_v3 (compare_conditions.py
-%% and the per-k CSV). Remove \iffalse/\fi once numbers are verified and
-%% documented in docs/okf/research/edbt-conversational-benchmark.md.
-%% Labels: tab:results, fig:perk. Data file: data/per_k.csv with columns
-%% k,cond,j5,j5_lo,j5_hi,rbo,rbo_lo,rbo_hi (cond in {one_shot,refined,
-%% oracle}; oracle rows hold the oracle-vs-oracle noise ceiling).
-\iffalse
-\paragraph{Results.} Table~\ref{tab:results} and Fig.~\ref{fig:perk}
-summarize the 304 runs. % RESULTS-PENDING: 3-5 sentences, no claims
-% beyond the measured values and CIs; report completion and errors.
+\paragraph{Execution.} The benchmark ran on 2026-11-17. After 113 of
+the 304 planned runs, latency of the model service rose sharply (a
+trivial call took 63--167\,s, analysis up to 1,111\,s per run), and the
+run was stopped; we report the 113 completed runs (54 refined, 43
+one-shot, 16 oracle) without re-running or selecting any. All completed
+without failure; one ranking-agent call timed out (default weights were
+used, and this is logged), and relaxation fired in 2 runs. Coverage is
+therefore uneven: each $(k,\text{condition})$ cell contains 5--7 of the
+8 intents, one intent has no oracle run, and the noise ceiling rests on
+the 5 intents with at least two oracle repetitions. The intervals below
+are correspondingly wide and the results are preliminary.
+
+\paragraph{Results.} Clarification was exact in all 54 refined runs:
+the detected missing dimensions equalled the omitted ones (micro
+P/R/$F_1$ = 1.00), the dialogue took exactly $k$ turns, no question was
+asked at $k=0$ (0/8 runs), and the regulatory use matched the intended
+one in every run. Table~\ref{tab:results} and Fig.~\ref{fig:perk} show
+the consequence for the analysis. One-shot queries lose filters as $k$
+grows (median result set 1,075 at $k=1$ up to the whole dataset at
+$k=5$, against 446 for the oracle) and their top-5 has almost no
+overlap with the oracle. Refined queries recover the oracle's filters
+(filter $F_1\ge0.99$ at every $k$) and reach top-5 agreement of 0.73,
+close to the agreement between two oracle runs (0.74), which shows that
+the residual gap is mostly pipeline variability, not lost information.
+Clarification costs 17--97\,s per dialogue (median, growing with $k$),
+on top of an analysis of 74--104\,s.
 
 \begin{table}[t]
-\caption{v3 benchmark ($k\ge1$ unless noted): mean [95\% cluster-bootstrap CI].}
+\caption{v3 benchmark, 113 completed runs, $k\ge1$ unless noted: mean
+over intents [95\% cluster-bootstrap CI]. $J_5$: top-5 Jaccard; RBO:
+extrapolated, $p=0.8$, over the top-10; both against the oracle.}
 \label{tab:results}
 \centering\scriptsize\setlength{\tabcolsep}{3pt}
-\begin{tabular}{@{}lccccc@{}}
+\begin{tabular}{@{}lccc@{}}
 \toprule
-Condition & $J_5$ & RBO & Filter $F_1$ & Turns & Latency (s) clar./anal.\\
+Condition & $J_5$ & RBO & Tie-aware $J_5$\\
 \midrule
-One-shot & \RP & \RP & \RP & -- & -- / \RP\\
-Refined & \RP & \RP & \RP & \RP & \RP / \RP\\
-Refined, $k=0$ & \RP & \RP & \RP & \RP & \RP / \RP\\
-Oracle vs.\ oracle & \RP & \RP & \RP & -- & -- / \RP\\
+One-shot & 0.04 [0.00, 0.12] & 0.05 [0.00, 0.14] & 0.04 [0.00, 0.11]\\
+Refined & 0.73 [0.61, 0.85] & 0.74 [0.64, 0.83] & 0.70 [0.56, 0.83]\\
+Refined, $k=0$ & 0.86 [0.72, 0.97] & 0.84 [0.70, 0.95] & 0.82 [0.63, 0.97]\\
+Oracle vs.\ oracle & 0.74 [0.34, 1.00] & 0.76 [0.37, 0.99] & 0.74 [0.34, 1.00]\\
 \midrule
-$\Delta$ refined$-$one-shot & \RP & \RP & \RP & & \\
-Sign-flip $p$ & \RP & \RP & \RP & & \\
+$\Delta$ refined$-$one-shot & 0.70 [0.58, 0.84] & 0.72 [0.63, 0.83] & 0.67 [0.52, 0.83]\\
+Sign-flip $p$ (7 intents) & 0.016 & 0.016 & 0.016\\
 \bottomrule
 \end{tabular}
 \\[2pt]
-Detection P/R/$F_1$: \RP; unnecessary-turn rate at $k=0$: \RP;
-tie-aware $J_5$: \RP; completion: \RP.
+Filter $F_1$ vs.\ majority oracle: refined 0.99--1.00 at every $k$;
+one-shot 0.89 ($k=1$) to 0.00 ($k=5$); $\Delta$ 0.38 [0.24, 0.52].
 \end{table}
 
 \begin{figure}[t]
@@ -331,22 +350,17 @@ tie-aware $J_5$: \RP; completion: \RP.
   y error plus expr=\thisrow{j5_hi}-\thisrow{j5},
   y error minus expr=\thisrow{j5}-\thisrow{j5_lo}] {data/per_k.csv};
 \addlegendentry{one-shot}
-\addplot+[dashed, mark=none, black]
-  table[x=k, y=j5, col sep=comma, discard if not={cond}{oracle}]
-  {data/per_k.csv};
+\addplot+[dashed, mark=none, black] coordinates {(-0.3,0.744) (5.3,0.744)};
 \addlegendentry{oracle vs.\ oracle}
 \end{axis}
 \end{tikzpicture}
 \caption{Top-5 agreement with the oracle per omission level (mean and
-95\% cluster-bootstrap CI over 8 intents). An RBO panel uses the
-\texttt{rbo}, \texttt{rbo\_lo}, \texttt{rbo\_hi} columns.}
+95\% cluster-bootstrap CI over the 5--7 intents available per level).}
 \Description{Line chart of top-5 Jaccard agreement with the oracle
 against the number of omitted dimensions, for refined and one-shot
 queries, with the oracle-vs-oracle noise ceiling as a dashed line.}
 \label{fig:perk}
 \end{figure}
-\fi
-%% =================== END RESULTS-PENDING (v3) ===================
 
 \paragraph{Earlier robustness suite.} A separate suite of 24 synthetic
 scenarios covers single omissions, ambiguous uses and locations,
