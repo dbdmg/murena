@@ -71,6 +71,15 @@ Historical `MS..` IDs and results remain historical; use a **new output
 directory** for this renamed revision. The paper's measured results still
 refer to the original nested 48-variant benchmark, not this catalog.
 
+## Historical nested catalogue used for re-runs
+
+`nested48_from_4a7c882.yaml` is the 48-variant nested runner file
+(`MS01_k0`–`MS08_k5`) exactly as it was at commit `4a7c882`
+(SHA-256 `8396ffc8f85eab79ff2a8d09035dbe60026d386d48cb80b15050dc8ae329b837`), i.e. the design the paper reports.
+It is kept so that this design can be re-run with other models after
+the catalogue was regenerated as S01–S08; it is not produced by the generator.
+The Claude Haiku series `results/missingness_v3_haiku` uses it.
+
 ## Files
 
 * `source_triplets.json` — original 24-case source, relocated byte-for-byte from `scenarios/scenario_triplets.json`. The generator selects the eight canonical intents from this file. The historical subset query texts are unchanged; its source checksum in the manifest was corrected after detecting a pre-existing mismatch; the other historical source cases are retained for provenance.
