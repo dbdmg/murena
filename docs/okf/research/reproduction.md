@@ -144,6 +144,27 @@ uv run --project backend python backend/experiments/compare_conditions.py \
 
 Il piano è di 304 job: refined 144, one_shot 120, oracle 40. `--dry-run` li elenca senza eseguirli. Il resume viene rifiutato se cambiano condizioni, ripetizioni, impostazioni SAGE o LLM, opzioni o hash del dataset. `compare_conditions.py` scrive `comparison.json`, `comparison_per_k.csv` e `comparison_operational.csv`. I file completi `runs/<run_id>.json` restano locali; `runs.jsonl` contiene i campi necessari all'analisi.
 
+**Dimensione degli artefatti.** I file completi `runs/<run_id>.json` salvano tutti gli immobili restituiti, e i run one_shot con molte dimensioni omesse restituiscono quasi l'intero dataset: un singolo file arriva a 430 MB. Al 2026-11-17 `missingness_v3/runs` occupa 6,7 GB (122 file), `missingness_v2/runs` 1,0 GB e `edbt_conversational/runs` 296 MB; tutte queste directory sono escluse da git. Per l'analisi basta `runs.jsonl`.
+
+**Latenza delle CLI LLM (prova del 2026-11-17, ~15:45).**
+
+- Prompt: estrazione JSON di requisiti da una richiesta nursery; 3 chiamate in sequenza e 6 in parallelo per ciascuna CLI.
+- Codex era misurato mentre il benchmark ripreso era in esecuzione.
+
+| CLI e modello | Media sequenziale | 6 in parallelo (totale) | Output valido |
+|---|---|---|---|
+| Claude Code CLI, `claude-haiku-5-5`, effort medium | 7,6 s | 9,5 s | 6/6 |
+| Antigravity CLI (`agy`), `gemini-4-hydrogen-medium` | 8,4 s | 15,4 s | 6/6 |
+| Grok Build CLI, `grok-4.7-build-fast`, effort medium | 10,7 s | 19,8 s | 6/6 |
+| Codex CLI, `gpt-6-luna`, effort low | 84,4 s | 185,3 s | 6/6 |
+
+Note sulla prova:
+
+- Haiku a volte racchiude il JSON in un blocco di codice e arricchisce i valori (per esempio `use` con dettagli aggiuntivi).
+- Il backend non ha ancora adattatori per queste tre CLI: supporta Anthropic e xAI solo via API key. Usarle richiede un provider sul modello di `codex_exec.py`.
+- Cambiare modello richiede una nuova serie completa: non si possono mescolare modelli nello stesso confronto.
+- Una chiamata minima Codex richiedeva 12 s a benchmark fermo (15:30) e 63–167 s durante il rallentamento.
+
 Per compilare il paper si usa Tectonic 0.17.0 (binario dalla release GitHub; su Windows non è disponibile via winget). I font Libertinus richiesti da `acmart` vanno resi disponibili localmente se il bundle di Tectonic non li trova.
 
 ## Controlli per confronti attendibili

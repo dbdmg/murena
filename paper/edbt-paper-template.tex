@@ -1,6 +1,6 @@
 %% Conversational MURENA -- EDBT 2027 demo paper, editable LaTeX source.
 %% Evaluation reports the three-condition benchmark (refined / one_shot /
-%% oracle): 113 of 304 planned runs completed on 2026-11-17 before the run
+%% oracle): 115 of 304 planned runs completed on 2026-11-17 (8 failed) before the run
 %% was stopped for model-service latency. Provenance is documented in
 %% docs/okf/research/edbt-conversational-benchmark.md. Figure data: data/per_k.csv.
 \documentclass[sigconf,review]{acmart}
@@ -36,9 +36,9 @@ review and confirm a rewritten request. Query template, agents, SQL
 construction, and ranking are inherited unchanged. We describe a
 controlled-omission benchmark (8 intents, 0--5 omitted dimensions, 48
 scenarios) that compares refined, one-shot, and complete (oracle) queries
-under the same pipeline. In a preliminary run (113 of 304 planned runs),
+under the same pipeline. In a preliminary run (115 of 304 planned runs completed),
 clarification detected every omission, and refined queries reached
-top-5 agreement with the oracle of 0.73, close to the oracle's own
+top-5 agreement with the oracle of 0.74, matching the oracle's own
 run-to-run agreement (0.74), against 0.04 for one-shot queries.
 A prepared demonstration scenario shows how
 clarification changes the interpreted request and the resulting
@@ -289,11 +289,14 @@ wording-induced variation.
 
 \paragraph{Execution.} The benchmark ran on 2026-11-17. After 113 of
 the 304 planned runs, latency of the model service rose sharply (a
-trivial call took 63--167\,s, analysis up to 1,111\,s per run), and the
-run was stopped; we report the 113 completed runs (54 refined, 43
-one-shot, 16 oracle) without re-running or selecting any. All completed
-without failure; one ranking-agent call timed out (default weights were
-used, and this is logged), and relaxation fired in 2 runs. Coverage is
+trivial call took 63--167\,s, analysis up to 1,111\,s per run). A
+resumed attempt added 10 runs, 8 of which (all refined) failed with
+model-call timeouts during clarification, and the run was stopped. Of
+the 123 executed runs we report all 115 that completed (54 refined, 44
+one-shot, 17 oracle), without re-running or selecting any; the 8
+failures are counted, not imputed. One ranking-agent call timed out
+(default weights were used, and this is logged), and relaxation fired
+in 2 runs. Coverage is
 therefore uneven: each $(k,\text{condition})$ cell contains 5--7 of the
 8 intents, one intent has no oracle run, and the noise ceiling rests on
 the 5 intents with at least two oracle repetitions. The intervals below
@@ -308,16 +311,18 @@ the consequence for the analysis. One-shot queries lose filters as $k$
 grows (median result set 1,075 at $k=1$ up to the whole dataset at
 $k=5$, against 446 for the oracle) and their top-5 has almost no
 overlap with the oracle. Refined queries recover the oracle's filters
-(filter $F_1\ge0.99$ at every $k$) and reach top-5 agreement of 0.73,
-close to the agreement between two oracle runs (0.74), which shows that
-the residual gap is mostly pipeline variability, not lost information.
+(filter $F_1\ge0.99$ at every $k$) and reach top-5 agreement of 0.74,
+equal to the agreement between two oracle runs (0.74): the residual gap
+is mostly pipeline variability, not lost information.
 Clarification costs 17--97\,s per dialogue (median, growing with $k$),
 on top of an analysis of 74--104\,s.
 
 \begin{table}[t]
-\caption{Benchmark, 113 completed runs, $k\ge1$ unless noted: mean
-over intents [95\% cluster-bootstrap CI]. $J_5$: top-5 Jaccard; RBO:
-extrapolated, $p=0.8$, over the top-10; both against the oracle.}
+\caption{Benchmark, 115 completed runs, $k\ge1$ unless noted: mean
+over the 7 intents with both conditions (per intent, levels with both
+conditions are averaged) [95\% cluster-bootstrap CI]. $J_5$: top-5
+Jaccard; RBO: extrapolated, $p=0.8$, over the top-10; both against the
+oracle.}
 \label{tab:results}
 \centering\scriptsize\setlength{\tabcolsep}{3pt}
 \begin{tabular}{@{}lccc@{}}
@@ -325,17 +330,18 @@ extrapolated, $p=0.8$, over the top-10; both against the oracle.}
 Condition & $J_5$ & RBO & Tie-aware $J_5$\\
 \midrule
 One-shot & 0.04 [0.00, 0.12] & 0.05 [0.00, 0.14] & 0.04 [0.00, 0.11]\\
-Refined & 0.73 [0.61, 0.85] & 0.74 [0.64, 0.83] & 0.70 [0.56, 0.83]\\
+Refined & 0.74 [0.62, 0.86] & 0.78 [0.67, 0.88] & 0.71 [0.57, 0.85]\\
 Refined, $k=0$ & 0.86 [0.72, 0.97] & 0.84 [0.70, 0.95] & 0.82 [0.63, 0.97]\\
-Oracle vs.\ oracle & 0.74 [0.34, 1.00] & 0.76 [0.37, 0.99] & 0.74 [0.34, 1.00]\\
+Oracle vs.\ oracle & 0.74 [0.34, 1.00] & 0.75 [0.37, 0.97] & 0.74 [0.34, 1.00]\\
 \midrule
-$\Delta$ refined$-$one-shot & 0.70 [0.58, 0.84] & 0.72 [0.63, 0.83] & 0.67 [0.52, 0.83]\\
+$\Delta$ refined$-$one-shot & 0.70 [0.58, 0.83] & 0.72 [0.63, 0.83] & 0.67 [0.52, 0.83]\\
 Sign-flip $p$ (7 intents) & 0.016 & 0.016 & 0.016\\
 \bottomrule
 \end{tabular}
 \\[2pt]
-Filter $F_1$ vs.\ majority oracle: refined 0.99--1.00 at every $k$;
-one-shot 0.89 ($k=1$) to 0.00 ($k=5$); $\Delta$ 0.38 [0.24, 0.52].
+Filter $F_1$ vs.\ majority oracle: refined 1.00 [0.99, 1.00], one-shot
+0.56 [0.43, 0.70] (0.89 at $k=1$ to 0.00 at $k=5$); $\Delta$ 0.44
+[0.30, 0.56].
 \end{table}
 
 \begin{figure}[t]
