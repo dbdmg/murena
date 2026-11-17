@@ -82,6 +82,33 @@ Nei 24 scenari eseguibili attuali `expected_ids` non è valorizzato: per questo 
 
 Non sono implementati nel runner il **Requirement F1** su vincoli atomici, il **Top-5 Jaccard** tra condizioni, il punteggio di **use-case matching** rispetto alle aspettative per configurazione, il confronto delle query one-shot/oracle, né il controllo comparativo dei filtri SQL. Sono obiettivi del protocollo o metadati presenti negli scenari, non metriche già calcolate. La CLI non produce misure comparative di turn count o latency tra configurazioni.
 
+## Risultati osservati: run conversational del 2026-11-16
+
+Gli artefatti sono in `backend/experiments/results/edbt_conversational/` (`manifest.json`, `runs.jsonl`, `summary.csv`, `runs/*.json`): modello `gpt-6-luna` via `codex_exec`, dataset `full`, 3 ripetizioni per scenario, `map_limit=1000`, `llm_limit=10`, concorrenza 12. I valori sotto sono stati ricalcolati il 2026-11-17 con script ad hoc non versionati sui **72 run validi** (24 scenari × 3). Per UC08 sono considerati solo i run della definizione corrente (SHA `888d0f…`); sono esclusi i run su versioni precedenti dello scenario, incluso un errore.
+
+| Metrica | Valore |
+|---|---|
+| Run completati | 72/72 |
+| Rilevamento delle dimensioni inizialmente mancanti (micro) | P 1,00 · R 0,90 · F1 0,95 |
+| Rilevamento esatto | 64/72 |
+| Accuratezza dello stato finale | 1,00 |
+| Turni di chiarimento | media 1,01, massimo 2 |
+| `matched_use_cases` del RegulatoryAgent uguale all'atteso per la configurazione conversational | 65/72 |
+| Requisiti normativi vincolanti prodotti dal RegulatoryAgent | 0/72 |
+| Durata end-to-end | mediana 108,6 s (69,8–169,3 s) |
+| Run con zero risultati | 0 (mediana 118 candidati) |
+| SQL finale identica nelle 3 ripetizioni | 2/24 scenari |
+| Jaccard medio dei top-5 tra ripetizioni | 0,58 (top-10: 0,64) |
+
+Errori osservati:
+
+- **Ambiguità d'uso non rilevate** (UC20, UC21, 0/6 run esatti): SAGE tratta l'uso come specificato e chiede solo la dimensione omessa. In UC21 il RegulatoryAgent associa tutti e cinque gli usi per l'infanzia. In UC20 l'uso RSA viene comunque associato, presumibilmente per la risposta sulla capienza ("residenti"), non per una disambiguazione.
+- **UC19** (multi-turno): il secondo turno su `Cb` avviene in 1 run su 3.
+- **UC22** (fuori catalogo): in 3/3 run il RegulatoryAgent associa erroneamente la residenza universitaria.
+- **UC23**: 1 run su 3 non associa la residenza universitaria. L'applicabilità del contributo CDP/PNRR non è stata verificata separatamente.
+
+Questi risultati riguardano solo la condizione conversational. Non permettono di stimare il beneficio del chiarimento finché one-shot e oracle non vengono eseguiti con le stesse impostazioni. La bassa stabilità tra ripetizioni va riportata insieme a qualsiasi confronto. Il fenomeno delle ambiguità non riconosciute è coerente con quanto riportato in letteratura (vedi [stato dell'arte](related-work.md)).
+
 ## Limiti
 
 Gli scenari sono sintetici e costruiti per coprire dimensioni, omissioni, ambiguità e casi normativi selezionati. Non costituiscono una user study, non rappresentano la distribuzione di richieste reali e non forniscono risultati sperimentali finché le esecuzioni non vengono effettuate e analizzate. Le risposte simulate e gli oracle riflettono scelte di costruzione del benchmark. La copertura normativa segue il catalogo fornito e non certifica autorizzazioni o aggiornamento giuridico. Il protocollo EDBT va quindi mantenuto distinto dagli esperimenti, dai dataset e dai risultati riportati nel paper originale.
