@@ -144,6 +144,30 @@ def load_scenarios(path: Path) -> list[dict[str, Any]]:
         if path.suffix.lower() in {".yaml", ".yml"}:
             raise ValueError(f"Cannot parse YAML scenario file {path}: {exc}") from exc
         raise
+    disabled_ids = set()
+    if isinstance(raw, dict) and 'scenarios' in raw:
+        groups = raw['scenarios']
+        if not isinstance(groups, list) or not groups:
+            raise ValueError("'scenarios' must be a non-empty list of base scenarios.")
+        raw = []
+        group_ids = set()
+        for group in groups:
+            if not isinstance(group, dict) or not isinstance(group.get('id'), str) or not group['id'].strip():
+                raise ValueError("Each base scenario needs a non-empty id.")
+            if group['id'] in group_ids:
+                raise ValueError(f"Duplicate base scenario id: {group['id']}")
+            group_ids.add(group['id'])
+            if type(group.get('enabled')) is not bool:
+                raise ValueError(f"Base scenario {group['id']} needs boolean enabled.")
+            variants = group.get('variants')
+            if not isinstance(variants, list) or not variants:
+                raise ValueError(f"Base scenario {group['id']} needs non-empty variants.")
+            for variant in variants:
+                if not isinstance(variant, dict) or variant.get('base_case_id') != group['id']:
+                    raise ValueError(f"Variant base_case_id must match {group['id']}.")
+                if not group['enabled']:
+                    disabled_ids.add(variant.get('id'))
+                raw.append(variant)
     if not isinstance(raw, list) or not raw:
         raise ValueError("Scenario file must contain a non-empty JSON array.")
 
@@ -151,6 +175,8 @@ def load_scenarios(path: Path) -> list[dict[str, Any]]:
     for index, scenario in enumerate(raw, start=1):
         if not isinstance(scenario, dict):
             raise ValueError(f"Scenario #{index} must be a JSON object.")
+        if "enabled" in scenario:
+            raise ValueError("enabled is allowed only on a base scenario, not on variants.")
         scenario_id = scenario.get("id")
         initial_query = scenario.get("initial_query")
         if not isinstance(scenario_id, str) or not scenario_id.strip():
@@ -222,7 +248,7 @@ def load_scenarios(path: Path) -> list[dict[str, Any]]:
         unknown = set(options) - allowed_options
         if unknown:
             raise ValueError(f"Scenario '{scenario_id}' has unknown options: {', '.join(sorted(unknown))}")
-    return raw
+    return [s for s in raw if s["id"] not in disabled_ids]
 
 
 def scenario_digest(scenario: dict[str, Any]) -> str:
@@ -908,7 +934,7 @@ def select_jobs(
         key = job_key(job)
         reason = None
         if rerun:
-            if job["unit_id"] not in rerun and job["scenario_id"] not in rerun:
+            if job["unit_id"] not in rerun and job["scenario_id"] not in rerun and job["base_case_id"] not in rerun:
                 reason = "cached (outside selected scenarios)"
         elif args.retry_failed:
             if latest_status.get(key[:4]) != "error":
@@ -949,6 +975,7 @@ def dry_run(args: argparse.Namespace) -> int:
             f"sha={job['input_sha256'][:10]} | {query[:70]}"
         )
     print(f"\nDry run: model={model} seed={args.seed} conditions={list(dict.fromkeys(args.condition or ['refined']))}")
+    print(f"  enabled bases={len({s.get('base_case_id') or s['id'] for s in scenarios})} variants={len(scenarios)}")
     for condition, (to_run, skipped) in counts.items():
         print(f"  {condition:<8} planned={to_run + skipped:>4} to_run={to_run:>4} skipped={skipped:>4}")
     print(f"  total    planned={len(plan):>4} to_run={sum(1 for _, r in plan if r is None):>4}")
@@ -1042,6 +1069,9 @@ async def run(args: argparse.Namespace) -> int:
         "oracle_repeat": oracle_repeat,
         "scenarios_sha256": scenarios_sha256,
         "scenario_hash_history": [scenarios_sha256],
+        "enabled_scenario_ids": sorted({s.get("base_case_id") or s["id"] for s in scenarios}),
+        "enabled_variant_ids": [s["id"] for s in scenarios],
+        "enabled_scenario_count": len({s.get("base_case_id") or s["id"] for s in scenarios}),
         "sage": sage_provenance(settings),
         "llm": llm_provenance(settings),
         "git": git,

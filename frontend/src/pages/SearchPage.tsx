@@ -335,7 +335,6 @@ export const SearchPage: React.FC = () => {
                 {OFFLINE_DEMO && <DemoPanel
                     enabled={demoMode}
                     busy={busy}
-                    inConversation={clarificationMessages.length > 0}
                     onSelectScenario={openDemoScenario}
                 />}
 

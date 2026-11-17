@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Construct the v3 controlled-missingness family (8 intents x k=0..5).
+"""Construct the v3 controlled-missingness family (8 intents x all 32 omission masks).
 
-Derived from ``scenarios_v2/generate_missingness.py``. The only semantic change
-is the *capacity split*: in the source benchmark the user capacity
+Derived from ``scenarios_v2/generate_missingness.py``. The capacity split is
+preserved in the exhaustive-combination revision: in the source benchmark the user capacity
 ("for 18 children", "with 60 beds", ...) lives inside the intended-use
 fragment ``D``. When ``Cb`` was omitted but ``D`` was present, the capacity was
 still in the query, so SAGE (correctly) treated ``Cb`` as partially specified
@@ -19,6 +19,9 @@ the simulated answers and the clarifications all use derived fragments. The
 source answers and the transform are stored in the triplets/manifest. The
 oracle ``q*`` keeps the original human-authored wording (same meaning).
 
+All 32 subsets of the five optional dimensions are generated per intent.
+All eight base scenarios are enabled by default; selection affects all masks.
+Existing base-scenario enabled flags in the output YAML survive regeneration.
 No LLM, ranking pipeline, or database is invoked in this generator.
 
 Usage (from the repository root):
@@ -31,6 +34,7 @@ from __future__ import annotations
 import argparse
 from collections import Counter
 from copy import deepcopy
+from itertools import combinations
 import hashlib
 import json
 from pathlib import Path
@@ -40,18 +44,6 @@ import yaml
 
 DIMS = ('I', 'D', 'L', 'Cb', 'Ce', 'Cp')
 OPTIONAL_DIMS = ('D', 'L', 'Cb', 'Ce', 'Cp')
-
-# Same pre-registered nested omission orders as v2 (unchanged, for comparability).
-ORDERS = [
-    ('D', 'Cb', 'Ce', 'Cp', 'L'),
-    ('Cb', 'Ce', 'Cp', 'L', 'D'),
-    ('Ce', 'Cp', 'L', 'D', 'Cb'),
-    ('Cp', 'L', 'D', 'Cb', 'Ce'),
-    ('L', 'D', 'Cb', 'Ce', 'Cp'),
-    ('D', 'Ce', 'L', 'Cp', 'Cb'),
-    ('Cb', 'L', 'Ce', 'D', 'Cp'),
-    ('L', 'Cp', 'Cb', 'D', 'Ce'),
-]
 
 # Pre-registered capacity phrases (verbatim substrings of the source D answers)
 # and the capacity value written into Cb'.
@@ -126,10 +118,22 @@ def make(source: Path, output: Path) -> None:
     if {b['case_id'] for b in bases} != set(CAPACITY):
         raise ValueError('CAPACITY map does not match the source base intents')
 
+    # Enable/disable only complete base scenarios, never individual masks.
+    selection_file = output / 'conversational_scenarios.yaml'
+    selection = {}
+    if selection_file.exists():
+        previous = yaml.safe_load(selection_file.read_text(encoding='utf-8'))
+        if isinstance(previous, dict):
+            for group in previous['scenarios']:
+                if type(group['enabled']) is not bool:
+                    raise ValueError(f"Invalid enabled flag for {group['id']}")
+                selection[group['id']] = group['enabled']
+
     scenarios, runner, transforms = [], [], {}
-    for index, (base, order) in enumerate(zip(bases, ORDERS), 1):
-        if set(order) != set(OPTIONAL_DIMS) or len(set(order)) != 5:
-            raise ValueError('Invalid missingness order')
+    for index, base in enumerate(bases, 1):
+        scenario_id = f'S{index:02d}'
+        enabled = selection.get(scenario_id, True)
+        triplet_variants, runner_variants = [], []
         source_answers = base['conversational']['simulated_user_answers_by_dimension']
         if set(source_answers) != set(DIMS):
             raise ValueError(f'Missing source answers: {base["case_id"]}')
@@ -149,20 +153,23 @@ def make(source: Path, output: Path) -> None:
         if any(expected_final[d] != 'SPECIFIED' for d in DIMS):
             raise ValueError(f'Base oracle is not fully specified: {base["case_id"]}')
 
-        for k in range(0, 6):
-            missing = list(order[:k])
+        masks = [mask for k in range(6) for mask in combinations(OPTIONAL_DIMS, k)]
+        for mask in masks:
+            k = len(mask)
+            missing = list(mask)
             present = [d for d in DIMS if d not in missing]
             initial_query = query_from_answers(answers, set(missing))
             status = {d: ('UNCONFIRMED_ABSENT' if d in missing else 'SPECIFIED') for d in DIMS}
-            case_id = f'MS{index:02d}_k{k}'
+            case_id = f'{scenario_id}_k{k}' + ('_' + '_'.join(mask) if mask else '')
             expected_matches = {
                 'one_shot': [] if 'D' in missing else oracle_matches,
                 'refined': oracle_matches,
                 'oracle': oracle_matches,
             }
-            scenarios.append({
+            triplet_variants.append({
                 'case_id': case_id,
-                'base_case_id': base['case_id'],
+                'base_case_id': scenario_id,
+                'source_case_id': base['case_id'],
                 'category': 'controlled_missingness' if k else 'full_input_control',
                 'missing_count': k,
                 'missing_dimensions': missing,
@@ -189,14 +196,15 @@ def make(source: Path, output: Path) -> None:
                 'oracle': {'query': reference_query},
                 'capacity_transform': deepcopy(transform),
             })
-            runner.append({
+            runner_variants.append({
                 'id': case_id,
                 'name': (
                     f'{k} omitted dimensions; intended use: {base["regulatory_use_case"]}'
                     if k else f'Full-input control (k=0); intended use: {base["regulatory_use_case"]}'
                 ),
                 'tags': ['edbt', 'controlled_missingness_v3', f'missing_{k}', base['case_id']],
-                'base_case_id': base['case_id'],
+                'base_case_id': scenario_id,
+                'source_case_id': base['case_id'],
                 'missing_count': k,
                 'initial_query': initial_query,
                 'one_shot_query': initial_query,
@@ -207,35 +215,46 @@ def make(source: Path, output: Path) -> None:
                 'repeats': 1,
             })
 
-    assert len(scenarios) == 48 and len(runner) == 48
-    assert Counter(x['missing_count'] for x in scenarios) == Counter({k: 8 for k in range(0, 6)})
+        scenarios.append({'id': scenario_id, 'enabled': enabled, 'variants': triplet_variants})
+        runner.append({'id': scenario_id, 'enabled': enabled, 'variants': runner_variants})
+
+    variants = [v for group in scenarios for v in group['variants']]
+    assert len(scenarios) == 8 and len(variants) == 256
+    assert Counter(x['missing_count'] for x in variants) == Counter({0: 8, 1: 40, 2: 80, 3: 80, 4: 40, 5: 8})
     output.mkdir(parents=True, exist_ok=True)
     (output / 'scenario_triplets.json').write_text(
-        json.dumps(scenarios, indent=2, ensure_ascii=False) + '\n', encoding='utf-8')
+        json.dumps({'scenarios': scenarios}, indent=2, ensure_ascii=False) + '\n', encoding='utf-8')
     (output / 'conversational_scenarios.yaml').write_text(
-        '# v3 controlled missingness (capacity moved from D to Cb); 40 k>=1 + 8 k=0 controls.\n'
-        '# Use with benchmark_cli.py --condition refined|one_shot|oracle.\n'
-        + yaml.safe_dump(runner, allow_unicode=True, sort_keys=False, width=105),
+        '# Enable/disable a complete scenario S01..S08; all its masks follow.\n'
+        '# Regenerate after editing to mirror selection into scenario_triplets.json.\n'
+        + yaml.safe_dump({'scenarios': runner}, allow_unicode=True, sort_keys=False, width=105),
         encoding='utf-8',
     )
     manifest = {
         'family': 'scenarios_v3',
         'generation_method': (
-            'deterministic nested masking of five optional criteria; I always present; '
+            'exhaustive subsets of five optional criteria; I always present; '
             'capacity moved from D to Cb before masking'
         ),
         'source_triplets_sha256': hashlib.sha256(raw_bytes).hexdigest(),
         'original_base_cases': [x['case_id'] for x in bases],
         'dimensions': DIMS,
         'varied_dimensions': OPTIONAL_DIMS,
-        'orders_by_base_case': {x['case_id']: order for x, order in zip(bases, ORDERS)},
+        'catalog_revision': 'all_combinations_base_enabled_v2',
+        'selection_source': 'conversational_scenarios.yaml; flags preserved on regeneration',
+        'default_selection': 'all eight base scenarios enabled; selection applies to all masks',
+        'source_by_scenario': {f'S{i:02d}': x['case_id'] for i, x in enumerate(bases, 1)},
         'capacity_map': CAPACITY,
         'cb_template': CB_TEMPLATE,
         'capacity_regex_forbidden_in_derived_D': CAPACITY_REGEX.pattern,
         'capacity_transform_by_base_case': transforms,
-        'main_scenarios': 40,
+        'main_scenarios': 248,
         'control_scenarios': 8,
-        'distribution': {str(k): 8 for k in range(0, 6)},
+        'distribution': {str(k): n for k, n in Counter(x['missing_count'] for x in variants).items()},
+        'enabled_scenarios': sum(x['enabled'] for x in scenarios),
+        'total_variants': len(variants),
+        'enabled_variants': sum(len(g['variants']) for g in scenarios if g['enabled']),
+        'enabled_distribution': {str(k): n for k, n in sorted(Counter(v['missing_count'] for g in scenarios if g['enabled'] for v in g['variants']).items())},
         'oracle_query_policy': 'source q* wording unchanged (capacity inside the use phrase; same meaning)',
         'k0_initial_query_policy': 'concatenation of all six derived fragments',
         'caveat': (
@@ -245,7 +264,7 @@ def make(source: Path, output: Path) -> None:
     }
     (output / 'generation_manifest.json').write_text(
         json.dumps(manifest, indent=2, ensure_ascii=False) + '\n', encoding='utf-8')
-    print(f'Generated {len(scenarios)} scenarios (40 k>=1 + 8 k=0 controls) at {output}')
+    print(f"Generated {len(scenarios)} base scenarios / {len(variants)} variants ({sum(x['enabled'] for x in scenarios)} bases enabled) at {output}")
 
 
 if __name__ == '__main__':

@@ -8,6 +8,12 @@ Demo-paper draft for EDBT 2027 (acmart `sigconf`). The paper keeps MURENA's six-
 - The paper reports **preliminary results from 115 completed of 123 executed runs (304 planned)** (54 refined, 44 one-shot, 17 oracle; 8 refined runs failed with model-call timeouts in a resumed attempt), stopped because of model-service latency. Aggregates use the paired intent means of `comparison_per_k.csv`. Coverage is uneven; the table and per-level figure are compiled from the imported benchmark outputs. Provenance and limitations are recorded in `docs/okf/research/edbt-conversational-benchmark.md`.
 - Section 4 presents one prepared nursery-conversion demonstration (`MS02_k2`) with a predefined request and answers, demonstrated by the presenter. It does not promise a separate open-ended audience session. The screenshots of the recorded backend session are included as `figures/screen-dialogue.png`, `figures/screen-review.png`, and `figures/screen-results.jpg`; these property results are not produced by the offline frontend simulator.
 
+The current generator also prepares all 32 omission subsets per intent (256
+variants), grouped as S01–S08 with one `enabled` flag per base scenario.
+All eight bases are initially enabled; selection applies to all 32 variants
+and the oracle of each base. The expanded catalog has not been evaluated; it does not replace
+the protocol or results reported above.
+
 ## Build
 
 The architecture figure is `figures/architecture.tex` (TikZ). Build in a copy of this directory, not in place:

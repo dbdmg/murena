@@ -1,6 +1,6 @@
 # Controlled missingness benchmark v3 — EDBT MURENA
 
-v3 is the `scenarios_v2` family (8 fully specified reference intents × nested omission of `D, L, Cb, Ce, Cp`, `I` always present) with **one generator fix**: the user capacity is moved from the intended-use fragment `D` to the building-requirements fragment `Cb`. The omission orders, the source intents and the oracle queries are unchanged. The obsolete `scenarios/` and `scenarios_v2/` directories have been removed; their definitions remain in Git history (commit `411b003`). Historical result directories remain untouched.
+Originally, v3 was the `scenarios_v2` family (8 fully specified reference intents × nested omission of `D, L, Cb, Ce, Cp`, `I` always present) with **one generator fix**: the user capacity is moved from the intended-use fragment `D` to the building-requirements fragment `Cb`. The omission orders, the source intents and the oracle queries are unchanged. The obsolete `scenarios/` and `scenarios_v2/` directories have been removed; their definitions remain in Git history (commit `411b003`). The historical definition remains in Git; the current catalog revision is described below.
 
 ## What changed and why
 
@@ -27,20 +27,68 @@ v3 makes every omitted dimension genuinely absent from `q0`:
 * The oracle `q*` keeps the source wording (capacity inside the use phrase): same meaning, different surface form from the refined/one-shot inputs.
 * k=0 controls are now part of the runner file. Their `q0` is the concatenation of all six derived fragments (same construction as k≥1); `expected_initial_missing` is empty.
 
+## Exhaustive combinations and base-scenario selection
+
+The eight scenarios are named **S01–S08**. Each contains all 32 subsets of
+`D,L,Cb,Ce,Cp`, with `I` always present: 256 variants in total.
+`enabled` exists **only on the base scenario**, never on individual variants.
+This revision is `all_combinations_base_enabled_v2`; no experiment on this
+expanded catalog has been executed.
+
+Edit `conversational_scenarios.yaml`:
+
+```yaml
+scenarios:
+- id: S01
+  enabled: true
+  variants:
+    # generated variants, e.g. S01_k0, S01_k1_D, S01_k2_D_L
+- id: S07
+  enabled: false
+  variants:
+    # generated variants
+```
+
+The example abbreviates the generated variants. All eight scenarios are
+initially enabled. Disable a base scenario to exclude **all** its variants
+from refined and one-shot, as well as its oracle unit. For each enabled base,
+refined ×3 + one-shot ×3 + oracle ×5 gives **194 jobs** (32×3 + 31×3 + 5).
+All eight give **1,552 jobs**; seven give 1,358. There is no selection by mask.
+`--rerun-scenario S01` selects all jobs of that base during resume, but never
+reactivates a disabled base. Invalid boolean flags or variant-level flags
+are rejected. Legacy flat input lists without flags remain supported.
+
+The YAML is the editable selection source. Regenerate to mirror the base
+flags into the grouped `scenario_triplets.json` used by the frontend;
+existing base flags survive regeneration. Restart Vite or rebuild after
+catalog changes. The frontend lists variants only of enabled base scenarios.
+The manifest records active base IDs and variant IDs. Source provenance is
+kept in `source_case_id` and the generation manifest's `source_by_scenario`.
+
+Variant IDs are unambiguous: `S01_k0`, `S01_k1_D`, `S01_k1_L`,
+`S01_k2_D_L`, etc., in canonical dimension order `D,L,Cb,Ce,Cp`.
+Historical `MS..` IDs and results remain historical; use a **new output
+directory** for this renamed revision. The paper's measured results still
+refer to the original nested 48-variant benchmark, not this catalog.
+
 ## Files
 
-* `source_triplets.json` — original 24-case source, relocated byte-for-byte from `scenarios/scenario_triplets.json`. The generator selects the eight canonical intents from this file. All generated benchmark inputs are unchanged; its source checksum in the manifest was corrected after detecting a pre-existing mismatch; the other historical source cases are retained for provenance.
+* `source_triplets.json` — original 24-case source, relocated byte-for-byte from `scenarios/scenario_triplets.json`. The generator selects the eight canonical intents from this file. The historical subset query texts are unchanged; its source checksum in the manifest was corrected after detecting a pre-existing mismatch; the other historical source cases are retained for provenance.
 
-* `conversational_scenarios.yaml` — 48 runner entries (40 k≥1 + 8 k=0). Each entry has `base_case_id`, `missing_count`, `initial_query`, `one_shot_query` (= `q0`), `oracle_query` (= `q*`), `expected_initial_missing`, `clarifications` (derived), `expected_mapping`.
-* `scenario_triplets.json` — the same 48 cases with one-shot / conversational / oracle fields, source answers, capacity transform and legal record.
+* `conversational_scenarios.yaml` — eight base scenarios, each with `enabled` and 32 generated `variants` (248 k≥1 + 8 k=0 overall). Each entry has `base_case_id`, `missing_count`, `initial_query`, `one_shot_query` (= `q0`), `oracle_query` (= `q*`), `expected_initial_missing`, `clarifications` (derived), `expected_mapping`.
+* `scenario_triplets.json` — the same eight groups and 256 variants, with mirrored base-level `enabled` flags with one-shot / conversational / oracle fields, source answers, capacity transform and legal record.
 * `generation_manifest.json` — source hash, omission orders, `CAPACITY` map, `Cb'` template, per-intent transform.
-* `generate_missingness.py` / `validate_missingness.py` — deterministic generator and static validator (no model calls). The validator checks counts, nesting, preserved derived fragments, that `D'` matches no `\b(\d+|four)\s+(children|guests|residents|beds)\b`, that `D'` loses exactly the capacity words, that `Cb'` carries the capacity, and YAML/triplet consistency.
+* `generate_missingness.py` / `validate_missingness.py` — deterministic generator and static validator (no model calls). The validator checks counts, all omission subsets, enabled-flag consistency, preserved derived fragments, that `D'` matches no `\b(\d+|four)\s+(children|guests|residents|beds)\b`, that `D'` loses exactly the capacity words, that `Cb'` carries the capacity, and YAML/triplet consistency.
 
 | k | Scenarios |
 | ---: | ---: |
 | 0 (controls) | 8 |
-| 1–5 | 8 each |
-| **Total** | **48** |
+| 1 | 40 |
+| 2 | 80 |
+| 3 | 80 |
+| 4 | 40 |
+| 5 | 8 |
+| **Total** | **256** |
 
 ## Run from the repository root
 
@@ -53,16 +101,16 @@ uv run python backend/experiments/data/scenarios_v3/validate_missingness.py \
   --catalog backend/docs/knowledge/normativa/normativa.json
 ```
 
-Three-condition run (refined ×3, one-shot ×3, oracle ×5 per base intent = 144 + 120 + 40 = 304 jobs, interleaved in a seeded order); check the plan first with `--dry-run`:
+Three-condition run of all eight enabled base scenarios (refined ×3, one-shot ×3, oracle ×5 per intent = 768 + 744 + 40 = 1,552 jobs, interleaved in a seeded order); check the plan first with `--dry-run`:
 
 ```bash
 uv run python backend/experiments/benchmark_cli.py \
   --scenarios backend/experiments/data/scenarios_v3/conversational_scenarios.yaml \
-  --output backend/experiments/results/missingness_v3 \
+  --output backend/experiments/results/missingness_combinations \
   --condition refined --condition one_shot --condition oracle \
   --repeat 3 --oracle-repeat 5 --seed 13 --concurrency 4
 uv run python backend/experiments/compare_conditions.py \
-  --results backend/experiments/results/missingness_v3
+  --results backend/experiments/results/missingness_combinations
 ```
 
 The generated files were produced and validated on 2026-11-17. No experiment, SQL query, ranker or legal check was executed to produce them.

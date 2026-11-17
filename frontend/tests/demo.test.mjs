@@ -19,16 +19,25 @@ const backendUrl = await moduleUrl('../src/demo/backend.ts', {
 });
 const { demoAdapter, selectDemoScenario, loadDemoConversation } = await import(backendUrl);
 const client = axios.create({ adapter: demoAdapter });
-const scenarios = JSON.parse(await readFile(new URL('../../backend/experiments/data/scenarios_v3/scenario_triplets.json', import.meta.url)));
+const catalog = JSON.parse(await readFile(new URL('../../backend/experiments/data/scenarios_v3/scenario_triplets.json', import.meta.url)));
+const scenarios = catalog.scenarios.flatMap(group => group.variants);
 
 test('scenario contract accepts v3 and rejects malformed or duplicate records', () => {
-    assert.equal(parseDemoScenarios(scenarios).length, 48);
+    assert.equal(scenarios.length, 256);
+    assert.equal(parseDemoScenarios(catalog).length, 256);
+    const selected = { scenarios: catalog.scenarios.map(g => ({ ...g, enabled: g.id === 'S01' })) };
+    assert.equal(parseDemoScenarios(selected).length, 32);
+    assert.ok(parseDemoScenarios(selected).every(s => s.case_id.startsWith('S01_')));
+    assert.deepEqual(parseDemoScenarios({ scenarios: catalog.scenarios.map(g => ({ ...g, enabled: false })) }), []);
+    assert.throws(() => parseDemoScenarios({ scenarios: [{ ...catalog.scenarios[0], enabled: 'false' }] }));
+    assert.throws(() => parseDemoScenarios([{ ...scenarios[0], enabled: true }]));
+    assert.equal(parseDemoScenarios([scenarios[0]]).length, 1);
     for (const invalid of [null, [], {}, [scenarios[0], scenarios[0]], [{ ...scenarios[0], oracle: {} }], [{ ...scenarios[0], missing_dimensions: ['unknown'] }]]) {
         assert.throws(() => parseDemoScenarios(invalid));
     }
 });
 
-test('all 48 scripted conversations reach review and local completion', async () => {
+test('all 256 scripted conversations reach review and local completion', async () => {
     for (const scenario of scenarios) {
         selectDemoScenario(scenario);
         let { data } = await client.post('/analysis', { query: scenario.conversational.initial_query });
@@ -57,7 +66,7 @@ test('oracle skips scripted omissions, unknown endpoints fail without network fa
     await assert.rejects(client.post('/auth/login', { username: 'demo' }), /Unavailable in offline demo/);
 });
 
-test('scenario selection preloads every turn and a confirmable review for all 48 cases', async () => {
+test('scenario selection preloads every turn and a confirmable review for all 256 cases', async () => {
     for (const scenario of scenarios) {
         const loaded = loadDemoConversation(scenario);
         assert.equal(loaded.messages.length, 1 + 2 * scenario.missing_dimensions.length);

@@ -249,11 +249,36 @@ class GeneratorTests(unittest.TestCase):
             self.gen.split_capacity("UC01_micro_nursery_missing_use", twice)
 
     def test_generated_files_have_no_capacity_in_d(self):
-        triplets = json.loads((V3 / "scenario_triplets.json").read_text(encoding="utf-8"))
-        self.assertEqual(len(triplets), 48)
+        triplets = [v for g in json.loads((V3 / "scenario_triplets.json").read_text(encoding="utf-8"))["scenarios"] for v in g["variants"]]
+        self.assertEqual(len(triplets), 256)
         for entry in triplets:
             d = entry["conversational"]["simulated_user_answers_by_dimension"]["D"]
             self.assertIsNone(self.gen.CAPACITY_REGEX.search(d), entry["case_id"])
+
+
+    def test_all_combinations_and_selection_survive_regeneration(self):
+        from itertools import combinations
+        import yaml
+        with tempfile.TemporaryDirectory() as tmp:
+            folder = Path(tmp)
+            self.gen.make(V3 / "source_triplets.json", folder)
+            path = folder / "conversational_scenarios.yaml"
+            rows = yaml.safe_load(path.read_text())["scenarios"]
+            self.assertEqual([s["id"] for s in rows], [f"S{i:02d}" for i in range(1, 9)])
+            masks = {frozenset(c) for k in range(6) for c in combinations(self.gen.OPTIONAL_DIMS, k)}
+            for group in rows:
+                self.assertTrue(group["enabled"])
+                self.assertEqual(len(group["variants"]), 32)
+                self.assertEqual({frozenset(s["expected_initial_missing"]) for s in group["variants"]}, masks)
+                self.assertTrue(all("enabled" not in s for s in group["variants"]))
+            rows[6]["enabled"] = False
+            path.write_text(yaml.safe_dump({"scenarios": rows}))
+            self.gen.make(V3 / "source_triplets.json", folder)
+            regenerated = yaml.safe_load(path.read_text())["scenarios"]
+            triplets = json.loads((folder / "scenario_triplets.json").read_text())["scenarios"]
+            expected = {s["id"]: s["enabled"] for s in rows}
+            self.assertEqual({s["id"]: s["enabled"] for s in regenerated}, expected)
+            self.assertEqual({s["id"]: s["enabled"] for s in triplets}, expected)
 
 
 class RunnerTests(unittest.TestCase):
@@ -268,7 +293,7 @@ class RunnerTests(unittest.TestCase):
         counts = {}
         for job in jobs:
             counts[job["condition"]] = counts.get(job["condition"], 0) + 1
-        self.assertEqual(counts, {"refined": 144, "one_shot": 120, "oracle": 40})
+        self.assertEqual(counts, {"refined": 768, "one_shot": 744, "oracle": 40})
         keys = [bc.job_key(job) for job in jobs]
         self.assertEqual(len(keys), len(set(keys)))
         self.assertEqual([bc.job_key(j) for j in bc.build_jobs(scenarios, args, "m")], keys)
@@ -287,6 +312,36 @@ class RunnerTests(unittest.TestCase):
         self.assertEqual(refined[0]["input_sha256"], bc.scenario_digest(refined[0]["scenario"]))
         # Identical analysis options in every condition.
         self.assertEqual(len({json.dumps(job["options"], sort_keys=True) for job in jobs}), 1)
+
+    def test_disabled_scenarios_are_excluded_from_all_conditions(self):
+        import yaml
+        catalog = yaml.safe_load(V3_YAML.read_text())
+        args = self._args("--condition", "refined", "--condition", "one_shot", "--condition", "oracle",
+                          "--repeat", "3", "--oracle-repeat", "5")
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "selection.yaml"
+            for group in catalog["scenarios"]:
+                group["enabled"] = group["id"] == "S01"
+            path.write_text(yaml.safe_dump(catalog))
+            scenarios = bc.load_scenarios(path)
+            self.assertEqual(len(scenarios), 32)
+            jobs = bc.build_jobs(scenarios, args, "m")
+            self.assertEqual(len(jobs), 194)  # 32x3 refined + 31x3 one-shot + 5 oracle
+            self.assertEqual({j["base_case_id"] for j in jobs}, {"S01"})
+            rerun_args = self._args("--resume", "--rerun-scenario", "S01")
+            self.assertTrue(all(reason is None for _, reason in bc.select_jobs(jobs, rerun_args, set(), {})))
+            catalog["scenarios"][0]["enabled"] = False
+            path.write_text(yaml.safe_dump(catalog))
+            self.assertEqual(bc.load_scenarios(path), [])
+            catalog["scenarios"][0]["enabled"] = "false"
+            path.write_text(yaml.safe_dump(catalog))
+            with self.assertRaisesRegex(ValueError, "enabled"):
+                bc.load_scenarios(path)
+            catalog["scenarios"][0]["enabled"] = True
+            catalog["scenarios"][0]["variants"][0]["enabled"] = True
+            path.write_text(yaml.safe_dump(catalog))
+            with self.assertRaisesRegex(ValueError, "only on a base scenario"):
+                bc.load_scenarios(path)
 
     def test_default_condition_and_legacy_yaml(self):
         # Exercise the legacy contract without depending on removed historical data.
@@ -345,7 +400,7 @@ class RunnerTests(unittest.TestCase):
                      "--repeat", "3", "--oracle-repeat", "5", "--dry-run"])
         self.assertEqual(exit_info.exception.code, 0)
         text = stream.getvalue()
-        self.assertIn("total    planned= 304", text)
+        self.assertIn("total    planned=1552", text)
         self.assertIn("oracle   planned=  40", text)
 
 

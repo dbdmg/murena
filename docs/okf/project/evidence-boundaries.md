@@ -22,6 +22,22 @@ sources:
 
 # Fonti e livelli di evidenza
 
+**Aggiornamento locale del 2026-11-17:** i risultati preliminari v3 citati sotto
+restano evidenza storica (Git `4a7c882`), usata nel paper. Su richiesta sono
+stati cancellati gli artefatti locali e avviata una rigenerazione con
+concorrenza 20, poi interrotta su richiesta: quattro timeout e nessun risultato
+completato. Il nuovo manifest ha checksum di dataset e scenari differenti;
+non consente di combinare i tentativi. La diagnosi HTTPS del provider è una
+verifica tecnica minima, non un risultato del benchmark. Vedere
+[riproduzione](../research/reproduction.md).
+
+L'estensione combinatoria successiva prepara otto scenari S01–S08 con
+32 varianti ciascuno (256 totali); `enabled` esiste solo sullo scenario base,
+inizialmente tutte le otto basi sono abilitate. È stata verificata senza chiamate LLM e non fornisce
+nuovi risultati sperimentali; il paper distingue questa estensione non
+eseguita dal disegno annidato storico. Vedere il
+[benchmark](../research/edbt-conversational-benchmark.md#revisione-combinatoria-del-catalogo-2026-11-17).
+
 ## Origine delle informazioni
 
 1. **Codice fornito** (`backend/`, `frontend/`, launcher e configurazioni): supporta la descrizione della struttura e dei percorsi implementativi. È stata svolta **lettura statica**, non esecuzione dell'applicazione.

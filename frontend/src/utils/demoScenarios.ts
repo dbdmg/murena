@@ -22,13 +22,32 @@ const nonempty = (value: unknown): value is string => typeof value === 'string' 
 
 /** Validate only the demo contract; preserve compatibility with additional research metadata. */
 export function parseDemoScenarios(value: unknown): DemoScenario[] {
+    if (record(value) && Array.isArray(value.scenarios)) {
+        const groupIds = new Set<string>();
+        const allVariants: unknown[] = [];
+        const activeIds = new Set<string>();
+        for (const group of value.scenarios) {
+            if (!record(group) || !nonempty(group.id) || groupIds.has(group.id)
+                || typeof group.enabled !== 'boolean' || !Array.isArray(group.variants) || group.variants.length === 0) {
+                throw new Error('Invalid base scenario: expected unique id, boolean enabled and variants.');
+            }
+            groupIds.add(group.id);
+            for (const variant of group.variants) {
+                if (!record(variant) || variant.base_case_id !== group.id) throw new Error('Variant belongs to a different base scenario.');
+                allVariants.push(variant);
+                if (group.enabled && nonempty(variant.case_id)) activeIds.add(variant.case_id);
+            }
+        }
+        return parseDemoScenarios(allVariants).filter(variant => activeIds.has(variant.case_id));
+    }
     if (!Array.isArray(value) || value.length === 0) throw new Error('Expected a non-empty array of scenario triplets.');
     const ids = new Set<string>();
     return value.map((item, index) => {
         const fail = () => { throw new Error(`Invalid scenario at position ${index + 1}. Expected a unique case_id, query triplet, dimensions and answer map.`); };
         if (!record(item)) return fail();
         const conversation = item.conversational;
-        if (!nonempty(item.case_id) || ids.has(item.case_id)
+        if ('enabled' in item
+            || !nonempty(item.case_id) || ids.has(item.case_id)
             || !nonempty(item.regulatory_use_case)
             || !Array.isArray(item.missing_dimensions)
             || !item.missing_dimensions.every(d => dimensions.includes(d as Dimension))

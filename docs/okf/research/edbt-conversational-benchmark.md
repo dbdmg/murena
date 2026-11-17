@@ -48,6 +48,49 @@ sources:
 
 # Benchmark conversazionale EDBT
 
+**Stato locale aggiornato (2026-11-17):** gli artefatti preliminari v3 descritti
+più avanti sono stati cancellati su richiesta e restano recuperabili alla
+revisione Git `4a7c882`. La rigenerazione con concorrenza 20 è stata interrotta
+su richiesta: quattro errori di timeout, nessun run completato. La directory
+`missingness_v3/` contiene ora soltanto questo tentativo incompleto, con
+checksum di dataset e scenari diversi dal manifest storico importato.
+Diagnosi e provenienza in [riproduzione](reproduction.md). Il paper conserva
+i risultati storici; il tentativo non aggiunge risultati scientifici.
+
+## Revisione combinatoria del catalogo (2026-11-17)
+
+Il catalogo corrente contiene otto scenari base **S01–S08**, ognuno con
+32 varianti: tutti i sottoinsiemi di `D,L,Cb,Ce,Cp`, con `I` sempre presente.
+Distribuzione totale delle 256 varianti per `k=0..5`: **8, 40, 80, 80, 40, 8**.
+La revisione corrente `all_combinations_base_enabled_v2` sostituisce la
+selezione per singola maschera introdotta nella precedente revisione locale.
+
+`enabled` esiste **solo sullo scenario base** nel file
+`conversational_scenarios.yaml`, strutturato come `scenarios` contenente gruppi
+con `id`, `enabled`, `variants`. Per esempio, `S01: enabled=true` include
+tutte le sue 32 varianti; `S07: enabled=false` le esclude tutte e non genera
+oracle per S07. I flag sulle varianti sono rifiutati. I vecchi input piatti
+senza flag restano supportati. La rigenerazione conserva i flag base e li
+sincronizza nel JSON raggruppato della demo; il frontend mostra solo varianti
+degli scenari attivi. Nessuna selezione indipendente delle maschere.
+
+Le varianti hanno ID espliciti come `S01_k0`, `S01_k1_D`, `S01_k2_D_L`;
+`base_case_id` è S01–S08 e `source_case_id` conserva UC01–UC08 della sorgente.
+I riferimenti MS01–MS08 nelle osservazioni e nel paper restano storici.
+Il manifest conserva la mappa fra nuove etichette e sorgenti originali.
+
+Tutti gli otto scenari base sono inizialmente abilitati: con ×3 refined,
+×3 one-shot e ×5 oracle si pianificano **1.552 job**, **194 per scenario base**.
+Disabilitare S07 lascia sette basi e 1.358 job. Usare una nuova directory
+output: ID e formato della definizione cambiano rispetto ai tentativi storici.
+`--rerun-scenario S01` seleziona tutte le sue varianti e l'oracle senza
+prevalere su un flag disabilitato.
+
+Il catalogo esteso **non è stato eseguito**: validazione statica, test,
+simulazione frontend e dry-run non aggiungono risultati LLM. Il paper
+conserva protocollo annidato e misure storiche, distinguendoli dall'estensione.
+Le sezioni seguenti preservano la provenienza storica.
+
 ## Motivazione
 
 Il paper originale MURENA valuta query iniziali sufficientemente specificate per il proprio protocollo. Il benchmark EDBT esplora una domanda distinta: se una conversazione multi-turno possa recuperare requisiti immobiliari assenti o disambiguare requisiti ambigui prima dell'analisi. Questa è una definizione sperimentale aggiuntiva e non modifica né replica i risultati pubblicati nel paper.

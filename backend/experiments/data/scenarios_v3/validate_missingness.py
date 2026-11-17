@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Validate the v3 controlled-missingness scenarios without model calls.
 
-Checks (independently of the generator code): counts, nesting, preserved
+Checks (independently of the generator code): counts, exhaustive omission subsets, enabled flags, preserved
 derived fragments, absence of capacity in derived D, capacity present in
 derived Cb, unchanged oracle q*, recorded source answers, YAML consistency
 and the source hash stored in generation_manifest.json.
@@ -17,6 +17,7 @@ import argparse
 from collections import Counter
 import hashlib
 import json
+from itertools import combinations
 from pathlib import Path
 import re
 
@@ -40,26 +41,42 @@ def main() -> None:
     a = ap.parse_args()
     folder = a.folder
     original = json.loads(a.source.read_text(encoding='utf-8'))
-    entries = json.loads((folder / 'scenario_triplets.json').read_text(encoding='utf-8'))
-    parsed_yaml = yaml.safe_load((folder / 'conversational_scenarios.yaml').read_text(encoding='utf-8'))
+    groups = json.loads((folder / 'scenario_triplets.json').read_text(encoding='utf-8'))['scenarios']
+    entries = [v for g in groups for v in g['variants']]
+    yaml_groups = yaml.safe_load((folder / 'conversational_scenarios.yaml').read_text(encoding='utf-8'))['scenarios']
+    parsed_yaml = [v for g in yaml_groups for v in g['variants']]
+    assert len(groups) == len(yaml_groups) == 8
+    assert {g['id'] for g in groups} == {f'S{i:02d}' for i in range(1, 9)}
+    assert all(type(g['enabled']) is bool for g in groups)
+    assert {g['id']: g['enabled'] for g in groups} == {g['id']: g['enabled'] for g in yaml_groups}
     manifest = json.loads((folder / 'generation_manifest.json').read_text(encoding='utf-8'))
     assert manifest['source_triplets_sha256'] == hashlib.sha256(a.source.read_bytes()).hexdigest(), \
         'SOURCE CHANGED; REGENERATE DATA'
-    assert len(entries) == 48 and len(parsed_yaml) == 48
-    assert len({s['case_id'] for s in entries}) == 48
-    assert Counter(s['missing_count'] for s in entries) == Counter({k: 8 for k in range(0, 6)})
+    assert len(entries) == 256 and len(parsed_yaml) == 256
+    assert len({s['case_id'] for s in entries}) == 256
+    assert len({s['id'] for s in parsed_yaml}) == 256
+    assert all('enabled' not in s for s in entries + parsed_yaml)
+    assert manifest['enabled_scenarios'] == sum(g['enabled'] for g in groups)
+    for g in groups + yaml_groups:
+        assert all(v['base_case_id'] == g['id'] for v in g['variants'])
+    assert Counter(s['missing_count'] for s in entries) == Counter({0: 8, 1: 40, 2: 80, 3: 80, 4: 40, 5: 8})
     by_id = {s['case_id']: s for s in entries}
     capacity_map = manifest['capacity_map']
     bases = sorted({s['base_case_id'] for s in entries})
-    assert len(bases) == 8 and set(bases) == set(capacity_map)
+    assert len(bases) == 8
+    source_by_scenario = manifest['source_by_scenario']
+    assert set(source_by_scenario.values()) == set(capacity_map)
     for base in bases:
         related = sorted((s for s in entries if s['base_case_id'] == base), key=lambda s: s['missing_count'])
-        assert [x['missing_count'] for x in related] == [0, 1, 2, 3, 4, 5]
-        original_base = next(x for x in original if x['case_id'] == base)
+        expected_masks = {frozenset(mask) for k in range(6) for mask in combinations(sorted(OPTIONAL), k)}
+        assert len(related) == 32
+        assert {frozenset(x['missing_dimensions']) for x in related} == expected_masks
+        source_id = source_by_scenario[base]
+        original_base = next(x for x in original if x['case_id'] == source_id)
         expected_oracle = original_base['oracle']['query']
         source_answers = original_base['conversational']['simulated_user_answers_by_dimension']
-        phrase = capacity_map[base]['phrase']
-        count = capacity_map[base]['count']
+        phrase = capacity_map[source_id]['phrase']
+        count = capacity_map[source_id]['count']
         derived = related[0]['conversational']['simulated_user_answers_by_dimension']
         # Derived fragments: only D and Cb changed.
         assert set(derived) == DIMS
@@ -77,12 +94,11 @@ def main() -> None:
         assert cb.group(1) in source_answers['Cb']
         assert not re.search(r'children|guests|residents|beds', derived['Cb'], re.IGNORECASE), 'Cb leaks D'
         assert CAPACITY_RE.search(expected_oracle), 'oracle keeps original wording'
-        for level, s in enumerate(related):
+        for s in related:
+            level = s['missing_count']
             missing = set(s['missing_dimensions'])
             assert missing.issubset(OPTIONAL) and len(missing) == level
             assert set(s['present_dimensions']) == (DIMS - missing)
-            if level > 1:
-                assert set(related[level - 1]['missing_dimensions']).issubset(missing)
             assert s['oracle']['query'] == expected_oracle
             assert s['conversational']['simulated_user_answers_by_dimension'] == derived
             assert s['conversational']['source_answers_by_dimension'] == source_answers
@@ -112,8 +128,8 @@ def main() -> None:
     if a.catalog:
         catalog = json.loads(a.catalog.read_text(encoding='utf-8'))
         assert {e['regulatory_use_case'] for e in entries} == {x['use_case'] for x in catalog}
-    print('PASS: 48 scenarios (8 at each k=0..5); capacity moved D->Cb for all 8 intents; '
-          'nesting, derived fragments, oracle, YAML valid')
+    print('PASS: 8 base scenarios / 256 variants; base enabled flags consistent; '
+          'capacity split, derived fragments, oracle, YAML valid')
 
 
 if __name__ == '__main__':

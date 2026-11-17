@@ -151,7 +151,12 @@ def main() -> None:
     parser.add_argument("--model", default=None, help="Restrict to one model (default: all, keyed separately).")
     args = parser.parse_args()
 
-    triplets = {t["case_id"]: t for t in json.loads(args.triplets.read_text(encoding="utf-8"))}
+    catalog = json.loads(args.triplets.read_text(encoding="utf-8"))
+    # Include every variant for attribution of recorded runs, even if its base
+    # is disabled in the current selection. Analysis does not schedule jobs.
+    if isinstance(catalog, dict):
+        catalog = [v for group in catalog["scenarios"] for v in group["variants"]]
+    triplets = {t["case_id"]: t for t in catalog}
     rows = _load_runs(args.results, args.model)
 
     records = []

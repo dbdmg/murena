@@ -157,6 +157,47 @@ Opzioni documentate per l'harness: `--with-qwen`, `--with-gemma`, `--all-models`
 
 ### Benchmark a tre condizioni (v3)
 
+**Revisione combinatoria corrente:** `scenarios_v3/` contiene otto scenari
+base S01–S08 con 32 varianti ciascuno. Il flag `enabled` compare solo sul
+base, nel YAML con struttura `scenarios: [{id, enabled, variants}]`.
+Il runner carica tutte le varianti delle basi attive ed esclude tutte quelle
+delle basi disattivate, oracle incluso; flag sulle varianti sono rifiutati.
+Rigenerare dopo aver modificato i flag YAML per sincronizzare il JSON della
+demo; i flag base esistenti sono conservati. Tutte le otto basi sono
+inizialmente abilitate: dry-run ×3/×3/×5 = 1.552 job, 194 per base.
+Disabilitando S07: 1.358 job; abilitando solo S01: 194.
+La nomenclatura delle varianti è `S01_k1_D`, `S01_k2_D_L`, ecc.; UC01–UC08
+restano in `source_case_id` per provenienza. Usare una nuova directory output
+(ad esempio `missingness_combinations`), distinta dai risultati MS.. storici.
+Nessuna nuova esecuzione LLM è stata avviata. Il protocollo annidato con 304
+job dei paragrafi storici sotto non descrive il catalogo corrente completo.
+
+**Ultimo tentativo (2026-11-17, 15:18 UTC), interrotto su richiesta.**
+I risultati precedenti in `missingness_v3/` sono stati cancellati su richiesta
+e la stessa directory è stata ricreata per 304 job con `--concurrency 20`,
+refined ×3, one-shot ×3, oracle ×5, seed 13 e gpt-6-luna/low.
+Sono presenti quattro tentativi refined in errore per timeout Codex e nessun
+run completato; gli altri job avviati non hanno prodotto un record finale.
+Il manifest non contiene `completed_at`; non è un benchmark completato.
+I risultati preliminari precedenti restano storici, recuperabili in Git alla
+revisione `4a7c882`, e restano la fonte del paper corrente.
+Il nuovo tentativo usa il dataset SHA-256
+`d3956041f120b33de94d1b7b6bd1da1a07c11ded37b077056ef58efd47d4f6da`
+e gli scenari SHA-256
+`8396ffc8f85eab79ff2a8d09035dbe60026d386d48cb80b15050dc8ae329b837`:
+questi checksum differiscono dal manifest storico importato; i due tentativi
+non vanno mescolati o presentati come esecuzioni sugli stessi byte.
+
+Diagnosi locale con Codex CLI 0.169.0: login ChatGPT valido e endpoint HTTPS
+raggiungibile; la verifica minima standard non ha completato entro 30 secondi.
+Una verifica con lo stesso modello e provider temporaneo `name="OpenAI"`,
+`requires_openai_auth=true`, `wire_api="responses"`,
+`supports_websockets=false` ha completato con `OK` (timeout diagnostico 45 s).
+Gli override sono stati passati solo alla CLI, senza modificare `.env` o la
+configurazione utente. Il confronto indica un problema del percorso WebSocket;
+non verifica ancora il benchmark via HTTPS né dimostra che concorrenza 20 sia
+sostenibile. Nessuna rigenerazione comparativa o nuova evidenza scientifica.
+
 Dalla root del repository, senza modificare `backend/.env` (il provider è impostato via variabili d'ambiente del processo):
 
 ```bash
