@@ -1,3 +1,5 @@
+import { OFFLINE_DEMO } from '../demo/mode';
+import { demoAdapter } from '../demo/backend';
 import axios, { type AxiosInstance, type AxiosError, type InternalAxiosRequestConfig } from 'axios';
 import type { AccessToken } from './types';
 
@@ -7,6 +9,7 @@ const API_URL = import.meta.env.VITE_API_URL || '/api/v1';
 // Create Axios Instance
 export const apiClient: AxiosInstance = axios.create({
     baseURL: API_URL,
+    ...(OFFLINE_DEMO ? { adapter: demoAdapter } : {}),
     headers: {
         'Content-Type': 'application/json',
     },
@@ -16,6 +19,7 @@ export const apiClient: AxiosInstance = axios.create({
 // Request Interceptor: Attach Token
 apiClient.interceptors.request.use(
     (config: InternalAxiosRequestConfig) => {
+        if (OFFLINE_DEMO) return config;
         const token = localStorage.getItem('access_token');
         if (token && config.headers) {
             config.headers.Authorization = `Bearer ${token}`;

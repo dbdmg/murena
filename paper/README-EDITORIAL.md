@@ -2,7 +2,7 @@
 
 ## Revised scientific framing
 
-This version deliberately **starts from the limitation explicitly acknowledged
+This draft deliberately **starts from the limitation explicitly acknowledged
 in the original MURENA paper**: the initial query is assumed to be sufficiently
 specified, and ambiguous/underspecified input can produce suboptimal agent
 configurations. The new demo resolves this through **pre-analysis,
@@ -27,15 +27,19 @@ PRACTIQ, AmbiSQL, FISQL, COOL). Broader spatial/OLAP demos are omitted
 because the novelty here is clarification rather than spatial querying or
 ranking.
 
-Revision of 2026-11-17: the guided demo path now uses the nursery request of
-scenario MS02_k2 (C_b and C_e omitted, two questions), because the earlier
-"older adults" path relied on ambiguity resolution that failed in all v1
-runs (UC20/UC21). The unsupported claim that answer updates "preserve
-negations" was removed. The UI does not display per-dimension states; the
-paper says they are kept by the backend and explained with Fig. 1. The
-regulatory catalogue in `backend/docs/knowledge/normativa/normativa.json`
-currently has eight use cases (the "46 cases" in the OKF audit refers to an
-earlier version of the file).
+The demonstration uses the nursery request of scenario MS02_k2
+(C_b and C_e omitted, two questions). The UI does not display
+per-dimension states; the backend maintains them and Fig. 1 explains them.
+The regulatory catalogue in
+`backend/docs/knowledge/normativa/normativa.json` has eight use cases.
+
+The demonstration is a single prepared nursery-conversion scenario with a
+predefined request and answers. The presenter explains the interaction;
+arbitrary audience input and a separate open-ended path are outside the
+presentation plan. This editorial scope does not restrict the live system's
+conversational capabilities or alter the benchmark protocol. The captured
+backend session and its property results remain distinct from the frontend's
+offline scripted mode, which contains no property results.
 
 ## Implementation-aligned caveats
 
@@ -57,8 +61,9 @@ earlier version of the file).
    the multi-turn dialogue and the final map/ranking interface.
 3. Confirm the actual audience deployment and the dataset it will use.
 4. Check the final EDBT demo-track formatting and page limits.
-5. Fill the `RESULTS-PENDING (v3)` block only with verified results of the
-   v3 three-condition run, documented first in OKF; do not mix v2 and v3.
+5. Keep the reported 113 completed runs distinct from the 304-run plan.
+   Before updating the table or figure, verify the benchmark outputs and
+   document their provenance in OKF; preserve the incomplete-coverage caveat.
 
 ## Build
 

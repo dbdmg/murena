@@ -1,3 +1,6 @@
+import { selectDemoScenario } from '../demo/backend';
+import type { DemoScenario } from '../utils/demoScenarios';
+import { OFFLINE_DEMO } from '../demo/mode';
 /**
  * SearchPage - AI Command Center Home
  *
@@ -29,6 +32,7 @@ import { useSettings } from '../contexts/SettingsContext';
 import { translations } from '../utils/translations';
 import { analysisApi } from '../api/endpoints/analysis';
 import type { AnalysisHistoryItem } from '../api/types';
+import { DemoPanel } from '../components/demo/DemoPanel';
 import { HistoryItem } from '../components/search/HistoryItem';
 
 import murenaLogo217 from '../assets/brand/MURENA_217x34px.svg';
@@ -50,6 +54,7 @@ export const SearchPage: React.FC = () => {
     const navigate = useNavigate();
     const { dataSource, language, llmLimit, markersLimit } = useSettings();
     const [query, setQuery] = useState('');
+    const demoMode = OFFLINE_DEMO;
     const [isFocused, setIsFocused] = useState(false);
     const [recentHistory, setRecentHistory] = useState<AnalysisHistoryItem[]>([]);
     const [isLoadingHistory, setIsLoadingHistory] = useState(true);
@@ -145,7 +150,7 @@ export const SearchPage: React.FC = () => {
         }
 
         try {
-            if (!isClarificationTurn && dataSource === 'sandbox' && availableDemos.length > 0) {
+            if (!isClarificationTurn && !demoMode && dataSource === 'sandbox' && availableDemos.length > 0) {
                 const id = await loadDemo(availableDemos[0]);
                 navigate(`/processing/${id}`);
             } else {
@@ -218,6 +223,40 @@ export const SearchPage: React.FC = () => {
                 setClarificationMessages((messages) => messages.slice(0, -1));
                 setQuery(submittedText);
             }
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const openDemoScenario = async (scenario: DemoScenario) => {
+        if (!OFFLINE_DEMO || busy) return;
+        const initialQuery = scenario.conversational.initial_query;
+        selectDemoScenario(scenario);
+        setQuery('');
+        setClarificationOriginalQuery(initialQuery);
+        setClarificationSessionId(null);
+        setClarificationError(null);
+        setReviewQuery(null);
+        setIsConversationCollapsed(false);
+        setClarificationMessages([{ role: 'user', content: initialQuery }]);
+        setIsSubmitting(true);
+        try {
+            const result = await analysisApi.submitAnalysis({ query: initialQuery });
+            if (!('session_id' in result)) throw new Error('Expected a local demo conversation.');
+            if (result.status === 'ASK' && result.question?.trim()) {
+                setClarificationSessionId(result.session_id);
+                setClarificationMessages([
+                    { role: 'user', content: initialQuery },
+                    { role: 'assistant', content: result.question.trim() },
+                ]);
+            } else if (result.status === 'REVIEW') {
+                setClarificationSessionId(result.session_id);
+                setReviewQuery(result.refined_query || initialQuery);
+            } else {
+                throw new Error(result.message || 'Could not open the demo conversation.');
+            }
+        } catch (err) {
+            setClarificationError(apiErrorMessage(err, 'Could not open the demo conversation.'));
         } finally {
             setIsSubmitting(false);
         }
@@ -303,6 +342,15 @@ export const SearchPage: React.FC = () => {
                     ? 'flex h-full min-h-0 max-w-5xl flex-col'
                     : 'max-w-3xl'
             }`}>
+
+                {OFFLINE_DEMO && <DemoPanel
+                    enabled={demoMode}
+                    busy={busy}
+                    inConversation={clarificationMessages.length > 0}
+                    canAnswer={Boolean(clarificationSessionId) && reviewQuery === null}
+                    onSelectScenario={openDemoScenario}
+                    onAnswer={handleSuggestionClick}
+                />}
 
                 {/* Logo Murena */}
                 {clarificationMessages.length === 0 && (isLoadingSuggestions || suggestions.length > 0) && <motion.div

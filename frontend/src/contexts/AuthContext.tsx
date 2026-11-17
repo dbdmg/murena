@@ -1,3 +1,5 @@
+import { OFFLINE_DEMO } from '../demo/mode';
+import { demoUser } from '../demo/backend';
 import React, { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import type { User, LoginRequest, RegisterRequest } from '../api/types';
 import { authApi } from '../api/endpoints/auth';
@@ -21,6 +23,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // Initialize auth state on mount
     useEffect(() => {
         const initAuth = async () => {
+            if (OFFLINE_DEMO) {
+                setUser(demoUser);
+                setIsLoading(false);
+                return;
+            }
             const token = localStorage.getItem('access_token');
             if (token) {
                 try {
@@ -72,6 +79,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
 
     const logout = () => {
+        if (OFFLINE_DEMO) return;
         clearAuthSession();
         setUser(null);
     };

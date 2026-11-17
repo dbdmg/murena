@@ -49,3 +49,23 @@ La mappa non espone più la modifica dei prompt degli agenti. Nel pannello Layer
 I filtri della mappa includono tipologia, energia, superficie e periodo di costruzione, oltre ai filtri di visualizzazione. I valori di tipologia corrispondono alle etichette effettivamente presenti in `estates.parquet`. I filtri per utilizzo del bene, vincolo culturale e natura legale non sono esposti: il dataset caricato non contiene questi campi. Il filtro EPC è stato rimosso perché l'inventario disponibile contiene solo edifici con EPC.
 
 La protezione di route frontend **non sostituisce** la verifica dei permessi sul backend.
+
+## Modalità demo offline con scenari pronti
+
+La demo è una **modalità di avvio** del frontend: `npm run dev:demo` oppure build statica con `npm run build:demo` e `npm run preview`. `.env.demo` abilita `VITE_DEMO_MODE=true`. La modalità normale (`npm run dev` / `npm run build`) conserva la connessione reale al backend e non mostra il pannello scenari. Il flag è fissato all'avvio/build, non modificabile da pulsanti o preferenze salvate.
+
+La demo entra con un utente locale senza verificare token o richiedere il login, preservando la sessione reale salvata. Tutte le chiamate Axios passano da un adapter in memoria; gli endpoint non supportati falliscono localmente, senza fallback di rete. Il proxy backend Vite e le connessioni WebSocket dell'analisi sono disattivati. Anche tile della mappa e immagini Mapillary/ESRI sono disabilitate; la mappa rimane senza basemap. Il server Vite continua naturalmente a servire asset e il proprio WebSocket di sviluppo.
+
+Il pannello scenari nella pagina `/` carica i 48 casi di `backend/experiments/data/scenarios_v3/scenario_triplets.json` come asset separato su richiesta:
+
+- Il selettore mostra `case_id`, destinazione d'uso e numero di dimensioni mancanti. Il catalogo parte senza selezione: scegliendo un caso, la conversazione si apre automaticamente con `conversational.initial_query` e la prima domanda locale; i casi senza dimensioni mancanti passano direttamente alla review. Rimossi i pulsanti di inserimento query iniziale/one-shot/oracle. Scegliere un altro caso sostituisce il thread e la sessione precedenti, azzerando risposta in bozza, errori e review.
+- Il simulatore pone domande generiche seguendo l'ordine di `missing_dimensions`. Le risposte pronte vengono da `conversational.simulated_user_answers_by_dimension`; inserimento e invio sono manuali, con testo modificabile. La review concatena query e risposte; non esegue parsing, riscrittura LLM o strategia SAGE. Il trasporto locale continua ad accettare la query oracle esatta direttamente in review, ma la UI avvia soltanto la query conversazionale.
+- Alla conferma viene creata una run locale completata, con messaggio esplicito e **nessun immobile**: i triplets non contengono risultati. Cronologia e dettaglio consultano soltanto queste run locali. Nessun risultato scientifico o prestazione del sistema è deducibile dalla simulazione.
+- **Import scenario triplets JSON** sostituisce il catalogo in memoria con un array non vuoto nello stesso formato. Sono richiesti ID univoci, destinazione d'uso, dimensioni mancanti, tre query e una mappa di risposte testuali per dimensioni note; i metadati aggiuntivi sono ammessi. Un file non valido non sostituisce il catalogo precedente.
+- La selezione resta disponibile durante la conversazione e la review, tranne mentre viene elaborato un invio. L'importazione è bloccata durante la conversazione; le risposte sono disabilitate nella review. Scenari importati, sessioni e run restano in memoria e si azzerano al reload. Per aggiornare il catalogo incorporato modificare il JSON sorgente e ricostruire il frontend.
+
+È una risorsa di presentazione dell'estensione conversazionale, separata dal sandbox con risultati salvati sul backend. Non modifica pipeline, prompt o protocollo sperimentale. I campi one-shot e oracle restano nel formato importato per compatibilità; la UI non esegue le condizioni del benchmark.
+
+Verifiche: build normale/demo, lint mirato, test del contratto e dei 48 dialoghi con `npm run test:demo`. Verifica browser sul percorso `MS02_k2` e sulle pagine principali: nessuna richiesta backend o WebSocket di analisi, nessun errore JavaScript, token reale preservato.
+
+Verifica del caricamento automatico: browser su `MS02_k2` (avvio immediato e risposta), passaggio a `MS01_k0` (review immediata) e a `MS01_k1` (nuovo thread senza residui della review); nessuna richiesta backend o errore JavaScript.

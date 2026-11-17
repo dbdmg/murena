@@ -102,3 +102,13 @@ python run_app.py --delete-user
 - **Frontend**: React with Leaflet for geospatial visualization.
 - **Scoring**: Deterministic mathematical weighting (0-100 percentile) for property ranking.
 
+
+### Frontend-only offline demo
+
+```bash
+cd frontend
+npm install
+npm run dev:demo
+```
+
+No backend or LLM is required. Choose a built-in v3 scenario or import a scenario-triplets JSON in the demo panel. Conversations run locally; property results are not included in these scenario files. Build a static demo with `npm run build:demo`, then `npm run preview`. Use `npm run dev` for the normal frontend connected to the backend.

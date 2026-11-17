@@ -1,3 +1,4 @@
+import { OFFLINE_DEMO } from '../demo/mode';
 import React from 'react';
 import {
     Settings,
@@ -299,11 +300,12 @@ export const SettingsPage: React.FC = () => {
                         iconColor="text-emerald-400"
                     >
                         <p className="text-xs text-gray-500 mb-4">
-                            Select the data source for the analyses.
+                            {OFFLINE_DEMO ? 'Offline demo is fixed at startup. Restart with npm run dev to use the backend.' : 'Select the data source for the analyses.'}
                         </p>
 
                         <div className="grid grid-cols-2 gap-3">
                             <button
+                                disabled={OFFLINE_DEMO}
                                 onClick={() => {
                                     setDataSource('live');
                                     setDemoMode(false);
@@ -324,6 +326,7 @@ export const SettingsPage: React.FC = () => {
                             </button>
 
                             <button
+                                disabled={OFFLINE_DEMO}
                                 onClick={() => {
                                     setDataSource('sandbox');
                                     setDemoMode(true);

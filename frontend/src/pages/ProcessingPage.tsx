@@ -1,3 +1,4 @@
+import { OFFLINE_DEMO } from '../demo/mode';
 /**
  * ProcessingPage - Agent Processing View
  *
@@ -160,7 +161,9 @@ export const ProcessingPage: React.FC = () => {
     }, [logs, progress.steps]);
 
 
-    const DEFAULT_STEPS: ProgressStep[] = [
+    const DEFAULT_STEPS: ProgressStep[] = OFFLINE_DEMO ? [
+        { label: 'Preparing local demo summary (no agents executed)', state: 'pending' },
+    ] : [
         { label: 'Analyzing user request...', state: 'pending' },
         { label: 'Evaluating technical building characteristics...', state: 'pending' },
         { label: 'Identifying search geographic area...', state: 'pending' },

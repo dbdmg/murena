@@ -1,3 +1,4 @@
+import { OFFLINE_DEMO } from '../demo/mode';
 /**
  * useAnalysisProgress Hook
  *
@@ -125,7 +126,7 @@ export function useAnalysisProgress(
 
     // Connect to WebSocket
     const connect = useCallback(() => {
-        if (!runIdRef.current) return;
+        if (OFFLINE_DEMO || !runIdRef.current) return;
 
         // Clear any pending reconnect
         if (reconnectTimeoutRef.current) {

@@ -9,7 +9,7 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [react()],
     server: {
-      proxy: {
+      proxy: mode === 'demo' || env.VITE_DEMO_MODE === 'true' ? undefined : {
         '/api': {
           target: `http://localhost:${backendPort}`,
           changeOrigin: true,

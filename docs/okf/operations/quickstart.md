@@ -41,6 +41,18 @@ python run_app.py --backend-only
 cd frontend && npm install && npm run dev
 ```
 
+## Frontend demo senza backend
+
+```bash
+cd frontend
+npm install
+npm run dev:demo
+```
+
+Non occorrono Python, backend, dataset immobiliari o provider LLM. Il browser usa un accesso locale e un simulatore basato sugli scenari v3; il pannello consente anche di importare altri JSON nello stesso formato. I triplets contengono query e risposte, non immobili: la demo non genera risultati di ricerca.
+
+Per una build statica: `npm run build:demo`, quindi `npm run preview` oppure servire `frontend/dist/` con fallback SPA. Il flag demo è incorporato nella build. Per il frontend con backend usare `npm run dev` / `npm run build`. Test del simulatore: `npm run test:demo`. Dettagli e limiti in [Percorsi e schermate](../frontend/ui-routes.md#modalità-demo-offline-con-scenari-pronti).
+
 ## Comportamenti automatici importanti
 
 - `.env` deve esistere o il launcher si interrompe.

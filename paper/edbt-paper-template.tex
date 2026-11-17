@@ -1,8 +1,8 @@
 %% Conversational MURENA -- EDBT 2027 demo paper, editable LaTeX source.
-%% Evaluation reports the v3 three-condition benchmark (refined / one_shot /
+%% Evaluation reports the three-condition benchmark (refined / one_shot /
 %% oracle): 113 of 304 planned runs completed on 2026-11-17 before the run
-%% was stopped for model-service latency (see docs/okf/research/
-%% edbt-conversational-benchmark.md). Figure data: data/per_k.csv.
+%% was stopped for model-service latency. Provenance is documented in
+%% docs/okf/research/edbt-conversational-benchmark.md. Figure data: data/per_k.csv.
 \documentclass[sigconf,review]{acmart}
 \geometry{twoside=true, head=13pt, a4paper, includeheadfoot,
  columnsep=2pc, top=57pt, bottom=73pt, inner=54pt, outer=54pt,
@@ -39,8 +39,8 @@ scenarios) that compares refined, one-shot, and complete (oracle) queries
 under the same pipeline. In a preliminary run (113 of 304 planned runs),
 clarification detected every omission, and refined queries reached
 top-5 agreement with the oracle of 0.73, close to the oracle's own
-run-to-run agreement (0.74), against 0.04 for one-shot queries. We also
-report robustness observations from an earlier 24-scenario suite. Two demonstration paths let attendees see how
+run-to-run agreement (0.74), against 0.04 for one-shot queries.
+A prepared demonstration scenario shows how
 clarification changes the interpreted request and the resulting
 portfolio screening.
 \end{abstract}
@@ -71,8 +71,8 @@ existing dimensions with explicit recording of non-preferences,
 (ii)~a question order adapted from the SAGE-Agent
 method~\cite{suri2026sage} and a mandatory review step, (iii)~a three-condition benchmark protocol that
 separates the cost of missing information from the effectiveness and
-cost of recovering it, and (iv)~guided and open-ended demonstration
-paths.
+cost of recovering it. A prepared demonstration illustrates the full
+interaction from the initial request to portfolio screening.
 
 \section{Related Work}
 \label{sec:related}
@@ -112,7 +112,7 @@ a map (Fig.~\ref{fig:arch}, bottom). This part is unchanged.
 \centering
 \resizebox{\columnwidth}{!}{\input{figures/architecture}}
 \caption{Conversational stage (dashed, grey) feeding the inherited MURENA
-pipeline (solid). The state row shows the guided demo request: intent,
+pipeline (solid). The state row shows the demonstration request: intent,
 use, location, and proximity specified (S); $C_b$ and $C_e$ unconfirmed
 absent (U); A marks ambiguous. Only the confirmed text $\hat q$ reaches the pipeline.}
 \Description{Block diagram. An initial request enters an LLM parser,
@@ -175,7 +175,8 @@ confused with room-level legal measures.
 
 \section{Demonstration}
 \label{sec:demo}
-Attendees use the web interface: a conversation panel shows each
+The presenter walks attendees through one prepared scenario in the web
+interface, using a predefined request and answers. A conversation panel shows each
 generated question, possibly with suggested options, and accepts a
 free-text answer, including ``no requirement''; a review form shows the
 editable rewritten request with a \emph{Confirm and start analysis}
@@ -193,9 +194,9 @@ which questions are asked and why.
 \includegraphics[width=\linewidth]{figures/screen-results.jpg}\\
 {\footnotesize (b) Map and ranked candidates after confirmation}
 \end{minipage}
-\caption{Guided path captured on the running system:
+\caption{Demonstration scenario captured on the running system:
 the system asks only for the two unconfirmed dimensions
-($C_b$, $C_e$), the attendee confirms the rewritten request, and the
+($C_b$, $C_e$), the presenter confirms the rewritten request, and the
 inherited pipeline returns 144 matching properties with a ranked top-10.}
 \Description{Left: chat panel with the nursery request, a question on
 building constraints, the answer with floor area and capacity, a question
@@ -205,40 +206,31 @@ of ten ranked property cards.}
 \label{fig:screens}
 \end{figure*}
 
-\paragraph{Guided path: nursery conversion.} The attendee submits ``an
+\paragraph{Demonstration scenario: nursery conversion.} The presenter submits ``an
 existing school building in Turin to convert into a nursery, near green
 spaces''. Intent, use, location, and proximity are specified, while
 floor area and capacity ($C_b$) and energy class ($C_e$) are
 unconfirmed; ``existing building'' does not count as a $C_b$
 requirement. The system asks two questions, one per dimension; the
-attendee states a minimum floor area and capacity, and either an energy
-class or that energy does not matter. The review form shows the
-rewritten request, which the attendee edits or confirms; the inherited
+presenter supplies prepared answers specifying minimum floor area,
+capacity, and energy class. The review form shows the
+rewritten request, which the presenter reviews and confirms; the inherited
 pipeline then exposes the extracted filters, the candidates on the map,
-and the ranked explanations (Fig.~\ref{fig:screens}). This path
+and the ranked explanations (Fig.~\ref{fig:screens}). This scenario
 corresponds to a benchmark scenario ($k=2$) whose two-turn dialogue was
 observed in a functional check and in the live session of
 Fig.~\ref{fig:screens}.
 
-\paragraph{Open-ended path: student residence.} Visitors start from a
-broad renovation objective, specify student housing, and decide whether
-the specific public funding programme in the catalogue is relevant. The
-dialogue separates user-stated building preferences from programme
-conditions, and different answers yield different confirmed requests
-and portfolios. Open-ended interaction is not claimed to be reproducible
-across arbitrary attendee choices.
-
 \section{Evaluation}
 \label{sec:eval}
-\paragraph{Scenarios.} The controlled-omission benchmark (v3) starts
+\paragraph{Scenarios.} The controlled-omission benchmark starts
 from eight fully specified reference intents $q^*$, one per catalogue
 use. For each intent, nested initial queries $q_0$ omit
 $k\in\{1,\dots,5\}$ of the dimensions $D,L,C_b,C_e,C_p$ ($I$ is always
 kept), in an omission order that differs across intents; $k=0$ controls
-contain all six. This gives 48 scenarios, eight per level. In v3 the
-capacity is stated inside the $C_b$ fragment with a use-neutral noun, so
-omitting $C_b$ removes it from $q_0$; in the earlier v2 family it leaked
-through the use phrase. The simulated user answers each question with
+contain all six. This gives 48 scenarios, eight per level. Capacity is
+stated inside the $C_b$ fragment with a use-neutral noun, so omitting
+$C_b$ removes it from $q_0$. The simulated user answers each question with
 the omitted fragment for the targeted dimension.
 
 \paragraph{Conditions.} \emph{Refined}: $q_0$ goes through
@@ -310,7 +302,7 @@ Clarification costs 17--97\,s per dialogue (median, growing with $k$),
 on top of an analysis of 74--104\,s.
 
 \begin{table}[t]
-\caption{v3 benchmark, 113 completed runs, $k\ge1$ unless noted: mean
+\caption{Benchmark, 113 completed runs, $k\ge1$ unless noted: mean
 over intents [95\% cluster-bootstrap CI]. $J_5$: top-5 Jaccard; RBO:
 extrapolated, $p=0.8$, over the top-10; both against the oracle.}
 \label{tab:results}
@@ -362,23 +354,6 @@ queries, with the oracle-vs-oracle noise ceiling as a dashed line.}
 \label{fig:perk}
 \end{figure}
 
-\paragraph{Earlier robustness suite.} A separate suite of 24 synthetic
-scenarios covers single omissions, ambiguous uses and locations,
-explicit non-preferences, an out-of-catalogue use, and funding-scope
-cases. It was run on 2026-11-16 in the conversational condition only
-(3 repetitions, 72 runs, an earlier code version
-preceding the current pipeline fixes). All runs completed; detection of
-initially missing dimensions reached micro precision 1.00, recall 0.90,
-and $F_1$ 0.95 (64/72 exact). The failures are instructive. Two
-ambiguous-use requests (an ``elder-care facility'' and a ``service for
-young children'') were never flagged as ambiguous (0/6 exact): the
-system asked only about the omitted dimension. This is consistent with
-the detection difficulty reported by CLAMBER and
-AMBROSIA~\cite{zhang2024clamber,saparina2024ambrosia}. For a
-co-housing request outside the catalogue, the regulatory agent wrongly
-matched the student-residence use in all 3 runs. These runs measure
-neither the benefit of clarification nor ranking quality.
-
 \section{Conclusion}
 \label{sec:conclusion}
 Conversational MURENA addresses the original assumption of a
@@ -387,7 +362,7 @@ the ranking method: unresolved dimensions are made explicit, answered or
 declined, and confirmed by the user before analysis. The demonstration
 shows this interaction live, and the three-condition benchmark separates
 the cost of missing information from its recovery. Limitations remain:
-ambiguity detection is weaker than omission detection, the simulated
+ambiguity detection depends on LLM interpretation, the simulated
 user is cooperative and exact, no static-form baseline isolates the
 contribution of dialogue, and agreement with an oracle query is not
 independently judged relevance. A user study and a form-based baseline

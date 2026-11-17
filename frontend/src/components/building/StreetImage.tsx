@@ -1,3 +1,4 @@
+import { OFFLINE_DEMO } from '../../demo/mode';
 /**
  * StreetImage Component
  * 
@@ -111,6 +112,7 @@ export const StreetImage: React.FC<StreetImageProps> = ({ lat, lng, buildingId, 
 
     useEffect(() => {
         const loadImage = async () => {
+            if (OFFLINE_DEMO) { setIsLoading(false); setHasError(true); return; }
             // No coordinates available
             if (!lat || !lng) {
                 setIsLoading(false);

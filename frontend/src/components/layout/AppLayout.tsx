@@ -1,3 +1,4 @@
+import { OFFLINE_DEMO } from '../../demo/mode';
 /**
  * AppLayout - Main layout with Command Center style sidebar
  *
@@ -52,6 +53,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
 
     return (
         <div className="min-h-screen w-full relative bg-(--bg-main) text-(--text-primary) overflow-hidden tracking-tight">
+            {OFFLINE_DEMO && <div className="fixed right-3 top-2 z-50 rounded-lg bg-amber-950 px-3 py-1 text-xs text-amber-100">Offline demo · Backend disconnected</div>}
             {/* Ambient Background Effects */}
             <div className="fixed top-[-20%] left-[-10%] w-[600px] h-[600px] bg-emerald-600/10 rounded-full blur-[150px] pointer-events-none z-0" />
             <div className="fixed bottom-[-20%] right-[-10%] w-[500px] h-[500px] bg-blue-500/5 rounded-full blur-[120px] pointer-events-none z-0" />

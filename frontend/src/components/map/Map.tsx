@@ -1,3 +1,4 @@
+import { OFFLINE_DEMO } from '../../demo/mode';
 import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { MapContainer, TileLayer, Marker, useMap, GeoJSON, Popup } from 'react-leaflet';
 import L from 'leaflet';
@@ -573,7 +574,7 @@ export const Map: React.FC<MapProps> = ({
             >
                 <MapEvents setBounds={setBounds} setZoom={setCurrentZoom} onBoundsChange={onBoundsChange} />
 
-                <TileLayer
+                {!OFFLINE_DEMO && <TileLayer
                     attribution={
                         tileAttribution ||
                         'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
@@ -582,7 +583,7 @@ export const Map: React.FC<MapProps> = ({
                         tileUrl ||
                         'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
                     }
-                />
+                />}
 
                 {/* Zone OMI Overlay */}
                 {zoneOMI && (
