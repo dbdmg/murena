@@ -3,6 +3,7 @@
 Knowledge concepts: 7.
 
 ## Documenti
+* [Bozza Conversational MURENA e confronto con il codice](conversational-paper-audit.md) — Provenienza della bozza EDBT, riscontri e limiti del confronto statico.
 * [Metriche e risultati dichiarati nel paper](benchmarks.md) — Numeri sperimentali e relative popolazioni, senza presentarli come test effettuati ora.
 * [Benchmark conversazionale EDBT](edbt-conversational-benchmark.md) — Scenari sintetici, protocollo comparativo e stato effettivo del runner.
 * [Limiti scientifici e validità esterna](limitations.md) — Limiti del dataset EPC, del modello POI e dell’evidenza di validazione.

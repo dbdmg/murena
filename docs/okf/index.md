@@ -54,4 +54,5 @@ Knowledge bundle per MURENA, derivato dal progetto full-stack e dal manoscritto 
 ## Riferimenti
 
 * [Sorgenti del paper](references/paper/guide.md) — evidenza primaria del manoscritto.
+* [Bozza EDBT e confronto con il codice](research/conversational-paper-audit.md) — stato della nuova bozza e della verifica statica.
 

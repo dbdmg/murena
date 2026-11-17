@@ -133,7 +133,7 @@ class Settings(BaseSettings):
     # Enable JSON export of run results for LLM analysis/debugging
     # Set to False in production to avoid unnecessary file writes
     ENABLE_RUN_JSON_EXPORT: bool = False
-    ENABLE_SAGE_CLARIFICATION: bool = False
+    ENABLE_SAGE_CLARIFICATION: bool = True
     SAGE_MAX_TURNS: int = 6
     SAGE_REDUNDANCY_LAMBDA: float = 0.5
     SAGE_EVPI_STOP_ALPHA: float = 0.1

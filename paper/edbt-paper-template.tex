@@ -1,0 +1,264 @@
+%% Conversational MURENA -- EDBT demo paper, editable LaTeX source.
+%% Reconstructed and updated against the 40+8 controlled-missingness benchmark.
+%% No measured experimental results are inserted.
+\documentclass[sigconf,review]{acmart}
+\geometry{twoside=true, head=13pt, a4paper, includeheadfoot,
+ columnsep=2pc, top=57pt, bottom=73pt, inner=54pt, outer=54pt,
+ marginparwidth=2pc, heightrounded}
+\AtBeginMaketitle{\input{edbt-macros}}
+\begin{document}
+\title{Conversational MURENA: Clarifying Underspecified Requests for Real-Estate Portfolio Screening}
+\author{Authors to be confirmed}
+\affiliation{\institution{Affiliations to be confirmed}\city{Turin}\country{Italy}}
+\renewcommand{\shortauthors}{Authors to be confirmed}
+
+\begin{abstract}
+MURENA translates natural-language requests into structured requirements,
+database searches, and explainable real-estate portfolio rankings. Its
+published formulation nevertheless assumes that the initial request is
+sufficiently specified. We demonstrate a conversational extension that
+clarifies unresolved intent before the original multi-agent screening
+pipeline is invoked. The interaction distinguishes uncertain information
+from optional criteria deliberately left unspecified, elicits targeted
+answers, and obtains approval of a consolidated request. Question
+prioritization is inspired by SAGE-Agent, while the query template and
+specialized analysis agents remain inherited from MURENA. To assess this
+extension, we describe a controlled omission study over eight reference
+intents and five nested missingness levels (40 scenarios), plus eight
+complete-input controls. A separate robustness suite addresses ambiguity,
+non-preferences, and regulatory applicability. Two demonstration paths show
+how clarification changes the interpreted request and downstream screening.
+\end{abstract}
+\keywords{conversational query clarification, requirement elicitation,
+real-estate decision support, multi-agent systems, ambiguity resolution}
+\maketitle
+
+\section{Introduction}
+\label{sec:intro}
+MURENA~\cite{deluca2026murena} supports large-scale real-estate screening
+through natural-language input, specialized domain agents, SQL-based
+filtering, multi-criteria scoring, and explanations. Its original paper
+also acknowledges a practical limitation: the approach assumes that the
+initial user query is sufficiently specified. Real tasks often start
+with a broad objective; the user may state a destination for a building
+without defining the relevant capacity, energy, or location criteria.
+An underspecified request can therefore activate an inappropriate
+interpretation or omit requirements that would matter to the decision.
+
+Omission does not always indicate an error: MURENA already
+represents \emph{optional} dimensions: a user might genuinely
+have no preference about energy class. Conversely, ``a facility for older
+adults'' may conceal a consequential ambiguity between residential and
+day care. The problem is not to fill every missing field, but to identify
+which information remains unresolved and obtain a specification aligned
+with the user's task.
+
+We present \emph{Conversational MURENA} as a pre-analysis clarification
+process. It neither introduces new query dimensions nor changes the
+existing retrieval and ranking algorithm. The demonstration contributes
+(i) stateful elicitation and explicit recording of non-preferences,
+(ii) SAGE-inspired prioritization of follow-up questions and an explicit
+review stage, and (iii) controlled and open-ended demonstration paths.
+We further describe an automatic evaluation that separates the impact of
+underspecification on portfolio outcomes from the effectiveness and cost
+of recovering the intended request.
+
+\section{Related Work}
+\label{sec:related}
+\emph{COOL}~\cite{francia2021cool} demonstrates conversational OLAP
+exploration and disambiguation. \emph{FISQL}~\cite{menon2025fisql} and
+\emph{AmbiSQL}~\cite{ding2026ambisql} address interactive refinement
+and ambiguity resolution for text-to-SQL. Our purpose differs from
+introducing a new query representation or another SQL translator:
+MURENA already handles building, energy, location, proximity, and
+intended-use requirements through specialized agents. We address
+\emph{how users arrive at values for those existing criteria} before
+submitting their request to the established pipeline. The clarification
+policy is inspired by SAGE-Agent~\cite{suri2026sage}, which ranks
+questions using the expected value of information together with a cost
+for repetitive questions. We adapt that intuition heuristically and do
+not claim a new EVPI method or calibrated uncertainty model.
+
+\section{Conversational Requirement Elicitation}
+\label{sec:method}
+\paragraph{Optional requirements and dialogue state.}
+MURENA represents user requests as
+$Q=(I,D,L,C_b,C_e,C_p)$. Here $I$ identifies property type or search
+intent, $D$ intended use, $L$ location, $C_b$ building and capacity
+constraints, $C_e$ energy requirements, and $C_p$ service proximity. Some components may be absent because the user has no
+associated preference. The conversational stage operates on the
+\emph{same} dimensions and tracks whether each has been specified,
+remains ambiguous, has not yet been confirmed, lacks a critical detail,
+or has been explicitly declared irrelevant. A user response $a_t$ to
+question $u_t$ updates state $S_t$:
+\begin{equation}
+ S_{t+1}=\operatorname{Update}(S_t,u_t,a_t).
+ \label{eq:update}
+\end{equation}
+The update preserves confirmed constraints, negations, and opt-outs.
+For example, ``not a day centre'' excludes an interpretation, whereas
+``energy performance does not matter'' leaves that dimension
+unconstrained. A consolidated natural-language query $\hat q$ is
+presented for explicit user review before analysis.
+
+\paragraph{Question selection.}
+Inspired by SAGE-Agent~\cite{suri2026sage}, when several aspects need
+clarification, questions are prioritized using a heuristic
+information-value score with a redundancy penalty:
+\begin{equation}
+ \operatorname{priority}(u)=\widehat{\operatorname{EVPI}}(u)-\lambda r(u),
+ \label{eq:priority}
+\end{equation}
+where $r(u)$ penalizes repeated questions about the same aspect. The
+score is not a calibrated probability distribution over user intents.
+Its role is to choose which uncertainty to address first, rather than
+to guarantee a smaller number of questions. Unconfirmed dimensions
+are resolved through answers or explicit non-preferences; critical
+inconsistencies may prevent execution.
+
+\paragraph{Handoff to decision support.}
+The confirmed query is processed by the original MURENA agents,
+relational and spatial filters, and scoring method
+(Fig.~\ref{fig:workflow}). An expanded, source-documented regulatory
+catalogue provides eight intended-use examples across early-childhood
+services, care services for older adults, and a specific student-housing
+funding programme. This \emph{minor supporting update} enables testing
+more varied scenarios; it does not modify the query template or agent
+algorithms. Matching a use category is distinct from determining
+whether a particular provision applies, and neither constitutes a
+legal-compliance certification. User-defined gross-floor-area criteria
+must not be confused with room-level legal measurements.
+
+\begin{figure}[t]
+\centering
+\fbox{\begin{minipage}{0.92\columnwidth}
+\centering\small
+\textbf{Initial natural-language query $q_0$}\\[4pt]
+$\Downarrow$\\[3pt]
+\textbf{Conversational clarification}\\
+Identify unresolved aspects $\rightarrow$ ask $u_t$\\
+Interpret answer $a_t$ $\rightarrow$ update $S_{t+1}$\\[3pt]
+$\Downarrow$\\[3pt]
+\textbf{User review and approval of $\hat q$}\\[3pt]
+$\Downarrow$\\[3pt]
+\textbf{Original MURENA pipeline}\\
+Specialized agents $\rightarrow$ SQL/spatial search\\
+Ranking $\rightarrow$ map and explanations
+\end{minipage}}
+\caption{Conversational clarification precedes and does not alter the
+previously published decision-support pipeline.}
+\Description{Text-labelled stages connected by downward arrows show
+an initial query, iterative clarification across existing requirement
+dimensions, user review, and execution by the MURENA pipeline. No
+information relies on color alone.}
+\label{fig:workflow}
+\end{figure}
+
+\section{Experimental Evaluation Design}
+\label{sec:eval}
+\paragraph{Study questions.}
+We investigate: (RQ1) how the number of omitted requirements changes
+the screened portfolio relative to fully specified input; (RQ2) how
+accurately dialogue reconstructs the intended constraints; and (RQ3)
+how interaction cost and failure rate vary with underspecification.
+These are distinct from an independent judgment of building relevance.
+
+\paragraph{Controlled missingness.}
+The current controlled study takes eight fully specified reference
+intents, one per documented intended use. Each reference query $q^*$
+provides all six MURENA dimensions. For each intent, we derive five
+nested initial queries by omitting $k\in\{1,2,3,4,5\}$ of the five
+dimensions $D,L,C_b,C_e,C_p$, always retaining $I$ as a search anchor.
+The omissions are cumulative within an intent and their order differs
+across intents. This yields \textbf{40 paired incomplete cases}, plus
+\textbf{eight complete-input ($k=0$) controls} to test unnecessary
+clarification. Table~\ref{tab:cases} summarizes the design. The
+original 24-case suite remains separate for ambiguity, intentional
+non-preferences, out-of-catalog requests, and regulatory scope.
+
+\begin{table}[t]
+\caption{Controlled omitted-dimension levels. Counts describe generated
+cases, not observed experimental results.}
+\label{tab:cases}
+\centering\small
+\begin{tabular}{@{}lrrrrrr@{}}
+\toprule
+Omitted dimensions ($k$) & 0 & 1 & 2 & 3 & 4 & 5\\
+\midrule
+Cases & 8 & 8 & 8 & 8 & 8 & 8\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{One-shot, refined, and oracle queries.}
+For each intent, the \emph{one-shot} query $q_0$ is submitted directly
+to MURENA. The \emph{refined} query $\hat q$ is the output of
+clarification starting from the same $q_0$, with scripted answers
+consistent with the intended reference. The \emph{oracle} query $q^*$
+expresses that intent in full. The ranking $R(q^*)$ produced for
+$q^*$ acts as an \emph{operational reference ranking}; it is not an
+independently established optimal shortlist. The refined condition
+must execute its \emph{actual} $\hat q$, never substitute $q^*$.
+Identical model, portfolio, and analysis settings are required across
+conditions. Repeated runs characterize model variability.
+
+\paragraph{Measures and limitations.}
+For query interpretation, atomic-constraint precision, recall, and
+$F_1$ assess whether desired requirements are reconstructed without
+inventing or dropping constraints. Dialogue completion, turn count,
+and latency quantify clarification cost. For retrieval, we compare
+the one-shot ranking to the oracle ranking using \emph{Top-5 Jaccard
+similarity}, defined for the sets of five highest-ranked buildings as
+\begin{equation}
+ J_5(q,q^*)=\frac{|R_5(q)\cap R_5(q^*)|}{|R_5(q)\cup R_5(q^*)|}.
+ \label{eq:jaccard}
+\end{equation}
+\emph{Rank-Biased Overlap} (RBO)~\cite{webber2010rbo} additionally
+captures ordering, using the finite-list extrapolated form with
+$p=0.8$. These are measures of agreement with the oracle output,
+not independent evidence that recommended buildings are suitable.
+Empty-result cases are reported separately rather than assigned
+perfect similarity. Because scripted answers can reveal exactly what
+was removed, refined and oracle queries may be equivalent; the
+principal clarification evidence should therefore concern correct
+reconstruction and its interaction cost, rather than trivially high
+ranking agreement. Missingness levels share just eight base intents;
+uncertainty should be assessed at that base-intent level. Moreover,
+the omission count is coupled to the identities of the omitted
+criteria, so the study is a controlled stress test, not a causal
+estimate of the count alone.
+
+\section{Demonstration Walkthrough}
+\label{sec:demo}
+\paragraph{Guided: distinguishing care services.}
+Starting from a request for a building for older adults in Turin,
+attendees clarify whether the project is residential care or a day
+service and specify its intended capacity. The reviewed request makes
+visible which new requirements were obtained and which dimensions
+remained deliberately unconstrained. The existing MURENA workflow
+then exposes its filters, geographic candidates, and explanations.
+
+\paragraph{Open-ended: student residence.}
+Visitors begin with a broad renovation objective, progressively
+specify student housing, and choose whether a particular public
+funding programme applies. The dialogue distinguishes user-stated
+building preferences from programme-specific regulatory conditions.
+Different answers can yield different approved requests and screening
+outcomes. Open-ended interaction is not claimed to be reproducible
+across arbitrary attendee choices.
+
+\section{Discussion}
+\label{sec:discussion}
+This demonstration addresses the original MURENA assumption of
+sufficient initial input rather than proposing another query template
+or ranking method. Controlled omission experiments can quantify the
+cost of missing information and the correctness of its recovery, while
+separate ambiguity cases test whether the system asks meaningful
+questions. A non-conversational constraint-collection baseline would
+be needed to isolate the advantages of dialogue from the advantage
+of simply receiving more information. No outcomes from the proposed
+comparisons or human-participant claims are asserted here.
+
+\bibliographystyle{ACM-Reference-Format}
+\bibliography{sample-base}
+\end{document}

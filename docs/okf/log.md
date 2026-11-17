@@ -83,3 +83,8 @@
 * **Creation**: bundle iniziale OKF v0.2, con concetti per backend, frontend, dati, API, agenti, paper, benchmark e operazioni.
 * **Provenance**: allegati i sorgenti LaTeX del manoscritto e i riferimenti relativi ai file del progetto.
 * **Validation**: verifica automatica di formato e link locali inclusa nello ZIP; test runtime e riproduzione dei benchmark non eseguiti.
+## 2026-11-17 — Bozza EDBT nel repository
+
+* **Chiarimento abilitato per default**: aggiornati valore predefinito applicativo ed esempio di configurazione; resta possibile disabilitarlo esplicitamente.
+* Registrata la provenienza della bozza ricostruita in `paper/` e confrontate staticamente le sue principali affermazioni con chiarimento, UI e runner. Distinti protocollo comparativo proposto, funzionalità implementate e risultati effettivamente osservati; nessun nuovo esperimento eseguito.
+
