@@ -127,6 +127,25 @@ Per mantenere leggibile l'output, la CLI filtra alcuni warning ripetitivi e noti
 
 Opzioni documentate per l'harness: `--with-qwen`, `--with-gemma`, `--all-models`. La directory `backend/tests/` ospita un **harness sperimentale**, non una suite pytest di unit test completa.
 
+### Benchmark a tre condizioni (v3)
+
+Dalla root del repository, senza modificare `backend/.env` (il provider è impostato via variabili d'ambiente del processo):
+
+```bash
+LLM_PROVIDER=codex_exec LLM_MODEL=gpt-6-luna CODEX_REASONING_EFFORT=low PYTHONIOENCODING=utf-8 \
+uv run --project backend python backend/experiments/benchmark_cli.py \
+  --scenarios backend/experiments/data/scenarios_v3/conversational_scenarios.yaml \
+  --output backend/experiments/results/missingness_v3 \
+  --condition refined --condition one_shot --condition oracle \
+  --repeat 3 --oracle-repeat 5 --seed 13 --concurrency 4
+uv run --project backend python backend/experiments/compare_conditions.py \
+  --results backend/experiments/results/missingness_v3
+```
+
+Il piano è di 304 job: refined 144, one_shot 120, oracle 40. `--dry-run` li elenca senza eseguirli. Il resume viene rifiutato se cambiano condizioni, ripetizioni, impostazioni SAGE o LLM, opzioni o hash del dataset. `compare_conditions.py` scrive `comparison.json`, `comparison_per_k.csv` e `comparison_operational.csv`. I file completi `runs/<run_id>.json` restano locali; `runs.jsonl` contiene i campi necessari all'analisi.
+
+Per compilare il paper si usa Tectonic 0.17.0 (binario dalla release GitHub; su Windows non è disponibile via winget). I font Libertinus richiesti da `acmart` vanno resi disponibili localmente se il bundle di Tectonic non li trova.
+
 ## Controlli per confronti attendibili
 
 Registrare versione del dataset, query, modello/endpoint, prompt, condizioni di geocoding, mapping OSM, hardware e numero di prove. Se una tabella viene rigenerata **da log**, distinguere report derivato da una esecuzione effettiva.

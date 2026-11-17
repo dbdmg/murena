@@ -147,6 +147,35 @@ Nessun falso positivo: tutte le 30 rilevazioni non esatte sono omissioni di `Cb`
 
 Il numero di turni cresce quasi linearmente con `k`, e la durata cresce di circa 5–6 secondi per dimensione omessa. Come per v1, la sola condizione conversational non stima il beneficio del chiarimento rispetto a one-shot e oracle.
 
+## Famiglia v3 e protocollo a tre condizioni (2026-11-17)
+
+**Scenari v3** (`backend/experiments/data/scenarios_v3/`): stessa struttura di v2 (8 intenti base, `k=0..5`, 48 scenari, 8 per livello), ma la capienza è spostata dal frammento `D` al frammento `Cb` ("…at least N sqm of gross floor area and capacity for X people.", con sostantivo neutro per non rivelare la destinazione). Così omettere `Cb` rimuove davvero il vincolo dalla query iniziale. Il validatore verifica che `D'` non contenga più la capienza. Le 6 mancate rilevazioni v2 dovute a "existing building/unit" non dipendono dal generatore e sono affrontate con la regola `Cb` del parser (vedere [chiarimento](../architecture/query-clarification.md)).
+
+**Condizioni**, eseguite con la stessa pipeline e le stesse opzioni:
+
+- `refined`: query iniziale `q0` con frammenti omessi, chiarimento SAGE con utente simulato, analisi sulla query rivista (tutti i 48 scenari, inclusi i controlli `k=0`).
+- `one_shot`: `q0` analizzata direttamente, senza chiarimento (40 scenari con `k≥1`).
+- `oracle`: query completa dell'intento base, analizzata direttamente; ripetuta 5 volte per stimare la variabilità intrinseca della pipeline.
+
+L'oracle è un riferimento di query, non una ground truth sulla rilevanza degli immobili.
+
+**Metriche** (`backend/experiments/compare_conditions.py`, senza chiamate LLM):
+
+- Jaccard dei top-5 e RBO estrapolato con p=0,8 (Webber et al., 2010) di `one_shot` e `refined` rispetto all'oracle, mediati su tutte le coppie di ripetizioni.
+- Tetto di rumore: gli stessi indici calcolati tra ripetizioni dell'oracle.
+- Versione tie-aware: valore atteso su 1000 permutazioni casuali seminate all'interno dei gruppi a parità di score, oltre all'ordine servito.
+- Concordanza dei filtri strutturati: atomi per dimensione (`D:use`, `L:city/radius`, `Cb:area/capacità`, `Ce:classe peggiore ammessa`, `Cp:categoria`, `I:tipologia`) estratti dagli agenti prima del rilassamento, confrontati con il riferimento a maggioranza stretta delle ripetizioni oracle. Si riportano F1, recall per dimensione e atomi inventati.
+- Incertezza: bootstrap a cluster sugli 8 intenti base (B=10000, IC percentile 95%) e test esatto di sign-flip sulle differenze a livello di intento.
+- Dati operativi: tasso di turni non necessari con `k=0`, completamento, turni e latenza separata tra chiarimento e analisi.
+
+**Stato.** Smoke test reale del 2026-11-17 su `MS02`, una ripetizione per condizione, con `gpt-6-luna` via Codex: 4 run su 4 completati senza errori degli agenti e senza rilassamento.
+
+- Il controllo `k=0` termina senza domande (`no_clarification=true`).
+- `MS02_k2` rileva entrambe le omissioni, `Cb` compresa, in 2 turni e ottiene gli stessi 144 risultati dell'oracle.
+- Il `one_shot` restituisce 10.006 risultati con top-5 diverso.
+
+Questo è solo un controllo di funzionamento; il benchmark completo (304 job) è in esecuzione.
+
 ## Limiti
 
 Gli scenari sono sintetici e costruiti per coprire dimensioni, omissioni, ambiguità e casi normativi selezionati. Non costituiscono una user study e non rappresentano la distribuzione di richieste reali. Le risposte simulate e gli oracle riflettono scelte di costruzione del benchmark. Le run conversational documentate sopra sono risultati osservati su questo setup, ma non stimano il beneficio del chiarimento senza condizioni one-shot e oracle appaiate. La copertura normativa segue il catalogo fornito e non certifica autorizzazioni o aggiornamento giuridico. Il protocollo EDBT va mantenuto distinto dai risultati riportati nel paper originale.

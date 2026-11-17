@@ -2,6 +2,8 @@
 
 ## 2026-11-17
 
+* **Harness a tre condizioni e scenari v3**: runner esteso a `refined`/`one_shot`/`oracle` con schema `runs.jsonl` v2 e manifest completo; nuovo `compare_conditions.py` (Jaccard, RBO, versione tie-aware, concordanza dei filtri, bootstrap a cluster); scenari v3 con capienza spostata in `Cb`. Smoke test 4/4. Aggiornati `research/edbt-conversational-benchmark.md`, `research/reproduction.md`, `operations/code-review-2026-11.md`.
+
 * **Code review approfondita**: revisione di pipeline, chiarimento SAGE con API e UI, harness sperimentale e bozza del paper; esiti e stato in `operations/code-review-2026-11.md`.
 * **Correzioni della pipeline**: ranking deterministico (ordinamento stabile, score non sovrascritto dall'LLM di valutazione), trasparenza di rilassamento, fallback ed errori degli agenti nella risposta, ramo numerico del RegulatoryAgent, landmark per corrispondenza esatta, SQL a singola istruzione con accesso esterno di DuckDB disabilitato. Aggiornati `data/scoring.md`, `agents/sql.md`, `agents/relaxation.md`, `data/geospatial.md`.
 * **Correzioni del chiarimento**: regola `Cb` nel parser, errori transitori ritentabili, controllo di concorrenza sulle sessioni, città ancorata alla risposta, follow-up sulle ambiguità, review mostrata anche quando la prima query è completa, timeout client più lungo per i turni di chiarimento. Aggiornato `architecture/query-clarification.md`.

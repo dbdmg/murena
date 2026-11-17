@@ -31,19 +31,68 @@ from itertools import combinations
 from pathlib import Path
 
 
-def _load_runs(results: Path) -> list[dict]:
-    """Latest recorded attempt per (scenario, repeat), in runs.jsonl order.
+def _load_runs(results: Path, model: str | None = None) -> list[dict]:
+    """Latest refined attempt per (model, scenario, repeat) for the current scenario hash.
 
-    Resumed or rerun scenarios append newer attempts, so the last line for a
-    (scenario, repeat) pair reflects the most recent scenario definition.
+    Resumed or rerun scenarios append newer attempts. For each (model,
+    scenario) only rows carrying the most recent scenario hash (last one in
+    runs.jsonl order) are kept, so results of an edited scenario never mix
+    with those of its previous definition. Rows of the one_shot / oracle
+    conditions (benchmark_cli schema 2) are ignored here; see
+    compare_conditions.py.
     """
-    latest: dict[tuple, dict] = {}
+    rows = []
     for line in (results / "runs.jsonl").read_text(encoding="utf-8").splitlines():
         if not line.strip():
             continue
-        row = json.loads(line)
-        latest[(row["scenario_id"], row["repeat"])] = row
+        try:
+            row = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if row.get("condition", "refined") != "refined" or "scenario_id" not in row:
+            continue
+        if model is not None and row.get("model") != model:
+            continue
+        rows.append(row)
+    current_hash: dict[tuple, str | None] = {}
+    for row in rows:
+        current_hash[(row.get("model"), row["scenario_id"])] = row.get("input_sha256") or row.get("scenario_sha256")
+    latest: dict[tuple, dict] = {}
+    for row in rows:
+        row_hash = row.get("input_sha256") or row.get("scenario_sha256")
+        if row_hash != current_hash[(row.get("model"), row["scenario_id"])]:
+            continue
+        latest[(row.get("model"), row["scenario_id"], row["repeat"])] = row
     return list(latest.values())
+
+
+def _load_artifact(results: Path, row: dict) -> dict:
+    """Full run record when available; otherwise a view built from the compact row."""
+    artifact_file = row.get("artifact_file")
+    if artifact_file and (results / artifact_file).is_file():
+        try:
+            return json.loads((results / artifact_file).read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            pass
+    conversation = {
+        "initial_missing": row.get("initial_missing"),
+        "expected_initial_missing": row.get("expected_initial_missing"),
+        "turns": [{} for _ in range(row.get("turns") or 0)],
+        "mapping_accuracy": row.get("mapping_accuracy"),
+    }
+    trace = []
+    if row.get("matched_use_cases") is not None:
+        trace.append({"output": {"matched_use_cases": row.get("matched_use_cases"),
+                                 "requirements": row.get("requirements") or []}})
+    return {
+        "conversation": conversation,
+        "api_response": {"agent_trace": trace},
+        "duration_seconds": row.get("duration_seconds"),
+        "results_count": row.get("results_count"),
+        "final_sql": row.get("final_sql"),
+        "top_ids": [item.get("id") for item in row.get("top") or []],
+        "error": row.get("error"),
+    }
 
 
 def _matched_use_cases(artifact: dict) -> list[str] | None:
@@ -99,20 +148,22 @@ def main() -> None:
     parser.add_argument("--config-key", default=None,
                         help="Key of expected_matched_use_cases_by_configuration "
                              "(default: 'conversational' or 'refined').")
+    parser.add_argument("--model", default=None, help="Restrict to one model (default: all, keyed separately).")
     args = parser.parse_args()
 
     triplets = {t["case_id"]: t for t in json.loads(args.triplets.read_text(encoding="utf-8"))}
-    rows = _load_runs(args.results)
+    rows = _load_runs(args.results, args.model)
 
     records = []
     for row in rows:
-        artifact = json.loads((args.results / row["artifact_file"]).read_text(encoding="utf-8"))
+        artifact = _load_artifact(args.results, row)
         conv = artifact.get("conversation") or {}
         triplet = triplets.get(row["scenario_id"], {})
         by_conf = triplet.get("expected_matched_use_cases_by_configuration") or {}
         key = args.config_key or ("conversational" if "conversational" in by_conf else "refined")
         matched = _matched_use_cases(artifact)
         records.append({
+            "model": row.get("model"),
             "scenario": row["scenario_id"],
             "stratum": str(triplet.get("missing_count", triplet.get("category", "?"))),
             "status": row["status"],
@@ -142,7 +193,7 @@ def main() -> None:
 
     by_scenario = defaultdict(list)
     for r in done:
-        by_scenario[r["scenario"]].append(r)
+        by_scenario[(r["model"], r["scenario"])].append(r)
     multi = {k: v for k, v in by_scenario.items() if len(v) > 1}
     if multi:
         same_sql = sum(len({r["sql"] for r in v}) == 1 for v in multi.values())
