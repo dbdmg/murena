@@ -35,7 +35,9 @@ Sintetizza vincoli tecnici in una SELECT DuckDB e restituisce la query.
 
 ## Comportamento rilevante
 
-Il codice usa `sqlglot` per parsing/formattazione e controlli di keyword; l’esecutore DuckDB applica `EXPLAIN` prima dell’esecuzione. Il prompt limita le colonne alla loro intersezione tra schema runtime e allowlist dei metadati del dataset; usa `latitude`/`longitude` canoniche per le distanze e non traduce i nomi di località in `comune_code`, che è un codice catastale. Le colonne storiche `codice_comune`, `latitudine` e `longitudine` sono normalizzate dal loader. La validazione non costituisce un sandbox SQL formalmente completo.
+Il codice usa `sqlglot` per parsing/formattazione e controlli di keyword; l’esecutore DuckDB applica `EXPLAIN` prima dell’esecuzione. Il prompt limita le colonne alla loro intersezione tra schema runtime e allowlist dei metadati del dataset; usa `latitude`/`longitude` canoniche per le distanze e non traduce i nomi di località in `comune_code`, che è un codice catastale. Le colonne storiche `codice_comune`, `latitudine` e `longitudine` sono normalizzate dal loader. La validazione non costituisce un sandbox SQL formalmente completo. Dal 2026-11-17 l'esecutore (`backend/app/services/analysis/executor.py`, `validate_select_sql()`) analizza la SQL con `sqlglot` e accetta una sola istruzione `SELECT`, `WITH` o operazione insiemistica, rifiutando istruzioni multiple, `COPY`, `PRAGMA`, `INSTALL`, `ATTACH` e simili. Dopo la creazione delle viste DuckDB imposta `enable_external_access=false`, consentendo solo il file Parquet del dataset tramite `allowed_paths`.
+
+La risposta di analisi espone `sql_agent_sql` (SQL dell'agente prima di qualsiasi rilassamento), `relaxation_applied` (vero se almeno un passaggio di rilassamento ha modificato la SQL), `relaxation_count` (numero di passaggi che l'hanno modificata), `fallback_activated` (risultati dal percorso di fallback) e `agent_errors` (fallimenti degli agenti gestiti con fallback, come lista di `{agent, error}`). Prima un fallimento di un agente veniva registrato come disattivazione per irrilevanza.
 
 ## Osservabilità e dipendenze
 

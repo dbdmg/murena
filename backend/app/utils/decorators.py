@@ -1,12 +1,44 @@
+import copy
 import functools
 import json
 import random
+import threading
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any, Callable, Dict, List
 
 from app.utils.logger import LLM_LOG_DIR, logger
+
+
+# ---------------------------------------------------------------------------
+# Agent error sink
+# ---------------------------------------------------------------------------
+# Agents degrade gracefully (fallback values) when they fail. To keep those
+# failures visible to the orchestrator, they are recorded in a thread-local
+# buffer that the caller drains *in the same thread* right after the agent
+# call (see GraphOrchestratorAgent._capture_agent_errors). Thread-local storage
+# keeps concurrent analysis runs (shared agent instances) isolated.
+_agent_error_sink = threading.local()
+
+
+def record_agent_error(agent: str, error: Any) -> None:
+    """Record a (gracefully handled) agent failure for the current thread."""
+    buf = getattr(_agent_error_sink, "errors", None)
+    if buf is None:
+        buf = []
+        _agent_error_sink.errors = buf
+    buf.append({"agent": str(agent), "error": str(error)})
+    # Bound memory for threads that never drain (callers outside the orchestrator).
+    if len(buf) > 100:
+        del buf[:-100]
+
+
+def pop_agent_errors() -> List[Dict[str, str]]:
+    """Return and clear the agent failures recorded in the current thread."""
+    buf = getattr(_agent_error_sink, "errors", None) or []
+    _agent_error_sink.errors = []
+    return list(buf)
 
 
 def retry_with_backoff(
@@ -98,9 +130,17 @@ def handle_agent_error(fallback_value: Any = None):
                     },
                 )
 
-                # If a fallback is provided, return it
+                # Surface the failure to the orchestrator (agent_errors) instead
+                # of letting the fallback masquerade as "no requirements".
+                record_agent_error(agent_name, f"{type(e).__name__}: {e}")
+
+                # If a fallback is provided, return a copy (the default object is
+                # shared across calls and must not be mutated downstream).
                 if fallback_value is not None:
-                    return fallback_value
+                    try:
+                        return copy.deepcopy(fallback_value)
+                    except Exception:
+                        return fallback_value
 
                 return None
 

@@ -35,7 +35,7 @@ Propone allentamenti mirati quando il risultato di una query è vuoto.
 
 ## Comportamento rilevante
 
-Il grafo segue il ramo `relax_query` se la condizione di esecuzione lo richiede e `use_relaxation` è attivo; preservare visibilità della modifica dei vincoli.
+Il grafo segue il ramo `relax_query` se la condizione di esecuzione lo richiede e `use_relaxation` è attivo; preservare visibilità della modifica dei vincoli. Il rilassamento scatta quando i risultati sono meno di 10 e, se le proposte LLM non corrispondono esattamente a una condizione, rimuove condizioni dall'ultima alla prima. Dal 2026-11-17 `relaxation_applied` resta vero se un qualsiasi passaggio ha modificato la SQL e la risposta espone il numero di passaggi effettivi e la SQL originale dell'agente (vedere [SQLAgent](sql.md)).
 
 ## Osservabilità e dipendenze
 

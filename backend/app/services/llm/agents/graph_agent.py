@@ -13,7 +13,8 @@ import tabulate
 import sqlglot
 from sqlglot import exp, parse_one
 
-from app.services.analysis.ranking import calculate_ranking_score
+from app.services.analysis.ranking import calculate_ranking_score, stable_rank_sort
+from app.utils.decorators import pop_agent_errors
 from app.core.config import settings
 from app.core.constants import (
     SCORE_LEGEND, 
@@ -128,7 +129,11 @@ class OrchestratorResult:
     agent_trace: Optional[List[Dict[str, Any]]] = field(default_factory=list)
     relaxation_applied: bool = False
     relaxation_proposals: List[Dict[str, Any]] = field(default_factory=list)
-    relaxation_count: int = 0
+    relaxation_count: int = 0  # relaxation passes attempted (loop counter)
+    relaxation_applied_count: int = 0  # passes that actually changed the SQL
+    fallback_activated: bool = False
+    agent_errors: List[Dict[str, str]] = field(default_factory=list)
+    sql_agent_sql: Optional[str] = None  # SQL-agent output before any relaxation
 
 
 class GraphState(TypedDict):
@@ -187,6 +192,10 @@ class GraphState(TypedDict):
     relaxation_applied: bool
     relaxation_proposals: List[Dict[str, Any]]
     relaxation_count: int
+    relaxation_applied_count: int  # Relaxation passes that changed the SQL
+    fallback_activated: bool  # True when fallback results replaced the SQL results
+    agent_errors: List[Dict[str, str]]  # Gracefully handled agent failures
+    sql_agent_sql: Optional[str]  # SQL produced by the SQL agent before relaxation
     use_data_knowledge: bool  # Whether data statistics are passed to agents
     use_relaxation: bool  # Whether to use query relaxation if 0 results found
 
@@ -461,6 +470,10 @@ class GraphOrchestratorAgent(BaseAgent):
             "relaxation_applied": False,
             "relaxation_proposals": [],
             "relaxation_count": 0,
+            "relaxation_applied_count": 0,
+            "fallback_activated": False,
+            "agent_errors": [],
+            "sql_agent_sql": None,
             "sql_history": [],
         }
 
@@ -514,6 +527,10 @@ class GraphOrchestratorAgent(BaseAgent):
             relaxation_applied=final_state.get("relaxation_applied", False),
             relaxation_proposals=final_state.get("relaxation_proposals", []),
             relaxation_count=final_state.get("relaxation_count", 0),
+            relaxation_applied_count=final_state.get("relaxation_applied_count", 0),
+            fallback_activated=bool(final_state.get("fallback_activated", False)),
+            agent_errors=list(final_state.get("agent_errors") or []),
+            sql_agent_sql=final_state.get("sql_agent_sql"),
         )
 
 
@@ -1106,6 +1123,40 @@ class GraphOrchestratorAgent(BaseAgent):
 
         return categorical_values
 
+    # ------------------------------------------------------------------
+    # Agent error bookkeeping
+    # ------------------------------------------------------------------
+    @staticmethod
+    def _capture_agent_errors(task: Callable[[], Any]) -> Callable[[], Any]:
+        """Wrap a task so gracefully handled agent errors raised in the worker
+        thread are returned with its result: ``(task_result, errors)``."""
+        def wrapped():
+            pop_agent_errors()  # discard stale entries from a reused worker thread
+            try:
+                result = task()
+            except Exception:
+                pop_agent_errors()
+                raise
+            return result, pop_agent_errors()
+        return wrapped
+
+    @staticmethod
+    def _record_agent_errors(state: GraphState, errors: List[Dict[str, str]], default_agent: str = "") -> None:
+        """Append agent failures to ``state['agent_errors']`` (de-duplicated)."""
+        if not errors:
+            return
+        bucket = state.get("agent_errors")
+        if bucket is None:
+            bucket = []
+            state["agent_errors"] = bucket
+        for err in errors:
+            entry = {
+                "agent": str(err.get("agent") or default_agent or "unknown"),
+                "error": str(err.get("error", "")),
+            }
+            if entry not in bucket:
+                bucket.append(entry)
+
     def _analyze_request(self, state: GraphState) -> GraphState:
         self._update_progress(state, "ranking_init", "Analysis & priority agent listening...")
         query = state["query"]
@@ -1223,14 +1274,22 @@ class GraphOrchestratorAgent(BaseAgent):
             active_tasks = {k: v for k, v in active_tasks.items() if k not in disabled}
 
         results = {k: None for k in active_tasks.keys()}
+        failed_agents: Dict[str, str] = {}
         logger.info(f"Executing active agents in parallel: {', '.join(active_tasks.keys())}")
-        
+
         with ThreadPoolExecutor(max_workers=len(active_tasks)) as executor:
-            future_to_name = {executor.submit(task): name for name, task in active_tasks.items()}
+            future_to_name = {
+                executor.submit(self._capture_agent_errors(task)): name
+                for name, task in active_tasks.items()
+            }
             for future in as_completed(future_to_name):
                 agent_name = future_to_name[future]
                 try:
-                    res, duration = future.result()
+                    (res, duration), errors = future.result()
+                    if errors:
+                        # Graceful fallback was used: keep it, but record the failure.
+                        self._record_agent_errors(state, errors, default_agent=f"{agent_name}-agent")
+                        failed_agents[agent_name] = "; ".join(e.get("error", "") for e in errors)
                     results[agent_name] = res
                     if res:
                         # Map to correct trace name
@@ -1243,6 +1302,15 @@ class GraphOrchestratorAgent(BaseAgent):
                 except Exception as e:
                     import traceback
                     logger.error(f"Error executing {agent_name}: {e}\n{traceback.format_exc()}")
+                    err = f"{type(e).__name__}: {e}"
+                    self._record_agent_errors(state, [{"agent": f"{agent_name}-agent", "error": err}])
+                    failed_agents[agent_name] = err
+
+        def _inactive_message(agent_name: str) -> str:
+            # Distinguish a failure from a genuinely irrelevant/disabled agent.
+            if agent_name in failed_agents:
+                return f"Agent failed: {failed_agents[agent_name]}"
+            return "Agent deactivated due to irrelevance"
 
         # 3. Collect results
         ranking_result = results.get("ranking")
@@ -1269,7 +1337,7 @@ class GraphOrchestratorAgent(BaseAgent):
         else:
             state["gemini_responses"]["building_extraction"] = {
                 "prompt": None,
-                "response": "Agent deactivated due to irrelevance",
+                "response": _inactive_message("building"),
                 "typologies": [],
             }
         state["building_result"] = building_result
@@ -1288,7 +1356,7 @@ class GraphOrchestratorAgent(BaseAgent):
         else:
             state["gemini_responses"]["location_extraction"] = {
                 "prompt": None,
-                "response": "Agent deactivated due to irrelevance",
+                "response": _inactive_message("location"),
                 "places": [],
             }
         state["context"].locations = places
@@ -1325,7 +1393,7 @@ class GraphOrchestratorAgent(BaseAgent):
         else:
             state["gemini_responses"]["proximity_analysis"] = {
                 "prompt": None,
-                "response": "Agent deactivated due to irrelevance",
+                "response": _inactive_message("proximity"),
                 "requirements": [],
                 "found": False
             }
@@ -1344,7 +1412,7 @@ class GraphOrchestratorAgent(BaseAgent):
         else:
             state["gemini_responses"]["energy_analysis"] = {
                 "prompt": None,
-                "response": "Agent deactivated due to irrelevance",
+                "response": _inactive_message("energy"),
                 "requirements": [],
                 "found": False
             }
@@ -1395,7 +1463,7 @@ class GraphOrchestratorAgent(BaseAgent):
         else:
             state["gemini_responses"]["regulatory_analysis"] = {
                 "prompt": None,
-                "response": "Agent deactivated due to irrelevance",
+                "response": _inactive_message("regulatory"),
                 "regulatory_info": "",
                 "sources": [],
             }
@@ -1447,8 +1515,9 @@ class GraphOrchestratorAgent(BaseAgent):
 
     def _format_agent_requirements(self, agent_result: Any) -> str:
         """Formats an agent's requirements (Energy or Regulatory) in compact format [col] [op] [val]."""
-        if not agent_result or not agent_result.raw_text or agent_result.raw_text == "N/A":
-            return "N/A"
+        # Sentinel aligned with callers in _generate_sql, which compare against "N/D".
+        if not agent_result or not agent_result.raw_text or agent_result.raw_text in ("N/A", "N/D"):
+            return "N/D"
         
         try:
             # Safely extract JSON (handles markdown blocks and extra text)
@@ -1501,6 +1570,9 @@ class GraphOrchestratorAgent(BaseAgent):
         
         if state.get("sql_query") and retry_count == 0 and not is_relaxing:
             logger.info("SQL already generated by Baseline Planner, skipping SQLAgent.")
+            # In baseline architecture the unified planner plays the SQL-agent role.
+            if not state.get("sql_agent_sql"):
+                state["sql_agent_sql"] = state["sql_query"]
             return state
 
         # DETERMINISTIC RELAXATION: Se abbiamo già una query rilassata pronta prodotta dal workflow AST
@@ -1597,6 +1669,7 @@ class GraphOrchestratorAgent(BaseAgent):
         scheme_str = "\n".join([f"{col}: {dtype}" for col, dtype in col_types.items()])
 
         start_t = time.time()
+        pop_agent_errors()
         sql_result = self.sql_agent.run(
             query=query, # use original query
             scheme=scheme_str,
@@ -1608,12 +1681,17 @@ class GraphOrchestratorAgent(BaseAgent):
             raw_response=None
         )
         duration_ms = (time.time() - start_t) * 1000
+        self._record_agent_errors(state, pop_agent_errors(), default_agent="sql-agent")
 
         # Append to history
         state["sql_history"].append(sql_result.raw_text)
 
         # sql_result.sql now contains the cleaned SQL
         state["sql_query"] = sql_result.sql
+        # Transparency: remember the SQL agent's own query before any relaxation
+        # pass rewrites it (retries before relaxation overwrite it with the latest).
+        if not state.get("relaxation_count", 0):
+            state["sql_agent_sql"] = sql_result.sql
         key = (
             "sql_generation"
             if retry_count == 0
@@ -1766,6 +1844,7 @@ class GraphOrchestratorAgent(BaseAgent):
         )
         
         start_t = time.time()
+        pop_agent_errors()
         # 1. Carichiamo tutte le proposte dal RelaxationAgent in un solo colpo
         result = self.relaxation_agent.run(
             where_conditions=json.dumps(where_details, indent=2, ensure_ascii=False),
@@ -1774,7 +1853,12 @@ class GraphOrchestratorAgent(BaseAgent):
             output_language_instruction=state.get("output_language_instruction", ""),
         )
         duration_ms = (time.time() - start_t) * 1000
-        
+        agent_errors = list(state.get("agent_errors") or [])
+        for err in pop_agent_errors():
+            entry = {"agent": err.get("agent") or "relaxation-agent", "error": err.get("error", "")}
+            if entry not in agent_errors:
+                agent_errors.append(entry)
+
         # 2. Applichiamo il workflow deterministico: una condizione alla volta, dall'ultima alla prima
         final_relaxed_sql = self._apply_ast_relaxation_workflow(state, sql_query, result.proposals)
         
@@ -1807,13 +1891,17 @@ class GraphOrchestratorAgent(BaseAgent):
 
         current_count = state.get("relaxation_count", 0) + 1
         all_proposals = state.get("relaxation_proposals", []) + proposals
+        # Sticky: a later pass that changes nothing must not hide an earlier relaxation.
+        applied_count = state.get("relaxation_applied_count", 0) + (1 if applied else 0)
 
         return {
             "sql_query": final_relaxed_sql if applied else sql_query,
             "relaxation_proposals": all_proposals,
             "relax_constraints": True,
-            "relaxation_applied": applied,
+            "relaxation_applied": bool(state.get("relaxation_applied", False) or applied),
+            "relaxation_applied_count": applied_count,
             "relaxation_count": current_count,
+            "agent_errors": agent_errors,
             "execution_error": _localized_text(
                 state.get("output_language"),
                 en=f"[Relaxation #{current_count}] Zero or too few results found (< 10 rows). Apply the suggested relaxations to broaden the search.",
@@ -1897,6 +1985,8 @@ class GraphOrchestratorAgent(BaseAgent):
             state, "sql", ""
         )
         logger.warning("Fallback activated: loading top results from full dataset")
+        # Exposed in the API result: results no longer come from the user's SQL.
+        state["fallback_activated"] = True
 
         dataset_path = state.get("dataset_path")
         base_dataset = state.get("base_dataset")
@@ -1958,6 +2048,7 @@ class GraphOrchestratorAgent(BaseAgent):
 
             state["selected_data"] = fallback_df
             state["gemini_responses"]["fallback_activated"] = True
+            state["fallback_activated"] = True
             state["status_msg"] = _localized_text(
                 state.get("output_language"),
                 en=(
@@ -2323,15 +2414,22 @@ class GraphOrchestratorAgent(BaseAgent):
         # Execute parallel ranking tasks (only for active agents)
         with ThreadPoolExecutor(max_workers=len(ranking_tasks) if ranking_tasks else 1) as executor:
             task_map = {
-                executor.submit(task): name 
+                executor.submit(self._capture_agent_errors(task)): name
                 for name, task in ranking_tasks.items()
             }
-            
+
             for future in as_completed(task_map):
                 name = task_map[future]
                 try:
-                    res_df, duration = future.result()
-                    
+                    (res_df, duration), errors = future.result()
+                    self._record_agent_errors(state, errors, default_agent=f"{name}-agent")
+                    if not isinstance(res_df, pd.DataFrame) or "id" not in res_df.columns:
+                        # Agent returned its non-DataFrame fallback (e.g. handle_agent_error):
+                        # surface it instead of silently zeroing the score below.
+                        raise TypeError(
+                            f"{name} ranking returned {type(res_df).__name__} instead of a scored DataFrame"
+                        )
+
                     # Log ranking results as JSON for UI visualization
                     if not res_df.empty:
                         # Transform to clean JSON (handles NaNs by converting to null)
@@ -2349,6 +2447,10 @@ class GraphOrchestratorAgent(BaseAgent):
                     df = df.merge(res_df[new_cols], on="id", how="left")
                 except Exception as e:
                     logger.error(f"Error in parallel ranking part {name}: {e}")
+                    self._record_agent_errors(state, [{
+                        "agent": f"{name}-agent",
+                        "error": f"ranking failed ({type(e).__name__}: {e}); {name}_score set to 0",
+                    }])
                     col = f"{name}_score"
                     if col not in df.columns:
                         df[col] = 0.0
@@ -2363,15 +2465,28 @@ class GraphOrchestratorAgent(BaseAgent):
 
         # Calculate final weighted score via RankingAgent (ranking mode)
         start_t = time.time()
-        df = self.ranking_agent.run(mode="ranking", df=df, weights=weights)
+        pop_agent_errors()
+        ranked_df = self.ranking_agent.run(mode="ranking", df=df, weights=weights)
         duration_ms = (time.time() - start_t) * 1000
-        
+        self._record_agent_errors(state, pop_agent_errors(), default_agent="ranking-agent")
+        if isinstance(ranked_df, pd.DataFrame):
+            df = ranked_df
+        else:
+            self._record_agent_errors(state, [{
+                "agent": "ranking-agent",
+                "error": "final weighted ranking failed; final_ranking_score set to 0",
+            }])
+            if "final_ranking_score" not in df.columns:
+                df["final_ranking_score"] = 0.0
+
         # Log this final ranking step
         self._log_execution(state, "ranking-agent", df, duration_ms, mode="ranking")
         self._update_progress(state, "ranking", "", status="done")
 
-        # Sort by total score
-        df = df.sort_values(by="final_ranking_score", ascending=False)
+        # Deterministic order: score desc, distance asc (NaN last), id asc. This
+        # fixes which rows enter the LLM evaluation cap (head(llm_cap)) independently
+        # of the LLM-chosen SQL ORDER BY or file order.
+        df = stable_rank_sort(df)
         state["selected_data"] = df
         
         return state
@@ -2543,13 +2658,14 @@ class GraphOrchestratorAgent(BaseAgent):
 
         with ThreadPoolExecutor(max_workers=4) as executor:
             futures = {
-                executor.submit(process_batch, batch): i
+                executor.submit(self._capture_agent_errors(lambda b=batch: process_batch(b))): i
                 for i, batch in enumerate(batches)
             }
 
             for future in as_completed(futures):
                 try:
-                    payload, duration = future.result()
+                    (payload, duration), errors = future.result()
+                    self._record_agent_errors(state, errors, default_agent="evaluation-agent")
                     finished_batches += 1
                     
                     # Parse results from raw_text using EvaluationList schema
@@ -2586,7 +2702,28 @@ class GraphOrchestratorAgent(BaseAgent):
                         }
                 except Exception as e:
                     logger.error(f"Error parsing evaluation batch: {e}")
-                    pass
+                    self._record_agent_errors(state, [{
+                        "agent": "evaluation-agent",
+                        "error": f"evaluation batch failed: {type(e).__name__}: {e}",
+                    }])
+
+        # Deterministic order (batches complete in arbitrary order) and
+        # deterministic scores: the LLM may echo/alter final_ranking_score, but the
+        # authoritative score is the deterministic one computed in _rank_results.
+        if "id" in eval_input_df.columns:
+            id_order = {str(v): i for i, v in enumerate(eval_input_df["id"].tolist())}
+            det_scores = {}
+            if "final_ranking_score" in eval_input_df.columns:
+                for rid, sc in zip(eval_input_df["id"].tolist(), eval_input_df["final_ranking_score"].tolist()):
+                    det_scores[str(rid)] = sc
+            all_results.sort(key=lambda r: id_order.get(str(getattr(r, "id", "")), len(id_order)))
+            for res in all_results:
+                sc = det_scores.get(str(getattr(res, "id", "")))
+                if sc is not None and pd.notna(sc) and hasattr(res, "final_ranking_score"):
+                    try:
+                        res.final_ranking_score = int(round(float(sc)))
+                    except Exception:
+                        pass
 
         state["context"].evaluation_results = all_results
         # Update full results list in log
@@ -2638,11 +2775,13 @@ class GraphOrchestratorAgent(BaseAgent):
 
         candidates_text = "\n---\n".join(candidates)
 
+        pop_agent_errors()
         summary = self.broker_agent.run(
             query=state["query"],
             candidates_data=candidates_text,
             output_language_instruction=output_language_instruction,
         )
+        self._record_agent_errors(state, pop_agent_errors(), default_agent="broker-agent")
 
         state["broker_summary"] = summary
         state["gemini_responses"]["broker_review"] = summary
@@ -2667,6 +2806,7 @@ class GraphOrchestratorAgent(BaseAgent):
             )
 
             # Fallback: Fetch a sample from DuckDB since working_dataset is not in state
+            state["fallback_activated"] = True
             dataset_path = state.get("dataset_path")
             fallback_query = "SELECT * FROM IMMOBILI LIMIT 500"
             # Use execute_sql_fn to get data
@@ -2759,7 +2899,10 @@ class GraphOrchestratorAgent(BaseAgent):
         evaluated_total = 0
 
         if eval_results:
-            # Costruisci DataFrame con le valutazioni LLM (solo per gli ID valutati)
+            # Build a DataFrame with the LLM *text* fields only (evaluated IDs).
+            # The LLM's echoed final_ranking_score is deliberately NOT merged: the
+            # deterministic float score from _rank_results stays authoritative and
+            # determines the order (it used to be overwritten and re-sorted).
             val_data: List[Dict[str, Any]] = []
             for res in eval_results:
                 pro_text = "\n".join(res.pros) if res.pros else ""
@@ -2767,7 +2910,6 @@ class GraphOrchestratorAgent(BaseAgent):
                 val_data.append(
                     {
                         "id": res.id,
-                        "final_ranking_score": res.final_ranking_score,
                         "motivazione": res.evaluation_text,
                         "pro": pro_text,
                         "contro": contro_text,
@@ -2780,28 +2922,20 @@ class GraphOrchestratorAgent(BaseAgent):
                 valutazioni_df["id"] = valutazioni_df["id"].astype(str)
                 evaluated_total = len(valutazioni_df)
 
-                # Keep a backup of deterministic final_ranking_score before merging
-                det_scores = map_df[["id", "final_ranking_score"]].copy() if "final_ranking_score" in map_df.columns else pd.DataFrame(columns=["id", "final_ranking_score"])
-
-                if "final_ranking_score" in map_df.columns:
-                    map_df = map_df.drop(columns=["final_ranking_score"])
+                text_cols = ["motivazione", "pro", "contro"]
+                existing_text_cols = [c for c in text_cols if c in map_df.columns]
+                if existing_text_cols:
+                    map_df = map_df.drop(columns=existing_text_cols)
 
                 map_df = pd.merge(
                     map_df,
-                    valutazioni_df[
-                        ["id", "final_ranking_score", "motivazione", "pro", "contro"]
-                    ].drop_duplicates("id"),
+                    valutazioni_df[["id"] + text_cols].drop_duplicates("id"),
                     on="id",
                     how="left",
                 )
 
-                # For buildings not evaluated, fall back to the deterministic score
-                if not det_scores.empty:
-                    map_df = pd.merge(map_df, det_scores, on="id", how="left", suffixes=("", "_det"))
-                    if "final_ranking_score_det" in map_df.columns:
-                        map_df["final_ranking_score"] = map_df["final_ranking_score"].fillna(map_df["final_ranking_score_det"])
-                        map_df = map_df.drop(columns=["final_ranking_score_det"])
-
+                if "final_ranking_score" not in map_df.columns:
+                    map_df["final_ranking_score"] = 0.0
                 map_df["final_ranking_score"] = pd.to_numeric(
                     map_df["final_ranking_score"], errors="coerce"
                 ).fillna(0)
@@ -2836,21 +2970,9 @@ class GraphOrchestratorAgent(BaseAgent):
             if col in map_df.columns:
                 map_df[col] = map_df[col].fillna(False).astype(bool)
 
-        # Ordina: prima i risultati che matchano la query, poi ranking/ distanza
-        sort_cols = []
-        ascending = []
-        if "is_match" in map_df.columns:
-            sort_cols.append("is_match")
-            ascending.append(False)
-        if "final_ranking_score" in map_df.columns:
-            sort_cols.append("final_ranking_score")
-            ascending.append(False)
-        if "distanza_km" in map_df.columns:
-            sort_cols.append("distanza_km")
-            ascending.append(True)
-
-        if sort_cols:
-            map_df = map_df.sort_values(sort_cols, ascending=ascending)
+        # Order: matching rows first, then deterministic score desc, distance asc
+        # (NaN last), building id asc — stable and independent of SQL/file order.
+        map_df = stable_rank_sort(map_df, leading=[("is_match", False)])
 
         # Applica il limite mappa globale (MAX_ITEMS_FOR_MAP o override utente)
         if len(map_df) > map_cap:

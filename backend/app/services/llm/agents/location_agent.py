@@ -15,7 +15,7 @@ from app.core.constants import LOCATION_AGENT_COLUMNS
 from app.data.processors import calculate_travel_times_df
 from app.services.llm.langchain_client import get_llm, invoke_with_langfuse
 from app.services.llm.prompt_loader import get_system_prompt, get_user_template
-from app.utils.decorators import handle_agent_error, log_llm_usage
+from app.utils.decorators import handle_agent_error, log_llm_usage, record_agent_error
 from app.utils.json_parser import safe_extract_json
 from app.utils.logger import logger
 
@@ -81,6 +81,7 @@ class LocationAgent(BaseAgent):
             logger.error(f"Error in {self.name}.run ({mode}): {e}")
             import traceback
             logger.error(traceback.format_exc())
+            record_agent_error(self.name, f"{mode}: {type(e).__name__}: {e}")
             if mode == "ranking":
                 df = kwargs.get("df")
                 if df is not None:
@@ -188,22 +189,33 @@ class LocationAgent(BaseAgent):
                 search_query = (
                     f"{place.name}, {place.city}" if place.city else place.name
                 )
+                error = None
                 try:
                     lat, lon = get_coordinates(search_query)
-                except Exception:
+                except Exception as exc:
                     lat, lon = None, None
-                
+                    error = f"{type(exc).__name__}: {exc}"
+
                 # Update place object
                 place.lat = lat
                 place.lon = lon
-                return place
+                return place, search_query, error
 
             with ThreadPoolExecutor(max_workers=5) as executor:
                 futures = [executor.submit(geocode_place, p) for p in places]
                 for future in futures:
-                    p = future.result()
+                    p, search_query, error = future.result()
                     if p.lat is not None and p.lon is not None:
                         valid_places.append(p)
+                    else:
+                        # The place is still dropped (no coordinates), but the
+                        # failure is recorded in this (caller) thread so it is
+                        # surfaced in agent_errors instead of disappearing.
+                        detail = error or "no coordinates found"
+                        logger.warning(f"Geocoding failed for '{search_query}': {detail}")
+                        record_agent_error(
+                            self.name, f"Geocoding failed for '{search_query}': {detail}"
+                        )
 
         # Update found flag based on SUCCESSFUL GEOCODING
         has_locations = len(valid_places) > 0

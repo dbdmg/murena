@@ -177,11 +177,61 @@ def calculate_ranking_score(
 
     df["final_ranking_score"] = final_score * 100
 
-    # Sort descending by score, then ascending by distance (if available)
-    if "distanza_km" in df.columns:
-        return df.sort_values(["final_ranking_score", "distanza_km"], ascending=[False, True])
-    else:
-        return df.sort_values("final_ranking_score", ascending=False)
+    # Sort descending by score, then ascending by distance (if available),
+    # then by id: deterministic regardless of input row order.
+    return stable_rank_sort(df)
+
+
+def _id_sort_key(ids: pd.Series) -> pd.Series:
+    """Ascending sort key for building ids (numeric when all ids are numeric)."""
+    as_num = pd.to_numeric(ids, errors="coerce")
+    if ids.notna().any() and as_num[ids.notna()].notna().all():
+        return as_num
+    return ids.astype(str)
+
+
+def stable_rank_sort(
+    df: pd.DataFrame,
+    score_col: str = "final_ranking_score",
+    distance_col: str = "distanza_km",
+    id_col: str = "id",
+    leading: list | None = None,
+) -> pd.DataFrame:
+    """Deterministic ranking order with explicit tie-breakers.
+
+    Order: ``leading`` keys (list of ``(column, ascending)``, e.g. is_match
+    desc), then score desc, distance asc, building id asc. Missing scores and
+    distances sort last. The result therefore does not depend on the row order
+    produced by the LLM-generated SQL (``ORDER BY``) or on file order.
+    """
+    if df is None or df.empty:
+        return df
+
+    keys: list[pd.Series] = []
+    ascending: list[bool] = []
+    for col, asc in leading or []:
+        if col in df.columns:
+            keys.append(df[col])
+            ascending.append(asc)
+    if score_col in df.columns:
+        keys.append(pd.to_numeric(df[score_col], errors="coerce"))
+        ascending.append(False)
+    if distance_col in df.columns:
+        keys.append(pd.to_numeric(df[distance_col], errors="coerce"))
+        ascending.append(True)
+    if id_col in df.columns:
+        keys.append(_id_sort_key(df[id_col]))
+        ascending.append(True)
+    if not keys:
+        return df
+
+    key_df = pd.DataFrame(
+        {f"__k{i}": k.to_numpy() for i, k in enumerate(keys)}, index=range(len(df))
+    )
+    order = key_df.sort_values(
+        list(key_df.columns), ascending=ascending, kind="mergesort", na_position="last"
+    ).index.to_numpy()
+    return df.iloc[order]
 
 
 def _calculate_poi_score_granular(

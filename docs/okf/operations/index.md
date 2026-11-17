@@ -1,8 +1,9 @@
 # Operations
 
-Knowledge concepts: 5.
+Knowledge concepts: 6.
 
 ## Documenti
+* [Code review per il demo paper EDBT (novembre 2026)](code-review-2026-11.md) — Difetti di pipeline, chiarimento, UI e harness, con stato delle correzioni.
 * [Configurazione e variabili d’ambiente](environment.md) — Impostazioni essenziali del server, degli storage, dell’inferenza e della UI.
 * [Manutenzione del bundle OKF](maintenance.md) — Come aggiornare la knowledge base quando cambiano agenti, API, dataset o paper.
 * [Test e quality gate](quality.md) — Controlli statici, frontend lint/build e valutazioni sperimentali.

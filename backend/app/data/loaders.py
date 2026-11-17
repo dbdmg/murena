@@ -138,6 +138,54 @@ def _clean_place_name(name: str) -> str:
     return clean.strip()
 
 
+def _normalize_landmark_text(text: str) -> str:
+    """Lowercase, trim punctuation at the edges and collapse whitespace."""
+    text = (text or "").lower().strip().strip(".,;:!?\"'()[]")
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def _match_local_landmark(place_name: str):
+    """Return local landmark coordinates for ``place_name`` or None.
+
+    Matching is deliberately conservative (it used to be a bidirectional
+    substring test, so "Torino" resolved to the university and "parco" to
+    Parco Valentino):
+
+    - the place part (before an optional ", <city>[, Italia]" suffix naming the
+      default city) must equal a landmark key after normalization; or
+    - a *multi-word* landmark key may appear inside the place part on word
+      boundaries (e.g. "stazione porta nuova" -> "porta nuova").
+
+    Single-word keys ("centro", "politecnico", ...) only match exactly.
+    """
+    clean = _normalize_landmark_text(place_name)
+    if not clean:
+        return None
+
+    city_tokens = {
+        _normalize_landmark_text(DEFAULT_CITY), "torino", "turin", "italia", "italy",
+    }
+    parts = [_normalize_landmark_text(p) for p in clean.split(",")]
+    parts = [p for p in parts if p]
+    if not parts:
+        return None
+    place_part = parts[0]
+    # A trailing qualifier that is not the default city/country means the
+    # place is elsewhere: do not use the Turin landmark registry.
+    if any(p not in city_tokens for p in parts[1:]):
+        return None
+
+    if place_part in LOCAL_LANDMARKS:
+        return LOCAL_LANDMARKS[place_part]
+
+    for landmark, coords in LOCAL_LANDMARKS.items():
+        if " " not in landmark:
+            continue
+        if re.search(r"(?<!\w)" + re.escape(landmark) + r"(?!\w)", place_part):
+            return coords
+    return None
+
+
 def load_and_merge_data(file_path):
     """
     Load CSV or Parquet data with error handling.
@@ -211,10 +259,9 @@ def get_coordinates(place_name):
     if not place_name: return None, None
 
     # 2. Local landmarks registry (Turin focused)
-    clean_name = place_name.lower().strip()
-    for landmark, coords in LOCAL_LANDMARKS.items():
-        if landmark in clean_name or (len(clean_name) > 3 and clean_name in landmark):
-            return coords
+    landmark_coords = _match_local_landmark(place_name)
+    if landmark_coords is not None:
+        return landmark_coords
 
     # 3. Global file-based cache
     if place_name in GEOCODE_CACHE:

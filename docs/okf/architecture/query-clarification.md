@@ -51,6 +51,23 @@ Le interpretazioni già supportate da MURENA restano intatte: termini qualitativ
 
 Il testo originale resta persistito. Quando la sessione è pronta, un prompt dedicato chiede al modello di riscrivere la richiesta come testo naturale, integrando le risposte esplicite e mantenendo intento, qualificatori e preferenze originali. L'output è mostrato all'utente per revisione prima dell'analisi; il modello riceve solo query originale e chiarimenti confermati, non lo stato interno dei candidati. Un “non lo so” conserva l'incertezza, registra la risposta e impedisce di ripetere lo stesso aspetto; se non resta un percorso utile, la sessione diventa `BLOCKED`.
 
+## Robustezza, concorrenza e regole aggiunte (2026-11-17)
+
+Correzioni introdotte dopo la [code review](../operations/code-review-2026-11.md):
+
+- **Definizione di `Cb` nel parser**: `Cb` è `SPECIFIED` solo da un requisito che filtra gli immobili (superficie numerica o qualitativa, capienza come "for 45 children", caratteristiche strutturali esplicite). Le parole che nominano solo l'immobile o il suo stato ("building", "existing building/unit", "premises", "to convert/renovate") non specificano `Cb`; se sono l'unica evidenza, `Cb` resta `UNCONFIRMED_ABSENT`. La capienza resta parte di `Cb`.
+- **Errori transitori del modello**: un'eccezione durante un turno non diventa più `BLOCKED`. L'API risponde HTTP 503 con un messaggio esplicito, la sessione resta attiva e l'utente può reinviare la stessa risposta; la UI conserva l'identificativo di sessione. Un'eccezione nella classificazione di una risposta non viene più convertita in un'etichetta d'intento (`UNCLEAR`).
+- **Follow-up sulle ambiguità**: una risposta genuinamente `UNCLEAR` a una domanda di ambiguità genera una riformulazione LLM, come già avveniva per le omissioni; il turno di riformulazione non incrementa la penalità di ridondanza, mentre `SAGE_MAX_TURNS` continua a limitare il dialogo.
+- **Località**: senza `selected_alternative`, la città estratta deve comparire nella risposta (confronto per parola intera dopo normalizzazione) o coincidere con un'opzione offerta. Dopo una risposta `UNKNOWN`, `REJECTED` o `UNCLEAR` la domanda viene riformulata escludendo le alternative già rifiutate.
+- **Concorrenza**: una risposta porta la sessione da `active` a `processing` con un aggiornamento condizionale prima di qualsiasi chiamata LLM; una seconda risposta concorrente riceve HTTP 409. In caso di errore lo stato torna `active` senza modifiche parziali. La conferma finale consuma la sessione con `UPDATE … WHERE status='ready'`: una doppia conferma non avvia due analisi. Se il processo server termina durante un turno, la sessione resta `processing` e occorre avviare una nuova ricerca.
+- **Persistenza**: lo stato JSON viene copiato in profondità prima delle modifiche e marcato come modificato al salvataggio, così le modifiche annidate non vanno perse.
+- **Event loop**: l'endpoint asincrono esegue il chiarificatore in un thread pool, così le chiamate LLM bloccanti non fermano le altre richieste.
+- **UI**: se la prima query è già completa e l'API risponde `REVIEW`, la pagina mostra comunque il form di revisione. Le richieste di chiarimento usano un timeout client di 180 s (invece dei 30 s generali), perché un turno può concatenare più chiamate al modello.
+
+Restano invariati, per scelta: l'evidenza delle dimensioni diverse da `L` non è confrontata con il testo della query (un controllo lessicale respingerebbe parafrasi e traduzioni); una risposta aggiorna solo le dimensioni a cui era rivolta la domanda.
+
+La suite `backend/tests/test_sage_clarification.py` passa interamente (37 test, di cui 8 nuovi per regola `Cb`, ancoraggio della città, alternative rifiutate, follow-up, errori transitori, concorrenza e persistenza).
+
 ## Beliefs ed EVPI
 
 Le alternative finite generate dal modello ricevono pesi uniformi iniziali, poi normalizzati. Per i luoghi, l'EVPI include anche un esito aperto per una città diversa da quelle suggerite, poiché i suggerimenti del modello non sono esaustivi. Un riferimento generico come “the university”, senza un luogo nominato o un catalogo geografico di sessione, produce una domanda generica e dominio ignoto. Domini non enumerabili non vengono convertiti in candidati fattuali e non producono una confidenza normalizzata. Per una domanda, le alternative partizionano i candidati per risposta; l'EVPI è la somma del massimo peso per partizione meno il massimo peso corrente. Il punteggio sottrae `SAGE_REDUNDANCY_LAMBDA` per ogni domanda precedente sullo stesso aspetto. Il criterio `SAGE_EVPI_STOP_ALPHA` si applica alle domande con alternative enumerabili; per domini ignoti non viene inventata una distribuzione delle risposte e la domanda resta selezionabile.

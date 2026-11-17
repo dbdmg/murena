@@ -370,6 +370,23 @@ class AnalysisService:
                 else None
             ),
             "html_log": html_log,
+            # Pipeline transparency (see OrchestratorResult):
+            # relaxation_applied: True if any relaxation pass changed the SQL (sticky).
+            # relaxation_count: number of relaxation passes that changed the SQL.
+            # fallback_activated: results come from a fallback, not the user's SQL.
+            # agent_errors: gracefully handled agent failures [{"agent", "error"}].
+            # sql_agent_sql: SQL from the SQL agent before any relaxation (or None).
+            "relaxation_applied": bool(getattr(orchestrator_result, "relaxation_applied", False)),
+            "relaxation_count": int(getattr(orchestrator_result, "relaxation_applied_count", 0) or 0),
+            "fallback_activated": bool(getattr(orchestrator_result, "fallback_activated", False)),
+            "agent_errors": make_json_safe(
+                [
+                    {"agent": str(e.get("agent", "")), "error": str(e.get("error", ""))}
+                    for e in (getattr(orchestrator_result, "agent_errors", None) or [])
+                    if isinstance(e, dict)
+                ]
+            ),
+            "sql_agent_sql": make_json_safe(getattr(orchestrator_result, "sql_agent_sql", None)),
             "created_at": datetime.utcnow(),
             "completed_at": datetime.utcnow(),
         }

@@ -2,6 +2,10 @@
 
 ## 2026-11-17
 
+* **Code review approfondita**: revisione di pipeline, chiarimento SAGE con API e UI, harness sperimentale e bozza del paper; esiti e stato in `operations/code-review-2026-11.md`.
+* **Correzioni della pipeline**: ranking deterministico (ordinamento stabile, score non sovrascritto dall'LLM di valutazione), trasparenza di rilassamento, fallback ed errori degli agenti nella risposta, ramo numerico del RegulatoryAgent, landmark per corrispondenza esatta, SQL a singola istruzione con accesso esterno di DuckDB disabilitato. Aggiornati `data/scoring.md`, `agents/sql.md`, `agents/relaxation.md`, `data/geospatial.md`.
+* **Correzioni del chiarimento**: regola `Cb` nel parser, errori transitori ritentabili, controllo di concorrenza sulle sessioni, città ancorata alla risposta, follow-up sulle ambiguità, review mostrata anche quando la prima query è completa, timeout client più lungo per i turni di chiarimento. Aggiornato `architecture/query-clarification.md`.
+
 * **Benchmark v2 eseguito**: 40 scenari × 3 ripetizioni con `gpt-6-luna` via Codex su Windows. 114/120 run completati; F1 del rilevamento iniziale 0,96, nessun falso positivo, `matched_use_cases` corretto 114/114, nessun requisito normativo vincolante. Le 30 rilevazioni mancate riguardano tutte `Cb`: 24 per capienza mantenuta nel testo della destinazione (disallineamento del generatore v2), 6 per "existing building/unit" letto come vincolo edilizio. Risultati in `research/edbt-conversational-benchmark.md`.
 * **Adapter Codex su Windows**: `codex_exec.py` inoltra le variabili di sistema Windows non segrete (senza `SYSTEMROOT` il CLI terminava con exit 134) e codifica stdin/stdout in UTF-8 invece di cp1252. Le chiavi API restano escluse.
 * **Script di analisi**: aggiunto `backend/experiments/analyze_conversational_results.py`, che riproduce le metriche v1 calcolate a mano e stratifica v2 per `k`.

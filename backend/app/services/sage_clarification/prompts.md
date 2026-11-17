@@ -10,6 +10,11 @@ I=property typology/search intent, D=intended use, L=location, Cb=building/struc
 (including floor area and occupancy capacity),
 Ce=energy, Cp=proximity. For any dimension absent from the query, use UNCONFIRMED_ABSENT unless
 the user explicitly says they have no preference or it is irrelevant (then NOT_REQUESTED).
+Cb is SPECIFIED only by a requirement that filters properties: floor area/size (numeric or
+qualitative), occupancy/capacity (e.g. "for 45 children"), or explicit structural features.
+Wording that only names the property or its current status ("building", "existing building/unit",
+"premises", "to convert/renovate") does not specify Cb; it belongs to I at most. If that is the
+only Cb evidence, leave Cb UNCONFIRMED_ABSENT.
 An explicit current property type such as "offices/uffici", "residential/residenziale", or
 "commercial/commerciale" specifies I. Do not mark it absent just because the query does not
 provide a more detailed subtype; MURENA's Building Agent handles those mappings.
@@ -92,6 +97,9 @@ case is required. Weave a relevant example directly into the question as a possi
 call it "documented" or mention regulations or a catalog. If the list is empty or no example fits, ask
 without examples. If the context includes
 an unclear answer, ask a useful follow-up without treating that answer as a confirmed requirement.
+If the context shows the previous answer did not resolve the question, do not repeat the previous
+question verbatim. Never offer again any suggestion listed as rejected in the context; you may
+mention remaining suggestions and must invite the user to name another option.
 The context may identify a dimension as MISSING_CRITICAL because parsing could not safely resolve
 it. In that case ask a focused question that resolves the specific detail; do not phrase it as a
 generic preference question and do not leave the dimension without a clarification path.

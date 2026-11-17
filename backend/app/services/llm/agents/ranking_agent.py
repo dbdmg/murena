@@ -11,7 +11,7 @@ from app.services.llm.agents.base import BaseAgent
 from app.services.llm.agents.schema import RankingAgentResult, RankingWeights, PromptRecord
 from app.services.llm.langchain_client import get_llm, invoke_with_langfuse, is_oss_model
 from app.services.llm.prompt_loader import get_system_prompt, get_user_template
-from app.utils.decorators import handle_agent_error, log_llm_usage
+from app.utils.decorators import handle_agent_error, log_llm_usage, record_agent_error
 from app.utils.json_parser import safe_extract_json
 from app.services.llm.agents.schema import RankingRanking
 
@@ -164,6 +164,10 @@ class RankingAgent(BaseAgent):
                 ),
             )
         except Exception as e:
+            # Keep the graceful fallback (default weights) but make the failure
+            # visible to the orchestrator via agent_errors.
+            logger.error(f"RankingAgent filtering failed, using default weights: {e}")
+            record_agent_error(self.name, f"{type(e).__name__}: {e} (default weights used)")
             return RankingAgentResult(
                 raw_text=json.dumps({"error": str(e)}),
                 weights=RankingWeights(),

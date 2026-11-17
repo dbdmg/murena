@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import copy
 import json
 import logging
 import unicodedata
@@ -11,6 +12,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 from sqlalchemy.orm import Session
+from sqlalchemy.orm.attributes import flag_modified
 
 from app.core.config import settings
 from app.database.models import ClarificationSession
@@ -28,6 +30,10 @@ logger = logging.getLogger(__name__)
 
 DIMENSIONS = ("I", "D", "L", "Cb", "Ce", "Cp")
 ANSWER_INTENTS = {"REQUIREMENT", "NO_PREFERENCE", "UNKNOWN", "REJECTED", "UNCLEAR"}
+class ClarificationSessionBusyError(RuntimeError):
+    """Raised when another request is already applying an answer to the session."""
+
+
 STATUSES = {
     "SPECIFIED", "NOT_REQUESTED", "UNCONFIRMED_ABSENT", "AMBIGUOUS",
     "MISSING_CRITICAL",
@@ -531,10 +537,7 @@ class SageClarifier:
             ANSWER=json.dumps(answer, ensure_ascii=False),
         )
         result = self._model().invoke(prompt)
-        try:
-            data = _parse_llm_json(result)
-        except ValueError:
-            return {"intent": "UNCLEAR"}
+        data = _parse_llm_json(result)
         if not isinstance(data, dict):
             return {"intent": "UNCLEAR"}
         intent = data.get("intent")
@@ -558,11 +561,21 @@ class SageClarifier:
             return {"intent": "UNCLEAR"}
         if _normalize_phrase(evidence) not in _normalize_phrase(answer):
             return {"intent": "UNCLEAR"}
-        if selected_alternative is not None:
-            offered = {
-                _normalize_phrase(option)
-                for option in question.get("alternatives", [])
-            }
+        offered = {
+            _normalize_phrase(option)
+            for option in question.get("alternatives", [])
+        }
+        if selected_alternative is None:
+            # Without an explicit selection, the city must be grounded in the
+            # user's words or be one of the offered suggestions; otherwise the
+            # model may have inferred (hallucinated) it.
+            normalized_city = _normalize_phrase(city)
+            if not normalized_city or (
+                f" {normalized_city} " not in f" {_normalize_phrase(answer)} "
+                and normalized_city not in offered
+            ):
+                return {"intent": "UNCLEAR"}
+        else:
             if (
                 not isinstance(selected_alternative, str)
                 or _normalize_phrase(selected_alternative) not in offered
@@ -591,25 +604,23 @@ class SageClarifier:
             QUESTION=json.dumps(question["question"], ensure_ascii=False),
             ANSWER=json.dumps(answer, ensure_ascii=False),
         )
-        try:
-            result = self._model().invoke(prompt)
-            data = _parse_llm_json(result)
-            relation = data.get("relation") if isinstance(data, dict) else None
-            intent = data.get("intent") if isinstance(data, dict) else None
-            evidence = data.get("evidence") if isinstance(data, dict) else None
-            if intent in {"NO_PREFERENCE", "UNKNOWN", "REJECTED"} and (
-                not isinstance(evidence, str) or not evidence.strip()
-                or _normalize_phrase(evidence) not in _normalize_phrase(answer)
-            ):
-                intent = "UNCLEAR"
-            return {
-                "relation": relation if relation in {"consistent", "contradictory", "unclear"} else "unclear",
-                "intent": intent if intent in ANSWER_INTENTS else "UNCLEAR",
-                "evidence": evidence,
-            }
-        except Exception:
-            logger.warning("Could not validate clarification answer", exc_info=True)
-            return {"relation": "unclear", "intent": "UNCLEAR", "evidence": None}
+        # Model/transport failures propagate to the caller's retryable error
+        # path; they must not be recorded as a user-intent label.
+        result = self._model().invoke(prompt)
+        data = _parse_llm_json(result)
+        relation = data.get("relation") if isinstance(data, dict) else None
+        intent = data.get("intent") if isinstance(data, dict) else None
+        evidence = data.get("evidence") if isinstance(data, dict) else None
+        if intent in {"NO_PREFERENCE", "UNKNOWN", "REJECTED"} and (
+            not isinstance(evidence, str) or not evidence.strip()
+            or _normalize_phrase(evidence) not in _normalize_phrase(answer)
+        ):
+            intent = "UNCLEAR"
+        return {
+            "relation": relation if relation in {"consistent", "contradictory", "unclear"} else "unclear",
+            "intent": intent if intent in ANSWER_INTENTS else "UNCLEAR",
+            "evidence": evidence,
+        }
 
     @staticmethod
     def _question_belief(question: dict) -> tuple[dict[str, float], dict[str, Optional[str]]]:
@@ -728,6 +739,7 @@ class SageClarifier:
 
     def _save(self, db: Session, row: ClarificationSession, state: dict, status: str) -> None:
         row.state = state
+        flag_modified(row, "state")
         row.status = status
         row.updated_at = datetime.now(timezone.utc)
         db.add(row)
@@ -839,10 +851,77 @@ class SageClarifier:
         if not row or (row.user_id is not None and row.user_id != user_id):
             return ClarificationResponse(status="BLOCKED", session_id=session_id,
                                          message="Clarification session was not found.")
+        if row.status == "processing":
+            raise ClarificationSessionBusyError(
+                "Another answer for this clarification session is still being processed."
+            )
         if row.status != "active":
             return ClarificationResponse(status="BLOCKED", session_id=session_id,
                                          message="Clarification session is no longer active.")
-        state = dict(row.state or {})
+        # Compare-and-set claim: only one request may apply an answer at a time.
+        claimed = db.query(ClarificationSession).filter(
+            ClarificationSession.session_id == session_id,
+            ClarificationSession.status == "active",
+        ).update({"status": "processing"}, synchronize_session=False)
+        db.commit()
+        if claimed != 1:
+            raise ClarificationSessionBusyError(
+                "Another answer for this clarification session is still being processed."
+            )
+        db.refresh(row)
+        try:
+            return self._apply_answer(db, row, session_id, clarification_response)
+        except Exception:
+            # Leave the session resumable: discard partial changes and reopen it.
+            db.rollback()
+            db.query(ClarificationSession).filter(
+                ClarificationSession.session_id == session_id,
+                ClarificationSession.status == "processing",
+            ).update({"status": "active"}, synchronize_session=False)
+            db.commit()
+            raise
+
+    def _rephrase_followup(self, state: dict, pending: dict, answer: str, *, intent: str) -> None:
+        """Replace a pending question with an LLM follow-up that omits rejected options."""
+        targets = pending.get("target_dimensions", [])
+        excluded = [
+            str(option)
+            for dimension in targets
+            for option in state.get("excluded_interpretations", {}).get(dimension, [])
+        ]
+        excluded_normalized = {_normalize_phrase(option) for option in excluded}
+        remaining = [
+            option for option in pending.get("alternatives", [])
+            if _normalize_phrase(str(option)) not in excluded_normalized
+        ]
+        generated = self._generate_omission_questions(
+            state["original_query"],
+            targets,
+            state["language"],
+            context={
+                "previous_question": pending["question"],
+                "previous_user_answer": answer,
+                "previous_answer_intent": intent,
+                "answer_did_not_resolve_the_question": True,
+                "unresolved_statuses": {
+                    dimension: state["dimensions"][dimension]["status"] for dimension in targets
+                },
+                "current_values": {
+                    dimension: state["dimensions"][dimension].get("value") for dimension in targets
+                },
+                "remaining_suggestions": remaining,
+                "rejected_suggestions_do_not_offer_again": list(dict.fromkeys(excluded)),
+                "confirmed_clarifications": state.get("clarifications", []),
+            },
+        )
+        pending["question"] = " ".join(question["question"] for question in generated)
+        pending["alternatives"] = remaining
+        pending["question_source"] = "llm_followup_question"
+
+    def _apply_answer(self, db: Session, row: ClarificationSession, session_id: str,
+                      clarification_response: Optional[str]) -> ClarificationResponse:
+        # Deep copy so nested mutations are detected as a change on save.
+        state = copy.deepcopy(row.state or {})
         pending = self._select_question(state)
         answer = (clarification_response or "").strip()
         if pending is None:
@@ -974,6 +1053,9 @@ class SageClarifier:
                     state.setdefault("excluded_interpretations", {}).setdefault("L", []).extend(
                         pending.get("alternatives", [])
                     )
+                # Re-ask with a follow-up instead of repeating the identical
+                # question, and never re-offer rejected suggestions.
+                self._rephrase_followup(state, pending, answer, intent=result["intent"])
         else:
             result = self._classify_answer(state, pending, answer)
             intent = result["intent"]
@@ -988,7 +1070,15 @@ class SageClarifier:
                     "target_dimensions": aspect_keys,
                     "not_requested_dimensions": aspect_keys,
                 })
-            elif intent in {"UNKNOWN", "REJECTED", "UNCLEAR"}:
+            elif intent == "UNCLEAR":
+                # A genuinely unclear answer is not a refusal: ask a follow-up,
+                # as for omission questions, without a redundancy penalty.
+                for dimension in aspect_keys:
+                    state["asked_aspects"][dimension] = max(
+                        0, state["asked_aspects"].get(dimension, 0) - 1
+                    )
+                self._rephrase_followup(state, pending, answer, intent=intent)
+            elif intent in {"UNKNOWN", "REJECTED"}:
                 state.setdefault("unanswerable_aspects", []).extend(aspect_keys)
                 if intent == "REJECTED":
                     for dimension in aspect_keys:

@@ -7,7 +7,7 @@ from types import SimpleNamespace
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from fastapi import BackgroundTasks
+from fastapi import BackgroundTasks, HTTPException
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 from sqlalchemy.pool import StaticPool
@@ -66,6 +66,15 @@ class FakeLLM:
                 "intent": self.answer_intent,
                 "evidence": self.answer_evidence,
             }))
+        if prompt.startswith("Write the actual user-facing clarification questions"):
+            meanings_line = next(
+                line for line in prompt.splitlines() if line.startswith("Dimension meanings: ")
+            )
+            meanings = json.loads(meanings_line.removeprefix("Dimension meanings: "))
+            return FakeMessage(json.dumps({"questions": [
+                {"target_dimension": dimension, "question": f"Any requirement on {label}?"}
+                for dimension, label in meanings.items()
+            ]}))
         if prompt.startswith("Extract the user's answer to a grouped question"):
             response = self.omission_responses.pop(0) if self.omission_responses else {
                 "intent": "NO_PREFERENCE", "evidence": "No preference", "updates": {},
@@ -146,7 +155,7 @@ def test_structured_specificity_and_normalization():
 def test_sage_prompts_are_loaded_and_rendered_from_markdown():
     prompt = render_prompt(
         "query_parser", OUTPUT_SCHEMA='{"dimensions":{}}',
-        LANGUAGE="Italian", QUERY='"Uffici a Torino"',
+        LANGUAGE="Italian", QUERY='"Uffici a Torino"', REGULATORY_USE_CASES="[]",
     )
     assert "offices/uffici" in prompt
     assert '"Uffici a Torino"' in prompt
@@ -336,8 +345,8 @@ def test_explicit_office_typology_is_not_asked_again():
         language="it",
     )
     assert result.status == "ASK"
-    assert "tipologia" not in result.question.lower()
-    assert "destinazione d'uso" in result.question.lower()
+    assert "property type" not in result.question.lower()
+    assert "intended use" in result.question.lower()
     row = db.query(ClarificationSession).filter_by(session_id=result.session_id).first()
     assert row.state["dimensions"]["I"]["status"] == "SPECIFIED"
     assert row.state["dimensions"]["I"]["value"] == "uffici"
@@ -414,7 +423,7 @@ def test_named_porta_nuova_is_disambiguated_after_intended_use_answer():
         clarification_response="Torino",
     )
     assert second.status == "ASK"
-    assert "destinazione d'uso" in second.question.lower()
+    assert "intended use" in second.question.lower()
 
     row = db.query(ClarificationSession).filter_by(session_id=first.session_id).first()
     assert row.state["dimensions"]["D"]["status"] == "UNCONFIRMED_ABSENT"
@@ -426,7 +435,7 @@ def test_named_porta_nuova_is_disambiguated_after_intended_use_answer():
         clarification_response="Voglio farci uno studentato",
     )
     assert third.status == "ASK"
-    assert "vincoli edilizi" in third.question.lower()
+    assert "building or structural constraints" in third.question.lower()
     row = db.query(ClarificationSession).filter_by(session_id=first.session_id).first()
     assert row.state["dimensions"]["L"]["status"] == "SPECIFIED"
     assert row.state["dimensions"]["L"]["value"] == "Porta Nuova, Torino"
@@ -704,11 +713,191 @@ def test_italian_query_gets_italian_location_question():
 
 
 def test_readiness_does_not_delegate_when_question_is_missing():
+    # A MISSING_CRITICAL dimension without a parser question still gets an
+    # LLM-generated clarification path instead of being delegated or blocked.
     db = _db()
     result = SageClarifier(llm=FakeLLM(_payload(location_status="MISSING_CRITICAL"))).process(
         db=db, user_input="Near the city center"
     )
-    assert result.status == "BLOCKED"
+    assert result.status == "ASK"
+    assert result.refined_query is None
+    row = db.query(ClarificationSession).filter_by(session_id=result.session_id).first()
+    assert row.status == "active"
+    assert any(question["target_dimensions"] == ["L"] for question in row.state["questions"])
+    db.close()
+
+
+def test_query_parser_prompt_restricts_cb_to_filtering_requirements():
+    prompt = render_prompt(
+        "query_parser", OUTPUT_SCHEMA="{}", LANGUAGE="English",
+        QUERY='"Convert an existing building"', REGULATORY_USE_CASES="[]",
+    )
+    assert "Cb is SPECIFIED only by a requirement that filters properties" in prompt
+    assert "does not specify Cb; it belongs to I at most" in prompt
+    assert "leave Cb UNCONFIRMED_ABSENT" in prompt
+
+
+def _location_state():
+    return {
+        "dimensions": {"L": {"value": "Porta Nuova"}},
+        "original_query": "Uffici vicino a Porta Nuova",
+    }
+
+
+def test_location_answer_rejects_city_not_grounded_in_answer_or_options():
+    question = {"question": "Torino o Milano?", "alternatives": ["Torino", "Milano"]}
+    hallucinated = SageClarifier(llm=FakeLLM({}, location_answer={
+        "intent": "REQUIREMENT", "city": "Napoli", "evidence": "the one in the south",
+        "selected_alternative": None,
+    }))
+    assert hallucinated._interpret_location_answer(
+        _location_state(), question, "the one in the south"
+    )["intent"] == "UNCLEAR"
+
+    grounded = SageClarifier(llm=FakeLLM({}, location_answer={
+        "intent": "REQUIREMENT", "city": "Roma", "evidence": "Roma",
+        "selected_alternative": None,
+    }))
+    assert grounded._interpret_location_answer(
+        _location_state(), question, "It is in Roma"
+    )["city"] == "Roma"
+
+    offered = SageClarifier(llm=FakeLLM({}, location_answer={
+        "intent": "REQUIREMENT", "city": "Milano", "evidence": "the second",
+        "selected_alternative": None,
+    }))
+    assert offered._interpret_location_answer(
+        _location_state(), question, "the second"
+    )["city"] == "Milano"
+
+
+def _porta_nuova_payload():
+    payload = _payload_with_resolved_others(location_status="AMBIGUOUS")
+    payload["dimensions"]["L"] = {
+        "value": "Porta Nuova", "status": "AMBIGUOUS",
+        "evidence": "Porta Nuova", "alternatives": [],
+    }
+    payload["questions"] = [{
+        **_question(alternatives=["Torino", "Milano"]),
+        "question": "Is Porta Nuova in Torino or Milano, or another city?",
+        "target_parameters": ["city"],
+        "kind": "location_disambiguation",
+    }]
+    return payload
+
+
+def test_rejected_location_suggestions_are_not_offered_again():
+    db = _db()
+    llm = FakeLLM(_porta_nuova_payload(), location_answer={
+        "intent": "REJECTED", "city": None, "evidence": "Neither",
+        "selected_alternative": None,
+    })
+    clarifier = SageClarifier(llm=llm)
+    first = clarifier.process(db=db, user_input="Offices near Porta Nuova")
+    assert first.status == "ASK"
+    second = clarifier.process(
+        db=db, user_input="Offices near Porta Nuova", session_id=first.session_id,
+        clarification_response="Neither",
+    )
+    assert second.status == "ASK"
+    assert second.question != first.question
+    row = db.query(ClarificationSession).filter_by(session_id=first.session_id).first()
+    pending = clarifier._select_question(row.state)
+    assert pending["kind"] == "location_disambiguation"
+    assert pending["alternatives"] == []
+    followup_prompt = llm.prompts[-1]
+    assert '"rejected_suggestions_do_not_offer_again": ["Torino", "Milano"]' in followup_prompt
+    db.close()
+
+
+def test_unclear_ambiguity_answer_gets_followup_instead_of_block():
+    db = _db()
+    clarifier = SageClarifier(llm=FakeLLM(
+        _payload_with_resolved_others(location_status="AMBIGUOUS", questions=[_question()]),
+        answer_intent="UNCLEAR",
+    ))
+    first = clarifier.process(db=db, user_input="Near a university")
+    followup = clarifier.process(
+        db=db, user_input="Near a university", session_id=first.session_id,
+        clarification_response="hmm",
+    )
+    assert followup.status == "ASK"
+    assert followup.question != first.question
+    db.close()
+
+
+class _FailingLLM(FakeLLM):
+    def __init__(self, payload):
+        super().__init__(payload)
+        self.fail = False
+
+    def invoke(self, prompt):
+        if self.fail and prompt.startswith("Classify the user's answer"):
+            raise RuntimeError("transient provider failure")
+        return super().invoke(prompt)
+
+
+def test_llm_failure_is_raised_and_session_stays_resumable():
+    db = _db()
+    llm = _FailingLLM(
+        _payload_with_resolved_others(location_status="AMBIGUOUS", questions=[_question()])
+    )
+    clarifier = SageClarifier(llm=llm)
+    first = clarifier.process(db=db, user_input="Near a university")
+    llm.fail = True
+    with unittest.TestCase().assertRaises(RuntimeError):
+        clarifier.process(
+            db=db, user_input="Near a university", session_id=first.session_id,
+            clarification_response="Politecnico di Torino",
+        )
+    row = db.query(ClarificationSession).filter_by(session_id=first.session_id).first()
+    db.refresh(row)
+    assert row.status == "active"
+    assert row.state["turn"] == 0
+    llm.fail = False
+    ready = clarifier.process(
+        db=db, user_input="Near a university", session_id=first.session_id,
+        clarification_response="Politecnico di Torino",
+    )
+    assert ready.status == "READY"
+    db.close()
+
+
+def test_session_being_processed_rejects_concurrent_answer():
+    from app.services.sage_clarification.service import ClarificationSessionBusyError
+
+    db = _db()
+    clarifier = SageClarifier(llm=FakeLLM(
+        _payload_with_resolved_others(location_status="AMBIGUOUS", questions=[_question()])
+    ))
+    first = clarifier.process(db=db, user_input="Near a university")
+    db.query(ClarificationSession).filter_by(session_id=first.session_id).update(
+        {"status": "processing"}
+    )
+    db.commit()
+    with unittest.TestCase().assertRaises(ClarificationSessionBusyError):
+        clarifier.process(
+            db=db, user_input="Near a university", session_id=first.session_id,
+            clarification_response="Politecnico di Torino",
+        )
+    db.close()
+
+
+def test_nested_state_mutations_are_persisted():
+    db = _db()
+    clarifier = SageClarifier(llm=FakeLLM(
+        _payload_with_resolved_others(location_status="AMBIGUOUS", questions=[_question()]),
+    ))
+    first = clarifier.process(db=db, user_input="Near a university")
+    clarifier.process(
+        db=db, user_input="Near a university", session_id=first.session_id,
+        clarification_response="Politecnico di Torino",
+    )
+    fresh = Session(db.get_bind())
+    row = fresh.query(ClarificationSession).filter_by(session_id=first.session_id).first()
+    assert row.state["dimensions"]["L"]["status"] == "SPECIFIED"
+    assert row.state["dimensions"]["L"]["value"] == "Politecnico di Torino"
+    fresh.close()
     db.close()
 
 
@@ -796,6 +985,40 @@ class TestSageClarification(unittest.TestCase):
     def test_readiness_gate(self):
         test_readiness_does_not_delegate_when_question_is_missing()
 
+    def test_cb_prompt_rule(self):
+        test_query_parser_prompt_restricts_cb_to_filtering_requirements()
+
+    def test_location_grounding(self):
+        test_location_answer_rejects_city_not_grounded_in_answer_or_options()
+
+    def test_rejected_location_followup(self):
+        test_rejected_location_suggestions_are_not_offered_again()
+
+    def test_unclear_ambiguity_followup(self):
+        test_unclear_ambiguity_answer_gets_followup_instead_of_block()
+
+    def test_llm_failure_resumable(self):
+        test_llm_failure_is_raised_and_session_stays_resumable()
+
+    def test_concurrent_answer_rejected(self):
+        test_session_being_processed_rejects_concurrent_answer()
+
+    def test_nested_state_persisted(self):
+        test_nested_state_mutations_are_persisted()
+
+    def test_sage_failure_returns_retryable_503(self):
+        request = AnalysisRequest(
+            query="Find a building", clarification_session_id="session-x",
+            clarification_response="Offices",
+        )
+        with patch.object(settings, "ENABLE_SAGE_CLARIFICATION", True), patch(
+            "app.services.sage_clarification.service.SageClarifier.process",
+            side_effect=RuntimeError("provider timeout"),
+        ):
+            with self.assertRaises(HTTPException) as raised:
+                analysis_endpoint._apply_sage_if_enabled(request, MagicMock(), None)
+        self.assertEqual(raised.exception.status_code, 503)
+
     def test_disabled_flag_preserves_original_query_and_skips_sage(self):
         request = AnalysisRequest(query="Find a building")
         with patch.object(settings, "ENABLE_SAGE_CLARIFICATION", False), patch(
@@ -857,4 +1080,9 @@ class TestSageAnalysisBoundary(unittest.IsolatedAsyncioTestCase):
             await task(*args, **kwargs)
             run_analysis.assert_awaited_once()
             self.assertEqual(run_analysis.await_args.kwargs["query"], "Edited query approved by the user")
+
+            # A duplicate confirmation must not start a second run.
+            duplicate = await analysis_endpoint.start_analysis(confirmed_request, background, db, None)
+            self.assertEqual(duplicate.status, "BLOCKED")
+            self.assertEqual(len(queued), 1)
         db.close()

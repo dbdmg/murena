@@ -10,6 +10,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import {
     Search,
@@ -31,6 +32,14 @@ import type { AnalysisHistoryItem } from '../api/types';
 import { HistoryItem } from '../components/search/HistoryItem';
 
 import murenaLogo217 from '../assets/brand/MURENA_217x34px.svg';
+
+const apiErrorMessage = (err: unknown, fallback: string): string => {
+    if (axios.isAxiosError(err)) {
+        const detail = (err.response?.data as { detail?: unknown } | undefined)?.detail;
+        if (typeof detail === 'string' && detail.trim()) return detail;
+    }
+    return err instanceof Error ? err.message : fallback;
+};
 
 type ClarificationMessage = {
     role: 'user' | 'assistant' | 'system';
@@ -172,6 +181,14 @@ export const SearchPage: React.FC = () => {
                         setClarificationSessionId(result.session_id);
                         setQuery('');
                     } else if (result.status === 'REVIEW') {
+                        if (!isClarificationTurn) {
+                            // Fully specified first query: seed the conversation so
+                            // the review form (rendered inside it) is shown.
+                            setClarificationOriginalQuery(submittedText);
+                            setClarificationMessages([
+                                { role: 'user', content: submittedText },
+                            ]);
+                        }
                         setClarificationSessionId(result.session_id);
                         setReviewQuery(result.refined_query || original);
                         setQuery('');
@@ -194,7 +211,9 @@ export const SearchPage: React.FC = () => {
             }
         } catch (err) {
             console.error('Failed to start analysis:', err);
-            setClarificationError(err instanceof Error ? err.message : 'Failed to start analysis.');
+            // Retryable errors (e.g. 503/409) keep the clarification session id
+            // so the user can resubmit the same answer.
+            setClarificationError(apiErrorMessage(err, 'Failed to start analysis.'));
             if (isClarificationTurn) {
                 setClarificationMessages((messages) => messages.slice(0, -1));
                 setQuery(submittedText);
@@ -227,7 +246,7 @@ export const SearchPage: React.FC = () => {
             navigate(`/processing/${result.run_id}`);
         } catch (err) {
             console.error('Failed to submit reviewed query:', err);
-            setClarificationError(err instanceof Error ? err.message : 'Failed to start analysis.');
+            setClarificationError(apiErrorMessage(err, 'Failed to start analysis.'));
         } finally {
             setIsSubmitting(false);
         }

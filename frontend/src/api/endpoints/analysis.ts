@@ -43,6 +43,11 @@ export const analysisApi = {
             clarification_session_id: request.clarification_session_id,
             clarification_response: request.clarification_response,
             clarification_confirmed: request.clarification_confirmed ?? false,
+        }, {
+            // A clarification turn can chain several LLM calls (parse, interpret,
+            // rephrase, rewrite); the default 30 s client timeout aborts slow
+            // turns while the server keeps processing the session.
+            timeout: 180000,
         });
         return response.data;
     },

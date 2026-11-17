@@ -5,12 +5,14 @@ Provides endpoints for starting and managing real estate analysis.
 
 import uuid
 import ast
+import copy
 import csv
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional, Union
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
+from starlette.concurrency import run_in_threadpool
 from sqlalchemy.orm import Session, sessionmaker
 import pandas as pd
 import logging
@@ -192,16 +194,29 @@ def _apply_sage_if_enabled(request: AnalysisRequest, db: Session,
                 session_id=session_id or str(uuid.uuid4()),
                 message="The reviewed query is no longer available; analysis was not started.",
             ), request.query
-        state = dict(row.state or {})
+        state = copy.deepcopy(row.state or {})
         state["reviewed_query"] = request.query.strip()
-        row.state = state
-        row.status = "submitted"
-        row.updated_at = datetime.now(timezone.utc)
-        db.add(row)
+        # Compare-and-set: only the request that moves the session out of
+        # "ready" may start an analysis run (prevents double confirmation).
+        claimed = db.query(ClarificationSession).filter(
+            ClarificationSession.session_id == session_id,
+            ClarificationSession.status == "ready",
+        ).update({
+            "state": state,
+            "status": "submitted",
+            "updated_at": datetime.now(timezone.utc),
+        }, synchronize_session=False)
         db.commit()
+        if claimed != 1:
+            return ClarificationResponse(
+                status="BLOCKED",
+                session_id=session_id,
+                message="The reviewed query was already submitted; analysis was not started again.",
+            ), request.query
         return None, request.query.strip()
 
     from app.services.sage_clarification import SageClarifier
+    from app.services.sage_clarification.service import ClarificationSessionBusyError
 
     try:
         result = SageClarifier().process(
@@ -212,13 +227,22 @@ def _apply_sage_if_enabled(request: AnalysisRequest, db: Session,
             clarification_response=request.clarification_response,
             language=request.output_language,
         )
-    except Exception:
+    except ClarificationSessionBusyError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+    except Exception as exc:
+        # Transient model/transport failures are retryable: the session (if
+        # any) stays active and the same answer can be resubmitted.
         logger.error("SAGE clarification failed", exc_info=True)
-        return ClarificationResponse(
-            status="BLOCKED",
-            session_id=request.clarification_session_id or str(uuid.uuid4()),
-            message="Clarification could not be completed; analysis was not started.",
-        ), request.query
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=(
+                "The clarification assistant is temporarily unavailable. "
+                "Your conversation was kept; please send your answer again."
+                if request.clarification_session_id
+                else "The clarification assistant is temporarily unavailable. "
+                "Please submit your search again."
+            ),
+        ) from exc
     if result.status == "READY":
         return ClarificationResponse(
             status="REVIEW",
@@ -760,7 +784,10 @@ async def start_analysis(
         settings.set_llm_model(request.model_type)
         logger.info(f"Using model configuration: {request.model_type}")
 
-    clarification, effective_query = _apply_sage_if_enabled(request, db, current_user)
+    # SAGE performs blocking LLM calls; keep them off the event loop.
+    clarification, effective_query = await run_in_threadpool(
+        _apply_sage_if_enabled, request, db, current_user
+    )
     if clarification is not None:
         return clarification
 

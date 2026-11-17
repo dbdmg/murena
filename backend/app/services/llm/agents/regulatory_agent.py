@@ -229,11 +229,18 @@ class RegulatoryAgent(BaseAgent):
                     exclusive = req.get("exclusive", False)
                     req_score = calculate_continuous_score(vals, target_num, op, exclusive)
                 else: # ==
-                    # Relative normalization via dataset range (preferably global)
+                    # Relative normalization via dataset range (preferably global).
+                    # NOTE: col_stats/diff were previously undefined here, raising a
+                    # NameError that zeroed regulatory_score for every row.
+                    col_stats = (global_stats or {}).get(col)
+                    diff = (vals - target_num).abs()
                     range_val = 0
-                    if col_stats:
-                        range_val = float(col_stats.get("max", 0)) - float(col_stats.get("min", 0))
-                        
+                    if isinstance(col_stats, dict):
+                        try:
+                            range_val = float(col_stats.get("max", 0)) - float(col_stats.get("min", 0))
+                        except (TypeError, ValueError):
+                            range_val = 0
+
                     if range_val > 0:
                         req_score = (100 - (diff / range_val * 100)).clip(0, 100)
                     else:

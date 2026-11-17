@@ -28,7 +28,9 @@ L'agente `RankingAgent` riceve la query e assegna un rank ai domini attivi. Il c
 
 ## Score per edificio
 
-`calculate_ranking_score(...)` è una **funzione Python** che normalizza i contributi 0–1 e calcola un totale 0–100. Nel percorso corrente può usare colonne già presenti (`poi_score`, `ape_score`, `location_score`, `normative_score`, `property_technical_score`) oppure fallback su sottoscore e distanza. I coefficienti attivi vengono rinormalizzati in base alla disponibilità delle dimensioni. L'output comprende `final_ranking_score` e ordinamento decrescente, con eventuale tie-break sulla distanza.
+`calculate_ranking_score(...)` è una **funzione Python** che normalizza i contributi 0–1 e calcola un totale 0–100. Nel percorso corrente può usare colonne già presenti (`poi_score`, `ape_score`, `location_score`, `normative_score`, `property_technical_score`) oppure fallback su sottoscore e distanza. I coefficienti attivi vengono rinormalizzati in base alla disponibilità delle dimensioni. L'output comprende `final_ranking_score` e ordinamento decrescente.
+
+Dal 2026-11-17 l'ordinamento è deterministico: `stable_rank_sort()` in `backend/app/services/analysis/ranking.py` usa un ordinamento stabile con chiavi score decrescente, distanza crescente (valori mancanti in fondo) e identificativo dell'immobile crescente. È applicato nel calcolo dello score, prima di selezionare le righe da far valutare all'LLM e nell'ordinamento finale (con le righe corrispondenti alla query in testa). In precedenza i molti ex aequo, dovuti a score molto discreti, venivano risolti dall'ordine delle righe restituite dalla SQL, che dipende dall'`ORDER BY` scelto dall'LLM. L'EvaluationAgent non modifica più lo score: dalla sua risposta vengono acquisiti solo motivazione, pro e contro, mentre il valore numerico e l'ordine restano quelli deterministici.
 
 Formula concettuale:
 
