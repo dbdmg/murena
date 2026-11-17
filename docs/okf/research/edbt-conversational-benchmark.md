@@ -181,7 +181,10 @@ Questo è solo un controllo di funzionamento.
 **Esecuzione.**
 
 - Configurazione: `gpt-6-luna` via Codex CLI, `model_reasoning_effort=low`; dataset `full` (89.200 immobili); rilassamento attivo; seed 13; concorrenza 4. Commit del codice `61545ba`.
-- Run pianificati: 304 (refined 144, one_shot 120, oracle 40). Il benchmark è stato **sospeso su richiesta dell'utente** dopo 113 run completati: 54 refined, 43 one_shot, 16 oracle, nessun fallimento.
+- Run pianificati: 304 (refined 144, one_shot 120, oracle 40).
+- Prima esecuzione (13:59–15:20): **sospesa su richiesta dell'utente** dopo 113 run completati (54 refined, 43 one_shot, 16 oracle), nessun fallimento.
+- Ripresa con `--resume` e concorrenza 6 (15:32–15:58), **fermata su richiesta dell'utente**. Ha aggiunto 10 run: un one_shot e un oracle completati, 8 refined falliti con `Codex CLI LLM call timed out` durante il chiarimento (durate 255–742 s; `MS05_k3`, `MS06_k2`, `MS01_k1`, `MS03_k4`, `MS03_k2`, `MS04_k1`, `MS08_k4`, `MS02_k2`).
+- Totale: 123 run eseguiti, 115 completati (54 refined, 44 one_shot, 17 oracle) e 8 falliti. I fallimenti sono contati e non imputati. Le metriche sotto usano i 115 completati; rispetto ai primi 113 cambiano solo il tetto RBO, il Δ di J5 a k=5 e il Δ dei filtri.
 - Nessun run è stato rieseguito o selezionato. Dati in `backend/experiments/results/missingness_v3/`: `runs.jsonl`, `manifest.json`, `comparison.json`, `comparison_per_k.csv`, `comparison_operational.csv`. Gli artefatti completi `runs/` restano locali.
 
 **Copertura risultante.**
@@ -218,23 +221,23 @@ Una chiamata minima di prova (`codex exec … "Reply with OK"`) ha richiesto 63 
 - `mapping_accuracy` 1,0 e use case uguale all'atteso in tutti i run.
 - La correzione v3 della capienza e la regola `Cb` del parser eliminano entrambe le cause di mancata rilevazione osservate in v2.
 
-**Accordo con l'oracle** (media sugli intenti [IC 95% bootstrap a cluster], `k≥1` aggregato):
+**Accordo con l'oracle.** Valori: media sugli intenti [IC 95% bootstrap a cluster], `k≥1` aggregato. Le righe `one_shot` e `refined` sono medie appaiate (`row_type=intent_mean_paired` in `comparison_per_k.csv`): per ogni intento si mediano solo i livelli con entrambe le condizioni, poi si mediano i 7 intenti comuni. Con questa definizione la differenza tra le due righe coincide con Δ. Nella prima stesura la riga refined usava tutti i livelli disponibili: 0,73 / 0,74 / 0,70.
 
 | Condizione | J5 | RBO (p=0,8, top-10) | J5 tie-aware |
 |---|---|---|---|
 | one_shot | 0,04 [0,00; 0,12] | 0,05 [0,00; 0,14] | 0,04 [0,00; 0,11] |
-| refined | 0,73 [0,61; 0,85] | 0,74 [0,64; 0,83] | 0,70 [0,56; 0,83] |
+| refined | 0,74 [0,62; 0,86] | 0,78 [0,67; 0,88] | 0,71 [0,57; 0,85] |
 | refined, k=0 | 0,86 [0,72; 0,97] | 0,84 [0,70; 0,95] | 0,82 [0,63; 0,97] |
-| oracle vs oracle | 0,74 [0,34; 1,00] | 0,76 [0,37; 0,99] | 0,74 [0,34; 1,00] |
-| Δ refined − one_shot | 0,70 [0,58; 0,84] | 0,72 [0,63; 0,83] | 0,67 [0,52; 0,83] |
+| oracle vs oracle | 0,74 [0,34; 1,00] | 0,75 [0,37; 0,97] | 0,74 [0,34; 1,00] |
+| Δ refined − one_shot | 0,70 [0,58; 0,83] | 0,72 [0,63; 0,83] | 0,67 [0,52; 0,83] |
 
 Il test di sign-flip esatto su 7 intenti dà p=0,016 per tutti e tre gli indici. Per singolo `k` gli intenti sono 5–7 e p varia tra 0,06 e 0,25.
 
 **Concordanza dei filtri** rispetto al riferimento a maggioranza stretta delle ripetizioni oracle:
 
-- refined: F1 tra 0,99 e 1,00 a ogni `k`; atomi inventati rari (0,17 per run a k=2, 0,05 a k=4).
-- one_shot: da 0,89 (k=1) a 0,00 (k=5).
-- Δ aggregato 0,38 [0,24; 0,52].
+- refined: F1 tra 0,99 e 1,00 a ogni `k` (media appaiata 1,00 [0,99; 1,00]); atomi inventati rari (0,17 per run a k=2, 0,05 a k=4).
+- one_shot: da 0,89 (k=1) a 0,00 (k=5) (media appaiata 0,56 [0,43; 0,70]).
+- Δ aggregato 0,44 [0,30; 0,56] (0,38 [0,24; 0,52] sui primi 113 run).
 - Auto-concordanza dell'oracle: F1 0,98.
 
 **Dimensione dei risultati.** One_shot restituisce mediane da 1.075 immobili (k=1) all'intero dataset (k=5), contro 446 dell'oracle; refined restituisce 144–446.

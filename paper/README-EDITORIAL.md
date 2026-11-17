@@ -61,7 +61,7 @@ offline scripted mode, which contains no property results.
    the multi-turn dialogue and the final map/ranking interface.
 3. Confirm the actual audience deployment and the dataset it will use.
 4. Check the final EDBT demo-track formatting and page limits.
-5. Keep the reported 113 completed runs distinct from the 304-run plan.
+5. Keep the reported 115 completed runs (and 8 failed) distinct from the 304-run plan.
    Before updating the table or figure, verify the benchmark outputs and
    document their provenance in OKF; preserve the incomplete-coverage caveat.
 

@@ -25,7 +25,7 @@ sources:
 
 # Bozza Conversational MURENA e confronto con il codice
 
-Il sorgente [EDBT](../../../paper/edbt-paper-template.tex) è una **bozza ricostruita**, distinta dal [manoscritto MURENA originale](../references/paper/guide.md): autori e affiliazioni sono da confermare e il testo riporta ora risultati preliminari del benchmark a tre condizioni (113 run completati su 304 pianificati). Il suo contributo proposto è il chiarimento conversazionale prima dell'analisi; la valutazione comparativa distingue il protocollo pianificato dai risultati osservati, senza attribuire rilevanza indipendentemente verificata al ranking oracle. I dettagli delle esecuzioni effettive e dei limiti degli scenari sono nel [benchmark conversazionale](edbt-conversational-benchmark.md).
+Il sorgente [EDBT](../../../paper/edbt-paper-template.tex) è una **bozza ricostruita**, distinta dal [manoscritto MURENA originale](../references/paper/guide.md): autori e affiliazioni sono da confermare e il testo riporta ora risultati preliminari del benchmark a tre condizioni (115 run completati su 123 eseguiti e 304 pianificati). Il suo contributo proposto è il chiarimento conversazionale prima dell'analisi; la valutazione comparativa distingue il protocollo pianificato dai risultati osservati, senza attribuire rilevanza indipendentemente verificata al ranking oracle. I dettagli delle esecuzioni effettive e dei limiti degli scenari sono nel [benchmark conversazionale](edbt-conversational-benchmark.md).
 
 ## Confronto statico, 2026-11-17
 
