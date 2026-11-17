@@ -141,6 +141,10 @@ class Settings(BaseSettings):
     CODEX_EXECUTABLE: str = "codex"
     CODEX_REASONING_EFFORT: str = "low"
     CODEX_TIMEOUT_SECONDS: int = 180
+    # Claude Code CLI is an optional provider (claude -p, isolated, no tools).
+    CLAUDE_CLI_EXECUTABLE: str = "claude"
+    CLAUDE_CLI_EFFORT: str = "medium"
+    CLAUDE_CLI_TIMEOUT_SECONDS: int = 180
 
     # ==========================================================================
     # External APIs

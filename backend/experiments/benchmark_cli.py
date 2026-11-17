@@ -393,11 +393,18 @@ def extract_top(buildings: list[dict[str, Any]], limit: int = 10) -> list[dict[s
 
 
 def _as_obj(value: Any) -> Any:
+    """Parse a recorded agent output; accept Markdown-fenced JSON like the pipeline does."""
     if isinstance(value, str):
         try:
             return json.loads(value)
         except (json.JSONDecodeError, ValueError):
-            return value
+            try:
+                from app.utils.json_parser import safe_extract_json
+
+                parsed = safe_extract_json(value)
+            except Exception:  # Parsing a trace must never fail a run.
+                parsed = None
+            return parsed if parsed is not None else value
     return value
 
 
@@ -710,16 +717,22 @@ def llm_provenance(settings: Any) -> dict[str, Any]:
     model = settings.LLM_MODEL
     base_url = getattr(settings, "LLM_BASE_URL", None) or getattr(settings, "OPENAI_API_BASE", None)
     try:
-        from app.services.llm.providers import resolve_provider
+        from app.services.llm.providers import normalize_provider, resolve_provider
 
-        provider = resolve_provider(model, base_url)
+        provider = normalize_provider(resolve_provider(model, base_url))
     except Exception:  # Provenance must never block a run.
         provider = getattr(settings, "LLM_PROVIDER", None) or None
+    effort = None
+    if provider == "codex_exec":
+        effort = getattr(settings, "CODEX_REASONING_EFFORT", None)
+    elif provider == "claude_cli":
+        effort = getattr(settings, "CLAUDE_CLI_EFFORT", None)
     return {
         "provider": provider,
         "model": model,
-        "reasoning_effort": getattr(settings, "CODEX_REASONING_EFFORT", None) if provider == "codex" else None,
+        "reasoning_effort": effort,
         "codex_reasoning_effort_setting": getattr(settings, "CODEX_REASONING_EFFORT", None),
+        "claude_cli_effort_setting": getattr(settings, "CLAUDE_CLI_EFFORT", None),
         "temperature": getattr(settings, "AGENT_TEMPERATURE", None),
     }
 

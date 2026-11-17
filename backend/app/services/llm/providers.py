@@ -19,6 +19,8 @@ Supported providers (``LLM_PROVIDER`` env var / settings):
                      gpt-oss or Qwen (alias: ``vllm``, ``local``).
 ``codex_exec``       Authenticated Codex CLI, invoked in a restricted,
                      temporary workspace (alias: ``codex``).
+``claude_cli``       Authenticated Claude Code CLI (``claude -p``) with no
+                     tools, settings or MCP servers (alias: ``claude-cli``).
 ===================  ==========================================================
 
 If ``LLM_PROVIDER`` is not set the provider is inferred from the model name
@@ -44,6 +46,8 @@ PROVIDER_ALIASES = {
     "google": "gemini",
     "chatgpt": "openai",
     "codex": "codex_exec",
+    "claude-cli": "claude_cli",
+    "claude_code": "claude_cli",
 }
 
 KNOWN_PROVIDERS = (
@@ -54,12 +58,13 @@ KNOWN_PROVIDERS = (
     "ollama",
     "openai-compatible",
     "codex_exec",
+    "claude_cli",
 )
 
 # Providers whose chat models reliably support structured output
 # (function calling). Open-weight models served locally usually do not.
 STRUCTURED_OUTPUT_PROVIDERS = {
-    "openai", "gemini", "anthropic", "grok", "codex_exec"
+    "openai", "gemini", "anthropic", "grok", "codex_exec", "claude_cli"
 }
 
 
@@ -150,6 +155,16 @@ def build_chat_model(
             executable=settings.CODEX_EXECUTABLE,
             reasoning_effort=settings.CODEX_REASONING_EFFORT,
             timeout_seconds=settings.CODEX_TIMEOUT_SECONDS,
+        )
+
+    if provider == "claude_cli":
+        from app.services.llm.claude_cli import ClaudeCliChatModel
+        return ClaudeCliChatModel(
+            model_name=model_name,
+            temperature=temperature,
+            executable=settings.CLAUDE_CLI_EXECUTABLE,
+            effort=settings.CLAUDE_CLI_EFFORT,
+            timeout_seconds=settings.CLAUDE_CLI_TIMEOUT_SECONDS,
         )
 
     if provider == "openai":

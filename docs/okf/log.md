@@ -2,6 +2,12 @@
 
 ## 2026-11-17
 
+* **Adattatore Claude Code CLI**:
+  * Nuovo provider `claude_cli` (`backend/app/services/llm/claude_cli.py`), registrato nella factory con le impostazioni `CLAUDE_CLI_*`. Esegue `claude -p` isolato: nessun tool, impostazione o server MCP, ambiente filtrato. Il system prompt è passato da file; l'output strutturato usa `--json-schema`.
+  * Il manifest del benchmark ora registra correttamente l'effort del provider: prima il confronto con `"codex"` lo lasciava sempre vuoto.
+  * Il runner interpreta anche gli output degli agenti racchiusi in blocchi ```json, come già fa la pipeline (`safe_extract_json`).
+  * Test: 5 nuovi test dell'adattatore e 80 test complessivi superati; smoke test reale con `claude-haiku-5-5` (4 job, una ripetizione per condizione su `MS02`) completato.
+  * Aggiornato `operations/environment.md`.
 * **Rimozione risultati obsoleti**: eliminate `backend/experiments/results/edbt_conversational/` e `missingness_v2/` su richiesta dell'utente; conservata integralmente `missingness_v3/`. Nessuna rigenerazione o chiamata LLM. I file versionati precedenti restano recuperabili dalla revisione Git `411b003`; le osservazioni storiche OKF sono conservate.
 
 * **Rimozione suite obsolete**: eliminate `backend/experiments/data/scenarios/` e `scenarios_v2/`; conservata la sorgente originale byte per byte in `scenarios_v3/source_triplets.json`, aggiornati generatore, validatore, README e fixture del test legacy. Fonti storiche OKF collegate alla revisione Git `411b003`, risultati storici conservati. Rilevato checksum sorgente preesistente disallineato: rigenerazione temporanea con triplette/YAML identici; aggiornato soltanto il checksum del manifest. Provenienza dettagliata in `research/reproduction.md`. Paper invariato: suite attiva, protocollo e input sperimentali identici.
