@@ -29,7 +29,8 @@ Keep both aligned with the implementation and verified evidence, without treatin
 - Describe benchmark conditions precisely (e.g., one-shot, refined, and oracle). Distinguish an oracle query or reference ranking from independently verified ground truth on property relevance. Do not report unexecuted experiments or planned metrics as measured findings.
 - When benchmark inputs or evaluation scripts change, update the paper's experimental setup only to reflect the version actually used or explicitly planned, and document the version/status. Do not silently replace earlier reported results or mix results from different benchmark versions.
 - Update bibliography entries when adding or removing cited work. Preserve citation keys and project-specific LaTeX conventions.
-- If LaTeX sources change and the required tools are available, compile the paper, resolve introduced errors, and check page limits and major layout regressions. Do not manually edit generated PDFs in place of the source.
+- Whenever the paper is modified (including LaTeX sources, bibliography, figures, or other build inputs), regenerate its PDF in the same task after the final edit, following the build instructions in `paper/README.md`. Resolve introduced compilation errors, check page limits and major layout regressions, and ensure the regenerated PDF corresponds to the final sources. Do not manually edit generated PDFs in place of the source.
+- If PDF regeneration is blocked by missing build tools or another build failure, explicitly report the blocker and state that the PDF has not been regenerated; do not silently skip this step or claim the paper update is complete.
 - When a change is not relevant to the paper, leave `paper/` untouched. Never add unsupported novelty claims, placeholder numbers presented as results, or speculative conclusions.
 - Summarize in the final response which OKF and paper files were updated, or why no paper change was warranted.
 
