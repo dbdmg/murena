@@ -2,6 +2,8 @@
 
 ## 2026-11-17
 
+* **Dettagli del modello nel manoscritto**: rimossi da `paper/edbt-paper-template.tex` i riferimenti espliciti al modello, al backend Codex e al reasoning effort nella didascalia della demo e nel protocollo sperimentale. Conservata la misura della variabilità tra run; i metadati di esecuzione e la provenienza restano documentati nel registro di ricerca OKF e negli artefatti sperimentali. Nessuna configurazione runtime o risultato modificato.
+
 * **Screenshot della demo nel paper**: percorso guidato nursery (`MS02_k2`) eseguito dal vivo sull'app locale con `gpt-6-luna`. Due domande (`Cb`, `Ce`), revisione della richiesta riscritta, 144 immobili corrispondenti con top-10 sulla mappa. Figura `fig:screens` in `paper/` (`figures/screen-dialogue.png`, `screen-review.png`, `screen-results.jpg`); il paper compila a 4 pagine.
 
 * **Revisione strutturale del paper EDBT** (`paper/`):
