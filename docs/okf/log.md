@@ -2,6 +2,8 @@
 
 ## 2026-11-17
 
+* **Attivazione completa S01–S08 e snapshot Codex**: abilitati gli otto scenari nel YAML; piano corrente ×3 su tutte le condizioni = 1.536 job. Inclusi gli artefatti presenti in `results/all_scenarios_codex/`: manifest incompleto e un tentativo S01_k1_D in errore per dettaglio irrisolto. Aggiornata riproduzione; paper invariato perché lo snapshot parziale non modifica i risultati scientifici riportati.
+
 * **Smoke test Qwen vLLM su S01_k0**: un solo job refined con `qwen9b` su 130.192.163.76:8000, ripetizione e concorrenza 1, configurazione permanente invariata. Run `bench_b709ce5268e6` fallita in 122,083 s al parsing JSON del chiarimento, prima dell’analisi immobiliare. Artefatti isolati in `results/qwen9b_s01_k0/`, input e impostazioni conservati; risposta grezza non registrata, causa specifica non verificata. Nessun retry. Aggiornata `research/reproduction.md`; paper invariato: sola prova tecnica fallita, senza nuove evidenze scientifiche.
 
 * **Rimosso seed e shuffle del runner**: eliminati `--seed`, metadato seed e mescolamento casuale dei job; ordine ora per condizione, variante nel file e ripetizione. Configurazione di parallelismo preservata; seed statistici offline invariati. Aggiornati test, README catalogo e riproduzione. Le prove su catalogo completo usano fixture isolate dalla selezione operativa solo S01. Superati 27 test Python e dry-run S01 da 192 job. Nessuna nuova esecuzione LLM; protocollo storico del paper preservato, nota sull’estensione allineata all’ordine fisso e PDF rigenerato con Tectonic (4 pagine, controllo visivo senza regressioni maggiori).

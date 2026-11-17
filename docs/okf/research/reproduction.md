@@ -164,7 +164,9 @@ stesso ordine di completamento. I seed delle analisi statistiche offline
 restano separati e invariati; i riferimenti storici al seed del runner
 descrivono le esecuzioni precedenti.
 
-**Selezione operativa corrente:** solo S01 abilitato; S02–S08 disabilitati.
+**Selezione operativa corrente:** S01–S08 abilitati nel YAML del runner;
+con tre ripetizioni per condizione il piano completo è di 1.536 job.
+Il setup solo S01 descritto di seguito resta un esempio ridotto da 192 job.
 YAML, JSON frontend e manifest di generazione sincronizzati. Dry-run verificato:
 Tutte le condizioni si ripetono **tre volte**: `--repeat 3`, senza override
 `--oracle-repeat` (che eredita `--repeat`). Dry-run verificato: 96 refined,
@@ -313,3 +315,11 @@ IP; la precedente verifica HTTP minima aveva invece usato
 `enable_thinking=false` e restituito `OK`. Sono prove tecniche distinte,
 non un confronto di qualità o stabilità e non un risultato scientifico.
 Nessun retry o secondo job avviato. Il paper resta invariato.
+
+Snapshot `all_scenarios_codex` incluso nel commit di attivazione completa:
+manifest con otto basi attive, gpt-6-luna, ×3 per tutte le condizioni,
+concorrenza 20, senza `completed_at`. Al momento dello snapshot è presente
+un solo record, `bench_a9c86f0197c9` / `S01_k1_D`, fallito dopo 8,836 s
+per dettaglio necessario ancora irrisolto, senza avviare l’analisi.
+È un artefatto parziale, non un benchmark completato o una nuova misura
+comparativa. Nessuna modifica ai risultati storici del paper.
