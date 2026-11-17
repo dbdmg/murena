@@ -54,8 +54,14 @@ revisione Git `4a7c882`. La rigenerazione con concorrenza 20 è stata interrotta
 su richiesta: quattro errori di timeout, nessun run completato. La directory
 `missingness_v3/` contiene ora soltanto questo tentativo incompleto, con
 checksum di dataset e scenari diversi dal manifest storico importato.
-Diagnosi e provenienza in [riproduzione](reproduction.md). Il paper conserva
-i risultati storici; il tentativo non aggiunge risultati scientifici.
+Diagnosi e provenienza in [riproduzione](reproduction.md). Il tentativo non aggiunge risultati scientifici.
+
+**Serie completa con Claude Haiku 5.5 (2026-11-17, sera):** il disegno annidato
+a 48 varianti è stato rieseguito per intero (304/304 run completati) con il
+provider `claude_cli`, in `results/missingness_v3_haiku/`. Da questa serie
+provengono ora i risultati del paper; la serie parziale `gpt-6-luna` resta
+documentata sotto come evidenza storica, senza combinarla. Vedere
+[serie Haiku](#risultati-osservati-serie-completa-v3-con-claude-haiku-55-2026-11-17).
 
 ## Revisione combinatoria del catalogo (2026-11-17)
 
@@ -308,6 +314,85 @@ Il test di sign-flip esatto su 7 intenti dà p=0,016 per tutti e tre gli indici.
 - Il tetto di rumore è molto variabile tra intenti: `UC03` ha accordo 0 tra due run oracle, `UC04` e `UC05` 1,0.
 - Questi numeri non vanno combinati con quelli v1 o v2, ottenuti con versioni precedenti del codice e degli scenari.
 
+## Risultati osservati: serie completa v3 con Claude Haiku 5.5 (2026-11-17)
+
+**Esecuzione.**
+
+- Configurazione:
+  - modello `claude-haiku-5-5` tramite il provider `claude_cli` (Claude Code CLI, effort `medium`, temperatura 0);
+  - dataset `full` (89.200 immobili, SHA-256 `bc6732c8…`), rilassamento attivo;
+  - seed 13 con ordine dei job interleaved, concorrenza 10;
+  - ripetizioni: refined ×3, one_shot ×3 (k≥1), oracle ×5 per intento.
+- Input: `backend/experiments/data/scenarios_v3/nested48_from_4a7c882.yaml`, copia byte per byte del file runner annidato a 48 varianti del commit `4a7c882`, cioè lo stesso disegno della serie parziale. Il catalogo corrente S01–S08 non è stato usato.
+- Codice: commit `7fd238d`. Il manifest riporta `dirty=true` perché il file di input non era ancora versionato al lancio; è stato pubblicato subito dopo, senza modifiche (`1bc396f`). Il runner usato è precedente alla rimozione di seed e interleaving (`3e118f5`).
+- Esecuzione dalle 17:26 alle 18:28 (ora locale, 62 minuti): **304/304 run completati**, nessun run fallito, nessun `agent_errors`, nessun fallback.
+- Rilassamento in 28 run: 19 refined, 3 one_shot, 6 oracle.
+- Robustezza del CLI: 1 nuovo tentativo dell'adattatore, per una corruzione transitoria di `~/.claude.json` tra processi concorrenti; il file è risultato integro a fine run.
+- Artefatti `runs/` compatti (schema 3), 19 MB, esclusi da Git; versionati `runs.jsonl`, `manifest.json`, `summary.csv`, `comparison*.{json,csv}`.
+
+**Tentativi precedenti scartati.** Tre lanci della stessa serie, fermati prima di completarla e spostati fuori dal repository, non sono usati:
+
+1. 11 run: errori `WinError 32` nella pulizia della directory temporanea, che facevano fallire agenti con una risposta valida.
+2. 11 run: un fallimento di avvio del CLI senza diagnostica.
+3. 46 run, con il catalogo corrente nel frattempo cambiato in S01–S08: 2 dialoghi SAGE falliti perché Haiku racchiude talvolta il JSON in un blocco ```json, e ritardi dello stdin.
+
+Ciascun problema è stato corretto nel codice (`fc8496d`, `7fd238d`) prima del lancio definitivo, che è ripartito da zero.
+
+**Chiarimento (refined, 144 run).**
+
+- Rilevamento delle dimensioni omesse esatto in 144/144 (P/R/F1 micro = 1,00).
+- Numero di turni uguale a `k` in tutti i run.
+- Nessuna domanda nei controlli `k=0` (0/24).
+- L'uso normativo atteso è sempre tra quelli riconosciuti; in 12 run è riconosciuto anche un uso affine. Per `MS02` (nido) compare anche il micronido in 11 run; per `MS01` (micronido) compare anche il nido in famiglia in 1 run.
+
+**Accordo con l'oracle.** Valori: media appaiata sugli 8 intenti (`row_type=intent_mean_paired`), [IC 95% bootstrap a cluster, B=10.000], k≥1 aggregato.
+
+| Condizione | J5 | RBO (p=0,8, top-10) | J5 tie-aware |
+|---|---|---|---|
+| one_shot | 0,11 [0,05; 0,18] | 0,13 [0,06; 0,20] | 0,11 [0,05; 0,17] |
+| refined | 0,57 [0,49; 0,66] | 0,63 [0,54; 0,74] | 0,56 [0,49; 0,63] |
+| refined, k=0 | 0,64 [0,58; 0,71] | 0,69 [0,62; 0,79] | 0,64 [0,57; 0,70] |
+| oracle vs oracle (n=8) | 0,53 [0,43; 0,64] | 0,58 [0,47; 0,71] | 0,52 [0,43; 0,62] |
+| Δ refined − one_shot | 0,46 [0,36; 0,56] | 0,49 [0,39; 0,61] | 0,45 [0,36; 0,54] |
+
+- Sign-flip esatto su 8 intenti: p=0,0078 per tutti gli indici aggregati. È il minimo ottenibile con 8 intenti, cioè tutti gli intenti hanno Δ>0.
+- Per singolo `k`, p=0,0078 da k=2 a k=5. A k=1 p=0,0625: one_shot conserva ancora gran parte dei filtri.
+- J5 refined è stabile su k (0,60; 0,57; 0,55; 0,57; 0,56 da k=1 a k=5). J5 one_shot scende: 0,34; 0,13; 0,05; 0,02; 0,01.
+
+**Concordanza dei filtri** rispetto al riferimento a maggioranza stretta delle ripetizioni oracle:
+
+- refined: F1 tra 0,95 e 0,96 a ogni `k` (media appaiata 0,96 [0,94; 0,97]).
+- one_shot: da 0,87 (k=1) a 0,19 (k=5) (media appaiata 0,55 [0,51; 0,59]).
+- Δ aggregato 0,40 [0,36; 0,44].
+- Auto-concordanza dell'oracle: F1 0,94 [0,93; 0,96].
+- Il richiamo dell'atomo `I` nel refined è 0,44–0,83, mentre tutte le altre dimensioni hanno richiamo 0,98–1,00; la causa non è stata analizzata.
+
+**Dimensione dei risultati (mediane).**
+
+- oracle: 121 immobili.
+- refined: 78–362.
+- one_shot: 247 (k=1), 748, 2.476, 10.923, fino a 80.447 (k=5).
+
+**Latenza (mediane).**
+
+- Chiarimento: 16,5 s a k=0, poi 23,6; 29,8; 35,6; 38,3; 48,7 s da k=1 a k=5.
+- Analisi: 88–102 s per refined, 88–124 s per one_shot, 92,5 s per oracle.
+
+**Confronto con la serie parziale `gpt-6-luna`** (solo qualitativo, da non combinare):
+
+- Entrambe le serie mostrano rilevamento esatto, nessuna domanda superflua a k=0 e un ampio Δ refined − one_shot.
+- Con Haiku i livelli assoluti di accordo sono più bassi (J5 refined 0,57 contro 0,74). Anche il tetto oracle-vs-oracle è più basso (0,53 contro 0,74): la pipeline con Haiku varia di più tra ripetizioni identiche.
+- In entrambe le serie refined è al livello del rispettivo tetto, entro gli intervalli.
+- Il confronto fra modelli è confuso con la copertura: la serie parziale ha 7 intenti appaiati e il tetto su 5 intenti.
+
+**Interpretazione e cautele.** Valgono quelle della serie parziale:
+
+- l'oracle è un riferimento di query, non un giudizio di rilevanza;
+- l'utente simulato è cooperativo ed esatto, quindi l'accordo refined-oracle è un limite superiore del recupero con utenti reali;
+- `k` è accoppiato all'identità delle dimensioni omesse.
+
+Refined supera di poco il tetto oracle-vs-oracle (0,57 contro 0,53), con intervalli sovrapposti; non va letto come "migliore dell'oracle". Il riferimento confronta coppie refined-oracle, il tetto coppie oracle-oracle: entrambi misurano la stessa variabilità della pipeline.
+
 ## Limiti
 
 Gli scenari sono sintetici e costruiti per coprire dimensioni, omissioni, ambiguità e casi normativi selezionati. Non costituiscono una user study e non rappresentano la distribuzione di richieste reali. Le risposte simulate e gli oracle riflettono scelte di costruzione del benchmark. Le run conversational documentate sopra sono risultati osservati su questo setup, ma non stimano il beneficio del chiarimento senza condizioni one-shot e oracle appaiate. La copertura normativa segue il catalogo fornito e non certifica autorizzazioni o aggiornamento giuridico. Il protocollo EDBT va mantenuto distinto dai risultati riportati nel paper originale.
@@ -330,6 +415,14 @@ L'esempio conserva le formulazioni osservate, compresa la differenza tra
 la refined una riscrittura osservata; non viene sostituita con l'oracle.
 È una spiegazione del protocollo con dati esistenti, senza nuove esecuzioni
 o variazioni dei risultati.
+
+**Aggiornamento (2026-11-17, serie Haiku):** l'esempio del paper usa ora le
+run `missingness_v3_haiku/runs.jsonl` dello stesso caso: `one_shot`
+**bench_4219923a116f**, `refined` **bench_7fccc469c00d** (`MS02_k2`, repeat 1,
+due turni) e `oracle` **bench_c41f87c72646** (`UC02_nursery_missing_use`,
+repeat 1). Il testo one_shot e l'oracle sono identici a prima, essendo input
+predefiniti; la riscrittura refined è quella osservata con Haiku. Gli ID
+precedenti restano validi per la serie `gpt-6-luna` (Git `4a7c882`).
 
 ### Esportazione del confronto con copertura parziale (2026-11-17)
 

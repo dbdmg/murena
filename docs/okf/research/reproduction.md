@@ -256,9 +256,30 @@ Il piano è di 304 job: refined 144, one_shot 120, oracle 40. `--dry-run` li ele
 Note sulla prova:
 
 - Haiku a volte racchiude il JSON in un blocco di codice e arricchisce i valori (per esempio `use` con dettagli aggiuntivi).
-- Il backend non ha ancora adattatori per queste tre CLI: supporta Anthropic e xAI solo via API key. Usarle richiede un provider sul modello di `codex_exec.py`.
+- Al momento della prova il backend non aveva adattatori per queste CLI. Dal 2026-11-17 esiste il provider `claude_cli` (vedi sotto); Grok Build e Antigravity restano senza adattatore.
 - Cambiare modello richiede una nuova serie completa: non si possono mescolare modelli nello stesso confronto.
 - Una chiamata minima Codex richiedeva 12 s a benchmark fermo (15:30) e 63–167 s durante il rallentamento.
+
+**Serie completa con Claude Haiku 5.5 (2026-11-17).** Riproduce il disegno annidato del paper, con il runner del commit `7fd238d` (seed 13, ordine interleaved). Con il runner corrente `--seed` non esiste più e l'ordine è fisso; i risultati per run non dipendono dall'ordine, ma il manifest differirebbe.
+
+```bash
+LLM_PROVIDER=claude_cli LLM_MODEL=claude-haiku-5-5 CLAUDE_CLI_EFFORT=medium uv run --project backend python backend/experiments/benchmark_cli.py   --scenarios backend/experiments/data/scenarios_v3/nested48_from_4a7c882.yaml   --output backend/experiments/results/missingness_v3_haiku   --condition refined --condition one_shot --condition oracle   --repeat 3 --oracle-repeat 5 --seed 13 --concurrency 10
+uv run --project backend python backend/experiments/compare_conditions.py   --results backend/experiments/results/missingness_v3_haiku
+```
+
+- Requisiti: `claude` installato e autenticato; le variabili d'ambiente di processo bastano, senza modificare `backend/.env`.
+- Tempi: 62 minuti per 304 run con concorrenza 10, cioè circa 5 run al minuto a regime.
+- Ritmo misurato: circa 2 run al minuto con concorrenza 8 nei primi minuti, 5–6 al minuto a regime con concorrenza 10.
+- Durata per run (mediana): chiarimento 16–49 s, analisi 88–124 s.
+- Consumo: le chiamate usano la quota del piano Claude dell'utente. Il consumo in token non è stato misurato.
+
+Problemi riscontrati con molte istanze CLI concorrenti su Windows, e correzioni:
+
+- `WinError 32` nella pulizia della directory temporanea, che faceva fallire una chiamata già riuscita. Corretto con `ignore_cleanup_errors`, anche in `codex_exec`.
+- Stdin arrivato oltre i 3 s di attesa del CLI ("no stdin data received"). Corretto passando l'input da file.
+- Corruzione transitoria di `~/.claude.json` per avvii simultanei; il CLI la ripristina da `~/.claude/backups/`. Mitigata distanziando gli avvii di 0,3 s, ma non eliminata: 1 episodio nella serie finale, recuperato dal nuovo tentativo.
+- Ritentativi dell'adattatore: fino a 2 per chiamate senza risultato o con errore riportato dal CLI; i timeout non vengono ritentati.
+- JSON racchiuso in un blocco ```json. Il parser SAGE ora accetta esattamente un blocco recintato; il runner usa `safe_extract_json` per le tracce degli agenti.
 
 Per compilare il paper si usa Tectonic 0.17.0 (binario dalla release GitHub; su Windows non è disponibile via winget). I font Libertinus richiesti da `acmart` vanno resi disponibili localmente se il bundle di Tectonic non li trova.
 

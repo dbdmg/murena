@@ -61,9 +61,11 @@ offline scripted mode, which contains no property results.
    the multi-turn dialogue and the final map/ranking interface.
 3. Confirm the actual audience deployment and the dataset it will use.
 4. Check the final EDBT demo-track formatting and page limits.
-5. Keep the reported 115 completed runs (and 8 failed) distinct from the 304-run plan.
-   Before updating the table or figure, verify the benchmark outputs and
-   document their provenance in OKF; preserve the incomplete-coverage caveat.
+5. The reported results are the complete 304-run series
+   (`missingness_v3_haiku`). Do not pool them with the earlier partial run
+   (115 of 123, other backend) or with any S01–S08 catalogue run. Before
+   updating the table or figure, verify the benchmark outputs and document
+   their provenance in OKF.
 
 ## Build
 
