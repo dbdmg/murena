@@ -101,14 +101,14 @@ uv run python backend/experiments/data/scenarios_v3/validate_missingness.py \
   --catalog backend/docs/knowledge/normativa/normativa.json
 ```
 
-Three-condition run of all eight enabled base scenarios (refined ×3, one-shot ×3, oracle ×5 per intent = 768 + 744 + 40 = 1,552 jobs, interleaved in a seeded order); check the plan first with `--dry-run`:
+Three-condition run of all eight enabled base scenarios (refined ×3, one-shot ×3, oracle ×5 per intent = 768 + 744 + 40 = 1,552 jobs, scheduled in condition, file and repetition order); check the plan first with `--dry-run`:
 
 ```bash
 uv run python backend/experiments/benchmark_cli.py \
   --scenarios backend/experiments/data/scenarios_v3/conversational_scenarios.yaml \
   --output backend/experiments/results/missingness_combinations \
   --condition refined --condition one_shot --condition oracle \
-  --repeat 3 --oracle-repeat 5 --seed 13 --concurrency 4
+  --repeat 3 --oracle-repeat 5 --concurrency 4
 uv run python backend/experiments/compare_conditions.py \
   --results backend/experiments/results/missingness_combinations
 ```

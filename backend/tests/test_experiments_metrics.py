@@ -285,8 +285,18 @@ class RunnerTests(unittest.TestCase):
     def _args(self, *extra):
         return bc.build_parser().parse_args(["--scenarios", str(V3_YAML), *extra])
 
+    def _all_scenarios(self):
+        import yaml
+        catalog = yaml.safe_load(V3_YAML.read_text())
+        for group in catalog["scenarios"]:
+            group["enabled"] = True
+        return catalog
+
     def test_v3_job_construction(self):
-        scenarios = bc.load_scenarios(V3_YAML)
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "all.json"
+            path.write_text(json.dumps(self._all_scenarios()))
+            scenarios = bc.load_scenarios(path)
         args = self._args("--condition", "refined", "--condition", "one_shot", "--condition", "oracle",
                           "--repeat", "3", "--oracle-repeat", "5")
         jobs = bc.build_jobs(scenarios, args, "m")
@@ -297,11 +307,11 @@ class RunnerTests(unittest.TestCase):
         keys = [bc.job_key(job) for job in jobs]
         self.assertEqual(len(keys), len(set(keys)))
         self.assertEqual([bc.job_key(j) for j in bc.build_jobs(scenarios, args, "m")], keys)
-        other = bc.build_jobs(scenarios, self._args(
-            "--condition", "refined", "--condition", "one_shot", "--condition", "oracle",
-            "--repeat", "3", "--oracle-repeat", "5", "--seed", "14"), "m")
-        self.assertNotEqual([bc.job_key(j) for j in other], keys)
-        self.assertEqual(set(bc.job_key(j) for j in other), set(keys))
+        self.assertEqual([j["condition"] for j in jobs],
+                         ["refined"] * 768 + ["one_shot"] * 744 + ["oracle"] * 40)
+        self.assertEqual([(j["scenario_id"], j["repeat"]) for j in jobs[:6]],
+                         [(scenarios[0]["id"], r) for r in range(1, 4)] +
+                         [(scenarios[1]["id"], r) for r in range(1, 4)])
         oracle_units = {job["unit_id"] for job in jobs if job["condition"] == "oracle"}
         self.assertEqual(oracle_units, {s["base_case_id"] for s in scenarios})
         self.assertTrue(all(job["missing_count"] >= 1 for job in jobs if job["condition"] == "one_shot"))
@@ -394,8 +404,10 @@ class RunnerTests(unittest.TestCase):
 
     def test_dry_run_lists_jobs(self):
         stream = io.StringIO()
-        with contextlib.redirect_stdout(stream), self.assertRaises(SystemExit) as exit_info:
-            bc.main(["--scenarios", str(V3_YAML), "--output", str(Path(tempfile.gettempdir()) / "murena-none"),
+        with tempfile.TemporaryDirectory() as folder, contextlib.redirect_stdout(stream), self.assertRaises(SystemExit) as exit_info:
+            path = Path(folder) / "all.json"
+            path.write_text(json.dumps(self._all_scenarios()))
+            bc.main(["--scenarios", str(path), "--output", str(Path(tempfile.gettempdir()) / "murena-none"),
                      "--condition", "refined", "--condition", "one_shot", "--condition", "oracle",
                      "--repeat", "3", "--oracle-repeat", "5", "--dry-run"])
         self.assertEqual(exit_info.exception.code, 0)

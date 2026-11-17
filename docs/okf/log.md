@@ -2,6 +2,14 @@
 
 ## 2026-11-17
 
+* **Smoke test Qwen vLLM su S01_k0**: un solo job refined con `qwen9b` su 130.192.163.76:8000, ripetizione e concorrenza 1, configurazione permanente invariata. Run `bench_b709ce5268e6` fallita in 122,083 s al parsing JSON del chiarimento, prima dell’analisi immobiliare. Artefatti isolati in `results/qwen9b_s01_k0/`, input e impostazioni conservati; risposta grezza non registrata, causa specifica non verificata. Nessun retry. Aggiornata `research/reproduction.md`; paper invariato: sola prova tecnica fallita, senza nuove evidenze scientifiche.
+
+* **Rimosso seed e shuffle del runner**: eliminati `--seed`, metadato seed e mescolamento casuale dei job; ordine ora per condizione, variante nel file e ripetizione. Configurazione di parallelismo preservata; seed statistici offline invariati. Aggiornati test, README catalogo e riproduzione. Le prove su catalogo completo usano fixture isolate dalla selezione operativa solo S01. Superati 27 test Python e dry-run S01 da 192 job. Nessuna nuova esecuzione LLM; protocollo storico del paper preservato, nota sull’estensione allineata all’ordine fisso e PDF rigenerato con Tectonic (4 pagine, controllo visivo senza regressioni maggiori).
+
+* **Ripetizioni uniformi nel setup S01**: su richiesta tutte le condizioni sono pianificate ×3. Il comando corrente usa `--repeat 3`, lasciando che oracle erediti il valore; dry-run verificato: 96 refined, 93 one-shot e 3 oracle (192 job). Aggiornata `research/reproduction.md`. Nessuna esecuzione avviata o modifica al codice necessaria; paper e protocollo storico oracle ×5 conservati perché i risultati riportati non sono cambiati.
+
+* **Selezione corrente solo S01**: disabilitati S02–S08 nel YAML, rigenerati JSON frontend e manifest conservando le 32 varianti di S01 attive. Validatore superato; dry-run a tre condizioni ×3/×3/×5: 96 refined, 93 one-shot e 5 oracle (194 job). Nessun benchmark avviato; paper invariato perché cambia soltanto la selezione operativa, senza nuove evidenze o modifiche al protocollo riportato.
+
 * **Pull `fc8496d`**: integrati i due commit remoti del provider Claude CLI e delle correzioni Windows, preservando le modifiche locali agli scenari S01–S08, alla configurazione della demo e ai risultati già rimossi. Risolto il conflitto nel log conservando entrambe le cronologie; runner integrato automaticamente. Verificati 27 test del benchmark, 6 test del provider Claude, 4 test demo, validatore statico e build demo; conservati byte per byte 27 file/eliminazioni locali, con runner e log integrati separatamente. Nessuna modifica aggiuntiva ai sorgenti del paper richiesta dal pull.
 
 * **Adattatore Claude Code CLI**:

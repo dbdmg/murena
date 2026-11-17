@@ -103,7 +103,7 @@ Una prova end-to-end di `MS01_k1` con `gpt-6-luna` e dataset `full` è stata com
 
 La cartella di output contiene `manifest.json`, `runs.jsonl`, la directory
 `runs/` e `summary.csv`. Ogni nuovo `runs/<run_id>.json` usa
-`artifact_schema_version=3` e JSON senza indentazione. Conserva definizione
+`artifact_schema_version=3` e JSON formattato con indentazione di due spazi. Conserva definizione
 dello scenario, query, dialogo e stati conversazionali, tempi, errori e metriche.
 `ranking_ids` contiene tutti gli ID corrispondenti, nell'ordine deterministico
 finale prima del taglio `map_limit`, escludendo gli immobili di riempimento
@@ -156,6 +156,30 @@ Per mantenere leggibile l'output, la CLI filtra alcuni warning ripetitivi e noti
 Opzioni documentate per l'harness: `--with-qwen`, `--with-gemma`, `--all-models`. La directory `backend/tests/` ospita un **harness sperimentale**, non una suite pytest di unit test completa.
 
 ### Benchmark a tre condizioni (v3)
+
+**Ordine del runner corrente:** rimosso `--seed` e il mescolamento dei job.
+Le esecuzioni vengono avviate nell’ordine delle condizioni richieste, delle
+varianti nel file e delle ripetizioni. Il parallelismo non garantisce lo
+stesso ordine di completamento. I seed delle analisi statistiche offline
+restano separati e invariati; i riferimenti storici al seed del runner
+descrivono le esecuzioni precedenti.
+
+**Selezione operativa corrente:** solo S01 abilitato; S02–S08 disabilitati.
+YAML, JSON frontend e manifest di generazione sincronizzati. Dry-run verificato:
+Tutte le condizioni si ripetono **tre volte**: `--repeat 3`, senza override
+`--oracle-repeat` (che eredita `--repeat`). Dry-run verificato: 96 refined,
+93 one-shot e 3 oracle, **192 job**. Nessuna esecuzione LLM avviata.
+
+```bash
+.venv/bin/python -u backend/experiments/benchmark_cli.py \
+  --scenarios backend/experiments/data/scenarios_v3/conversational_scenarios.yaml \
+  --output backend/experiments/results/s01_combinations \
+  --condition refined --condition one_shot --condition oracle \
+  --repeat 3 --concurrency 20
+```
+
+I conteggi con oracle ×5 riportati sotto descrivono il protocollo precedente,
+non questa selezione operativa.
 
 **Revisione combinatoria corrente:** `scenarios_v3/` contiene otto scenari
 base S01–S08 con 32 varianti ciascuno. Il flag `enabled` compare solo sul
@@ -269,3 +293,23 @@ misure riportate sopra sono storici; i file versionati sono recuperabili
 alla revisione Git `411b003`. `missingness_v3/` resta invariata, senza
 rigenerazione dei risultati. Gli artefatti locali non versionati eliminati
 non sono recuperabili da Git.
+
+### Prova singola Qwen vLLM — S01_k0 (2026-11-17)
+
+Eseguito un solo job refined, una ripetizione, concorrenza 1, modello
+`qwen9b` (`Qwen/Qwen3.5-9B`) su `http://130.192.163.76:8000/v1` via
+provider `openai-compatible`. Impostazioni passate soltanto all'ambiente
+del processo; `.env` invariato. Input isolato dalle selezioni del catalogo,
+conservato in `backend/experiments/results/qwen9b_s01_k0/scenario_input.yaml`.
+Artefatti nella stessa cartella: manifest, indice, JSON per-run, log e
+`execution_settings.json` con endpoint e parametri della prova.
+
+Run `bench_b709ce5268e6`: **errore dopo 122,083 s**, durante il chiarimento:
+`Clarification model returned invalid JSON`. Nessuna analisi immobiliare
+completata. Il contenuto grezzo della risposta LLM non è conservato, quindi
+non si può attribuire con certezza la causa a thinking, Markdown o altri
+contenuti. Nessun override thinking è stato passato dal provider per questo
+IP; la precedente verifica HTTP minima aveva invece usato
+`enable_thinking=false` e restituito `OK`. Sono prove tecniche distinte,
+non un confronto di qualità o stabilità e non un risultato scientifico.
+Nessun retry o secondo job avviato. Il paper resta invariato.

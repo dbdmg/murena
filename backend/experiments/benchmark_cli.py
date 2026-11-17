@@ -11,7 +11,7 @@ call with identical options; they differ only in the submitted query:
 * ``oracle``   - ``oracle_query`` submitted directly. Units: one per
   ``base_case_id`` (deduplicated), repeated ``--oracle-repeat`` times.
 
-Jobs of all requested conditions are interleaved in a seeded random order.
+Jobs follow the requested condition order, scenario file order and repetition order.
 Each run is keyed by (condition, model, unit_id, repeat, input_sha256), where
 input_sha256 is the scenario digest for ``refined`` and the SHA-256 of the
 submitted query plus analysis options otherwise. ``runs.jsonl`` holds one
@@ -29,7 +29,6 @@ import json
 import hashlib
 import os
 import platform
-import random
 import subprocess
 import sys
 import time
@@ -284,7 +283,7 @@ def analysis_options(args: argparse.Namespace, scenario: dict[str, Any]) -> dict
 def build_jobs(
     scenarios: list[dict[str, Any]], args: argparse.Namespace, model: str
 ) -> list[dict[str, Any]]:
-    """Plan every (condition, unit, repeat) job and interleave them in a seeded order."""
+    """Plan jobs in condition, scenario-file and repetition order."""
     conditions = list(dict.fromkeys(args.condition or ["refined"]))
     oracle_repeat = args.oracle_repeat if args.oracle_repeat is not None else args.repeat
     jobs: list[dict[str, Any]] = []
@@ -356,7 +355,6 @@ def build_jobs(
                     })
         else:  # argparse restricts choices; keep a defensive error.
             raise ValueError(f"Unknown condition: {condition}")
-    random.Random(args.seed).shuffle(jobs)
     return jobs
 
 
@@ -974,7 +972,7 @@ def dry_run(args: argparse.Namespace) -> int:
             f"k={'' if job['missing_count'] is None else job['missing_count']:<2} r={job['repeat']} "
             f"sha={job['input_sha256'][:10]} | {query[:70]}"
         )
-    print(f"\nDry run: model={model} seed={args.seed} conditions={list(dict.fromkeys(args.condition or ['refined']))}")
+    print(f"\nDry run: model={model} conditions={list(dict.fromkeys(args.condition or ['refined']))}")
     print(f"  enabled bases={len({s.get('base_case_id') or s['id'] for s in scenarios})} variants={len(scenarios)}")
     for condition, (to_run, skipped) in counts.items():
         print(f"  {condition:<8} planned={to_run + skipped:>4} to_run={to_run:>4} skipped={skipped:>4}")
@@ -1059,7 +1057,6 @@ async def run(args: argparse.Namespace) -> int:
         "scenario_file": str(args.scenarios.resolve()),
         "models": models,
         "conditions": conditions,
-        "seed": args.seed,
         "clarification_mode": "SageClarifier",
         "review_policy": "auto_accept_refined_query_unless_scenario_overrides_it",
         "dataset_key_default": args.dataset,
@@ -1206,7 +1203,7 @@ async def run(args: argparse.Namespace) -> int:
                 artifact_path.parent.mkdir(parents=True, exist_ok=True)
                 temporary_path = artifact_path.with_suffix(".json.tmp")
                 temporary_path.write_text(
-                    json.dumps(make_json_safe(record), ensure_ascii=False, separators=(",", ":")) + "\n",
+                    json.dumps(make_json_safe(record), ensure_ascii=False, indent=2) + "\n",
                     encoding="utf-8",
                 )
                 temporary_path.replace(artifact_path)
@@ -1258,8 +1255,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--output", type=Path, default=ROOT / "backend/experiments/results/cli-benchmark", help="Directory for manifest, JSONL runs, and CSV summary.")
     parser.add_argument("--dataset", default="full", choices=["full"], help="Configured dataset key (currently only 'full' is available).")
     parser.add_argument("--condition", action="append", choices=CONDITIONS, default=None,
-                        help="Experimental condition; repeatable (default: refined). Jobs of all conditions are interleaved in a seeded random order.")
-    parser.add_argument("--seed", type=int, default=13, help="Seed for the job interleaving order (default: 13).")
+                        help="Experimental condition; repeatable (default: refined). Jobs follow the requested condition order and scenario file order.")
     parser.add_argument("--repeat", type=int, default=1, help="Minimum repeat count per scenario for refined/one_shot (scenario 'repeats' can request more).")
     parser.add_argument("--oracle-repeat", type=int, default=None, help="Repeats per oracle unit (one per base_case_id); default: --repeat.")
     parser.add_argument("--concurrency", type=int, default=2, help="Maximum number of runs in flight (default: 2). Use 1 for sequential execution.")
