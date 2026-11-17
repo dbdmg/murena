@@ -362,6 +362,7 @@ class AnalysisService:
             },
             "gemini_responses": make_json_safe(orchestrator_result.gemini_responses),
             "results_count": orchestrator_result.match_count,
+            "ranking_ids": list(getattr(orchestrator_result, "ranking_ids", [])),
             "broker_summary": make_json_safe(orchestrator_result.broker_summary),
             "agent_trace": agent_executions,
             "context": (

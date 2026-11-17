@@ -23,7 +23,7 @@ No LLM, ranking pipeline, or database is invoked in this generator.
 
 Usage (from the repository root):
     uv run python backend/experiments/data/scenarios_v3/generate_missingness.py \
-        --source backend/experiments/data/scenarios/scenario_triplets.json \
+        --source backend/experiments/data/scenarios_v3/source_triplets.json \
         --output backend/experiments/data/scenarios_v3
 """
 from __future__ import annotations

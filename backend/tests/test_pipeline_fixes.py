@@ -81,6 +81,18 @@ class StableRankSortTests(unittest.TestCase):
 
 
 class FinalizeKeepsDeterministicScoreTests(unittest.TestCase):
+    def test_full_ranking_survives_map_cap_and_excludes_nonmatches(self):
+        enriched = pd.DataFrame({
+            "id": ["b", "a", "c"], "is_match": [True, True, True],
+            "final_ranking_score": [80., 90., 70.], "distanza_km": [1., 1., 1.],
+        })
+        base = pd.DataFrame({"id": ["filler", "a", "b", "c"]})
+        agent = _bare_orchestrator(lambda *a, **k: (base.copy(), ""))
+        result = agent._finalize_results(_state(selected_data=enriched, map_limit=1, dataset_path="fake"))
+        self.assertEqual(result["ranking_ids"], ["a", "b", "c"])
+        self.assertEqual(result["selected_data"]["id"].tolist(), ["a"])
+        self.assertEqual(result["match_count"], 3)
+
     def test_llm_echoed_score_does_not_override_or_reorder(self):
         enriched = pd.DataFrame(
             {
@@ -238,6 +250,7 @@ class AgentErrorSurfacingTests(unittest.TestCase):
                 sql_query="SELECT 1",
                 gemini_responses={},
                 match_count=0,
+                ranking_ids=["a", "b"],
                 broker_summary="",
                 agent_trace=None,
                 context=None,
@@ -250,6 +263,7 @@ class AgentErrorSurfacingTests(unittest.TestCase):
             out = service._format_results("r1", "q", result)
         finally:
             os.environ.pop("_AGENT_LOGGER_ACTIVE", None)
+        self.assertEqual(out["ranking_ids"], ["a", "b"])
         self.assertIs(out["relaxation_applied"], True)
         self.assertEqual(out["relaxation_count"], 2)
         self.assertIs(out["fallback_activated"], True)

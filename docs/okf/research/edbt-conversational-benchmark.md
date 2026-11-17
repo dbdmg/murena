@@ -8,25 +8,25 @@ tags:
 - edbt
 - conversational-clarification
 sources:
-- resource: ../../../backend/experiments/data/scenarios/README.md
+- resource: https://github.com/dbdmg/murena/blob/411b003/backend/experiments/data/scenarios/README.md
   title: Descrizione degli scenari EDBT
-- resource: ../../../backend/experiments/data/scenarios/scenario_triplets.json
+- resource: https://github.com/dbdmg/murena/blob/411b003/backend/experiments/data/scenarios/scenario_triplets.json
   title: Triplette one-shot, conversational e oracle
-- resource: ../../../backend/experiments/data/scenarios/conversational_scenarios.yaml
+- resource: https://github.com/dbdmg/murena/blob/411b003/backend/experiments/data/scenarios/conversational_scenarios.yaml
   title: Scenari multi-turn consumabili dalla CLI
-- resource: ../../../backend/experiments/data/scenarios/queries_by_configuration.csv
+- resource: https://github.com/dbdmg/murena/blob/411b003/backend/experiments/data/scenarios/queries_by_configuration.csv
   title: Query per le tre configurazioni
-- resource: ../../../backend/experiments/data/scenarios/catalog_snapshot_sha256.txt
+- resource: https://github.com/dbdmg/murena/blob/411b003/backend/experiments/data/scenarios/catalog_snapshot_sha256.txt
   title: Impronta dello snapshot normativo sorgente
-- resource: ../../../backend/experiments/data/scenarios_v2/README.md
+- resource: https://github.com/dbdmg/murena/blob/411b003/backend/experiments/data/scenarios_v2/README.md
   title: Specifica della famiglia a omissione controllata v2
-- resource: ../../../backend/experiments/data/scenarios_v2/scenario_triplets.json
+- resource: https://github.com/dbdmg/murena/blob/411b003/backend/experiments/data/scenarios_v2/scenario_triplets.json
   title: Triplette degli scenari v2
-- resource: ../../../backend/experiments/data/scenarios_v2/conversational_scenarios.yaml
+- resource: https://github.com/dbdmg/murena/blob/411b003/backend/experiments/data/scenarios_v2/conversational_scenarios.yaml
   title: Scenari v2 eseguibili dalla CLI
-- resource: ../../../backend/experiments/data/scenarios_v2/generation_manifest.json
+- resource: https://github.com/dbdmg/murena/blob/411b003/backend/experiments/data/scenarios_v2/generation_manifest.json
   title: Manifest di generazione v2
-- resource: ../../../backend/experiments/data/scenarios_v2/validate_missingness.py
+- resource: https://github.com/dbdmg/murena/blob/411b003/backend/experiments/data/scenarios_v2/validate_missingness.py
   title: Validatore statico v2
 - resource: ../../../backend/experiments/benchmark_cli.py
   title: Runner per scenari conversazionali
@@ -35,6 +35,16 @@ sources:
 - resource: ../references/paper/paper.tex
   title: Manoscritto originale MURENA
 ---
+
+> **Asset correnti (2026-11-17):** le directory `data/scenarios/` e
+> `data/scenarios_v2/` sono state rimosse. I riferimenti e le osservazioni
+> storiche sotto restano attribuiti alle versioni originarie; le fonti rimosse
+> sono collegate alla revisione Git `411b003`. L'unica suite attiva è
+> `backend/experiments/data/scenarios_v3/`; la sorgente originale è conservata
+> byte per byte come `source_triplets.json` al suo interno. Le descrizioni
+> storiche del runner solo conversazionale non descrivono la CLI corrente,
+> che supporta refined, one_shot e oracle.
+
 
 # Benchmark conversazionale EDBT
 
@@ -300,3 +310,11 @@ JSON preesistenti sono invariati. Test sintetico con copertura sbilanciata
 superato insieme alla suite delle metriche. Nessuna nuova esecuzione LLM.
 Il paper resta invariato: delta, intervalli, risultati e protocollo scientifico
 non cambiano; si chiarisce e completa il formato di esportazione.
+
+Nota di manutenzione (2026-11-17): le directory risultati
+`edbt_conversational/` e `missingness_v2/` sono state eliminate dopo la
+rimozione delle suite corrispondenti. I riferimenti a tali directory e le
+misure riportate sopra sono storici; i file versionati sono recuperabili
+alla revisione Git `411b003`. `missingness_v3/` resta invariata, senza
+rigenerazione dei risultati. Gli artefatti locali non versionati eliminati
+non sono recuperabili da Git.

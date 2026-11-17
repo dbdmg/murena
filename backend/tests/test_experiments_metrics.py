@@ -21,7 +21,6 @@ import compare_conditions as cc  # noqa: E402
 
 V3 = EXPERIMENTS / "data" / "scenarios_v3"
 V3_YAML = V3 / "conversational_scenarios.yaml"
-V2_YAML = EXPERIMENTS / "data" / "scenarios_v2" / "conversational_scenarios.yaml"
 
 
 def _load_generator():
@@ -148,6 +147,45 @@ class UncertaintyTests(unittest.TestCase):
         self.assertIsNone(cc.sign_flip_test([])["p_value"])
 
 
+class CompactArtifactTests(unittest.TestCase):
+    def test_storage_preserves_metrics_and_complete_ids_without_property_payloads(self):
+        from copy import deepcopy
+        record = {
+            "run_id": "test", "status": "completed", "condition": "refined",
+            "api_response": {
+                "buildings": [{"id": 1, "score": 90, "is_match": True, "address": "private"},
+                              {"id": 2, "score": 10, "is_match": False}],
+                "ranking_ids": ["1", "3", "4"],
+                "context": {"large_preview": ["private"]}, "html_log": "private",
+                "agent_trace": [
+                    {"agent_name": "regulatory-agent", "agent_mode": "extraction",
+                     "output": {"matched_use_cases": ["Nursery"], "requirements": []}},
+                    {"agent_name": "sql-agent", "agent_mode": "extraction", "output": {"sql": "SELECT 1"}},
+                    {"agent_name": "building-agent", "agent_mode": "ranking", "output": [{"address": "private"}]},
+                ],
+                "gemini_responses": {"fallback_activated": True, "energy_analysis": {"response": {"requirements": []}}},
+            },
+            "conversation": {"status": "READY", "turns": [], "mapping_accuracy": 1.0},
+            "scenario_definition": {"id": "s"},
+        }
+        original = deepcopy(record)
+        stored = bc.compact_artifact(record)
+        self.assertEqual(record, original)
+        self.assertEqual(stored["artifact_schema_version"], 3)
+        self.assertEqual(stored["ranking_ids"], ["1", "3", "4"])
+        self.assertEqual(bc.compact_row(record), bc.compact_row(stored))
+        self.assertNotIn("private", json.dumps(stored))
+        self.assertNotIn("buildings", stored["api_response"])
+        self.assertEqual(stored, bc.compact_artifact(stored))
+
+    def test_failed_run_remains_readable(self):
+        record = {"status": "error", "error": "timeout", "conversation": {"status": "BLOCKED"}}
+        stored = bc.compact_artifact(record)
+        self.assertEqual(stored["error"], "timeout")
+        self.assertEqual(stored["ranking_ids"], [])
+        self.assertEqual(bc.compact_row(record), bc.compact_row(stored))
+
+
 class ComparisonExportTests(unittest.TestCase):
     def test_partial_coverage_and_paired_aggregate(self):
         from argparse import Namespace
@@ -251,13 +289,20 @@ class RunnerTests(unittest.TestCase):
         self.assertEqual(len({json.dumps(job["options"], sort_keys=True) for job in jobs}), 1)
 
     def test_default_condition_and_legacy_yaml(self):
-        scenarios = bc.load_scenarios(V2_YAML)
-        jobs = bc.build_jobs(scenarios, bc.build_parser().parse_args(["--scenarios", str(V2_YAML)]), "m")
-        self.assertEqual({job["condition"] for job in jobs}, {"refined"})
-        self.assertEqual(len(jobs), 40)
-        with self.assertRaises(ValueError):
-            bc.build_jobs(scenarios, bc.build_parser().parse_args(
-                ["--scenarios", str(V2_YAML), "--condition", "oracle"]), "m")
+        # Exercise the legacy contract without depending on removed historical data.
+        legacy = {"id": "legacy", "initial_query": "Find a building",
+                  "expected_initial_missing": ["D"], "clarifications": {"D": "Nursery"},
+                  "expected_mapping": {"D": "SPECIFIED"}}
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "legacy.yaml"
+            path.write_text(json.dumps([legacy]), encoding="utf-8")
+            scenarios = bc.load_scenarios(path)
+            jobs = bc.build_jobs(scenarios, bc.build_parser().parse_args(["--scenarios", str(path)]), "m")
+            self.assertEqual({job["condition"] for job in jobs}, {"refined"})
+            self.assertEqual(len(jobs), 1)
+            with self.assertRaises(ValueError):
+                bc.build_jobs(scenarios, bc.build_parser().parse_args(
+                    ["--scenarios", str(path), "--condition", "oracle"]), "m")
 
     def test_empty_expected_missing_only_for_k0(self):
         scenario = {

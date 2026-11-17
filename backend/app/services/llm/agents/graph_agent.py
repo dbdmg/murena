@@ -125,6 +125,7 @@ class OrchestratorResult:
     sql_query: str
     context: AgentContext
     match_count: int = 0
+    ranking_ids: List[str] = field(default_factory=list)  # all matches, before map truncation
     broker_summary: Optional[str] = None
     agent_trace: Optional[List[Dict[str, Any]]] = field(default_factory=list)
     relaxation_applied: bool = False
@@ -181,6 +182,7 @@ class GraphState(TypedDict):
     # Execution configuration
     llm_limit: Optional[int]
     map_limit: Optional[int]
+    ranking_ids: List[str]
     metro_graph: Any
     disabled_agents: List[str]  # List of agents to skip during execution
 
@@ -522,6 +524,7 @@ class GraphOrchestratorAgent(BaseAgent):
             sql_query=final_state["sql_query"],
             context=final_state["context"],
             match_count=final_state["match_count"],
+            ranking_ids=final_state.get("ranking_ids", []),
             broker_summary=final_state.get("broker_summary", ""),
             agent_trace=final_state.get("agent_trace", []),
             relaxation_applied=final_state.get("relaxation_applied", False),
@@ -2825,6 +2828,7 @@ class GraphOrchestratorAgent(BaseAgent):
 
             state["selected_data"] = full_df
             state["match_count"] = 0
+            state["ranking_ids"] = []
             state["context"].filtered_dataset_preview = []
             state["gemini_responses"]["agent_context"] = state["context"].model_dump()
             self._update_progress(state, "complete", "")
@@ -2973,6 +2977,9 @@ class GraphOrchestratorAgent(BaseAgent):
         # Order: matching rows first, then deterministic score desc, distance asc
         # (NaN last), building id asc — stable and independent of SQL/file order.
         map_df = stable_rank_sort(map_df, leading=[("is_match", False)])
+
+        # Persist the complete served order of matches independently of the map cap.
+        state["ranking_ids"] = map_df.loc[map_df["is_match"], "id"].astype(str).tolist()
 
         # Applica il limite mappa globale (MAX_ITEMS_FOR_MAP o override utente)
         if len(map_df) > map_cap:

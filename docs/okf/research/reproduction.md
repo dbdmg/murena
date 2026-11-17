@@ -18,15 +18,15 @@ sources:
   title: 'MURENA repository: run_experiments.py'
 - resource: ../../../backend/experiments/benchmark_cli.py
   title: CLI per benchmark conversazionali
-- resource: ../../../backend/experiments/data/scenarios/conversational_scenarios.yaml
+- resource: https://github.com/dbdmg/murena/blob/411b003/backend/experiments/data/scenarios/conversational_scenarios.yaml
   title: Scenari conversazionali EDBT
-- resource: ../../../backend/experiments/data/scenarios/README.md
+- resource: https://github.com/dbdmg/murena/blob/411b003/backend/experiments/data/scenarios/README.md
   title: Descrizione e protocollo previsto degli scenari EDBT
-- resource: ../../../backend/experiments/data/scenarios_v2/README.md
+- resource: https://github.com/dbdmg/murena/blob/411b003/backend/experiments/data/scenarios_v2/README.md
   title: Benchmark EDBT a omissione controllata v2
-- resource: ../../../backend/experiments/data/scenarios_v2/conversational_scenarios.yaml
+- resource: https://github.com/dbdmg/murena/blob/411b003/backend/experiments/data/scenarios_v2/conversational_scenarios.yaml
   title: Scenari v2 multi-turn consumabili dalla CLI
-- resource: ../../../backend/experiments/data/scenarios_v2/validate_missingness.py
+- resource: https://github.com/dbdmg/murena/blob/411b003/backend/experiments/data/scenarios_v2/validate_missingness.py
   title: Validatore statico degli scenari v2
 - resource: ../../../backend/experiments/reproduce_results.py
   title: 'MURENA repository: backend/experiments/reproduce_results.py'
@@ -35,6 +35,16 @@ sources:
 - resource: ../references/paper/paper.tex
   title: Manoscritto LaTeX MURENA fornito dall’utente
 ---
+
+> **Asset correnti (2026-11-17):** le directory `data/scenarios/` e
+> `data/scenarios_v2/` sono state rimosse. I riferimenti e le osservazioni
+> storiche sotto restano attribuiti alle versioni originarie; le fonti rimosse
+> sono collegate alla revisione Git `411b003`. L'unica suite attiva è
+> `backend/experiments/data/scenarios_v3/`; la sorgente originale è conservata
+> byte per byte come `source_triplets.json` al suo interno. Le descrizioni
+> storiche del runner solo conversazionale non descrivono la CLI corrente,
+> che supporta refined, one_shot e oracle.
+
 
 # Riprodurre i benchmark
 
@@ -62,7 +72,7 @@ Per eseguire la sola configurazione conversational degli scenari EDBT senza avvi
 
 ```bash
 uv run python backend/experiments/benchmark_cli.py \
-  --scenarios backend/experiments/data/scenarios/conversational_scenarios.yaml \
+  --scenarios backend/experiments/data/scenarios_v3/conversational_scenarios.yaml \
   --output backend/experiments/results/edbt-conversational \
   --dataset full --repeat 1 --concurrency 2
 ```
@@ -84,14 +94,32 @@ Validazione statica e rigenerazione sono descritte in `backend/experiments/data/
 ```bash
 python backend/experiments/analyze_conversational_results.py \
   --results backend/experiments/results/missingness_v2 \
-  --triplets backend/experiments/data/scenarios_v2/scenario_triplets.json
+  --triplets backend/experiments/data/scenarios_v3/scenario_triplets.json
 ```
 
 Su Windows il provider `codex_exec` richiede le correzioni dell'adapter descritte in [chiarimento pre-analisi](../architecture/query-clarification.md); le variabili `LLM_PROVIDER`, `LLM_MODEL` e `CODEX_REASONING_EFFORT` possono essere passate come variabili d'ambiente del processo senza modificare `.env`.
 
 Una prova end-to-end di `MS01_k1` con `gpt-6-luna` e dataset `full` è stata completata in 66.056 secondi: una run, zero errori, un turno di chiarimento, F1 di rilevamento iniziale 1.0, accuratezza mapping 1.0 e 147 risultati. È un controllo di funzionamento su un caso, non un benchmark comparativo né una stima di prestazione. Il set v2 non definisce `expected_ids`; non misura quindi la rilevanza o la qualità del ranking.
 
-La cartella di output contiene `manifest.json`, `runs.jsonl`, la directory `runs/` e `summary.csv`. Viene scritto un file JSON autonomo per ogni run, `runs/<run_id>.json`, così l'artefatto può essere usato in seguito per riprodurre nel frontend i dati restituiti dall'API. Il JSON contiene definizione dello scenario e ground truth, query iniziale e inviata, transcript user/assistant con le risposte simulate, stati e metriche conversazionali, durata, errori eventuali e `api_response` serializzata in forma JSON-safe. La risposta conserva l'intero array `buildings` con i campi e gli score restituiti dall'AnalysisService, oltre a località, filtri/SQL, sintesi broker, contesto e traccia degli agenti. La traccia contiene input e output registrati dagli agenti e può includere i prompt effettivamente inviati (`[SYSTEM]`/`[USER]`) e i metadati del dataset; la disponibilità dei dettagli dipende da ciò che il logger degli agenti registra.
+La cartella di output contiene `manifest.json`, `runs.jsonl`, la directory
+`runs/` e `summary.csv`. Ogni nuovo `runs/<run_id>.json` usa
+`artifact_schema_version=3` e JSON senza indentazione. Conserva definizione
+dello scenario, query, dialogo e stati conversazionali, tempi, errori e metriche.
+`ranking_ids` contiene tutti gli ID corrispondenti, nell'ordine deterministico
+finale prima del taglio `map_limit`, escludendo gli immobili di riempimento
+non corrispondenti. L'orchestratore acquisisce la lista prima del taglio e
+AnalysisService la rende disponibile al runner; filtri e ordinamento restano
+quelli della pipeline esistente. `top` conserva solo ID, score e distanza dei
+primi 10 matching restituiti, per le metriche esistenti e i pari merito.
+`api_response` conserva solo output delle estrazioni e indicatori di
+rilassamento/fallback/errori. Non vengono salvati `buildings`, contesto,
+HTML, tracce con tutti gli immobili o dettagli dei ranking intermedi.
+Questi nuovi artefatti non bastano a riprodurre le schede immobiliari nel
+frontend: per i dettagli serve il dataset originale. I vecchi artefatti
+(schema 2, con risposta API completa) restano leggibili e non sono riscritti.
+Il manifest dichiara `run_artifact_schema_version=3` per le nuove scritture;
+un batch ripreso può contenere entrambi i formati. L'indice resta schema 2,
+autonomo per le metriche comparative, con gli stessi valori e campi.
 
 `runs.jsonl` è l'indice append-only: una riga per run con ID, scenario, modello, ripetizione, stato, durata ed eventuale percorso dell'artefatto. `summary.csv` è ricalcolato leggendo gli artefatti disponibili e riporta per modello/scenario successi, errori, durata media, risultati medi, recall degli ID attesi, turni medi, accuratezza della mappatura e F1 medio delle dimensioni inizialmente mancanti. `manifest.json` registra scenario e checksum, modello, dataset, ripetizioni, versione Python e opzioni, inclusa la concorrenza. La lingua d'output non compare nei metadati. Scrittura atomica dei JSON e aggiornamento serializzato dell'indice riducono il rischio di artefatti parziali quando più run terminano insieme.
 
@@ -101,7 +129,7 @@ Per riprendere il batch interrotto usando l'output esistente:
 
 ```bash
 uv run python backend/experiments/benchmark_cli.py \
-  --scenarios backend/experiments/data/scenarios/conversational_scenarios.yaml \
+  --scenarios backend/experiments/data/scenarios_v3/conversational_scenarios.yaml \
   --output backend/experiments/results/edbt_conversational \
   --dataset full --repeat 3 --concurrency 12 \
   --resume
@@ -113,7 +141,7 @@ Per rieseguire **tutte le ripetizioni di un singolo scenario** mantenendo cached
 
 ```bash
 uv run python backend/experiments/benchmark_cli.py \
-  --scenarios backend/experiments/data/scenarios/conversational_scenarios.yaml \
+  --scenarios backend/experiments/data/scenarios_v3/conversational_scenarios.yaml \
   --output backend/experiments/results/edbt_conversational \
   --dataset full --repeat 3 --concurrency 12 \
   --resume --rerun-scenario UC08_student_grant_missing_use
@@ -144,7 +172,7 @@ uv run --project backend python backend/experiments/compare_conditions.py \
 
 Il piano è di 304 job: refined 144, one_shot 120, oracle 40. `--dry-run` li elenca senza eseguirli. Il resume viene rifiutato se cambiano condizioni, ripetizioni, impostazioni SAGE o LLM, opzioni o hash del dataset. `compare_conditions.py` scrive `comparison.json`, `comparison_per_k.csv` e `comparison_operational.csv`. I file completi `runs/<run_id>.json` restano locali; `runs.jsonl` contiene i campi necessari all'analisi.
 
-**Dimensione degli artefatti.** I file completi `runs/<run_id>.json` salvano tutti gli immobili restituiti, e i run one_shot con molte dimensioni omesse restituiscono quasi l'intero dataset: un singolo file arriva a 430 MB. Al 2026-11-17 `missingness_v3/runs` occupa 6,7 GB (122 file), `missingness_v2/runs` 1,0 GB e `edbt_conversational/runs` 296 MB; tutte queste directory sono escluse da git. Per l'analisi basta `runs.jsonl`.
+**Dimensione degli artefatti storici (prima dello schema 3).** I file completi `runs/<run_id>.json` salvano tutti gli immobili restituiti, e i run one_shot con molte dimensioni omesse restituiscono quasi l'intero dataset: un singolo file arriva a 430 MB. Al 2026-11-17 `missingness_v3/runs` occupa 6,7 GB (122 file), `missingness_v2/runs` 1,0 GB e `edbt_conversational/runs` 296 MB; tutte queste directory sono escluse da git. Per l'analisi basta `runs.jsonl`.
 
 **Latenza delle CLI LLM (prova del 2026-11-17, ~15:45).**
 
@@ -172,3 +200,31 @@ Per compilare il paper si usa Tectonic 0.17.0 (binario dalla release GitHub; su 
 Registrare versione del dataset, query, modello/endpoint, prompt, condizioni di geocoding, mapping OSM, hardware e numero di prove. Se una tabella viene rigenerata **da log**, distinguere report derivato da una esecuzione effettiva.
 
 [Vedi risultati](benchmarks.md), [limiti](limitations.md) e [verifica software](../operations/quality.md).
+
+### Rigenerazione della suite attiva dopo la rimozione dei predecessori
+
+```bash
+uv run python backend/experiments/data/scenarios_v3/generate_missingness.py \
+  --source backend/experiments/data/scenarios_v3/source_triplets.json \
+  --output backend/experiments/data/scenarios_v3
+uv run python backend/experiments/data/scenarios_v3/validate_missingness.py \
+  --source backend/experiments/data/scenarios_v3/source_triplets.json \
+  --catalog backend/docs/knowledge/normativa/normativa.json
+```
+
+Durante la rimozione è emerso un checksum sorgente già disallineato:
+`d3dd298f33417d6c4a209b4041255fa89c2d077afcccf322a8e4655ceae035d7` nel manifest,
+contro `7628197d0575f74752b3dc7e9af0e8dabc0f47a0f931339d91cf886d3045ce47`
+del file originale corrente. La rigenerazione temporanea ha prodotto triplette
+e YAML identici byte per byte ai file correnti: è stato aggiornato solo
+`source_triplets_sha256`. Gli input e risultati del benchmark non cambiano.
+I vecchi risultati versionati sono recuperabili dalla revisione Git `411b003`; le definizioni v2 e gli altri file
+rimossi sono recuperabili dalla revisione Git `411b003`.
+
+Nota di manutenzione (2026-11-17): le directory risultati
+`edbt_conversational/` e `missingness_v2/` sono state eliminate dopo la
+rimozione delle suite corrispondenti. I riferimenti a tali directory e le
+misure riportate sopra sono storici; i file versionati sono recuperabili
+alla revisione Git `411b003`. `missingness_v3/` resta invariata, senza
+rigenerazione dei risultati. Gli artefatti locali non versionati eliminati
+non sono recuperabili da Git.

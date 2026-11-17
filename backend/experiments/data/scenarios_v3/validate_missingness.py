@@ -8,7 +8,7 @@ and the source hash stored in generation_manifest.json.
 
 Usage (from the repository root):
     uv run python backend/experiments/data/scenarios_v3/validate_missingness.py \
-        --source backend/experiments/data/scenarios/scenario_triplets.json \
+        --source backend/experiments/data/scenarios_v3/source_triplets.json \
         [--catalog backend/docs/knowledge/normativa/normativa.json]
 """
 from __future__ import annotations

@@ -58,3 +58,15 @@ Il wrapper SAGE è descritto in [chiarimento pre-analisi](query-clarification.md
 - Trattare `run_id` come identificatore condiviso da storico, WS, feedback e tracce.
 - Non interpretare la narrazione LLM come sostituto dei filtri realmente eseguiti.
 - Esaminare [SQL](../agents/sql.md), [ranking](../data/scoring.md) e [limiti di sicurezza](../operations/security.md) per una modifica al flusso.
+
+## Ranking completo per gli artefatti sperimentali
+
+L'orchestratore conserva `ranking_ids` prima di applicare il limite dei punti
+mappa: lista degli ID matching nell'ordine di `stable_rank_sort`, senza
+filler. Il ramo senza corrispondenze restituisce una lista vuota.
+`OrchestratorResult.ranking_ids` viene propagato nel dizionario interno di
+AnalysisService, indipendentemente dai `buildings` limitati per la UI.
+Il runner sperimentale salva questa lista e i soli top-10 con score/distanza,
+non i record immobiliari completi; dettagli del formato in
+[riproduzione](../research/reproduction.md). Nessuna modifica a query,
+filtri, ranking o chiarimento.

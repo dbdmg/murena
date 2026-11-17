@@ -15,8 +15,9 @@ Jobs of all requested conditions are interleaved in a seeded random order.
 Each run is keyed by (condition, model, unit_id, repeat, input_sha256), where
 input_sha256 is the scenario digest for ``refined`` and the SHA-256 of the
 submitted query plus analysis options otherwise. ``runs.jsonl`` holds one
-compact, self-contained row per attempt (see ``compact_row``); the full API
-response is kept in ``runs/<run_id>.json``.
+compact, self-contained row per attempt (see ``compact_row``).
+``runs/<run_id>.json`` retains metadata, dialogue, extraction outputs and the
+complete matching-ID ranking, without full property records or ranking traces.
 """
 
 from __future__ import annotations
@@ -423,6 +424,34 @@ def agent_extractions(api_response: dict[str, Any]) -> dict[str, Any]:
     return found
 
 
+def compact_artifact(record: dict[str, Any]) -> dict[str, Any]:
+    """Schema 3 storage: complete matching-ID order, top-10 scores, extraction evidence.
+
+    Keep only extraction outputs from the API. Ranking traces, context, HTML and
+    full property records duplicate the dataset and are deliberately not stored.
+    The source record is not mutated; legacy records can still build compact rows.
+    """
+    api = record.get("api_response") or {}
+    extractions = agent_extractions(api)
+    row = compact_row(record)
+    names = {value: key for key, value in EXTRACTION_AGENTS.items()}
+    compact_api = {
+        "agent_trace": [{"agent_name": names[name], "agent_mode": "extraction", "output": output}
+                        for name, output in extractions.items() if name in names],
+        "relaxation_applied": row["relaxation_applied"],
+        "relaxation_count": row["relaxation_count"],
+        "fallback_activated": row["fallback_activated"],
+        "agent_errors": row["agent_errors"],
+    }
+    return {
+        **{key: value for key, value in record.items() if key != "api_response"},
+        "artifact_schema_version": 3,
+        "ranking_ids": list(record.get("ranking_ids", api.get("ranking_ids")) or []),
+        "top": row["top"],
+        "api_response": compact_api,
+    }
+
+
 def compact_row(record: dict[str, Any]) -> dict[str, Any]:
     """Self-contained runs.jsonl row built from a full run record (see module docstring)."""
     api = record.get("api_response") or {}
@@ -457,7 +486,7 @@ def compact_row(record: dict[str, Any]) -> dict[str, Any]:
         "final_sql": record.get("final_sql"),
         "sql_agent_sql": sql_output.get("sql"),
         "results_count": record.get("results_count"),
-        "top": extract_top(api.get("buildings") or []) if api else [],
+        "top": record.get("top", extract_top(api.get("buildings") or [])),
         "matched_use_cases": regulatory.get("matched_use_cases") if regulatory else None,
         "requirements": regulatory.get("requirements") if regulatory else None,
         "extractions": {
@@ -1009,7 +1038,7 @@ async def run(args: argparse.Namespace) -> int:
         "resume_actions": [],
         "python": platform.python_version(),
         "run_artifacts_directory": "runs",
-        "run_artifact_schema_version": 2,
+        "run_artifact_schema_version": 3,
         "runs_jsonl_schema_version": ROW_SCHEMA_VERSION,
         "options": {
             "map_limit": args.map_limit,
@@ -1127,13 +1156,14 @@ async def run(args: argparse.Namespace) -> int:
         record["duration_seconds"] = round(time.perf_counter() - started, 3)
         record["scenario_definition"] = scenario
         record["artifact_file"] = f"runs/{run_id}.json"
+        record = compact_artifact(record)
         async with output_lock:
             artifact_path = run_artifacts_dir / f"{run_id}.json"
             try:
                 artifact_path.parent.mkdir(parents=True, exist_ok=True)
                 temporary_path = artifact_path.with_suffix(".json.tmp")
                 temporary_path.write_text(
-                    json.dumps(make_json_safe(record), ensure_ascii=False, indent=2) + "\n",
+                    json.dumps(make_json_safe(record), ensure_ascii=False, separators=(",", ":")) + "\n",
                     encoding="utf-8",
                 )
                 temporary_path.replace(artifact_path)
