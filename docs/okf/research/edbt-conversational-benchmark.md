@@ -274,3 +274,26 @@ L'esempio conserva le formulazioni osservate, compresa la differenza tra
 la refined una riscrittura osservata; non viene sostituita con l'oracle.
 È una spiegazione del protocollo con dati esistenti, senza nuove esecuzioni
 o variazioni dei risultati.
+
+### Esportazione del confronto con copertura parziale (2026-11-17)
+
+`comparison_per_k.csv` distingue `n_bases_refined`, `n_bases_one_shot` e
+`n_bases_paired`, sostituendo la precedente colonna ambigua `n_bases`.
+Le righe `row_type=per_k` mantengono le medie per condizione su tutti gli
+intenti disponibili; `refined_paired` e `one_shot_paired` usano invece solo
+gli intenti comuni al confronto, e la loro differenza coincide con `delta`.
+La riga `row_type=intent_mean_paired` riporta anche le medie e gli IC 95%
+delle due condizioni: per ogni intento si mediano solo i livelli k>=1 con
+entrambe le condizioni, poi si mediano gli intenti, come per il delta.
+I relativi conteggi si riferiscono quindi alla copertura appaiata.
+`comparison_status=not_applicable_k0` esplicita l'assenza prevista di
+one-shot/delta per i controlli; `no_paired_data` segnala confronti senza
+intenti comuni. Questi valori restano vuoti, senza essere convertiti in zero.
+`comparison.json` conserva i nuovi riepiloghi in `paired_by_condition`.
+
+Artefatti rigenerati dalle stesse 113 run, con i parametri precedenti
+(1000 permutazioni, 10000 bootstrap, seed 13, p=0.8): tutti i campi numerici
+JSON preesistenti sono invariati. Test sintetico con copertura sbilanciata
+superato insieme alla suite delle metriche. Nessuna nuova esecuzione LLM.
+Il paper resta invariato: delta, intervalli, risultati e protocollo scientifico
+non cambiano; si chiarisce e completa il formato di esportazione.

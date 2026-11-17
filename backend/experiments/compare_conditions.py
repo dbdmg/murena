@@ -498,21 +498,35 @@ def analyse(rows: list[dict[str, Any]], args: argparse.Namespace) -> dict[str, A
 
     def delta_stats(metric_of: Callable[[str, str, int], float | None]) -> dict[str, Any]:
         per_k, intent_level = {}, {}
+        paired_values = {cond: {} for cond in ("refined", "one_shot")}
         for k in ks:
             if k == 0:
                 continue
             deltas = {}
+            paired = {cond: {} for cond in paired_values}
             for base in bases:
                 a, b = metric_of("refined", base, k), metric_of("one_shot", base, k)
                 if a is not None and b is not None:
                     deltas[base] = a - b
+                    paired["refined"][base] = a
+                    paired["one_shot"][base] = b
             per_k[k] = {**cluster_bootstrap(deltas, args.bootstrap, args.seed),
-                        "sign_flip": sign_flip_test(list(deltas.values())), "by_base": deltas}
+                        "sign_flip": sign_flip_test(list(deltas.values())), "by_base": deltas,
+                        "paired_by_condition": {cond: cluster_bootstrap(values, args.bootstrap, args.seed)
+                                                for cond, values in paired.items()}}
+            for cond in paired_values:
+                paired_values[cond][k] = paired[cond]
         for base in bases:
             ds = [per_k[k]["by_base"].get(base) for k in per_k]
             intent_level[base] = _mean(ds)
         overall = {**cluster_bootstrap(intent_level, args.bootstrap, args.seed),
                    "sign_flip": sign_flip_test(list(intent_level.values())), "by_base": intent_level}
+        overall["paired_by_condition"] = {
+            cond: cluster_bootstrap(
+                {base: _mean(values.get(base) for values in by_k.values()) for base in bases},
+                args.bootstrap, args.seed,
+            ) for cond, by_k in paired_values.items()
+        }
         return {"per_k": per_k, "intent_level": overall}
 
     ranking_summary: dict[str, Any] = {}
@@ -621,15 +635,31 @@ def per_k_table(result: dict[str, Any]) -> list[dict[str, Any]]:
             one_shot = block["by_condition"]["one_shot"].get(k, {})
             delta = block["delta_refined_minus_one_shot"]["per_k"].get(k, {})
             rows.append({
-                "metric": metric, "k": k, "n_bases": refined.get("n"),
+                "metric": metric, "k": k, "row_type": "per_k",
+                "comparison_status": "not_applicable_k0" if k == 0 else ("available" if delta.get("n") else "no_paired_data"),
+                "n_bases_refined": refined.get("n", 0),
+                "n_bases_one_shot": one_shot.get("n", 0),
+                "n_bases_paired": delta.get("n", 0),
+                "refined_paired": delta.get("paired_by_condition", {}).get("refined", {}).get("mean"),
+                "one_shot_paired": delta.get("paired_by_condition", {}).get("one_shot", {}).get("mean"),
                 "refined": refined.get("mean"), "refined_ci_low": refined.get("ci_low"), "refined_ci_high": refined.get("ci_high"),
                 "one_shot": one_shot.get("mean"), "one_shot_ci_low": one_shot.get("ci_low"), "one_shot_ci_high": one_shot.get("ci_high"),
                 "delta": delta.get("mean"), "delta_ci_low": delta.get("ci_low"), "delta_ci_high": delta.get("ci_high"),
                 "delta_sign_flip_p": (delta.get("sign_flip") or {}).get("p_value"),
             })
         overall = block["delta_refined_minus_one_shot"]["intent_level"]
+        paired = overall["paired_by_condition"]
         rows.append({
-            "metric": metric, "k": "1-5 (intent mean)", "n_bases": overall.get("n"),
+            "metric": metric, "k": "1-5 (intent mean)", "row_type": "intent_mean_paired",
+            "comparison_status": "available" if overall.get("n") else "no_paired_data",
+            "n_bases_refined": paired["refined"]["n"],
+            "n_bases_one_shot": paired["one_shot"]["n"],
+            "n_bases_paired": overall["n"],
+            "refined_paired": paired["refined"]["mean"],
+            "one_shot_paired": paired["one_shot"]["mean"],
+            **{f"{cond}{suffix}": paired[cond][key]
+               for cond in ("refined", "one_shot")
+               for suffix, key in (("", "mean"), ("_ci_low", "ci_low"), ("_ci_high", "ci_high"))},
             "delta": overall.get("mean"), "delta_ci_low": overall.get("ci_low"), "delta_ci_high": overall.get("ci_high"),
             "delta_sign_flip_p": overall["sign_flip"]["p_value"],
         })
@@ -694,12 +724,12 @@ def main(argv: list[str] | None = None) -> None:
     Path(f"{prefix}.json").write_text(json.dumps(result, indent=2, ensure_ascii=False, default=str) + "\n", encoding="utf-8")
     table = per_k_table(result)
     with open(f"{prefix}_per_k.csv", "w", encoding="utf-8", newline="") as stream:
-        writer = csv.DictWriter(stream, fieldnames=list(table[0]) if table else ["metric"])
+        writer = csv.DictWriter(stream, fieldnames=list(table[0]) if table else ["metric"], lineterminator="\n")
         writer.writeheader()
         writer.writerows(table)
     with open(f"{prefix}_operational.csv", "w", encoding="utf-8", newline="") as stream:
         fields = ["condition", "k"] + list(next(iter(next(iter(result["operational"].values())).values())).keys())
-        writer = csv.DictWriter(stream, fieldnames=fields)
+        writer = csv.DictWriter(stream, fieldnames=fields, lineterminator="\n")
         writer.writeheader()
         for cond, groups in result["operational"].items():
             for k, g in groups.items():

@@ -148,6 +148,35 @@ class UncertaintyTests(unittest.TestCase):
         self.assertIsNone(cc.sign_flip_test([])["p_value"])
 
 
+class ComparisonExportTests(unittest.TestCase):
+    def test_partial_coverage_and_paired_aggregate(self):
+        from argparse import Namespace
+        def row(condition, base, k, ids):
+            return {"run_id": f"{condition}-{base}-{k}", "condition": condition,
+                    "base_case_id": base, "missing_count": k, "status": "completed",
+                    "top": [{"id": value, "score": 100 - i} for i, value in enumerate(ids)]}
+        rows = [row("oracle", b, None, ["x"]) for b in ("a", "b")]
+        rows += [row("refined", "a", 0, ["x"]),
+                 row("refined", "a", 1, ["x"]), row("one_shot", "a", 1, ["z"]),
+                 row("refined", "b", 1, ["z"]),
+                 row("refined", "a", 2, ["x"]), row("one_shot", "a", 2, ["x"])]
+        result = cc.analyse(rows, Namespace(permutations=10, seed=13, rbo_p=.8,
+                                            bootstrap=100, reference_min_votes=None))
+        table = [r for r in cc.per_k_table(result) if r["metric"] == "jaccard5_served"]
+        control, first, second, overall = table
+        self.assertEqual(control["comparison_status"], "not_applicable_k0")
+        self.assertEqual(control["n_bases_one_shot"], 0)
+        self.assertIsNone(control["delta"])
+        self.assertEqual((first["n_bases_refined"], first["n_bases_one_shot"], first["n_bases_paired"]), (2, 1, 1))
+        self.assertEqual(first["refined"], .5)
+        self.assertEqual(first["refined_paired"], 1)
+        self.assertEqual(overall["refined"], 1)
+        self.assertEqual(overall["one_shot"], .5)
+        self.assertEqual(overall["n_bases_paired"], 1)
+        for r in (first, second, overall):
+            self.assertAlmostEqual(r["refined_paired"] - r["one_shot_paired"], r["delta"])
+
+
 class GeneratorTests(unittest.TestCase):
     def setUp(self):
         self.gen = _load_generator()
