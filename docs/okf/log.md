@@ -2,6 +2,7 @@
 
 ## 2026-11-17
 
+* **Artefatti per-run della serie Haiku in Git**: su richiesta, `results/missingness_v3_haiku/runs/` (304 JSON compatti, 19 MB) non è più escluso da `.gitignore` ed è versionato. Controllati assenza di dati sensibili e dimensione massima per file (704 KB). Le altre directory `runs/` restano locali.
 * **Carosello benchmark nella mappa demo**: il carosello inferiore usa i dieci marker della run locale in modalità scenari ed è etichettato `Benchmark Top 10`; nelle modalità normali mantiene `Top Picks AI`. Aggiornata la documentazione per distinguere i risultati precomputati dalle valutazioni AI non disponibili.
 
 * **Selettore limitato agli scenari completati**: filtrate le varianti del catalogo offline tramite l'indice statico dei risultati refined completati; i casi e le combinazioni senza una run disponibile non sono selezionabili/caricabili. Chiarito nel pannello che risultati e immobili sono caricati dagli asset locali.

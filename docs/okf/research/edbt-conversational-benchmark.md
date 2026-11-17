@@ -328,7 +328,7 @@ Il test di sign-flip esatto su 7 intenti dà p=0,016 per tutti e tre gli indici.
 - Esecuzione dalle 17:26 alle 18:28 (ora locale, 62 minuti): **304/304 run completati**, nessun run fallito, nessun `agent_errors`, nessun fallback.
 - Rilassamento in 28 run: 19 refined, 3 one_shot, 6 oracle.
 - Robustezza del CLI: 1 nuovo tentativo dell'adattatore, per una corruzione transitoria di `~/.claude.json` tra processi concorrenti; il file è risultato integro a fine run.
-- Artefatti `runs/` compatti (schema 3), 19 MB, esclusi da Git; versionati `runs.jsonl`, `manifest.json`, `summary.csv`, `comparison*.{json,csv}`.
+- Artefatti `runs/` compatti (schema 3): 304 file, 19 MB, il più grande 704 KB. Sono **versionati in Git**, come `runs.jsonl`, `manifest.json`, `summary.csv` e `comparison*.{json,csv}`. Prima del caricamento è stato controllato che non contengano email, chiavi, token o percorsi utente.
 
 **Tentativi precedenti scartati.** Tre lanci della stessa serie, fermati prima di completarla e spostati fuori dal repository, non sono usati:
 
