@@ -57,3 +57,14 @@ PDF rigenerato dopo queste modifiche con Tectonic e verificato su tutte le pagin
 Integrato il commit `bb02883` con gli artefatti e i risultati preliminari del benchmark (113/304 run), mantenendo le scelte editoriali locali: unico scenario preparato e nessuna etichetta di versione o suite precedente nel manoscritto. I risultati sostituiscono il blocco non compilato descritto nelle note precedenti; tabella, figura e abstract ora riflettono gli output importati, con copertura incompleta dichiarata. Nessuna nuova esecuzione sperimentale in questa integrazione. La cronologia e le distinzioni tra benchmark restano nel registro di ricerca.
 
 PDF rigenerato dopo l'integrazione e controllato visivamente: 4 pagine incluse figure, tabella e bibliografia; nessun errore di compilazione, avviso minore di overfull verticale (1,17 pt). Verificati nell'indice importato 113 record completati, con ripartizione 54 refined / 43 one-shot / 16 oracle.
+
+## Risultati della serie completa Haiku, 2026-11-17
+
+I risultati della serie parziale (115/123 run) sono stati sostituiti nel paper da quelli della serie completa con Claude Haiku 5.5. Riguarda abstract, paragrafi Execution e Results, Tabella 1, Figura 3 ed esempio delle tre condizioni. La serie completa ha 304/304 run e tutti gli 8 intenti in ogni cella.
+
+- Il testo non nomina il modello, per scelta editoriale.
+- Il paragrafo Execution segnala che un'esecuzione parziale precedente, con un altro backend LLM, è stata fermata per latenza e non è combinata.
+- Rimosse le cautele sulla copertura parziale, non più pertinenti.
+- La legenda della Figura 3 è stata spostata sopra il grafico: nella posizione precedente copriva il punto one-shot a k=1.
+
+PDF rigenerato con Tectonic e controllato visivamente: 4 pagine. Resta un overfull verticale di 1,34 pt nella routine di output, preesistente: la versione precedente ne segnalava 24,7 pt.

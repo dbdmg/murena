@@ -1,8 +1,9 @@
 %% Conversational MURENA -- EDBT 2027 demo paper, editable LaTeX source.
 %% Evaluation reports the three-condition benchmark (refined / one_shot /
-%% oracle): 115 of 304 planned runs completed on 2026-11-17 (8 failed) before the run
-%% was stopped for model-service latency. Provenance is documented in
-%% docs/okf/research/edbt-conversational-benchmark.md. Figure data: data/per_k.csv.
+%% oracle) on the nested 48-variant design: all 304 planned runs completed on
+%% 2026-11-17 (results/missingness_v3_haiku). An earlier partial execution with
+%% another LLM backend (115 of 123 executed runs, Git 4a7c882) is not pooled.
+%% Provenance: docs/okf/research/edbt-conversational-benchmark.md. Figure data: data/per_k.csv.
 \documentclass[sigconf,review]{acmart}
 \geometry{twoside=true, head=13pt, a4paper, includeheadfoot,
  columnsep=2pc, top=57pt, bottom=73pt, inner=54pt, outer=54pt,
@@ -36,10 +37,11 @@ review and confirm a rewritten request. Query template, agents, SQL
 construction, and ranking are inherited unchanged. We describe a
 controlled-omission benchmark (8 intents, 0--5 omitted dimensions, 48
 scenarios) that compares refined, one-shot, and complete (oracle) queries
-under the same pipeline. In a preliminary run (115 of 304 planned runs completed),
-clarification detected every omission, and refined queries reached
-top-5 agreement with the oracle of 0.74, matching the oracle's own
-run-to-run agreement (0.74), against 0.04 for one-shot queries.
+under the same pipeline. Over 304 completed runs, clarification
+detected every omission without unnecessary questions, and refined
+queries reached top-5 agreement with the oracle of 0.57, at the level of
+the oracle's own run-to-run agreement (0.53), against 0.11 for one-shot
+queries.
 A prepared demonstration scenario shows how
 clarification changes the interpreted request and the resulting
 portfolio screening.
@@ -245,13 +247,13 @@ logged), and the 89,200-property MURENA dataset. Run-to-run variability
 is measured rather than assumed absent. The oracle ranking is a
 \emph{reference query output}, not ground truth on property relevance.
 
-% Verbatim submitted_query values from missingness_v3/runs.jsonl:
-% one_shot bench_b8213f8cebdf; refined bench_a9cf4b8903e0;
-% oracle bench_2eb0d7722958. See OKF for provenance.
+% Verbatim submitted_query values from missingness_v3_haiku/runs.jsonl:
+% one_shot bench_4219923a116f; refined bench_7fccc469c00d;
+% oracle bench_c41f87c72646. See OKF for provenance.
 For example, the recorded nursery case ($k=2$, $C_b$ and $C_e$
 omitted) supplied the following actual inputs to the analysis pipeline:
 \emph{One-shot ($q_0$)}: ``I am looking for an existing school building. I intend to convert it into a nursery. The location is in Turin. I prefer properties near green spaces.''
-\emph{Refined ($\hat q$)}: ``I am looking for an existing school building in Turin to convert into a nursery. It must have at least 600 sqm of gross floor area and capacity for 45 people. I prefer a property near green spaces and in energy class D or better.''
+\emph{Refined ($\hat q$)}: ``I am looking for an existing school building in Turin with at least 600 sqm of gross floor area and capacity for 45 people, to convert into a nursery. It should be in energy class D or better. I prefer properties near green spaces.''
 \emph{Oracle ($q^*$)}: ``Find an existing school building to convert it into a nursery for 45 children in Turin with at least 600 sqm of gross floor area in energy class D or better near green spaces.''
 The refined text was generated after two clarification turns; the
 oracle was predefined. They express corresponding requirements with
@@ -290,61 +292,56 @@ wording-induced variation. An unexecuted catalogue extension enumerates all
 one enable flag per base intent and fixed job order. Reported results use
 only the original 48-variant nested design.
 
-\paragraph{Execution.} The benchmark ran on 2026-11-17. After 113 of
-the 304 planned runs, latency of the model service rose sharply (a
-trivial call took 63--167\,s, analysis up to 1,111\,s per run). A
-resumed attempt added 10 runs, 8 of which (all refined) failed with
-model-call timeouts during clarification, and the run was stopped. Of
-the 123 executed runs we report all 115 that completed (54 refined, 44
-one-shot, 17 oracle), without re-running or selecting any; the 8
-failures are counted, not imputed. One ranking-agent call timed out
-(default weights were used, and this is logged), and relaxation fired
-in 2 runs. Coverage is
-therefore uneven: each $(k,\text{condition})$ cell contains 5--7 of the
-8 intents, one intent has no oracle run, and the noise ceiling rests on
-the 5 intents with at least two oracle repetitions. The intervals below
-are correspondingly wide and the results are preliminary.
+\paragraph{Execution.} All 304 planned runs (144 refined, 120
+one-shot, 40 oracle) completed on 2026-11-17 in a single execution of
+62 minutes with ten concurrent runs; no run or agent call failed, and
+every $(k,\text{condition})$ cell covers all 8 intents. Relaxation fired
+in 28 runs (19 refined, 3 one-shot, 6 oracle) and is logged. An earlier
+partial execution with a different LLM backend was stopped because of
+service latency; it is documented separately and not pooled with these
+results.
 
-\paragraph{Results.} Clarification was exact in all 54 refined runs:
+\paragraph{Results.} Clarification was exact in all 144 refined runs:
 the detected missing dimensions equalled the omitted ones (micro
 P/R/$F_1$ = 1.00), the dialogue took exactly $k$ turns, no question was
-asked at $k=0$ (0/8 runs), and the regulatory use matched the intended
-one in every run. Table~\ref{tab:results} and Fig.~\ref{fig:perk} show
-the consequence for the analysis. One-shot queries lose filters as $k$
-grows (median result set 1,075 at $k=1$ up to the whole dataset at
-$k=5$, against 446 for the oracle) and their top-5 has almost no
-overlap with the oracle. Refined queries recover the oracle's filters
-(filter $F_1\ge0.99$ at every $k$) and reach top-5 agreement of 0.74,
-equal to the agreement between two oracle runs (0.74): the residual gap
-is mostly pipeline variability, not lost information.
-Clarification costs 17--97\,s per dialogue (median, growing with $k$),
-on top of an analysis of 74--104\,s.
+asked at $k=0$ (0/24 runs), and the intended regulatory use was among
+the matched uses in every run (with a related nursery type also matched
+in 12). Table~\ref{tab:results} and Fig.~\ref{fig:perk} show the
+consequence for the analysis. One-shot queries lose filters as $k$
+grows (median result set 247 at $k=1$ up to 80,447 at $k=5$, against
+121 for the oracle) and their top-5 overlap with the oracle falls from
+0.34 to 0.01. Refined queries recover the oracle's filters (filter
+$F_1$ 0.95--0.96 at every $k$, against 0.94 between oracle runs) and
+reach top-5 agreement of 0.57, flat across $k$ and at the level of the
+agreement between two oracle runs (0.53): the residual gap is pipeline
+variability, not lost information. Clarification costs 17--49\,s per
+dialogue (median, growing with $k$), on top of an analysis of
+88--124\,s.
 
 \begin{table}[t]
-\caption{Benchmark, 115 completed runs, $k\ge1$ unless noted: mean
-over the 7 intents with both conditions (per intent, levels with both
-conditions are averaged) [95\% cluster-bootstrap CI]. $J_5$: top-5
-Jaccard; RBO: extrapolated, $p=0.8$, over the top-10; both against the
-oracle.}
+\caption{Benchmark, 304 completed runs, $k\ge1$ unless noted: mean
+over the 8 intents (per intent, levels are averaged) [95\%
+cluster-bootstrap CI]. $J_5$: top-5 Jaccard; RBO: extrapolated,
+$p=0.8$, over the top-10; both against the oracle.}
 \label{tab:results}
 \centering\scriptsize\setlength{\tabcolsep}{3pt}
 \begin{tabular}{@{}lccc@{}}
 \toprule
 Condition & $J_5$ & RBO & Tie-aware $J_5$\\
 \midrule
-One-shot & 0.04 [0.00, 0.12] & 0.05 [0.00, 0.14] & 0.04 [0.00, 0.11]\\
-Refined & 0.74 [0.62, 0.86] & 0.78 [0.67, 0.88] & 0.71 [0.57, 0.85]\\
-Refined, $k=0$ & 0.86 [0.72, 0.97] & 0.84 [0.70, 0.95] & 0.82 [0.63, 0.97]\\
-Oracle vs.\ oracle & 0.74 [0.34, 1.00] & 0.75 [0.37, 0.97] & 0.74 [0.34, 1.00]\\
+One-shot & 0.11 [0.05, 0.18] & 0.13 [0.06, 0.20] & 0.11 [0.05, 0.17]\\
+Refined & 0.57 [0.49, 0.66] & 0.63 [0.54, 0.74] & 0.56 [0.49, 0.63]\\
+Refined, $k=0$ & 0.64 [0.58, 0.71] & 0.69 [0.62, 0.79] & 0.64 [0.57, 0.70]\\
+Oracle vs.\ oracle & 0.53 [0.43, 0.64] & 0.58 [0.47, 0.71] & 0.52 [0.43, 0.62]\\
 \midrule
-$\Delta$ refined$-$one-shot & 0.70 [0.58, 0.83] & 0.72 [0.63, 0.83] & 0.67 [0.52, 0.83]\\
-Sign-flip $p$ (7 intents) & 0.016 & 0.016 & 0.016\\
+$\Delta$ refined$-$one-shot & 0.46 [0.36, 0.56] & 0.49 [0.39, 0.61] & 0.45 [0.36, 0.54]\\
+Sign-flip $p$ (8 intents) & 0.008 & 0.008 & 0.008\\
 \bottomrule
 \end{tabular}
 \\[2pt]
-Filter $F_1$ vs.\ majority oracle: refined 1.00 [0.99, 1.00], one-shot
-0.56 [0.43, 0.70] (0.89 at $k=1$ to 0.00 at $k=5$); $\Delta$ 0.44
-[0.30, 0.56].
+Filter $F_1$ vs.\ majority oracle: refined 0.96 [0.94, 0.97], one-shot
+0.55 [0.51, 0.59] (0.87 at $k=1$ to 0.19 at $k=5$); $\Delta$ 0.40
+[0.36, 0.44]. $p=0.008$ is the smallest attainable with 8 intents.
 \end{table}
 
 \begin{figure}[t]
@@ -352,7 +349,8 @@ Filter $F_1$ vs.\ majority oracle: refined 1.00 [0.99, 1.00], one-shot
 \begin{tikzpicture}
 \begin{axis}[width=\columnwidth, height=40mm, xlabel={omitted dimensions $k$},
   ylabel={$J_5$ vs.\ oracle}, xmin=-0.3, xmax=5.3, ymin=0, ymax=1,
-  xtick={0,...,5}, legend pos=south west, legend style={font=\scriptsize},
+  xtick={0,...,5}, legend columns=3,
+  legend style={font=\scriptsize, at={(0.5,1.02)}, anchor=south, draw=none},
   tick label style={font=\scriptsize}, label style={font=\scriptsize}]
 \addplot+[mark=square*, error bars/.cd, y dir=both, y explicit]
   table[x=k, y=j5, col sep=comma, discard if not={cond}{refined},
@@ -364,12 +362,12 @@ Filter $F_1$ vs.\ majority oracle: refined 1.00 [0.99, 1.00], one-shot
   y error plus expr=\thisrow{j5_hi}-\thisrow{j5},
   y error minus expr=\thisrow{j5}-\thisrow{j5_lo}] {data/per_k.csv};
 \addlegendentry{one-shot}
-\addplot+[dashed, mark=none, black] coordinates {(-0.3,0.744) (5.3,0.744)};
+\addplot+[dashed, mark=none, black] coordinates {(-0.3,0.529) (5.3,0.529)};
 \addlegendentry{oracle vs.\ oracle}
 \end{axis}
 \end{tikzpicture}
 \caption{Top-5 agreement with the oracle per omission level (mean and
-95\% cluster-bootstrap CI over the 5--7 intents available per level).}
+95\% cluster-bootstrap CI over the 8 intents).}
 \Description{Line chart of top-5 Jaccard agreement with the oracle
 against the number of omitted dimensions, for refined and one-shot
 queries, with the oracle-vs-oracle noise ceiling as a dashed line.}

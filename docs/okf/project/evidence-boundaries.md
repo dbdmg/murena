@@ -22,8 +22,19 @@ sources:
 
 # Fonti e livelli di evidenza
 
+**Risultati del paper (2026-11-17, sera):** il paper riporta ora la serie
+**completa** del disegno annidato a 48 varianti eseguita con Claude Haiku 5.5
+(provider `claude_cli`): 304/304 run completati, tutti gli 8 intenti in ogni
+cella, artefatti in `backend/experiments/results/missingness_v3_haiku/`. È un
+**risultato osservato verificato** su questo setup, non un giudizio di
+rilevanza. La serie parziale `gpt-6-luna` (115 di 123 run, Git `4a7c882`)
+resta evidenza storica, non combinata. I due set di risultati non vanno
+confrontati come prova di superiorità di un modello: la variabilità
+oracle-vs-oracle differisce (0,53 contro 0,74). Vedere il
+[benchmark](../research/edbt-conversational-benchmark.md#risultati-osservati-serie-completa-v3-con-claude-haiku-55-2026-11-17).
+
 **Aggiornamento locale del 2026-11-17:** i risultati preliminari v3 citati sotto
-restano evidenza storica (Git `4a7c882`), usata nel paper. Su richiesta sono
+restano evidenza storica (Git `4a7c882`), usata nel paper fino alla serie Haiku. Su richiesta sono
 stati cancellati gli artefatti locali e avviata una rigenerazione con
 concorrenza 20, poi interrotta su richiesta: quattro timeout e nessun risultato
 completato. Il nuovo manifest ha checksum di dataset e scenari differenti;
@@ -44,7 +55,7 @@ eseguita dal disegno annidato storico. Vedere il
 2. **Documentazione nel repository** (`README.md`, `AGENTS.md`): descrive uso previsto e comandi; può essere meno aggiornata del codice.
 3. **Manoscritto LaTeX caricato** (`references/paper/paper.tex`, più `metadata.tex` e supplemento): supporta metodo, dataset di ricerca e risultati sperimentali. Le prestazioni sono **rivendicazioni del paper**, non benchmark replicati per questo bundle.
 4. **Metriche di conversione fornite dall'utente** (ora in `backend/docs/knowledge/normativa/normativa.json`): il file è stato spostato nella posizione runtime della normativa precedente; il codice tratta i campi e i relativi status come contenuto di input. Il nome originario e gli status non equivalgono a una verifica legale indipendente da parte di MURENA.
-5. **Scenari EDBT**: `backend/experiments/data/scenarios/` contiene 24 casi sintetici di robustezza; `backend/experiments/data/scenarios_v2/` contiene 40 casi a omissione controllata e 8 controlli completi. I file definiscono risposte simulate e query di riferimento, non osservazioni empiriche. La CLI corrente esegue solo la condizione conversational. Per i 24 scenari originari sono documentati 72 run validi del 2026-11-16, con modello, dataset, parametri e limiti descritti nel [benchmark EDBT](../research/edbt-conversational-benchmark.md); non costituiscono un confronto one-shot/oracle. Sulla famiglia v2 è stata completata il 2026-11-17 una singola run end-to-end `MS01_k1`, smoke test non comparativo. Il 2026-11-17 la famiglia v2 è stata rigenerata nel repository (cambia solo il checksum sorgente nel manifest) e il validatore statico è passato; è una verifica strutturale, non un'esecuzione del benchmark. I risultati osservati vanno riferiti all'artefatto, al modello e al dataset specifici e restano distinti dai risultati del manoscritto. Aggiornamento del 2026-11-17: la CLI ora esegue le condizioni `refined`, `one_shot` e `oracle`. Sulla famiglia `scenarios_v3/` (48 scenari) il benchmark a tre condizioni è stato **eseguito parzialmente**: 123 dei 304 run pianificati, di cui 115 completati e 8 falliti per timeout di Codex, poi sospeso per il rallentamento del servizio. I risultati sono **verificati ma preliminari**: copertura di 5–7 intenti su 8 per cella e nessun run oracle per `UC08`. Sono riportati come tali nel paper EDBT e descritti nel [benchmark EDBT](../research/edbt-conversational-benchmark.md). Il confronto con l'oracle misura l'accordo con una query di riferimento, non la rilevanza degli immobili.
+5. **Scenari EDBT**: `backend/experiments/data/scenarios/` contiene 24 casi sintetici di robustezza; `backend/experiments/data/scenarios_v2/` contiene 40 casi a omissione controllata e 8 controlli completi. I file definiscono risposte simulate e query di riferimento, non osservazioni empiriche. La CLI corrente esegue solo la condizione conversational. Per i 24 scenari originari sono documentati 72 run validi del 2026-11-16, con modello, dataset, parametri e limiti descritti nel [benchmark EDBT](../research/edbt-conversational-benchmark.md); non costituiscono un confronto one-shot/oracle. Sulla famiglia v2 è stata completata il 2026-11-17 una singola run end-to-end `MS01_k1`, smoke test non comparativo. Il 2026-11-17 la famiglia v2 è stata rigenerata nel repository (cambia solo il checksum sorgente nel manifest) e il validatore statico è passato; è una verifica strutturale, non un'esecuzione del benchmark. I risultati osservati vanno riferiti all'artefatto, al modello e al dataset specifici e restano distinti dai risultati del manoscritto. Aggiornamento del 2026-11-17: la CLI ora esegue le condizioni `refined`, `one_shot` e `oracle`. Sulla famiglia `scenarios_v3/` (48 scenari) il benchmark a tre condizioni è stato **eseguito parzialmente**: 123 dei 304 run pianificati, di cui 115 completati e 8 falliti per timeout di Codex, poi sospeso per il rallentamento del servizio. I risultati sono **verificati ma preliminari**: copertura di 5–7 intenti su 8 per cella e nessun run oracle per `UC08`. Erano riportati come tali nel paper EDBT, ora sostituiti dalla serie completa Haiku (304/304); entrambi sono descritti nel [benchmark EDBT](../research/edbt-conversational-benchmark.md). Il confronto con l'oracle misura l'accordo con una query di riferimento, non la rilevanza degli immobili.
 
 ## Casi che non vanno confusi
 

@@ -2,6 +2,15 @@
 
 ## 2026-11-17
 
+* **Serie completa v3 con Claude Haiku 5.5 e aggiornamento del paper**:
+  * Rieseguito per intero il disegno annidato a 48 varianti, con il catalogo storico conservato in `scenarios_v3/nested48_from_4a7c882.yaml`: 304/304 run completati in 62 minuti, nessun errore. Configurazione: `claude_cli`, `claude-haiku-5-5`, effort medium, seed 13, concorrenza 10. Risultati in `results/missingness_v3_haiku/`.
+  * Rilevamento esatto 144/144; nessuna domanda a k=0 (0/24).
+  * J5 refined 0,57 [0,49; 0,66] contro one-shot 0,11 [0,05; 0,18]; Δ 0,46 [0,36; 0,56], sign-flip p=0,008 su 8 intenti; tetto oracle-vs-oracle 0,53.
+  * Filtri F1 0,96 contro 0,55.
+  * Tre lanci precedenti interrotti per difetti del CLI su Windows, poi corretti: pulizia della directory temporanea, stdin, avvii concorrenti, JSON in blocco recintato in SAGE. I lanci sono stati scartati, non combinati.
+  * Paper aggiornato: abstract, Execution, Results, tabella, esempio e figura con legenda spostata; PDF rigenerato con Tectonic, 4 pagine.
+  * La serie parziale `gpt-6-luna` resta in OKF come evidenza storica, non combinata.
+  * Aggiornati `research/edbt-conversational-benchmark.md`, `research/reproduction.md`, `project/evidence-boundaries.md`, `operations/environment.md`, `paper/README.md`, `paper/README-EDITORIAL.md` e il README degli scenari.
 * **Attivazione completa S01–S08 e snapshot Codex**: abilitati gli otto scenari nel YAML; piano corrente ×3 su tutte le condizioni = 1.536 job. Inclusi gli artefatti presenti in `results/all_scenarios_codex/`: manifest incompleto e un tentativo S01_k1_D in errore per dettaglio irrisolto. Aggiornata riproduzione; paper invariato perché lo snapshot parziale non modifica i risultati scientifici riportati.
 
 * **Smoke test Qwen vLLM su S01_k0**: un solo job refined con `qwen9b` su 130.192.163.76:8000, ripetizione e concorrenza 1, configurazione permanente invariata. Run `bench_b709ce5268e6` fallita in 122,083 s al parsing JSON del chiarimento, prima dell’analisi immobiliare. Artefatti isolati in `results/qwen9b_s01_k0/`, input e impostazioni conservati; risposta grezza non registrata, causa specifica non verificata. Nessun retry. Aggiornata `research/reproduction.md`; paper invariato: sola prova tecnica fallita, senza nuove evidenze scientifiche.

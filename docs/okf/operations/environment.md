@@ -56,7 +56,7 @@ Le impostazioni hanno altri campi specifici in `app/core/config.py`; usare il co
 - i messaggi di sistema diventano il system prompt (`--system-prompt-file`), al posto del prompt agentico di Claude Code; il resto della conversazione è passato su stdin;
 - l'output strutturato usa `--json-schema` e legge `structured_output` dal risultato JSON; in mancanza, estrae il JSON dal testo, anche da blocchi recintati.
 
-L'ambiente del processo è filtrato: niente `ANTHROPIC_API_KEY` (il CLI usa la propria sessione autenticata) né variabili di una sessione Claude Code esterna. Implementato e testato il 2026-11-17 (`backend/tests/test_claude_cli_adapter.py`).
+Robustezza: le chiamate senza risultato o con errore riportato dal CLI vengono ritentate fino a 2 volte, con attesa crescente; i timeout non vengono ritentati. Gli avvii dei processi sono distanziati di 0,3 s, perché avvii simultanei corrompono transitoriamente `~/.claude.json`. La directory temporanea viene pulita ignorando gli errori di file bloccati su Windows. L'ambiente del processo è filtrato: niente `ANTHROPIC_API_KEY` (il CLI usa la propria sessione autenticata) né variabili di una sessione Claude Code esterna. Implementato e testato il 2026-11-17 (`backend/tests/test_claude_cli_adapter.py`).
 
 ## Regole
 
