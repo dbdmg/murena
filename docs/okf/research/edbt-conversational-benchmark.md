@@ -52,7 +52,7 @@ La famiglia separata `backend/experiments/data/scenarios_v2/` contiene 40 casi d
 
 Questa è una prova di stress a omissione controllata: ogni criterio omesso è trattato dagli autori come un requisito latente desiderato. Non misura rinunce volontarie o la distribuzione naturale dell'ambiguità. `queries_by_configuration.csv` contiene 120 righe che descrivono le condizioni one-shot, refined e oracle, ma la CLI esegue solo conversational; refined rappresenta l'avvio della conversazione, non una query già prodotta dal sistema.
 
-La provenienza dichiarata nel README degli scenari è il bundle `murena-demo(4).zip` e il catalogo normativo in esso contenuto. `catalog_snapshot_sha256.txt` registra l'impronta dello snapshot normativo usato nella costruzione. Il validatore statico presente nella directory controlla coerenza strutturale e copertura rispetto al catalogo corrente. Queste tracce documentano la provenienza e la coerenza interna dei dati, **non** una validazione empirica con utenti, una verifica indipendente delle norme o l'esecuzione del benchmark.
+La provenienza dichiarata nel README degli scenari è il bundle `murena-demo(4).zip` e il catalogo normativo in esso contenuto. `catalog_snapshot_sha256.txt` registra l'impronta dello snapshot normativo usato nella costruzione. Il validatore statico presente nella directory controlla coerenza strutturale e copertura rispetto al catalogo corrente. Queste tracce documentano la provenienza e la coerenza interna dei dati, **non** una validazione empirica con utenti o una verifica indipendente delle norme. I risultati delle esecuzioni effettivamente osservate sono riportati separatamente sotto.
 
 ## Configurazioni sperimentali
 
@@ -98,9 +98,36 @@ Anche nella famiglia v2 `expected_ids` non è valorizzato. La CLI può verificar
 
 Non sono implementati nel runner il **Requirement F1** su vincoli atomici, il **Top-5 Jaccard** tra condizioni, il punteggio di **use-case matching** rispetto alle aspettative per configurazione, il confronto delle query one-shot/oracle, né il controllo comparativo dei filtri SQL. Sono obiettivi del protocollo o metadati presenti negli scenari, non metriche già calcolate. La CLI non produce misure comparative di turn count o latency tra configurazioni.
 
+## Risultati osservati: run conversational del 2026-11-16
+
+Gli artefatti sono in `backend/experiments/results/edbt_conversational/` (`manifest.json`, `runs.jsonl`, `summary.csv`, `runs/*.json`): modello `gpt-6-luna` via `codex_exec`, dataset `full`, 3 ripetizioni per scenario, `map_limit=1000`, `llm_limit=10`, concorrenza 12. I valori sotto sono stati ricalcolati il 2026-11-17 con script ad hoc non versionati sui **72 run validi** (24 scenari × 3). Per UC08 sono considerati solo i run della definizione corrente (SHA `888d0f…`); sono esclusi i run su versioni precedenti dello scenario, incluso un errore.
+
+| Metrica | Valore |
+|---|---|
+| Run completati | 72/72 |
+| Rilevamento delle dimensioni inizialmente mancanti (micro) | P 1,00 · R 0,90 · F1 0,95 |
+| Rilevamento esatto | 64/72 |
+| Accuratezza dello stato finale | 1,00 |
+| Turni di chiarimento | media 1,01, massimo 2 |
+| `matched_use_cases` del RegulatoryAgent uguale all'atteso per la configurazione conversational | 65/72 |
+| Requisiti normativi vincolanti prodotti dal RegulatoryAgent | 0/72 |
+| Durata end-to-end | mediana 108,6 s (69,8–169,3 s) |
+| Run con zero risultati | 0 (mediana 118 candidati) |
+| SQL finale identica nelle 3 ripetizioni | 2/24 scenari |
+| Jaccard medio dei top-5 tra ripetizioni | 0,58 (top-10: 0,64) |
+
+Errori osservati:
+
+- **Ambiguità d'uso non rilevate** (UC20, UC21, 0/6 run esatti): SAGE tratta l'uso come specificato e chiede solo la dimensione omessa. In UC21 il RegulatoryAgent associa tutti e cinque gli usi per l'infanzia. In UC20 l'uso RSA viene comunque associato, presumibilmente per la risposta sulla capienza ("residenti"), non per una disambiguazione.
+- **UC19** (multi-turno): il secondo turno su `Cb` avviene in 1 run su 3.
+- **UC22** (fuori catalogo): in 3/3 run il RegulatoryAgent associa erroneamente la residenza universitaria.
+- **UC23**: 1 run su 3 non associa la residenza universitaria. L'applicabilità del contributo CDP/PNRR non è stata verificata separatamente.
+
+Questi risultati riguardano solo la condizione conversational. Non permettono di stimare il beneficio del chiarimento finché one-shot e oracle non vengono eseguiti con le stesse impostazioni. La bassa stabilità tra ripetizioni va riportata insieme a qualsiasi confronto. Il fenomeno delle ambiguità non riconosciute è coerente con quanto riportato in letteratura (vedi [stato dell'arte](related-work.md)).
+
 ## Limiti
 
-Gli scenari sono sintetici e costruiti per coprire dimensioni, omissioni, ambiguità e casi normativi selezionati. Non costituiscono una user study, non rappresentano la distribuzione di richieste reali e non forniscono risultati sperimentali finché le esecuzioni non vengono effettuate e analizzate. Le risposte simulate e gli oracle riflettono scelte di costruzione del benchmark. La copertura normativa segue il catalogo fornito e non certifica autorizzazioni o aggiornamento giuridico. Il protocollo EDBT va quindi mantenuto distinto dagli esperimenti, dai dataset e dai risultati riportati nel paper originale.
+Gli scenari sono sintetici e costruiti per coprire dimensioni, omissioni, ambiguità e casi normativi selezionati. Non costituiscono una user study e non rappresentano la distribuzione di richieste reali. Le risposte simulate e gli oracle riflettono scelte di costruzione del benchmark. Le run conversational documentate sopra sono risultati osservati su questo setup, ma non stimano il beneficio del chiarimento senza condizioni one-shot e oracle appaiate. La copertura normativa segue il catalogo fornito e non certifica autorizzazioni o aggiornamento giuridico. Il protocollo EDBT va mantenuto distinto dai risultati riportati nel paper originale.
 
 Nel controllo di funzionamento del 2026-11-17, una singola run end-to-end `MS01_k1` è terminata con `gpt-6-luna` e dataset `full` in 66.056 secondi: zero errori, un turno, F1 iniziale 1.0 e accuratezza del mapping finale 1.0. La run ha restituito 147 risultati. Questo smoke test verifica un percorso eseguibile, ma non è una valutazione scientifica, una replica del paper o evidenza di stabilità sulle 40 istanze. Il validatore applicato ai file v2 presenti si arresta sul checksum sorgente del manifest; la rigenerazione temporanea dai sorgenti attuali ha superato i controlli statici di conteggio, annidamento, testi e mapping. Occorre rigenerare i file v2 nel repository per riallineare il manifest prima di ripetere la validazione.
 
