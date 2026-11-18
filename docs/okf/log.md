@@ -2,6 +2,20 @@
 
 ## 2026-11-18
 
+* **Review del paper sullo stato corrente** (sorgente al commit `32c1d1b`, tutte le serie dopo il pull delle 16:10), in `research/conversational-paper-audit.md`.
+  * Tre incoerenze nel testo:
+    * Scope dice "unexecuted" per il catalogo a 256 varianti, che è stato eseguito in parte con gpt-6-luna.
+    * La pagina risultati della demo punta ora a una serie v4 parziale.
+    * Il J5 della serie imperfetta non va confrontato con quello della serie principale.
+  * Nuove serie dei colleghi (gpt-6-luna, Qwen3.8-27B) su dataset con hash diversi: non sono confrontabili con Haiku.
+  * Nella v4, l'opt-out su $D$ blocca 33 sessioni su 51, per frasi di opt-out generate in modo difettoso.
+  * Il paper non è stato modificato.
+
+* **Nuovo titolo del paper:** "Ask, Don't Guess: Conversational Clarification for Real-Estate Portfolio Screening with MURENA". Il titolo breve per l'intestazione è "Ask, Don't Guess: Conversational Clarification with MURENA".
+  * Il titolo precedente era "Conversational MURENA: Clarifying Underspecified Requests for Real-Estate Portfolio Screening".
+  * Scelto dall'utente. Il contributo principale resta il chiarimento conversazionale; pipeline e catalogo sono ereditati.
+  * PDF rigenerato in locale: 4 pagine, intestazione verificata.
+
 * **Paper, paragrafo Availability:** aggiunti portale e licenza dei dati APE.
   * Fonte: catalogo `https://www.dati.piemonte.it/#/catalogo`, verificato il 2026-11-18.
   * Dataset: "Dettaglio attestato di prestazione/certificazione energetica (APE)" di Regione Piemonte, pubblicato da CSI-Piemonte (Yucca SDP).

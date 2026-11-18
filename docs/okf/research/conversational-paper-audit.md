@@ -115,3 +115,59 @@ PDF rigenerato con Tectonic e controllato visivamente: 4 pagine. Resta un overfu
   - Dimensioni e aggiornamento: 79 colonne e 1.324.334 righe; aggiornamento mensile; dataset aggiornato il 2/11/2026.
 - **Limite:** il paper non dichiara quale estrazione mensile sia stata usata per costruire `estates.parquet`. La provenienza della pipeline è in `docs/estates_parquet.md`.
 - **Ancora mancante:** il link al video, in preparazione da parte di Marco De Luca.
+
+## Review del paper sullo stato del 2026-11-18 (pomeriggio)
+
+Review del sorgente `paper/edbt-paper-template.tex` al commit `32c1d1b`, con titolo "Ask, Don't Guess". Considera tutte le serie presenti in `backend/experiments/results/` dopo il pull delle 16:10. I numeri sulle serie dei colleghi sono **conteggi di stato** letti da `runs.jsonl` e dagli artefatti, non metriche analizzate.
+
+### Inventario delle serie
+
+| Serie | Modello | Scenari | Record | Stato | Dataset (sha256, prefisso) |
+|---|---|---|---|---|---|
+| `missingness_v3_haiku_r2` (**nel paper**) | Claude Haiku 5.5 | v3 annidato, 48 | 304 | 304 completate | `bc6732c8ff` |
+| `imperfect_user_haiku` (**nel paper**) | Claude Haiku 5.5 | v3 imperfetto, 75 | 265 | 265 completate | `bc6732c8ff` |
+| `missingness_v3_haiku`, `imperfect_user_haiku_c7b9f7a` | Claude Haiku 5.5 | v3 | 304; 265 | superate, non combinate | `bc6732c8ff` |
+| `all_scenarios_codex` | gpt-6-luna | catalogo combinatorio, 256 | 2.350 | 1.357 completate, 993 errori | `d3956041f1` |
+| `imperfect_user_v4_oracle_first_seed13` | gpt-6-luna | v4, campione 1%, seed 13 | 270 | 233 completate, 37 bloccate | `1f32c225db` |
+| `imperfect_user_v4_multiseed_seed13` | gpt-6-luna | v4, seed 13 | 107 | 93 completate, 14 bloccate | `1f32c225db` |
+| `imperfect_user_v4_multiseed_qwen3-8b_seed13` | Qwen3.8-27B (vLLM) | v4, seed 13 | 10 | in corso | `1f32c225db` |
+
+Dettagli sulle serie dei colleghi:
+- **`all_scenarios_codex`:** 989 dei 993 errori sono fallimenti della chiamata Codex CLI. La condizione one-shot ha 899 errori su 1.488 record (60%); refined 768 completate su 814; oracle 48 record, tutti falliti.
+- **`imperfect_user_v4_multiseed_seed13`:** 92 dei 107 artefatti per run non sono nel repository.
+
+### Problemi da correggere nel testo (incoerenze con il repository)
+
+1. **Scope.** Il testo dice "An unexecuted catalogue extension …". Il catalogo a 256 varianti è stato eseguito **in parte** con gpt-6-luna (`all_scenarios_codex`), con molti fallimenti, e la serie non è riportata nel paper.
+   - Proposta: "executed only partially, with another backend and a high failure rate, and not reported".
+2. **Demonstration, pagina risultati.** Il testo promette il confronto affiancato di one-shot, refined e oracle.
+   - Il default del frontend (`frontend/vite.config.ts`, `frontend/.env.demo`) punta ora a `imperfect_user_v4_multiseed_seed13`: solo refined, parziale, con un altro modello e un altro dataset.
+   - Per la conferenza va fissata una serie coerente con il paper (`missingness_v3_haiku_r2`), oppure il testo deve dire quale serie è mostrata.
+3. **Imperfect users.** J5 0,93 è confrontato con il tetto della stessa serie (0,93), più alto di quello della serie principale (0,87).
+   - Il lettore può confrontare 0,93 con 0,88 e concludere che le risposte vaghe migliorano il risultato.
+   - Proposta: aggiungere che i due tetti differiscono tra le esecuzioni e che i valori non vanno confrontati fra le serie.
+4. **Attività (b) della demo.** Invita a rifiutare qualunque dimensione, ma l'opt-out è misurato solo sulle preferenze $C_b$, $C_e$, $C_p$.
+   - Con il pubblico un rifiuto su $D$ o $L$ non ha evidenza misurata: vedi i blocchi v4 qui sotto.
+   - Proposta: limitare l'esempio alle preferenze, oppure verificare dal vivo $D$ e $L$.
+
+### Punti deboli che un revisore noterà (già dichiarati, da presidiare)
+
+- **Un solo modello:** Claude Haiku 5.5, con il campionamento predefinito della CLI. Le serie gpt-6-luna e Qwen potrebbero rispondere, ma oggi usano tre dataset diversi (hash diversi) e scenari diversi (v4 invece di v3). Non sono confrontabili né combinabili con la serie del paper finché non si allineano dataset, scenari e codice.
+- **Otto intenti:** il p-value 0,008 è il minimo ottenibile con 8 intenti; dichiarato.
+- **Utente simulato:** rivela esattamente il frammento omesso, quindi il risultato è un limite superiore; dichiarato. Non ci sono studio utenti né baseline a form; dichiarati come lavoro futuro.
+- **Oracle:** è un output di riferimento, non un giudizio di rilevanza; dichiarato.
+
+### Punti aperti per il demo track
+
+- Mancano il link al video (lo prepara Marco De Luca), autori e affiliazioni, e i limiti della call EDBT 2027.
+- L'input in italiano dichiarato nella Demonstration non è stato verificato in questa sessione.
+- La Fig. 2 mostra 144 risultati. Nella registrazione dal vivo del 18-11 (risposte formulate diversamente) i risultati erano 22: è coerente con la variabilità, ma la didascalia descrive una sola esecuzione.
+
+### Segnalazioni per i colleghi (non riguardano il testo del paper)
+
+- **Opt-out su $D$ nella v4.** In `imperfect_user_v4_oracle_first_seed13` le sessioni refined con opt-out su $D$ sono bloccate in 33 casi su 51; con opt-out solo su altre dimensioni, in 4 su 195.
+  - Esempio: la risposta simulata "I have no specific spring section or educational program in mind." non rifiuta l'uso. Allude invece all'uso nascosto, cioè la sezione primavera, e non è un opt-out.
+  - Il blocco dopo due risposte non risolutive è quindi il comportamento previsto da SAGE. Il difetto è nelle frasi generate da `derive_imperfect_user_v4.py`, che va corretto prima di riportare questa serie.
+  - Anche alcune frasi di opt-out su $C_b$ rivelano l'uso ("toddler capacity for the spring section").
+- **Dataset diversi:** i tre hash non coincidono con quello delle serie Haiku. Vanno allineati prima di confrontare i modelli.
+- **Codex:** il 60% di fallimenti in one-shot rende `all_scenarios_codex` inutilizzabile per il confronto one-shot senza un'esecuzione di ripresa.
