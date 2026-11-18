@@ -1,0 +1,928 @@
+{
+  "run_id": "bench_87aec9b3a85c",
+  "condition": "refined",
+  "unit_id": "MS06_k1_vague",
+  "scenario_id": "MS06_k1_vague",
+  "base_case_id": "UC06_senior_day_missing_use",
+  "missing_count": 1,
+  "scenario_name": "1 omitted dimensions; intended use: Senior Day Center (CDI / CDIA / CDAA / CDAI); vague first answer on D",
+  "tags": [
+    "edbt",
+    "controlled_missingness_v3",
+    "missing_1",
+    "UC06_senior_day_missing_use",
+    "imperfect_user",
+    "vague"
+  ],
+  "model": "gpt-6-luna",
+  "repeat": 1,
+  "attempt": 2,
+  "input_sha256": "8ed994d87ff7625c83ca167f6677c907ff32004d4cae8a3d90e968c464b13af9",
+  "scenario_sha256": "8ed994d87ff7625c83ca167f6677c907ff32004d4cae8a3d90e968c464b13af9",
+  "initial_query": "I am looking for an office building. The location is in Turin. I need a property with at least 360 sqm of gross floor area and capacity for 18 people. I prefer a property in energy class D or better. I prefer properties near healthcare services.",
+  "options": {
+    "dataset_key": "full",
+    "map_limit": 1000,
+    "llm_limit": 10,
+    "analysis_mode": "agent",
+    "use_relaxation": true,
+    "use_data_knowledge": true,
+    "architecture": "multiagent",
+    "disabled_agents": null
+  },
+  "started_at": "2026-11-18T16:57:51.004618+00:00",
+  "clarification_seconds": 50.554,
+  "analysis_seconds": 100.095,
+  "conversation": {
+    "session_id": "4f3109f5-abc7-482e-8e99-5183300d0028",
+    "initial_dimension_state": {
+      "I": {
+        "status": "SPECIFIED",
+        "value": "office building",
+        "evidence": "“office building”"
+      },
+      "D": {
+        "status": "UNCONFIRMED_ABSENT",
+        "value": null,
+        "evidence": null
+      },
+      "L": {
+        "status": "SPECIFIED",
+        "value": "Turin",
+        "evidence": "“The location is in Turin.”"
+      },
+      "Cb": {
+        "status": "SPECIFIED",
+        "value": "At least 360 sqm of gross floor area and capacity for 18 people",
+        "evidence": "“at least 360 sqm of gross floor area and capacity for 18 people”"
+      },
+      "Ce": {
+        "status": "SPECIFIED",
+        "value": "Energy class D or better",
+        "evidence": "“energy class D or better”"
+      },
+      "Cp": {
+        "status": "SPECIFIED",
+        "value": "Healthcare services",
+        "evidence": "“near healthcare services”"
+      }
+    },
+    "initial_missing": [
+      "D"
+    ],
+    "expected_initial_missing": [
+      "D"
+    ],
+    "missing_detection": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "turns": [
+      {
+        "question": "What intended use do you have in mind for the office building? For example, would a senior day center fit, or does this dimension not matter?",
+        "target_dimensions": [
+          "D"
+        ],
+        "times_asked_before": {
+          "D": 0
+        },
+        "answer": "It depends; something suitable for the project, I guess.",
+        "question_source": "llm_query_parser",
+        "status_after": "ASK",
+        "turn_after": 1,
+        "dimension_state_after": {
+          "I": {
+            "status": "SPECIFIED",
+            "value": "office building",
+            "evidence": "“office building”"
+          },
+          "D": {
+            "status": "UNCONFIRMED_ABSENT",
+            "value": null,
+            "evidence": null
+          },
+          "L": {
+            "status": "SPECIFIED",
+            "value": "Turin",
+            "evidence": "“The location is in Turin.”"
+          },
+          "Cb": {
+            "status": "SPECIFIED",
+            "value": "At least 360 sqm of gross floor area and capacity for 18 people",
+            "evidence": "“at least 360 sqm of gross floor area and capacity for 18 people”"
+          },
+          "Ce": {
+            "status": "SPECIFIED",
+            "value": "Energy class D or better",
+            "evidence": "“energy class D or better”"
+          },
+          "Cp": {
+            "status": "SPECIFIED",
+            "value": "Healthcare services",
+            "evidence": "“near healthcare services”"
+          }
+        }
+      },
+      {
+        "question": "What would the building be used for? For example, would a Nursery or a Senior Day Center suit your project, or does the intended use not matter?",
+        "target_dimensions": [
+          "D"
+        ],
+        "times_asked_before": {
+          "D": 1
+        },
+        "answer": "I intend to convert it into an autonomous senior day center (CDIA).",
+        "question_source": "llm_omission_question",
+        "status_after": "READY",
+        "turn_after": 2,
+        "dimension_state_after": {
+          "I": {
+            "status": "SPECIFIED",
+            "value": "office building",
+            "evidence": "“office building”"
+          },
+          "D": {
+            "status": "SPECIFIED",
+            "value": "Autonomous senior day center (CDIA)",
+            "evidence": "autonomous senior day center (CDIA)"
+          },
+          "L": {
+            "status": "SPECIFIED",
+            "value": "Turin",
+            "evidence": "“The location is in Turin.”"
+          },
+          "Cb": {
+            "status": "SPECIFIED",
+            "value": "At least 360 sqm of gross floor area and capacity for 18 people",
+            "evidence": "“at least 360 sqm of gross floor area and capacity for 18 people”"
+          },
+          "Ce": {
+            "status": "SPECIFIED",
+            "value": "Energy class D or better",
+            "evidence": "“energy class D or better”"
+          },
+          "Cp": {
+            "status": "SPECIFIED",
+            "value": "Healthcare services",
+            "evidence": "“near healthcare services”"
+          }
+        }
+      }
+    ],
+    "messages": [
+      {
+        "role": "user",
+        "content": "I am looking for an office building. The location is in Turin. I need a property with at least 360 sqm of gross floor area and capacity for 18 people. I prefer a property in energy class D or better. I prefer properties near healthcare services."
+      },
+      {
+        "role": "assistant",
+        "content": "What intended use do you have in mind for the office building? For example, would a senior day center fit, or does this dimension not matter?"
+      },
+      {
+        "role": "user",
+        "content": "It depends; something suitable for the project, I guess."
+      },
+      {
+        "role": "assistant",
+        "content": "What would the building be used for? For example, would a Nursery or a Senior Day Center suit your project, or does the intended use not matter?"
+      },
+      {
+        "role": "user",
+        "content": "I intend to convert it into an autonomous senior day center (CDIA)."
+      },
+      {
+        "role": "assistant",
+        "content": "Query submitted for review: I’m looking for an office building in Turin with at least 360 sqm of gross floor area and capacity for 18 people. I intend to convert it into an autonomous senior day center (CDIA). I prefer a property in energy class D or better and near healthcare services."
+      },
+      {
+        "role": "user",
+        "content": "Confirmed."
+      }
+    ],
+    "dimension_state": {
+      "I": {
+        "status": "SPECIFIED",
+        "value": "office building",
+        "evidence": "“office building”"
+      },
+      "D": {
+        "status": "SPECIFIED",
+        "value": "Autonomous senior day center (CDIA)",
+        "evidence": "autonomous senior day center (CDIA)"
+      },
+      "L": {
+        "status": "SPECIFIED",
+        "value": "Turin",
+        "evidence": "“The location is in Turin.”"
+      },
+      "Cb": {
+        "status": "SPECIFIED",
+        "value": "At least 360 sqm of gross floor area and capacity for 18 people",
+        "evidence": "“at least 360 sqm of gross floor area and capacity for 18 people”"
+      },
+      "Ce": {
+        "status": "SPECIFIED",
+        "value": "Energy class D or better",
+        "evidence": "“energy class D or better”"
+      },
+      "Cp": {
+        "status": "SPECIFIED",
+        "value": "Healthcare services",
+        "evidence": "“near healthcare services”"
+      }
+    },
+    "mapping": {
+      "I": "SPECIFIED",
+      "D": "SPECIFIED",
+      "L": "SPECIFIED",
+      "Cb": "SPECIFIED",
+      "Ce": "SPECIFIED",
+      "Cp": "SPECIFIED"
+    },
+    "expected_mapping": {
+      "I": "SPECIFIED",
+      "D": "SPECIFIED",
+      "L": "SPECIFIED",
+      "Cb": "SPECIFIED",
+      "Ce": "SPECIFIED",
+      "Cp": "SPECIFIED"
+    },
+    "mapping_accuracy": 1.0,
+    "no_clarification": false,
+    "status": "READY",
+    "refined_query": "I’m looking for an office building in Turin with at least 360 sqm of gross floor area and capacity for 18 people. I intend to convert it into an autonomous senior day center (CDIA). I prefer a property in energy class D or better and near healthcare services.",
+    "reviewed_query": "I’m looking for an office building in Turin with at least 360 sqm of gross floor area and capacity for 18 people. I intend to convert it into an autonomous senior day center (CDIA). I prefer a property in energy class D or better and near healthcare services."
+  },
+  "submitted_query": "I’m looking for an office building in Turin with at least 360 sqm of gross floor area and capacity for 18 people. I intend to convert it into an autonomous senior day center (CDIA). I prefer a property in energy class D or better and near healthcare services.",
+  "status": "completed",
+  "results_count": 43,
+  "top_ids": [
+    "18842",
+    "16747",
+    "M03152",
+    "3125",
+    "16224",
+    "18829",
+    "M03576",
+    "M03612",
+    "18835",
+    "23101"
+  ],
+  "quality": {
+    "expected_count": 0,
+    "matched_expected": null,
+    "precision_at_returned": null,
+    "recall": null
+  },
+  "final_sql": "SELECT * FROM ESTATES WHERE property_type = 'Offices and similar' AND surface_area >= 360 AND energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C', 'D') AND healthcare >= 90 AND haversine_km(latitude, longitude, 45.0677551, 7.6824892) <= 3.0 ORDER BY haversine_km(latitude, longitude, 45.0677551, 7.6824892) ASC",
+  "duration_seconds": 150.664,
+  "scenario_definition": {
+    "id": "MS06_k1_vague",
+    "name": "1 omitted dimensions; intended use: Senior Day Center (CDI / CDIA / CDAA / CDAI); vague first answer on D",
+    "tags": [
+      "edbt",
+      "controlled_missingness_v3",
+      "missing_1",
+      "UC06_senior_day_missing_use",
+      "imperfect_user",
+      "vague"
+    ],
+    "base_case_id": "UC06_senior_day_missing_use",
+    "missing_count": 1,
+    "initial_query": "I am looking for an office building. The location is in Turin. I need a property with at least 360 sqm of gross floor area and capacity for 18 people. I prefer a property in energy class D or better. I prefer properties near healthcare services.",
+    "one_shot_query": "I am looking for an office building. The location is in Turin. I need a property with at least 360 sqm of gross floor area and capacity for 18 people. I prefer a property in energy class D or better. I prefer properties near healthcare services.",
+    "oracle_query": "Find an office building to convert it into an autonomous senior day center (CDIA) for 18 guests in Turin with at least 360 sqm of gross floor area in energy class D or better near healthcare services.",
+    "expected_initial_missing": [
+      "D"
+    ],
+    "clarifications": {
+      "I": "I am looking for an office building.",
+      "D": [
+        "It depends; something suitable for the project, I guess.",
+        "I intend to convert it into an autonomous senior day center (CDIA)."
+      ],
+      "L": "The location is in Turin.",
+      "Cb": "I need a property with at least 360 sqm of gross floor area and capacity for 18 people.",
+      "Ce": "I prefer a property in energy class D or better.",
+      "Cp": "I prefer properties near healthcare services."
+    },
+    "expected_mapping": {
+      "I": "SPECIFIED",
+      "D": "SPECIFIED",
+      "L": "SPECIFIED",
+      "Cb": "SPECIFIED",
+      "Ce": "SPECIFIED",
+      "Cp": "SPECIFIED"
+    },
+    "repeats": 1,
+    "imperfect_user": {
+      "profile": "vague",
+      "dimension": "D"
+    }
+  },
+  "artifact_file": "runs/bench_87aec9b3a85c.json",
+  "artifact_schema_version": 4,
+  "ranking_ids": [
+    "18842",
+    "16747",
+    "M03152",
+    "3125",
+    "16224",
+    "18829",
+    "M03576",
+    "M03612",
+    "18835",
+    "23101",
+    "23102",
+    "23107",
+    "M03553",
+    "22355",
+    "18504",
+    "16234",
+    "18841",
+    "18833",
+    "18837",
+    "16320",
+    "17862",
+    "23105",
+    "23117",
+    "23118",
+    "M03044",
+    "M04435",
+    "18870",
+    "18871",
+    "M03546",
+    "23103",
+    "23116",
+    "18805",
+    "16706",
+    "16534",
+    "18656",
+    "23109",
+    "M02068",
+    "M04187",
+    "M03040",
+    "18658",
+    "23120",
+    "24327",
+    "M04675"
+  ],
+  "top": [
+    {
+      "id": "18842",
+      "score": 93.32,
+      "distance_km": 0.06
+    },
+    {
+      "id": "16747",
+      "score": 91.892,
+      "distance_km": 0.34
+    },
+    {
+      "id": "M03152",
+      "score": 91.892,
+      "distance_km": 0.34
+    },
+    {
+      "id": "3125",
+      "score": 91.736,
+      "distance_km": 0.18
+    },
+    {
+      "id": "16224",
+      "score": 90.368,
+      "distance_km": 0.72
+    },
+    {
+      "id": "18829",
+      "score": 89.332,
+      "distance_km": 0.1
+    },
+    {
+      "id": "M03576",
+      "score": 89.332,
+      "distance_km": 0.12
+    },
+    {
+      "id": "M03612",
+      "score": 88.456,
+      "distance_km": 0.5
+    },
+    {
+      "id": "18835",
+      "score": 87.988,
+      "distance_km": 0.1
+    },
+    {
+      "id": "23101",
+      "score": 87.736,
+      "distance_km": 0.18
+    }
+  ],
+  "api_response": {
+    "agent_trace": [
+      {
+        "agent_name": "proximity-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "requirements": [
+            {
+              "target_column": "healthcare",
+              "operator": ">=",
+              "value": 90,
+              "description": "Healthcare services nearby; uses the 75th percentile threshold of 89.9, rounded to 90."
+            }
+          ]
+        }
+      },
+      {
+        "agent_name": "building-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "typologies": [
+            "Offices and similar"
+          ],
+          "found": true,
+          "requirements": [
+            {
+              "target_column": "surface_area",
+              "operator": ">=",
+              "value": 360,
+              "description": "The request specifies at least 360 sqm of gross floor area."
+            }
+          ]
+        }
+      },
+      {
+        "agent_name": "energy-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "requirements": [
+            {
+              "target_column": "energy_class",
+              "operator": "IN",
+              "value": [
+                "A1",
+                "A2",
+                "A3",
+                "A4",
+                "B",
+                "C",
+                "D"
+              ],
+              "description": "Energy class D or better."
+            }
+          ],
+          "found": true
+        }
+      },
+      {
+        "agent_name": "regulatory-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "found": false,
+          "matched_use_cases": [
+            "Senior Day Center (CDI / CDIA / CDAA / CDAI)"
+          ],
+          "requirements": []
+        }
+      },
+      {
+        "agent_name": "ranking-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "ranking": [
+            {
+              "agent_name": "location",
+              "rank": 1
+            },
+            {
+              "agent_name": "regulatory",
+              "rank": 1
+            },
+            {
+              "agent_name": "building",
+              "rank": 2
+            },
+            {
+              "agent_name": "energy",
+              "rank": 3
+            },
+            {
+              "agent_name": "proximity",
+              "rank": 4
+            }
+          ],
+          "weights": {
+            "location": 0.33,
+            "regulatory": 0.32,
+            "energy": 0.11,
+            "building": 0.16,
+            "proximity": 0.08
+          }
+        }
+      },
+      {
+        "agent_name": "location-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "places": [
+            {
+              "name": "Turin",
+              "city": null,
+              "lat": 45.0677551,
+              "lon": 7.6824892,
+              "radius_km": 3.0
+            }
+          ],
+          "found": true
+        }
+      },
+      {
+        "agent_name": "sql-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "sql": "SELECT * FROM ESTATES WHERE property_type = 'Offices and similar' AND surface_area >= 360 AND energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C', 'D') AND healthcare >= 90 AND haversine_km(latitude, longitude, 45.0677551, 7.6824892) <= 3.0 ORDER BY haversine_km(latitude, longitude, 45.0677551, 7.6824892) ASC",
+          "explanation": "Filters offices by minimum area, permitted energy classes, healthcare proximity score, and the supplied 3 km radius; orders by distance from the supplied coordinates."
+        }
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "3125",
+          "evaluation_text": "This 1,005.85 sqm office property in Turin substantially exceeds the requested 360 sqm gross floor area, and its office use offers a relevant starting point for conversion. Its A2 energy class meets the preference for D or better, while healthcare proximity is strong (96.03). The stated autonomous CDIA capacity range is 10–25 guests, which includes the target of 18; however, the supplied data do not establish room layouts or conversion feasibility. The 5 sqm per guest regional standard applies only to specified net-use areas, not the whole property, and no verified gross-area threshold is supplied. Dedicated support spaces and the listed planning, building, health, accessibility, fire-safety, structural, and authorization checks remain to be verified.",
+          "final_ranking_score": 92,
+          "pros": [
+            "At 1,005.85 sqm, the property exceeds the requested 360 sqm gross floor area by a wide margin.",
+            "Energy class A2 meets the preferred D-or-better threshold.",
+            "Healthcare proximity is high at 96.03; the autonomous CDIA capacity range of 10–25 guests includes the target of 18."
+          ],
+          "cons": [
+            "The available data do not confirm whether the existing layout can accommodate the required dedicated rooms and support functions.",
+            "Turin planning compatibility, change-of-use approval, and sector authorization require verification.",
+            "Hygiene, accessibility, applicable fire-safety, and structural requirements have not been established by the supplied property data."
+          ]
+        },
+        "batch_id": 1,
+        "timestamp": "2026-11-18T17:59:36.632708",
+        "execution_time_ms": 16696.83575630188
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "18842",
+          "evaluation_text": "This 8,798.03 sqm office property in central Turin is a strong initial match for the requested scale, office use, energy preference, and healthcare proximity. Its A3 energy class exceeds the D-or-better preference, and its healthcare proximity percentile is exceptionally high at 99.81. The supplied data do not establish that the building can accommodate 18 people in a compliant autonomous CDIA layout: the regional standard lists an autonomous center capacity of 10–25 guests, with dedicated rooms including a 12 sqm net-useful infirmary and a 25 sqm net-useful gym. These room-specific figures are not gross-area thresholds. Planning compatibility, change-of-use authorization, hygiene, accessibility, fire and structural safety, and sector authorization require verification. The energy class is favorable, though the energy sub-scores indicate a weak envelope and no recorded renewables.",
+          "final_ranking_score": 93,
+          "pros": [
+            "Office property with 8,798.03 sqm gross area, exceeding the requested 360 sqm threshold by a wide margin.",
+            "A3 energy class meets the preference for D or better; the thermal plant sub-score is 5.",
+            "Healthcare proximity percentile of 99.81 strongly matches the preference for nearby healthcare services."
+          ],
+          "cons": [
+            "The data do not establish that the building’s layout supports an autonomous CDIA for 18 guests, including its dedicated rooms and required net-useful areas.",
+            "Turin planning compatibility, change of use, hygiene, accessibility, fire and structural safety, and sector authorization all require verification.",
+            "The energy envelope sub-score is 1 and the renewables sub-score is 1, despite the A3 class and strong plant score."
+          ]
+        },
+        "batch_id": 2,
+        "timestamp": "2026-11-18T17:59:37.495046",
+        "execution_time_ms": 17562.613248825073
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "16747",
+          "evaluation_text": "This 1,256.45 sqm office property in Turin substantially exceeds the requested 360 sqm gross floor area, and its existing office use is a relevant starting point for conversion to an autonomous senior day center. Its A2 energy class meets the stated preference, and healthcare proximity is exceptionally high (99.91). The supplied regional standard sets 5 sqm per guest for specified net-use rooms; it is not a whole-property gross-area threshold. The stated 18-person capacity falls within the 10–25 guest range for an autonomous CDIA, but compliance with room-specific net areas and other support spaces cannot be established from the property record. Urban-planning compatibility, change-of-use approval, accessibility, sanitary and safety requirements, and sector authorization all require verification. The address and area alone do not establish a suitable layout or technical feasibility.",
+          "final_ranking_score": 92,
+          "pros": [
+            "1,256.45 sqm of stated area comfortably exceeds the requested 360 sqm gross floor area, although its measurement basis should be confirmed.",
+            "A2 energy class is better than the preferred D threshold.",
+            "Healthcare proximity is exceptionally high at 99.91, supporting the location preference."
+          ],
+          "cons": [
+            "The record does not establish room layout or net usable areas for the required rest/reading room, infirmary, gym, support spaces, or sanitary facilities.",
+            "Urban-planning compatibility, building permit and change of use, accessibility, health and safety compliance, and sector authorization need verification.",
+            "An 18-person capacity is within the stated 10–25 guest range for an autonomous CDIA, but capacity and operational suitability are not established for this building."
+          ]
+        },
+        "batch_id": 3,
+        "timestamp": "2026-11-18T17:59:37.933259",
+        "execution_time_ms": 18000.420808792114
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "M03152",
+          "evaluation_text": "This centrally located office property shows strong strategic potential for conversion into an autonomous senior day center. Its recorded area of 1,762.83 sqm is well above the requested 360 sqm, its A2 energy class exceeds the D-or-better preference, and healthcare proximity is exceptionally high (99.91). The supplied regulatory context identifies a verified regional standard of 5 sqm of net useful area per guest for specified activity and rest rooms, but this is not a whole-property gross-area threshold. The stated 18-person capacity falls within the 10–25 guest range for an autonomous CDIA; however, area alone does not establish that the required rooms, support spaces, or capacity can be accommodated. Urban-planning compatibility, change-of-use authorization, health and safety requirements, accessibility, structural suitability, and sector authorization all require verification.",
+          "final_ranking_score": 92,
+          "pros": [
+            "Recorded gross area of 1,762.83 sqm substantially exceeds the requested 360 sqm, offering considerable area for potential adaptation.",
+            "A2 energy class is better than the preferred D threshold.",
+            "Healthcare proximity percentile of 99.91 is exceptionally high, with strong public transport and commercial access also recorded."
+          ],
+          "cons": [
+            "The supplied data do not establish the internal layout or whether all dedicated spaces and support facilities required for an autonomous CDIA can be provided.",
+            "Turin PRG compatibility, building title and change-of-use approval, and sector authorization remain to be verified.",
+            "Accessibility, hygiene and health standards, applicable fire safety, and structural and seismic suitability have not been established."
+          ]
+        },
+        "batch_id": 4,
+        "timestamp": "2026-11-18T17:59:39.226014",
+        "execution_time_ms": 19292.71364212036
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "16224",
+          "evaluation_text": "This 2016 office property in Turin has strong strategic potential: its 10,283.58 sqm gross area is well above the requested 360 sqm, and its A2 energy class exceeds the preferred D threshold. Healthcare proximity is high (91.47), supporting the stated location preference. The supplied data do not establish whether the building can accommodate 18 people in a compliant autonomous CDIA layout. The regional standard specifies 5 sqm net per guest for designated multipurpose and rest/reading rooms, not for the whole property; autonomous CDIA centers also require dedicated infirmary and gym spaces. The property’s gross area alone does not establish those room areas, accessibility, planning compatibility, or authorization, all of which require verification.",
+          "final_ranking_score": 90,
+          "pros": [
+            "Gross area of 10,283.58 sqm substantially exceeds the requested 360 sqm.",
+            "A2 energy class is better than the preferred D threshold; the property was built in 2016.",
+            "Healthcare proximity score of 91.47 aligns well with the preference for nearby healthcare services."
+          ],
+          "cons": [
+            "The supplied data do not confirm a compliant layout or capacity for 18 people as an autonomous CDIA.",
+            "Dedicated autonomous-center rooms, including an infirmary of at least 12 sqm net useful area and a gym of at least 25 sqm net useful area, need to be accommodated and verified.",
+            "Turin planning compatibility, change-of-use permissions, hygiene and accessibility requirements, fire safety where applicable, structural safety, and sector authorization remain to be checked."
+          ]
+        },
+        "batch_id": 5,
+        "timestamp": "2026-11-18T17:59:45.760188",
+        "execution_time_ms": 9127.654314041138
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "M03576",
+          "evaluation_text": "This centrally located office property has strong preliminary potential for conversion to an autonomous senior day center: its listed area of 8,324.36 sqm exceeds the requested 360 sqm, it is in energy class B, and healthcare proximity is exceptionally high. The requested capacity of 18 guests falls within the supplied regional range for an autonomous CDIA (10–25 guests). The verified 5 sqm per guest standard applies only to specified rooms, not the whole property; the supplied data do not confirm room layout or net usable area. The property’s suitability therefore depends on verifying the required dedicated rooms and support spaces, planning and change-of-use compatibility, accessibility, health and safety requirements, and sector authorization. Its age and weak envelope score also warrant detailed technical assessment.",
+          "final_ranking_score": 89,
+          "pros": [
+            "Listed gross area of 8,324.36 sqm substantially exceeds the requested 360 sqm, though usable layout and area require verification.",
+            "Energy class B meets the stated preference for class D or better.",
+            "Healthcare proximity is exceptionally high (99.96), with strong public transport and central services access."
+          ],
+          "cons": [
+            "The 1933 construction date and low envelope score (1) indicate that insulation and building fabric need careful assessment despite the B energy class.",
+            "No supplied data establish a suitable room layout, net usable areas, accessibility, or technical capacity for 18 guests and required dedicated spaces.",
+            "Turin planning compatibility, change-of-use permission, health and safety compliance, and sector authorization remain to be verified."
+          ]
+        },
+        "batch_id": 6,
+        "timestamp": "2026-11-18T17:59:46.740173",
+        "execution_time_ms": 8806.315898895264
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "18829",
+          "evaluation_text": "This central Turin office property is a strong strategic candidate: its 1,796.37 sqm gross area is well above the requested 360 sqm, and its office classification aligns with the intended conversion. Energy class B exceeds the D-or-better preference, while healthcare proximity is exceptionally high (99.96). The supplied data do not confirm capacity for 18 people, the required room layout or net usable areas, or permission and technical feasibility for conversion. The regulatory context identifies a verified 5 sqm per guest standard for specified rooms, but this is not a whole-property area threshold; an autonomous CDIA also has dedicated room requirements and an authorized capacity range of 10–25 guests. Urban-planning compatibility, change-of-use approval, health and safety requirements, accessibility, and sector authorization therefore need verification.",
+          "final_ranking_score": 89,
+          "pros": [
+            "Gross area of 1,796.37 sqm substantially exceeds the requested 360 sqm.",
+            "Energy class B meets the preference for class D or better.",
+            "Healthcare proximity is exceptionally high at 99.96, with central Turin location and strong mobility access."
+          ],
+          "cons": [
+            "The data do not establish that the building can accommodate 18 people in a compliant layout or verify the necessary net usable areas and dedicated CDIA rooms.",
+            "Conversion depends on verification of Turin planning compatibility, change-of-use approval, health requirements, accessibility, safety, and sector authorization.",
+            "The 1933 construction date and low envelope and renewables energy subscores (1 each) point to aspects requiring technical assessment despite the B energy class."
+          ]
+        },
+        "batch_id": 7,
+        "timestamp": "2026-11-18T17:59:46.780620",
+        "execution_time_ms": 9285.84337234497
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "M03612",
+          "evaluation_text": "This 1,141.45 sqm office property substantially exceeds the requested 360 sqm gross floor area, and its central Turin location has strong access to healthcare services (91.75) and public transport (99.44). Energy class B meets the stated preference for class D or better. The stated capacity of 18 people falls within the supplied 10–25 guest range for an autonomous CDIA, and the verified 5 sqm per guest standard applies only to specified activity and rest rooms, not to the whole property. The data do not establish whether the building’s layout, accessibility, sanitary facilities, or technical systems can support the required dedicated rooms and services. Urban planning compatibility, change-of-use permissions, and the sector authorization process also require verification.",
+          "final_ranking_score": 88,
+          "pros": [
+            "Gross area of 1,141.45 sqm is well above the requested 360 sqm.",
+            "Energy class B meets the preference for class D or better.",
+            "Healthcare proximity is strong (91.75), with excellent public transport access (99.44)."
+          ],
+          "cons": [
+            "The 1929 construction date and low plant, envelope, and renewables scores (1 each) indicate potential energy-system and retrofit needs despite the B energy class.",
+            "Available data do not confirm a layout suitable for the CDIA’s dedicated rooms, sanitary facilities, accessibility, or technical requirements.",
+            "PRG compatibility, change-of-use authorization, and sector-specific approvals need verification."
+          ]
+        },
+        "batch_id": 8,
+        "timestamp": "2026-11-18T17:59:47.989716",
+        "execution_time_ms": 8764.121294021606
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "18835",
+          "evaluation_text": "This 1,785.78 sqm office property in central Turin is a strong candidate for exploring conversion into an autonomous senior day center. Its area is well above the requested 360 sqm, and its C energy class meets the preference for D or better. Healthcare proximity is exceptionally high (99.96). The stated capacity of 18 guests falls within the verified 10–25 guest range for an autonomous CDIA. However, the regional 5 sqm per guest standard applies only to specified rooms and does not establish that the overall property meets the center’s spatial needs. The supplied data do not confirm suitable room layouts, accessibility, planning compatibility, or technical feasibility; these require verification. The property’s energy sub-scores also indicate a weak envelope and no recorded renewables, despite its C class.",
+          "final_ranking_score": 88,
+          "pros": [
+            "At 1,785.78 sqm, the stated gross area substantially exceeds the 360 sqm target.",
+            "Energy class C meets the requested threshold of D or better.",
+            "Healthcare proximity is exceptionally high, with a percentile value of 99.96; a capacity of 18 is within the verified 10–25 guest range for an autonomous CDIA."
+          ],
+          "cons": [
+            "The low envelope score (1) and renewables score (1) point to energy-performance weaknesses despite the C class.",
+            "The data do not establish whether the layout can accommodate required dedicated spaces, including an infirmary and gym, or provide the required net usable areas.",
+            "Turin planning compatibility, change-of-use authorization, accessibility, health and safety requirements, and sector authorization all require verification."
+          ]
+        },
+        "batch_id": 9,
+        "timestamp": "2026-11-18T18:00:03.078493",
+        "execution_time_ms": 17317.40665435791
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "23101",
+          "evaluation_text": "This 1,707.66 sqm office property in central Turin is a strong candidate for conversion to an autonomous senior day center: its reported area exceeds the requested 360 sqm, and its office use is directionally relevant to the objective. Energy class C meets the preference for D or better, while healthcare proximity is high (96.03). The supplied regulatory data identify verified net-area standards for particular rooms and a 10–25 guest capacity range for an autonomous CDIA, but establish no verified minimum gross property area. The property's total area therefore does not establish that the required rooms, an 18-person layout, accessibility, or authorization can be achieved; those matters require technical and regulatory verification.",
+          "final_ranking_score": 88,
+          "pros": [
+            "Reported gross area of 1,707.66 sqm is well above the requested 360 sqm, offering substantial scope for conversion, subject to layout and technical feasibility.",
+            "Energy class C meets the stated preference for D or better.",
+            "Healthcare proximity is high at 96.03, supporting the location preference."
+          ],
+          "cons": [
+            "The autonomous CDIA capacity range is 10–25 guests, so 18 is within the stated range; however, the property's ability to accommodate that capacity and required spaces is not established by gross area alone.",
+            "The verified regulatory standards include specific net useful areas for an autonomous center, including a 12 sqm infirmary and 25 sqm gym; no room layout data confirm these can be provided.",
+            "Turin planning compatibility, change-of-use approval, health and safety requirements, accessibility, and sector authorization remain to be checked."
+          ]
+        },
+        "batch_id": 10,
+        "timestamp": "2026-11-18T18:00:05.712348",
+        "execution_time_ms": 18972.75185585022
+      }
+    ],
+    "evaluation_results": [
+      {
+        "id": "18842",
+        "evaluation_text": "This 8,798.03 sqm office property in central Turin is a strong initial match for the requested scale, office use, energy preference, and healthcare proximity. Its A3 energy class exceeds the D-or-better preference, and its healthcare proximity percentile is exceptionally high at 99.81. The supplied data do not establish that the building can accommodate 18 people in a compliant autonomous CDIA layout: the regional standard lists an autonomous center capacity of 10–25 guests, with dedicated rooms including a 12 sqm net-useful infirmary and a 25 sqm net-useful gym. These room-specific figures are not gross-area thresholds. Planning compatibility, change-of-use authorization, hygiene, accessibility, fire and structural safety, and sector authorization require verification. The energy class is favorable, though the energy sub-scores indicate a weak envelope and no recorded renewables.",
+        "final_ranking_score": 93,
+        "pros": [
+          "Office property with 8,798.03 sqm gross area, exceeding the requested 360 sqm threshold by a wide margin.",
+          "A3 energy class meets the preference for D or better; the thermal plant sub-score is 5.",
+          "Healthcare proximity percentile of 99.81 strongly matches the preference for nearby healthcare services."
+        ],
+        "cons": [
+          "The data do not establish that the building’s layout supports an autonomous CDIA for 18 guests, including its dedicated rooms and required net-useful areas.",
+          "Turin planning compatibility, change of use, hygiene, accessibility, fire and structural safety, and sector authorization all require verification.",
+          "The energy envelope sub-score is 1 and the renewables sub-score is 1, despite the A3 class and strong plant score."
+        ]
+      },
+      {
+        "id": "16747",
+        "evaluation_text": "This 1,256.45 sqm office property in Turin substantially exceeds the requested 360 sqm gross floor area, and its existing office use is a relevant starting point for conversion to an autonomous senior day center. Its A2 energy class meets the stated preference, and healthcare proximity is exceptionally high (99.91). The supplied regional standard sets 5 sqm per guest for specified net-use rooms; it is not a whole-property gross-area threshold. The stated 18-person capacity falls within the 10–25 guest range for an autonomous CDIA, but compliance with room-specific net areas and other support spaces cannot be established from the property record. Urban-planning compatibility, change-of-use approval, accessibility, sanitary and safety requirements, and sector authorization all require verification. The address and area alone do not establish a suitable layout or technical feasibility.",
+        "final_ranking_score": 92,
+        "pros": [
+          "1,256.45 sqm of stated area comfortably exceeds the requested 360 sqm gross floor area, although its measurement basis should be confirmed.",
+          "A2 energy class is better than the preferred D threshold.",
+          "Healthcare proximity is exceptionally high at 99.91, supporting the location preference."
+        ],
+        "cons": [
+          "The record does not establish room layout or net usable areas for the required rest/reading room, infirmary, gym, support spaces, or sanitary facilities.",
+          "Urban-planning compatibility, building permit and change of use, accessibility, health and safety compliance, and sector authorization need verification.",
+          "An 18-person capacity is within the stated 10–25 guest range for an autonomous CDIA, but capacity and operational suitability are not established for this building."
+        ]
+      },
+      {
+        "id": "M03152",
+        "evaluation_text": "This centrally located office property shows strong strategic potential for conversion into an autonomous senior day center. Its recorded area of 1,762.83 sqm is well above the requested 360 sqm, its A2 energy class exceeds the D-or-better preference, and healthcare proximity is exceptionally high (99.91). The supplied regulatory context identifies a verified regional standard of 5 sqm of net useful area per guest for specified activity and rest rooms, but this is not a whole-property gross-area threshold. The stated 18-person capacity falls within the 10–25 guest range for an autonomous CDIA; however, area alone does not establish that the required rooms, support spaces, or capacity can be accommodated. Urban-planning compatibility, change-of-use authorization, health and safety requirements, accessibility, structural suitability, and sector authorization all require verification.",
+        "final_ranking_score": 92,
+        "pros": [
+          "Recorded gross area of 1,762.83 sqm substantially exceeds the requested 360 sqm, offering considerable area for potential adaptation.",
+          "A2 energy class is better than the preferred D threshold.",
+          "Healthcare proximity percentile of 99.91 is exceptionally high, with strong public transport and commercial access also recorded."
+        ],
+        "cons": [
+          "The supplied data do not establish the internal layout or whether all dedicated spaces and support facilities required for an autonomous CDIA can be provided.",
+          "Turin PRG compatibility, building title and change-of-use approval, and sector authorization remain to be verified.",
+          "Accessibility, hygiene and health standards, applicable fire safety, and structural and seismic suitability have not been established."
+        ]
+      },
+      {
+        "id": "3125",
+        "evaluation_text": "This 1,005.85 sqm office property in Turin substantially exceeds the requested 360 sqm gross floor area, and its office use offers a relevant starting point for conversion. Its A2 energy class meets the preference for D or better, while healthcare proximity is strong (96.03). The stated autonomous CDIA capacity range is 10–25 guests, which includes the target of 18; however, the supplied data do not establish room layouts or conversion feasibility. The 5 sqm per guest regional standard applies only to specified net-use areas, not the whole property, and no verified gross-area threshold is supplied. Dedicated support spaces and the listed planning, building, health, accessibility, fire-safety, structural, and authorization checks remain to be verified.",
+        "final_ranking_score": 92,
+        "pros": [
+          "At 1,005.85 sqm, the property exceeds the requested 360 sqm gross floor area by a wide margin.",
+          "Energy class A2 meets the preferred D-or-better threshold.",
+          "Healthcare proximity is high at 96.03; the autonomous CDIA capacity range of 10–25 guests includes the target of 18."
+        ],
+        "cons": [
+          "The available data do not confirm whether the existing layout can accommodate the required dedicated rooms and support functions.",
+          "Turin planning compatibility, change-of-use approval, and sector authorization require verification.",
+          "Hygiene, accessibility, applicable fire-safety, and structural requirements have not been established by the supplied property data."
+        ]
+      },
+      {
+        "id": "16224",
+        "evaluation_text": "This 2016 office property in Turin has strong strategic potential: its 10,283.58 sqm gross area is well above the requested 360 sqm, and its A2 energy class exceeds the preferred D threshold. Healthcare proximity is high (91.47), supporting the stated location preference. The supplied data do not establish whether the building can accommodate 18 people in a compliant autonomous CDIA layout. The regional standard specifies 5 sqm net per guest for designated multipurpose and rest/reading rooms, not for the whole property; autonomous CDIA centers also require dedicated infirmary and gym spaces. The property’s gross area alone does not establish those room areas, accessibility, planning compatibility, or authorization, all of which require verification.",
+        "final_ranking_score": 90,
+        "pros": [
+          "Gross area of 10,283.58 sqm substantially exceeds the requested 360 sqm.",
+          "A2 energy class is better than the preferred D threshold; the property was built in 2016.",
+          "Healthcare proximity score of 91.47 aligns well with the preference for nearby healthcare services."
+        ],
+        "cons": [
+          "The supplied data do not confirm a compliant layout or capacity for 18 people as an autonomous CDIA.",
+          "Dedicated autonomous-center rooms, including an infirmary of at least 12 sqm net useful area and a gym of at least 25 sqm net useful area, need to be accommodated and verified.",
+          "Turin planning compatibility, change-of-use permissions, hygiene and accessibility requirements, fire safety where applicable, structural safety, and sector authorization remain to be checked."
+        ]
+      },
+      {
+        "id": "18829",
+        "evaluation_text": "This central Turin office property is a strong strategic candidate: its 1,796.37 sqm gross area is well above the requested 360 sqm, and its office classification aligns with the intended conversion. Energy class B exceeds the D-or-better preference, while healthcare proximity is exceptionally high (99.96). The supplied data do not confirm capacity for 18 people, the required room layout or net usable areas, or permission and technical feasibility for conversion. The regulatory context identifies a verified 5 sqm per guest standard for specified rooms, but this is not a whole-property area threshold; an autonomous CDIA also has dedicated room requirements and an authorized capacity range of 10–25 guests. Urban-planning compatibility, change-of-use approval, health and safety requirements, accessibility, and sector authorization therefore need verification.",
+        "final_ranking_score": 89,
+        "pros": [
+          "Gross area of 1,796.37 sqm substantially exceeds the requested 360 sqm.",
+          "Energy class B meets the preference for class D or better.",
+          "Healthcare proximity is exceptionally high at 99.96, with central Turin location and strong mobility access."
+        ],
+        "cons": [
+          "The data do not establish that the building can accommodate 18 people in a compliant layout or verify the necessary net usable areas and dedicated CDIA rooms.",
+          "Conversion depends on verification of Turin planning compatibility, change-of-use approval, health requirements, accessibility, safety, and sector authorization.",
+          "The 1933 construction date and low envelope and renewables energy subscores (1 each) point to aspects requiring technical assessment despite the B energy class."
+        ]
+      },
+      {
+        "id": "M03576",
+        "evaluation_text": "This centrally located office property has strong preliminary potential for conversion to an autonomous senior day center: its listed area of 8,324.36 sqm exceeds the requested 360 sqm, it is in energy class B, and healthcare proximity is exceptionally high. The requested capacity of 18 guests falls within the supplied regional range for an autonomous CDIA (10–25 guests). The verified 5 sqm per guest standard applies only to specified rooms, not the whole property; the supplied data do not confirm room layout or net usable area. The property’s suitability therefore depends on verifying the required dedicated rooms and support spaces, planning and change-of-use compatibility, accessibility, health and safety requirements, and sector authorization. Its age and weak envelope score also warrant detailed technical assessment.",
+        "final_ranking_score": 89,
+        "pros": [
+          "Listed gross area of 8,324.36 sqm substantially exceeds the requested 360 sqm, though usable layout and area require verification.",
+          "Energy class B meets the stated preference for class D or better.",
+          "Healthcare proximity is exceptionally high (99.96), with strong public transport and central services access."
+        ],
+        "cons": [
+          "The 1933 construction date and low envelope score (1) indicate that insulation and building fabric need careful assessment despite the B energy class.",
+          "No supplied data establish a suitable room layout, net usable areas, accessibility, or technical capacity for 18 guests and required dedicated spaces.",
+          "Turin planning compatibility, change-of-use permission, health and safety compliance, and sector authorization remain to be verified."
+        ]
+      },
+      {
+        "id": "M03612",
+        "evaluation_text": "This 1,141.45 sqm office property substantially exceeds the requested 360 sqm gross floor area, and its central Turin location has strong access to healthcare services (91.75) and public transport (99.44). Energy class B meets the stated preference for class D or better. The stated capacity of 18 people falls within the supplied 10–25 guest range for an autonomous CDIA, and the verified 5 sqm per guest standard applies only to specified activity and rest rooms, not to the whole property. The data do not establish whether the building’s layout, accessibility, sanitary facilities, or technical systems can support the required dedicated rooms and services. Urban planning compatibility, change-of-use permissions, and the sector authorization process also require verification.",
+        "final_ranking_score": 88,
+        "pros": [
+          "Gross area of 1,141.45 sqm is well above the requested 360 sqm.",
+          "Energy class B meets the preference for class D or better.",
+          "Healthcare proximity is strong (91.75), with excellent public transport access (99.44)."
+        ],
+        "cons": [
+          "The 1929 construction date and low plant, envelope, and renewables scores (1 each) indicate potential energy-system and retrofit needs despite the B energy class.",
+          "Available data do not confirm a layout suitable for the CDIA’s dedicated rooms, sanitary facilities, accessibility, or technical requirements.",
+          "PRG compatibility, change-of-use authorization, and sector-specific approvals need verification."
+        ]
+      },
+      {
+        "id": "18835",
+        "evaluation_text": "This 1,785.78 sqm office property in central Turin is a strong candidate for exploring conversion into an autonomous senior day center. Its area is well above the requested 360 sqm, and its C energy class meets the preference for D or better. Healthcare proximity is exceptionally high (99.96). The stated capacity of 18 guests falls within the verified 10–25 guest range for an autonomous CDIA. However, the regional 5 sqm per guest standard applies only to specified rooms and does not establish that the overall property meets the center’s spatial needs. The supplied data do not confirm suitable room layouts, accessibility, planning compatibility, or technical feasibility; these require verification. The property’s energy sub-scores also indicate a weak envelope and no recorded renewables, despite its C class.",
+        "final_ranking_score": 88,
+        "pros": [
+          "At 1,785.78 sqm, the stated gross area substantially exceeds the 360 sqm target.",
+          "Energy class C meets the requested threshold of D or better.",
+          "Healthcare proximity is exceptionally high, with a percentile value of 99.96; a capacity of 18 is within the verified 10–25 guest range for an autonomous CDIA."
+        ],
+        "cons": [
+          "The low envelope score (1) and renewables score (1) point to energy-performance weaknesses despite the C class.",
+          "The data do not establish whether the layout can accommodate required dedicated spaces, including an infirmary and gym, or provide the required net usable areas.",
+          "Turin planning compatibility, change-of-use authorization, accessibility, health and safety requirements, and sector authorization all require verification."
+        ]
+      },
+      {
+        "id": "23101",
+        "evaluation_text": "This 1,707.66 sqm office property in central Turin is a strong candidate for conversion to an autonomous senior day center: its reported area exceeds the requested 360 sqm, and its office use is directionally relevant to the objective. Energy class C meets the preference for D or better, while healthcare proximity is high (96.03). The supplied regulatory data identify verified net-area standards for particular rooms and a 10–25 guest capacity range for an autonomous CDIA, but establish no verified minimum gross property area. The property's total area therefore does not establish that the required rooms, an 18-person layout, accessibility, or authorization can be achieved; those matters require technical and regulatory verification.",
+        "final_ranking_score": 88,
+        "pros": [
+          "Reported gross area of 1,707.66 sqm is well above the requested 360 sqm, offering substantial scope for conversion, subject to layout and technical feasibility.",
+          "Energy class C meets the stated preference for D or better.",
+          "Healthcare proximity is high at 96.03, supporting the location preference."
+        ],
+        "cons": [
+          "The autonomous CDIA capacity range is 10–25 guests, so 18 is within the stated range; however, the property's ability to accommodate that capacity and required spaces is not established by gross area alone.",
+          "The verified regulatory standards include specific net useful areas for an autonomous center, including a 12 sqm infirmary and 25 sqm gym; no room layout data confirm these can be provided.",
+          "Turin planning compatibility, change-of-use approval, health and safety requirements, accessibility, and sector authorization remain to be checked."
+        ]
+      }
+    ],
+    "relaxation_applied": false,
+    "relaxation_count": 0,
+    "fallback_activated": false,
+    "agent_errors": []
+  }
+}

@@ -1,0 +1,984 @@
+{
+  "run_id": "bench_b772fbb39d33",
+  "condition": "refined",
+  "unit_id": "MS04_k2_vague",
+  "scenario_id": "MS04_k2_vague",
+  "base_case_id": "UC04_baby_parking_missing_use",
+  "missing_count": 2,
+  "scenario_name": "2 omitted dimensions; intended use: Play space / Baby parking (Centro di custodia oraria); vague first answer on Cp",
+  "tags": [
+    "edbt",
+    "controlled_missingness_v3",
+    "missing_2",
+    "UC04_baby_parking_missing_use",
+    "imperfect_user",
+    "vague"
+  ],
+  "model": "gpt-6-luna",
+  "repeat": 2,
+  "attempt": 2,
+  "input_sha256": "3e7c7eefce8a6bfde571d2c8ab99f32da4477e25cc03394e75ed9889d329ac2c",
+  "scenario_sha256": "3e7c7eefce8a6bfde571d2c8ab99f32da4477e25cc03394e75ed9889d329ac2c",
+  "initial_query": "I am looking for an existing commercial unit. I intend to assess a conversion into a play space / baby parking (hourly childcare), subject to confirmation of the applicable authorization regime. I need a property with at least 115 sqm of gross floor area and capacity for 15 people. I prefer a property in energy class D or better.",
+  "options": {
+    "dataset_key": "full",
+    "map_limit": 1000,
+    "llm_limit": 10,
+    "analysis_mode": "agent",
+    "use_relaxation": true,
+    "use_data_knowledge": true,
+    "architecture": "multiagent",
+    "disabled_agents": null
+  },
+  "started_at": "2026-11-18T16:52:15.768956+00:00",
+  "clarification_seconds": 64.125,
+  "analysis_seconds": 78.919,
+  "conversation": {
+    "session_id": "941a00bd-3d31-4604-a101-9bea2aea7cc4",
+    "initial_dimension_state": {
+      "I": {
+        "status": "SPECIFIED",
+        "value": "commercial",
+        "evidence": "“commercial unit”"
+      },
+      "D": {
+        "status": "SPECIFIED",
+        "value": "Play space / Baby parking (Centro di custodia oraria)",
+        "evidence": "“conversion into a play space / baby parking (hourly childcare)”"
+      },
+      "L": {
+        "status": "UNCONFIRMED_ABSENT",
+        "value": null,
+        "evidence": null
+      },
+      "Cb": {
+        "status": "SPECIFIED",
+        "value": "At least 115 sqm gross floor area and capacity for 15 people",
+        "evidence": "“at least 115 sqm of gross floor area and capacity for 15 people”"
+      },
+      "Ce": {
+        "status": "SPECIFIED",
+        "value": "Energy class D or better",
+        "evidence": "“energy class D or better”"
+      },
+      "Cp": {
+        "status": "UNCONFIRMED_ABSENT",
+        "value": null,
+        "evidence": null
+      }
+    },
+    "initial_missing": [
+      "Cp",
+      "L"
+    ],
+    "expected_initial_missing": [
+      "Cp",
+      "L"
+    ],
+    "missing_detection": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "turns": [
+      {
+        "question": "Which city or area are you considering, if any, or does location not matter?",
+        "target_dimensions": [
+          "L"
+        ],
+        "times_asked_before": {
+          "L": 0
+        },
+        "answer": "The location is in Turin.",
+        "question_source": "llm_query_parser",
+        "status_after": "ASK",
+        "turn_after": 1,
+        "dimension_state_after": {
+          "I": {
+            "status": "SPECIFIED",
+            "value": "commercial",
+            "evidence": "“commercial unit”"
+          },
+          "D": {
+            "status": "SPECIFIED",
+            "value": "Play space / Baby parking (Centro di custodia oraria)",
+            "evidence": "“conversion into a play space / baby parking (hourly childcare)”"
+          },
+          "L": {
+            "status": "SPECIFIED",
+            "value": "Turin",
+            "evidence": "The location is in Turin."
+          },
+          "Cb": {
+            "status": "SPECIFIED",
+            "value": "At least 115 sqm gross floor area and capacity for 15 people",
+            "evidence": "“at least 115 sqm of gross floor area and capacity for 15 people”"
+          },
+          "Ce": {
+            "status": "SPECIFIED",
+            "value": "Energy class D or better",
+            "evidence": "“energy class D or better”"
+          },
+          "Cp": {
+            "status": "UNCONFIRMED_ABSENT",
+            "value": null,
+            "evidence": null
+          }
+        }
+      },
+      {
+        "question": "Which nearby services matter to you, such as healthcare, mobility, green spaces, sport, shops, or education, or does proximity not matter?",
+        "target_dimensions": [
+          "Cp"
+        ],
+        "times_asked_before": {
+          "Cp": 0
+        },
+        "answer": "It depends; something suitable for the project, I guess.",
+        "question_source": "llm_query_parser",
+        "status_after": "ASK",
+        "turn_after": 2,
+        "dimension_state_after": {
+          "I": {
+            "status": "SPECIFIED",
+            "value": "commercial",
+            "evidence": "“commercial unit”"
+          },
+          "D": {
+            "status": "SPECIFIED",
+            "value": "Play space / Baby parking (Centro di custodia oraria)",
+            "evidence": "“conversion into a play space / baby parking (hourly childcare)”"
+          },
+          "L": {
+            "status": "SPECIFIED",
+            "value": "Turin",
+            "evidence": "The location is in Turin."
+          },
+          "Cb": {
+            "status": "SPECIFIED",
+            "value": "At least 115 sqm gross floor area and capacity for 15 people",
+            "evidence": "“at least 115 sqm of gross floor area and capacity for 15 people”"
+          },
+          "Ce": {
+            "status": "SPECIFIED",
+            "value": "Energy class D or better",
+            "evidence": "“energy class D or better”"
+          },
+          "Cp": {
+            "status": "UNCONFIRMED_ABSENT",
+            "value": null,
+            "evidence": null
+          }
+        }
+      },
+      {
+        "question": "Which nearby service categories would best support the project—healthcare, mobility, green spaces, sport, commercial services, or education—or does proximity not matter?",
+        "target_dimensions": [
+          "Cp"
+        ],
+        "times_asked_before": {
+          "Cp": 1
+        },
+        "answer": "I prefer properties near parks.",
+        "question_source": "llm_omission_question",
+        "status_after": "READY",
+        "turn_after": 3,
+        "dimension_state_after": {
+          "I": {
+            "status": "SPECIFIED",
+            "value": "commercial",
+            "evidence": "“commercial unit”"
+          },
+          "D": {
+            "status": "SPECIFIED",
+            "value": "Play space / Baby parking (Centro di custodia oraria)",
+            "evidence": "“conversion into a play space / baby parking (hourly childcare)”"
+          },
+          "L": {
+            "status": "SPECIFIED",
+            "value": "Turin",
+            "evidence": "The location is in Turin."
+          },
+          "Cb": {
+            "status": "SPECIFIED",
+            "value": "At least 115 sqm gross floor area and capacity for 15 people",
+            "evidence": "“at least 115 sqm of gross floor area and capacity for 15 people”"
+          },
+          "Ce": {
+            "status": "SPECIFIED",
+            "value": "Energy class D or better",
+            "evidence": "“energy class D or better”"
+          },
+          "Cp": {
+            "status": "SPECIFIED",
+            "value": "green spaces",
+            "evidence": "near parks"
+          }
+        }
+      }
+    ],
+    "messages": [
+      {
+        "role": "user",
+        "content": "I am looking for an existing commercial unit. I intend to assess a conversion into a play space / baby parking (hourly childcare), subject to confirmation of the applicable authorization regime. I need a property with at least 115 sqm of gross floor area and capacity for 15 people. I prefer a property in energy class D or better."
+      },
+      {
+        "role": "assistant",
+        "content": "Which city or area are you considering, if any, or does location not matter?"
+      },
+      {
+        "role": "user",
+        "content": "The location is in Turin."
+      },
+      {
+        "role": "assistant",
+        "content": "Which nearby services matter to you, such as healthcare, mobility, green spaces, sport, shops, or education, or does proximity not matter?"
+      },
+      {
+        "role": "user",
+        "content": "It depends; something suitable for the project, I guess."
+      },
+      {
+        "role": "assistant",
+        "content": "Which nearby service categories would best support the project—healthcare, mobility, green spaces, sport, commercial services, or education—or does proximity not matter?"
+      },
+      {
+        "role": "user",
+        "content": "I prefer properties near parks."
+      },
+      {
+        "role": "assistant",
+        "content": "Query submitted for review: I am looking for an existing commercial unit in Turin, with at least 115 sqm of gross floor area and capacity for 15 people. I intend to assess converting it into a play space or baby parking for hourly childcare, subject to confirmation of the applicable authorization regime. I prefer a property in energy class D or better and near parks."
+      },
+      {
+        "role": "user",
+        "content": "Confirmed."
+      }
+    ],
+    "dimension_state": {
+      "I": {
+        "status": "SPECIFIED",
+        "value": "commercial",
+        "evidence": "“commercial unit”"
+      },
+      "D": {
+        "status": "SPECIFIED",
+        "value": "Play space / Baby parking (Centro di custodia oraria)",
+        "evidence": "“conversion into a play space / baby parking (hourly childcare)”"
+      },
+      "L": {
+        "status": "SPECIFIED",
+        "value": "Turin",
+        "evidence": "The location is in Turin."
+      },
+      "Cb": {
+        "status": "SPECIFIED",
+        "value": "At least 115 sqm gross floor area and capacity for 15 people",
+        "evidence": "“at least 115 sqm of gross floor area and capacity for 15 people”"
+      },
+      "Ce": {
+        "status": "SPECIFIED",
+        "value": "Energy class D or better",
+        "evidence": "“energy class D or better”"
+      },
+      "Cp": {
+        "status": "SPECIFIED",
+        "value": "green spaces",
+        "evidence": "near parks"
+      }
+    },
+    "mapping": {
+      "I": "SPECIFIED",
+      "D": "SPECIFIED",
+      "L": "SPECIFIED",
+      "Cb": "SPECIFIED",
+      "Ce": "SPECIFIED",
+      "Cp": "SPECIFIED"
+    },
+    "expected_mapping": {
+      "I": "SPECIFIED",
+      "D": "SPECIFIED",
+      "L": "SPECIFIED",
+      "Cb": "SPECIFIED",
+      "Ce": "SPECIFIED",
+      "Cp": "SPECIFIED"
+    },
+    "mapping_accuracy": 1.0,
+    "no_clarification": false,
+    "status": "READY",
+    "refined_query": "I am looking for an existing commercial unit in Turin, with at least 115 sqm of gross floor area and capacity for 15 people. I intend to assess converting it into a play space or baby parking for hourly childcare, subject to confirmation of the applicable authorization regime. I prefer a property in energy class D or better and near parks.",
+    "reviewed_query": "I am looking for an existing commercial unit in Turin, with at least 115 sqm of gross floor area and capacity for 15 people. I intend to assess converting it into a play space or baby parking for hourly childcare, subject to confirmation of the applicable authorization regime. I prefer a property in energy class D or better and near parks."
+  },
+  "submitted_query": "I am looking for an existing commercial unit in Turin, with at least 115 sqm of gross floor area and capacity for 15 people. I intend to assess converting it into a play space or baby parking for hourly childcare, subject to confirmation of the applicable authorization regime. I prefer a property in energy class D or better and near parks.",
+  "status": "completed",
+  "results_count": 37,
+  "top_ids": [
+    "M04269",
+    "18670",
+    "18562",
+    "M03521",
+    "18499",
+    "18514",
+    "18503",
+    "18507",
+    "18621",
+    "16870"
+  ],
+  "quality": {
+    "expected_count": 0,
+    "matched_expected": null,
+    "precision_at_returned": null,
+    "recall": null
+  },
+  "final_sql": "SELECT * FROM ESTATES WHERE property_type = 'Commercial activities and similar' AND surface_area >= 115 AND energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C', 'D') AND green >= 89 AND haversine_km(latitude, longitude, 45.0677551, 7.6824892) <= 3.0 ORDER BY haversine_km(latitude, longitude, 45.0677551, 7.6824892) ASC",
+  "duration_seconds": 143.063,
+  "scenario_definition": {
+    "id": "MS04_k2_vague",
+    "name": "2 omitted dimensions; intended use: Play space / Baby parking (Centro di custodia oraria); vague first answer on Cp",
+    "tags": [
+      "edbt",
+      "controlled_missingness_v3",
+      "missing_2",
+      "UC04_baby_parking_missing_use",
+      "imperfect_user",
+      "vague"
+    ],
+    "base_case_id": "UC04_baby_parking_missing_use",
+    "missing_count": 2,
+    "initial_query": "I am looking for an existing commercial unit. I intend to assess a conversion into a play space / baby parking (hourly childcare), subject to confirmation of the applicable authorization regime. I need a property with at least 115 sqm of gross floor area and capacity for 15 people. I prefer a property in energy class D or better.",
+    "one_shot_query": "I am looking for an existing commercial unit. I intend to assess a conversion into a play space / baby parking (hourly childcare), subject to confirmation of the applicable authorization regime. I need a property with at least 115 sqm of gross floor area and capacity for 15 people. I prefer a property in energy class D or better.",
+    "oracle_query": "Find an existing commercial unit to assess a conversion into a play space / baby parking (hourly childcare) for 15 children, subject to confirmation of the applicable authorization regime in Turin with at least 115 sqm of gross floor area in energy class D or better near parks.",
+    "expected_initial_missing": [
+      "Cp",
+      "L"
+    ],
+    "clarifications": {
+      "I": "I am looking for an existing commercial unit.",
+      "D": "I intend to assess a conversion into a play space / baby parking (hourly childcare), subject to confirmation of the applicable authorization regime.",
+      "L": "The location is in Turin.",
+      "Cb": "I need a property with at least 115 sqm of gross floor area and capacity for 15 people.",
+      "Ce": "I prefer a property in energy class D or better.",
+      "Cp": [
+        "It depends; something suitable for the project, I guess.",
+        "I prefer properties near parks."
+      ]
+    },
+    "expected_mapping": {
+      "I": "SPECIFIED",
+      "D": "SPECIFIED",
+      "L": "SPECIFIED",
+      "Cb": "SPECIFIED",
+      "Ce": "SPECIFIED",
+      "Cp": "SPECIFIED"
+    },
+    "repeats": 1,
+    "imperfect_user": {
+      "profile": "vague",
+      "dimension": "Cp"
+    }
+  },
+  "artifact_file": "runs/bench_b772fbb39d33.json",
+  "artifact_schema_version": 4,
+  "ranking_ids": [
+    "M04269",
+    "18670",
+    "18562",
+    "M03521",
+    "18499",
+    "18514",
+    "18503",
+    "18507",
+    "18621",
+    "16870",
+    "18511",
+    "M03524",
+    "18509",
+    "23219",
+    "M04273",
+    "18505",
+    "18506",
+    "18573",
+    "16924",
+    "22322",
+    "18415",
+    "17987",
+    "18426",
+    "M04314",
+    "24684",
+    "22666",
+    "22494",
+    "13330",
+    "11005",
+    "22754",
+    "24265",
+    "M04648",
+    "24264",
+    "24887",
+    "25096",
+    "10882",
+    "25769"
+  ],
+  "top": [
+    {
+      "id": "M04269",
+      "score": 89.876,
+      "distance_km": 0.73
+    },
+    {
+      "id": "18670",
+      "score": 89.82000000000001,
+      "distance_km": 0.47
+    },
+    {
+      "id": "18562",
+      "score": 88.612,
+      "distance_km": 0.45
+    },
+    {
+      "id": "M03521",
+      "score": 88.6,
+      "distance_km": 0.44
+    },
+    {
+      "id": "18499",
+      "score": 87.42,
+      "distance_km": 1.01
+    },
+    {
+      "id": "18514",
+      "score": 87.42,
+      "distance_km": 1.01
+    },
+    {
+      "id": "18503",
+      "score": 86.79599999999999,
+      "distance_km": 1.01
+    },
+    {
+      "id": "18507",
+      "score": 86.628,
+      "distance_km": 1.01
+    },
+    {
+      "id": "18621",
+      "score": 85.80799999999999,
+      "distance_km": 0.52
+    },
+    {
+      "id": "16870",
+      "score": 85.276,
+      "distance_km": 0.93
+    }
+  ],
+  "api_response": {
+    "agent_trace": [
+      {
+        "agent_name": "regulatory-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "found": false,
+          "matched_use_cases": [
+            "Play space / Baby parking (Centro di custodia oraria)"
+          ],
+          "requirements": []
+        }
+      },
+      {
+        "agent_name": "location-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "places": [
+            {
+              "name": "Turin",
+              "city": null,
+              "lat": 45.0677551,
+              "lon": 7.6824892,
+              "radius_km": 3.0
+            }
+          ],
+          "found": true
+        }
+      },
+      {
+        "agent_name": "energy-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "requirements": [
+            {
+              "target_column": "energy_class",
+              "operator": "IN",
+              "value": [
+                "A1",
+                "A2",
+                "A3",
+                "A4",
+                "B",
+                "C",
+                "D"
+              ],
+              "description": "Energy class D or better"
+            }
+          ],
+          "found": true
+        }
+      },
+      {
+        "agent_name": "proximity-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "requirements": [
+            {
+              "target_column": "green",
+              "operator": ">=",
+              "value": 89,
+              "description": "Parks are explicitly requested nearby; threshold meets the green category's 75th percentile of 89.49."
+            }
+          ]
+        }
+      },
+      {
+        "agent_name": "ranking-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "ranking": [
+            {
+              "agent_name": "location",
+              "rank": 1
+            },
+            {
+              "agent_name": "regulatory",
+              "rank": 1
+            },
+            {
+              "agent_name": "building",
+              "rank": 2
+            },
+            {
+              "agent_name": "energy",
+              "rank": 3
+            },
+            {
+              "agent_name": "proximity",
+              "rank": 4
+            }
+          ],
+          "weights": {
+            "location": 0.33,
+            "regulatory": 0.32,
+            "energy": 0.11,
+            "building": 0.16,
+            "proximity": 0.08
+          }
+        }
+      },
+      {
+        "agent_name": "building-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "typologies": [
+            "Commercial activities and similar"
+          ],
+          "found": true,
+          "requirements": [
+            {
+              "target_column": "property_type",
+              "operator": "=",
+              "value": "Commercial activities and similar",
+              "description": "The user requests an existing commercial unit."
+            },
+            {
+              "target_column": "surface_area",
+              "operator": ">=",
+              "value": 115,
+              "description": "The requested minimum gross floor area is 115 sqm."
+            }
+          ]
+        }
+      },
+      {
+        "agent_name": "sql-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "sql": "SELECT * FROM ESTATES WHERE property_type = 'Commercial activities and similar' AND surface_area >= 115 AND energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C', 'D') AND green >= 89 AND haversine_km(latitude, longitude, 45.0677551, 7.6824892) <= 3.0 ORDER BY haversine_km(latitude, longitude, 45.0677551, 7.6824892) ASC",
+          "explanation": "Filters for the specified commercial property type, minimum area, energy classes, green score, and 3 km radius; sorts by distance from the supplied coordinates."
+        }
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "18670",
+          "evaluation_text": "This 234.6 sqm commercial unit in central Turin is a strong candidate for assessing conversion to a play space or hourly childcare, with excellent energy performance (A1) and high reported proximity to green areas. Its gross area exceeds the requested 115 sqm, but gross area alone does not establish whether the required net usable areas, layout, capacity for 15 people, or authorization conditions can be met. The supplied regulatory context reports a verified standard of 4 sqm of child-dedicated net usable area per child and a separate minimum of 60 sqm net usable area for the facility; these are not gross-area thresholds. The applicable authorization regime may also be affected by the 2025 regulatory transition. Verify planning compatibility, change-of-use and building permissions, sanitary and accessibility requirements, safety provisions, and the sector authorization procedure before assessing feasibility.",
+          "final_ranking_score": 90,
+          "pros": [
+            "234.6 sqm gross area exceeds the requested 115 sqm threshold, providing a substantial basis for further layout assessment.",
+            "Commercial property type and central Turin location make the unit relevant for exploring the proposed conversion, subject to planning and authorization checks.",
+            "Energy class A1 exceeds the preferred D threshold, and the reported green proximity percentile is high at 90.52."
+          ],
+          "cons": [
+            "The data do not establish net usable area, room layout, or whether the premises can accommodate 15 people while meeting the applicable functional requirements.",
+            "The property’s urban-planning compatibility, change-of-use permissions, accessibility, sanitary suitability, and sector authorization remain unverified.",
+            "The applicable childcare framework is subject to a regulatory transition; the regime in force at the time of application needs confirmation."
+          ]
+        },
+        "batch_id": 1,
+        "timestamp": "2026-11-18T17:53:47.994392",
+        "execution_time_ms": 9128.226280212402
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "18562",
+          "evaluation_text": "This 263.64 sqm commercial unit in Turin is a strong candidate for further assessment: its recorded gross area exceeds the requested 115 sqm, and its commercial classification aligns with the search for an existing commercial property. Energy class B exceeds the preferred D-or-better threshold, and the green proximity percentile of 91.63 supports the preference for nearby parks. These indicators do not establish that the unit can accommodate 15 people or meet childcare requirements. The supplied regulatory result found no verified gross-area screening threshold; its verified 4.0 sqm per child standard applies to dedicated net usable areas, not the property's gross floor area. The stated 60 sqm minimum applies to the net usable service area, while the 10 sqm reception/staff/multi-purpose requirement and other room, outdoor-area, and operational provisions also need assessment. Confirm the authorization regime and applicability of the 2025 regional transition, along with planning and permitted use, layout, accessibility, hygiene, fire safety where required, and structural compliance before determining feasibility.",
+          "final_ranking_score": 89,
+          "pros": [
+            "263.64 sqm recorded area is above the requested 115 sqm gross-area threshold.",
+            "Energy class B is better than the preferred D-or-better level; plant score is 5.",
+            "Green proximity percentile of 91.63 is strong and aligns with the preference for parks."
+          ],
+          "cons": [
+            "Capacity for 15 people and the net usable areas required for childcare functions are not established by the gross-area figure.",
+            "Commercial classification alone does not verify planning compatibility, change-of-use requirements, or the applicable childcare authorization regime.",
+            "Layout, accessibility, hygiene, structural safety, and any applicable fire-safety requirements require verification."
+          ]
+        },
+        "batch_id": 2,
+        "timestamp": "2026-11-18T17:53:48.150464",
+        "execution_time_ms": 9283.990144729614
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "M04269",
+          "evaluation_text": "This 222.74 sqm commercial unit in central Turin is a strong candidate for further assessment as a play space or hourly childcare facility. Its gross area exceeds the stated 115 sqm preference, and its A2 energy class is better than the preferred D threshold. The green proximity indicator is high (89.48), aligning with the preference for parks, while the other service indicators are also strong. The supplied regulatory context identifies 4 sqm of net dedicated space per child and other facility-level requirements, but provides no verified minimum gross property area; these figures therefore do not establish capacity for 15 people or prove that the premises meet the required net-space, layout, or staffing conditions. The data also flag a regulatory transition and require checks of the applicable authorization regime, planning compatibility, change of use, hygiene, accessibility, and safety. Overall, the property merits detailed feasibility and authorization review, with its central location and energy performance offset by unresolved regulatory and physical suitability.",
+          "final_ranking_score": 90,
+          "pros": [
+            "222.74 sqm gross area exceeds the requested 115 sqm preference, providing a substantial starting point for a fit-out assessment.",
+            "A2 energy class is well above the preferred D threshold; the energy plant score is also strong at 5.",
+            "High green proximity indicator (89.48) and excellent mobility and service indicators support convenient access."
+          ],
+          "cons": [
+            "The supplied area is gross area; usable area, room layout, and capacity for 15 people are not established.",
+            "Planning compatibility, change-of-use title, hygiene, accessibility, fire and structural safety, and sector authorization all require verification.",
+            "The regulatory context flags a transition to the newer play-space framework, so the authorization regime applicable at the application date must be confirmed."
+          ]
+        },
+        "batch_id": 3,
+        "timestamp": "2026-11-18T17:53:48.198459",
+        "execution_time_ms": 9333.224773406982
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "M03521",
+          "evaluation_text": "This 360.09 sqm commercial property in central Turin is a strong candidate for further assessment: its stated area exceeds the 115 sqm target, its energy class B is better than the preferred D threshold, and nearby green space scores highly. The data do not establish capacity for 15 people, room layout, or suitability for childcare. The regional entry specifies 4 sqm of net dedicated space per child and a 60 sqm minimum net useful area for the facility; these are distinct from gross property area, and the provided data do not establish compliance. The applicable authorization regime may be affected by the transition to the 2025 rules. Confirm the current sector procedure, planning and change-of-use compatibility, and technical, hygiene, accessibility, and fire-safety requirements before proceeding.",
+          "final_ranking_score": 89,
+          "pros": [
+            "360.09 sqm reported area exceeds the requested 115 sqm gross-area target, though the measurement basis and usable layout need confirmation.",
+            "Energy class B meets the preference for class D or better; proximity metrics also indicate strong access to green areas (91.56) and services.",
+            "The property is classified as commercial, making it a relevant existing unit to investigate for the proposed conversion, subject to planning and authorization checks."
+          ],
+          "cons": [
+            "The supplied data do not confirm that the premises can accommodate 15 people or support the required room arrangement and net usable areas.",
+            "Urban-planning compatibility, change-of-use permissions, hygiene, accessibility, fire safety where required, structural safety, and the applicable sector authorization remain to be checked.",
+            "Energy class B is accompanied by a low envelope score (1) and no renewables score (1), indicating potential building-performance limitations despite the strong plant score (5)."
+          ]
+        },
+        "batch_id": 4,
+        "timestamp": "2026-11-18T17:53:48.558330",
+        "execution_time_ms": 9690.7320022583
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "18514",
+          "evaluation_text": "This recently built commercial property in Via Verdi Giuseppe has strong strategic potential: its 1,339.26 sqm reported area substantially exceeds the requested 115 sqm, and its A1 energy class is better than the preferred D threshold. The location also scores highly for green access (93.38) and across other proximity measures. These indicators support further assessment, but do not establish that the unit can accommodate 15 people or meet childcare layout, authorization, planning, accessibility, or technical requirements. The supplied regulatory result identifies no verified gross-area threshold; the verified 4 sqm per child standard applies to dedicated net usable areas, while the 60 sqm minimum refers to the net useful area of the facility. Check the applicable rules at the time of application, including the noted transition to the 2025 regional framework.",
+          "final_ranking_score": 87,
+          "pros": [
+            "Reported area of 1,339.26 sqm is well above the 115 sqm requested, subject to confirming the unit boundary and usable layout.",
+            "A1 energy class exceeds the preferred D-or-better standard; the property dates from 2020.",
+            "Strong reported proximity to green areas (93.38), with high scores for healthcare, mobility, sport, commercial services, and education."
+          ],
+          "cons": [
+            "The data do not verify whether the space can accommodate 15 people or provide the required dedicated net areas and functions for hourly childcare.",
+            "Urban-planning compatibility, change-of-use and building title, hygiene, accessibility, fire safety where required, structural compliance, and sector authorization all require verification.",
+            "The applicable authorization regime may depend on implementation of the 2025 regional framework; the regulatory result lists no verified gross-area threshold, and the reported area alone cannot establish compliance."
+          ]
+        },
+        "batch_id": 5,
+        "timestamp": "2026-11-18T17:54:04.994826",
+        "execution_time_ms": 16843.894004821777
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "18503",
+          "evaluation_text": "This 218.16 sqm commercial unit in Turin is a promising candidate for assessing conversion to hourly childcare. Its A1 energy class exceeds the requested D-or-better preference, and its green proximity percentile of 93.38 aligns strongly with the preference for parks. The stated gross area is substantial, but it does not establish the net usable areas, room layout, or capacity for 15 people. The supplied regulatory data verify a regional standard of 4 sqm of dedicated net usable area per child and a 60 sqm minimum net usable area for the facility; neither can be directly compared with the property's gross area. The regulatory result also flags a transition to the 2025 framework and required checks covering planning compatibility, change of use, health and safety, accessibility, and authorization. Confirm the applicable regime and assess the premises before determining suitability.",
+          "final_ranking_score": 87,
+          "pros": [
+            "Commercial property type and 218.16 sqm gross area make it a relevant candidate for conversion assessment, subject to confirmation of layout and usable area.",
+            "A1 energy class comfortably meets the requested D-or-better preference.",
+            "Green proximity percentile of 93.38 strongly matches the preference for nearby parks."
+          ],
+          "cons": [
+            "Gross floor area alone does not establish the required net usable areas, accommodation for 15 people, or suitability of the room layout.",
+            "Planning compatibility, change-of-use requirements, accessibility, health and safety standards, and the applicable authorization procedure remain to be verified.",
+            "The regulatory context identifies a transition to the 2025 framework; the rules applicable when an application is made need confirmation."
+          ]
+        },
+        "batch_id": 6,
+        "timestamp": "2026-11-18T17:54:05.314843",
+        "execution_time_ms": 17116.094827651978
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "18499",
+          "evaluation_text": "This 330.45 sqm commercial unit in Turin is a strong initial candidate for assessing conversion to a play space or hourly childcare: its recorded gross area exceeds the requested 115 sqm, it is listed as commercial, and its A1 energy class is better than the preferred D threshold. The high green proximity percentile also aligns with the preference for nearby parks. However, the data do not establish that the unit can accommodate 15 people, that it has the required room layout or net usable areas, or that the proposed use is authorized. The regulatory result reports no confirmed requirements; the supplied source identifies a verified regional standard of 4 sqm of dedicated net usable area per child and a 60 sqm minimum net useful area for the facility, while no gross property-area threshold is verified. The applicable regime also depends on the transition to D.G.R. 3-1937/2025 and the authorization framework in force when applying. Confirm planning compatibility, change-of-use and building title, sanitary and accessibility requirements, fire safety where applicable, structural safety, and sector authorization before proceeding.",
+          "final_ranking_score": 87,
+          "pros": [
+            "Recorded gross area of 330.45 sqm exceeds the requested 115 sqm, though usable area and suitability for 15 people require verification.",
+            "Commercial property type and the 2019 construction period provide a relevant starting point for conversion assessment; authorization and planning compatibility remain unverified.",
+            "A1 energy class exceeds the preferred D threshold, and the green proximity percentile is high at 93.38."
+          ],
+          "cons": [
+            "The property data do not confirm capacity for 15 people, required room layout, or net usable area; the 4 sqm per child standard applies to dedicated net usable space, not gross property area.",
+            "No supplied information confirms PRG compatibility, change-of-use eligibility, building title, accessibility, sanitary compliance, structural safety, fire requirements, or sector authorization.",
+            "The applicable childcare regime may depend on the transition to D.G.R. 3-1937/2025 and the authorization arrangements in force at the time of application."
+          ]
+        },
+        "batch_id": 7,
+        "timestamp": "2026-11-18T17:54:06.004051",
+        "execution_time_ms": 18010.251998901367
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "18507",
+          "evaluation_text": "This 214.87 sqm commercial unit in Turin is a strong candidate for further assessment: its reported area exceeds the requested 115 sqm, it is listed in energy class A1, and the green proximity indicator is high at 93.38. These features align well with the stated size, energy, and park preferences. However, the data do not establish capacity for 15 people, room layout, planning compatibility, accessibility, or authorization for hourly childcare. The regulatory context reports a verified regional standard of 4 sqm of dedicated net useful area per child and a 60 sqm minimum net useful area for the facility; neither is a gross-area threshold, and the latter cannot be compared directly with the reported property area. New activations may also be affected by the transition to D.G.R. 3-1937/2025, so the applicable regime and required technical and planning checks need confirmation.",
+          "final_ranking_score": 87,
+          "pros": [
+            "Reported gross floor area of 214.87 sqm exceeds the requested 115 sqm.",
+            "Energy class A1 is better than the preferred D threshold.",
+            "High green proximity indicator of 93.38, consistent with the preference for parks."
+          ],
+          "cons": [
+            "The supplied data do not confirm capacity for 15 people or whether the unit's layout can support the intended use.",
+            "Urban-planning compatibility, change-of-use requirements, accessibility, and technical suitability remain to be verified.",
+            "The applicable authorization regime for new play-space or baby-parking activity requires confirmation in light of the regulatory transition; the stated net-area standards do not establish gross-area sufficiency."
+          ]
+        },
+        "batch_id": 8,
+        "timestamp": "2026-11-18T17:54:07.604228",
+        "execution_time_ms": 19046.573400497437
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "16870",
+          "evaluation_text": "This 340.85 sqm commercial property in Turin is a strong candidate for further assessment: its gross floor area exceeds the requested 115 sqm, its commercial use aligns with the search, and its energy class C meets the D-or-better preference. The high green proximity percentile supports the preference for nearby parks. The supplied data do not establish capacity for 15 people, room layout, planning compatibility, accessibility, or authorization for hourly childcare. The regulatory result lists no requirements as found; the matching source entry separately reports verified net-area standards, a 60 sqm net useful minimum for the facility, and a regulatory transition whose applicable regime must be checked at the time of application. Gross property area cannot be compared directly with those net-area standards. Proceed subject to verifying the current authorization route and all required technical and planning checks.",
+          "final_ranking_score": 85,
+          "pros": [
+            "340.85 sqm gross floor area exceeds the requested 115 sqm threshold.",
+            "Commercial property type and energy class C align with the stated search criteria.",
+            "Green proximity percentile of 91.96 is strong and supports the preference for nearby parks."
+          ],
+          "cons": [
+            "Capacity for 15 people and suitability of the internal layout are not established by the supplied data.",
+            "Turin planning compatibility, change-of-use requirements, accessibility, and other technical checks remain unverified.",
+            "The applicable authorization regime is subject to a regulatory transition and requires confirmation at the application date."
+          ]
+        },
+        "batch_id": 9,
+        "timestamp": "2026-11-18T17:54:22.170616",
+        "execution_time_ms": 16856.489181518555
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "18621",
+          "evaluation_text": "This existing commercial property is a strong location and size match for the proposed hourly childcare use: its reported gross area of 1,105.02 sqm exceeds the user's 115 sqm threshold, and its proximity indicators are particularly high for green space, healthcare, education, and commercial services. Its D energy class meets the stated preference. These data support further assessment, but do not establish that the unit can accommodate 15 people, has a suitable internal layout, or is authorized for childcare. The cited regional entry specifies 4 sqm of net child-dedicated space per child and a 60 sqm minimum net useful area for the facility; neither figure is a gross-area threshold. The entry also notes a regulatory transition to verify at the application date. Urban-planning compatibility, change of use, sanitary and accessibility requirements, safety, and the applicable authorization procedure therefore require confirmation.",
+          "final_ranking_score": 86,
+          "pros": [
+            "Reported gross area of 1,105.02 sqm is well above the user's 115 sqm threshold, although usable area and suitability for 15 people need verification.",
+            "Energy class D meets the user's stated preference.",
+            "Green-space proximity is high (91.88), alongside strong healthcare (99.8), education (99.87), and commercial-service (92.04) indicators."
+          ],
+          "cons": [
+            "The regulatory result reports no verified gross-area threshold; net-space standards apply to specific functions and do not establish that this unit meets them.",
+            "The data do not establish capacity for 15 people, room layout, accessibility, or technical suitability for childcare; these require assessment.",
+            "Authorization remains uncertain: verify the applicable regime at the application date, urban-planning compatibility, change-of-use requirements, and relevant health and safety checks."
+          ]
+        },
+        "batch_id": 10,
+        "timestamp": "2026-11-18T17:54:22.393150",
+        "execution_time_ms": 17399.051904678345
+      }
+    ],
+    "evaluation_results": [
+      {
+        "id": "M04269",
+        "evaluation_text": "This 222.74 sqm commercial unit in central Turin is a strong candidate for further assessment as a play space or hourly childcare facility. Its gross area exceeds the stated 115 sqm preference, and its A2 energy class is better than the preferred D threshold. The green proximity indicator is high (89.48), aligning with the preference for parks, while the other service indicators are also strong. The supplied regulatory context identifies 4 sqm of net dedicated space per child and other facility-level requirements, but provides no verified minimum gross property area; these figures therefore do not establish capacity for 15 people or prove that the premises meet the required net-space, layout, or staffing conditions. The data also flag a regulatory transition and require checks of the applicable authorization regime, planning compatibility, change of use, hygiene, accessibility, and safety. Overall, the property merits detailed feasibility and authorization review, with its central location and energy performance offset by unresolved regulatory and physical suitability.",
+        "final_ranking_score": 90,
+        "pros": [
+          "222.74 sqm gross area exceeds the requested 115 sqm preference, providing a substantial starting point for a fit-out assessment.",
+          "A2 energy class is well above the preferred D threshold; the energy plant score is also strong at 5.",
+          "High green proximity indicator (89.48) and excellent mobility and service indicators support convenient access."
+        ],
+        "cons": [
+          "The supplied area is gross area; usable area, room layout, and capacity for 15 people are not established.",
+          "Planning compatibility, change-of-use title, hygiene, accessibility, fire and structural safety, and sector authorization all require verification.",
+          "The regulatory context flags a transition to the newer play-space framework, so the authorization regime applicable at the application date must be confirmed."
+        ]
+      },
+      {
+        "id": "18670",
+        "evaluation_text": "This 234.6 sqm commercial unit in central Turin is a strong candidate for assessing conversion to a play space or hourly childcare, with excellent energy performance (A1) and high reported proximity to green areas. Its gross area exceeds the requested 115 sqm, but gross area alone does not establish whether the required net usable areas, layout, capacity for 15 people, or authorization conditions can be met. The supplied regulatory context reports a verified standard of 4 sqm of child-dedicated net usable area per child and a separate minimum of 60 sqm net usable area for the facility; these are not gross-area thresholds. The applicable authorization regime may also be affected by the 2025 regulatory transition. Verify planning compatibility, change-of-use and building permissions, sanitary and accessibility requirements, safety provisions, and the sector authorization procedure before assessing feasibility.",
+        "final_ranking_score": 90,
+        "pros": [
+          "234.6 sqm gross area exceeds the requested 115 sqm threshold, providing a substantial basis for further layout assessment.",
+          "Commercial property type and central Turin location make the unit relevant for exploring the proposed conversion, subject to planning and authorization checks.",
+          "Energy class A1 exceeds the preferred D threshold, and the reported green proximity percentile is high at 90.52."
+        ],
+        "cons": [
+          "The data do not establish net usable area, room layout, or whether the premises can accommodate 15 people while meeting the applicable functional requirements.",
+          "The property’s urban-planning compatibility, change-of-use permissions, accessibility, sanitary suitability, and sector authorization remain unverified.",
+          "The applicable childcare framework is subject to a regulatory transition; the regime in force at the time of application needs confirmation."
+        ]
+      },
+      {
+        "id": "18562",
+        "evaluation_text": "This 263.64 sqm commercial unit in Turin is a strong candidate for further assessment: its recorded gross area exceeds the requested 115 sqm, and its commercial classification aligns with the search for an existing commercial property. Energy class B exceeds the preferred D-or-better threshold, and the green proximity percentile of 91.63 supports the preference for nearby parks. These indicators do not establish that the unit can accommodate 15 people or meet childcare requirements. The supplied regulatory result found no verified gross-area screening threshold; its verified 4.0 sqm per child standard applies to dedicated net usable areas, not the property's gross floor area. The stated 60 sqm minimum applies to the net usable service area, while the 10 sqm reception/staff/multi-purpose requirement and other room, outdoor-area, and operational provisions also need assessment. Confirm the authorization regime and applicability of the 2025 regional transition, along with planning and permitted use, layout, accessibility, hygiene, fire safety where required, and structural compliance before determining feasibility.",
+        "final_ranking_score": 89,
+        "pros": [
+          "263.64 sqm recorded area is above the requested 115 sqm gross-area threshold.",
+          "Energy class B is better than the preferred D-or-better level; plant score is 5.",
+          "Green proximity percentile of 91.63 is strong and aligns with the preference for parks."
+        ],
+        "cons": [
+          "Capacity for 15 people and the net usable areas required for childcare functions are not established by the gross-area figure.",
+          "Commercial classification alone does not verify planning compatibility, change-of-use requirements, or the applicable childcare authorization regime.",
+          "Layout, accessibility, hygiene, structural safety, and any applicable fire-safety requirements require verification."
+        ]
+      },
+      {
+        "id": "M03521",
+        "evaluation_text": "This 360.09 sqm commercial property in central Turin is a strong candidate for further assessment: its stated area exceeds the 115 sqm target, its energy class B is better than the preferred D threshold, and nearby green space scores highly. The data do not establish capacity for 15 people, room layout, or suitability for childcare. The regional entry specifies 4 sqm of net dedicated space per child and a 60 sqm minimum net useful area for the facility; these are distinct from gross property area, and the provided data do not establish compliance. The applicable authorization regime may be affected by the transition to the 2025 rules. Confirm the current sector procedure, planning and change-of-use compatibility, and technical, hygiene, accessibility, and fire-safety requirements before proceeding.",
+        "final_ranking_score": 89,
+        "pros": [
+          "360.09 sqm reported area exceeds the requested 115 sqm gross-area target, though the measurement basis and usable layout need confirmation.",
+          "Energy class B meets the preference for class D or better; proximity metrics also indicate strong access to green areas (91.56) and services.",
+          "The property is classified as commercial, making it a relevant existing unit to investigate for the proposed conversion, subject to planning and authorization checks."
+        ],
+        "cons": [
+          "The supplied data do not confirm that the premises can accommodate 15 people or support the required room arrangement and net usable areas.",
+          "Urban-planning compatibility, change-of-use permissions, hygiene, accessibility, fire safety where required, structural safety, and the applicable sector authorization remain to be checked.",
+          "Energy class B is accompanied by a low envelope score (1) and no renewables score (1), indicating potential building-performance limitations despite the strong plant score (5)."
+        ]
+      },
+      {
+        "id": "18499",
+        "evaluation_text": "This 330.45 sqm commercial unit in Turin is a strong initial candidate for assessing conversion to a play space or hourly childcare: its recorded gross area exceeds the requested 115 sqm, it is listed as commercial, and its A1 energy class is better than the preferred D threshold. The high green proximity percentile also aligns with the preference for nearby parks. However, the data do not establish that the unit can accommodate 15 people, that it has the required room layout or net usable areas, or that the proposed use is authorized. The regulatory result reports no confirmed requirements; the supplied source identifies a verified regional standard of 4 sqm of dedicated net usable area per child and a 60 sqm minimum net useful area for the facility, while no gross property-area threshold is verified. The applicable regime also depends on the transition to D.G.R. 3-1937/2025 and the authorization framework in force when applying. Confirm planning compatibility, change-of-use and building title, sanitary and accessibility requirements, fire safety where applicable, structural safety, and sector authorization before proceeding.",
+        "final_ranking_score": 87,
+        "pros": [
+          "Recorded gross area of 330.45 sqm exceeds the requested 115 sqm, though usable area and suitability for 15 people require verification.",
+          "Commercial property type and the 2019 construction period provide a relevant starting point for conversion assessment; authorization and planning compatibility remain unverified.",
+          "A1 energy class exceeds the preferred D threshold, and the green proximity percentile is high at 93.38."
+        ],
+        "cons": [
+          "The property data do not confirm capacity for 15 people, required room layout, or net usable area; the 4 sqm per child standard applies to dedicated net usable space, not gross property area.",
+          "No supplied information confirms PRG compatibility, change-of-use eligibility, building title, accessibility, sanitary compliance, structural safety, fire requirements, or sector authorization.",
+          "The applicable childcare regime may depend on the transition to D.G.R. 3-1937/2025 and the authorization arrangements in force at the time of application."
+        ]
+      },
+      {
+        "id": "18514",
+        "evaluation_text": "This recently built commercial property in Via Verdi Giuseppe has strong strategic potential: its 1,339.26 sqm reported area substantially exceeds the requested 115 sqm, and its A1 energy class is better than the preferred D threshold. The location also scores highly for green access (93.38) and across other proximity measures. These indicators support further assessment, but do not establish that the unit can accommodate 15 people or meet childcare layout, authorization, planning, accessibility, or technical requirements. The supplied regulatory result identifies no verified gross-area threshold; the verified 4 sqm per child standard applies to dedicated net usable areas, while the 60 sqm minimum refers to the net useful area of the facility. Check the applicable rules at the time of application, including the noted transition to the 2025 regional framework.",
+        "final_ranking_score": 87,
+        "pros": [
+          "Reported area of 1,339.26 sqm is well above the 115 sqm requested, subject to confirming the unit boundary and usable layout.",
+          "A1 energy class exceeds the preferred D-or-better standard; the property dates from 2020.",
+          "Strong reported proximity to green areas (93.38), with high scores for healthcare, mobility, sport, commercial services, and education."
+        ],
+        "cons": [
+          "The data do not verify whether the space can accommodate 15 people or provide the required dedicated net areas and functions for hourly childcare.",
+          "Urban-planning compatibility, change-of-use and building title, hygiene, accessibility, fire safety where required, structural compliance, and sector authorization all require verification.",
+          "The applicable authorization regime may depend on implementation of the 2025 regional framework; the regulatory result lists no verified gross-area threshold, and the reported area alone cannot establish compliance."
+        ]
+      },
+      {
+        "id": "18503",
+        "evaluation_text": "This 218.16 sqm commercial unit in Turin is a promising candidate for assessing conversion to hourly childcare. Its A1 energy class exceeds the requested D-or-better preference, and its green proximity percentile of 93.38 aligns strongly with the preference for parks. The stated gross area is substantial, but it does not establish the net usable areas, room layout, or capacity for 15 people. The supplied regulatory data verify a regional standard of 4 sqm of dedicated net usable area per child and a 60 sqm minimum net usable area for the facility; neither can be directly compared with the property's gross area. The regulatory result also flags a transition to the 2025 framework and required checks covering planning compatibility, change of use, health and safety, accessibility, and authorization. Confirm the applicable regime and assess the premises before determining suitability.",
+        "final_ranking_score": 87,
+        "pros": [
+          "Commercial property type and 218.16 sqm gross area make it a relevant candidate for conversion assessment, subject to confirmation of layout and usable area.",
+          "A1 energy class comfortably meets the requested D-or-better preference.",
+          "Green proximity percentile of 93.38 strongly matches the preference for nearby parks."
+        ],
+        "cons": [
+          "Gross floor area alone does not establish the required net usable areas, accommodation for 15 people, or suitability of the room layout.",
+          "Planning compatibility, change-of-use requirements, accessibility, health and safety standards, and the applicable authorization procedure remain to be verified.",
+          "The regulatory context identifies a transition to the 2025 framework; the rules applicable when an application is made need confirmation."
+        ]
+      },
+      {
+        "id": "18507",
+        "evaluation_text": "This 214.87 sqm commercial unit in Turin is a strong candidate for further assessment: its reported area exceeds the requested 115 sqm, it is listed in energy class A1, and the green proximity indicator is high at 93.38. These features align well with the stated size, energy, and park preferences. However, the data do not establish capacity for 15 people, room layout, planning compatibility, accessibility, or authorization for hourly childcare. The regulatory context reports a verified regional standard of 4 sqm of dedicated net useful area per child and a 60 sqm minimum net useful area for the facility; neither is a gross-area threshold, and the latter cannot be compared directly with the reported property area. New activations may also be affected by the transition to D.G.R. 3-1937/2025, so the applicable regime and required technical and planning checks need confirmation.",
+        "final_ranking_score": 87,
+        "pros": [
+          "Reported gross floor area of 214.87 sqm exceeds the requested 115 sqm.",
+          "Energy class A1 is better than the preferred D threshold.",
+          "High green proximity indicator of 93.38, consistent with the preference for parks."
+        ],
+        "cons": [
+          "The supplied data do not confirm capacity for 15 people or whether the unit's layout can support the intended use.",
+          "Urban-planning compatibility, change-of-use requirements, accessibility, and technical suitability remain to be verified.",
+          "The applicable authorization regime for new play-space or baby-parking activity requires confirmation in light of the regulatory transition; the stated net-area standards do not establish gross-area sufficiency."
+        ]
+      },
+      {
+        "id": "18621",
+        "evaluation_text": "This existing commercial property is a strong location and size match for the proposed hourly childcare use: its reported gross area of 1,105.02 sqm exceeds the user's 115 sqm threshold, and its proximity indicators are particularly high for green space, healthcare, education, and commercial services. Its D energy class meets the stated preference. These data support further assessment, but do not establish that the unit can accommodate 15 people, has a suitable internal layout, or is authorized for childcare. The cited regional entry specifies 4 sqm of net child-dedicated space per child and a 60 sqm minimum net useful area for the facility; neither figure is a gross-area threshold. The entry also notes a regulatory transition to verify at the application date. Urban-planning compatibility, change of use, sanitary and accessibility requirements, safety, and the applicable authorization procedure therefore require confirmation.",
+        "final_ranking_score": 86,
+        "pros": [
+          "Reported gross area of 1,105.02 sqm is well above the user's 115 sqm threshold, although usable area and suitability for 15 people need verification.",
+          "Energy class D meets the user's stated preference.",
+          "Green-space proximity is high (91.88), alongside strong healthcare (99.8), education (99.87), and commercial-service (92.04) indicators."
+        ],
+        "cons": [
+          "The regulatory result reports no verified gross-area threshold; net-space standards apply to specific functions and do not establish that this unit meets them.",
+          "The data do not establish capacity for 15 people, room layout, accessibility, or technical suitability for childcare; these require assessment.",
+          "Authorization remains uncertain: verify the applicable regime at the application date, urban-planning compatibility, change-of-use requirements, and relevant health and safety checks."
+        ]
+      },
+      {
+        "id": "16870",
+        "evaluation_text": "This 340.85 sqm commercial property in Turin is a strong candidate for further assessment: its gross floor area exceeds the requested 115 sqm, its commercial use aligns with the search, and its energy class C meets the D-or-better preference. The high green proximity percentile supports the preference for nearby parks. The supplied data do not establish capacity for 15 people, room layout, planning compatibility, accessibility, or authorization for hourly childcare. The regulatory result lists no requirements as found; the matching source entry separately reports verified net-area standards, a 60 sqm net useful minimum for the facility, and a regulatory transition whose applicable regime must be checked at the time of application. Gross property area cannot be compared directly with those net-area standards. Proceed subject to verifying the current authorization route and all required technical and planning checks.",
+        "final_ranking_score": 85,
+        "pros": [
+          "340.85 sqm gross floor area exceeds the requested 115 sqm threshold.",
+          "Commercial property type and energy class C align with the stated search criteria.",
+          "Green proximity percentile of 91.96 is strong and supports the preference for nearby parks."
+        ],
+        "cons": [
+          "Capacity for 15 people and suitability of the internal layout are not established by the supplied data.",
+          "Turin planning compatibility, change-of-use requirements, accessibility, and other technical checks remain unverified.",
+          "The applicable authorization regime is subject to a regulatory transition and requires confirmation at the application date."
+        ]
+      }
+    ],
+    "relaxation_applied": false,
+    "relaxation_count": 0,
+    "fallback_activated": false,
+    "agent_errors": []
+  }
+}

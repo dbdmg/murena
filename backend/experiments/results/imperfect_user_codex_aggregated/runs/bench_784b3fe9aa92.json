@@ -1,0 +1,710 @@
+{
+  "run_id": "bench_784b3fe9aa92",
+  "condition": "one_shot",
+  "unit_id": "MS07_k3_optout",
+  "scenario_id": "MS07_k3_optout",
+  "base_case_id": "UC07_RSA_missing_use",
+  "missing_count": 3,
+  "scenario_name": "3 omitted dimensions; intended use: Senior Residential Care (RSA); opt-out on Cb",
+  "tags": [
+    "edbt",
+    "controlled_missingness_v3",
+    "missing_3",
+    "UC07_RSA_missing_use",
+    "imperfect_user",
+    "optout"
+  ],
+  "model": "gpt-6-luna",
+  "repeat": 2,
+  "attempt": 1,
+  "input_sha256": "32e2d6b3a68d109d49c5698859471dd1404ae37bacbe81273adba6de3430f98a",
+  "scenario_sha256": "0000884a13931b8ad266ddf46dee1920c73121b6da97b3be856f68d92ccf32ab",
+  "initial_query": "I am looking for a hotel building. I intend to convert it into a residential senior care facility (RSA). I prefer properties near healthcare services.",
+  "options": {
+    "dataset_key": "full",
+    "map_limit": 1000,
+    "llm_limit": 10,
+    "analysis_mode": "agent",
+    "use_relaxation": true,
+    "use_data_knowledge": true,
+    "architecture": "multiagent",
+    "disabled_agents": null
+  },
+  "started_at": "2026-11-18T21:30:26.034493+00:00",
+  "clarification_seconds": null,
+  "analysis_seconds": 105.366,
+  "submitted_query": "I am looking for a hotel building. I intend to convert it into a residential senior care facility (RSA). I prefer properties near healthcare services.",
+  "status": "completed",
+  "results_count": 10,
+  "top_ids": [
+    "2863",
+    "M00441",
+    "18989",
+    "22257",
+    "3490",
+    "4805",
+    "6509",
+    "24918",
+    "16496",
+    "16497"
+  ],
+  "quality": {
+    "expected_count": 0,
+    "matched_expected": null,
+    "precision_at_returned": null,
+    "recall": null
+  },
+  "final_sql": "SELECT\n  *\nFROM ESTATES\nWHERE\n  property_type IN ('Hotels, pensions, and similar', 'Residential (Temporary/Holiday)')\n  AND healthcare >= 90\nORDER BY\n  id ASC",
+  "duration_seconds": 105.38,
+  "scenario_definition": {
+    "id": "MS07_k3_optout",
+    "name": "3 omitted dimensions; intended use: Senior Residential Care (RSA); opt-out on Cb",
+    "tags": [
+      "edbt",
+      "controlled_missingness_v3",
+      "missing_3",
+      "UC07_RSA_missing_use",
+      "imperfect_user",
+      "optout"
+    ],
+    "base_case_id": "UC07_RSA_missing_use",
+    "missing_count": 3,
+    "initial_query": "I am looking for a hotel building. I intend to convert it into a residential senior care facility (RSA). I prefer properties near healthcare services.",
+    "one_shot_query": "I am looking for a hotel building. I intend to convert it into a residential senior care facility (RSA). I prefer properties near healthcare services.",
+    "oracle_query": "Find a hotel building to convert it into a residential senior care facility (RSA) for 30 residents in Turin with at least 1600 sqm of gross floor area in energy class D or better near healthcare services.",
+    "expected_initial_missing": [
+      "Cb",
+      "L",
+      "Ce"
+    ],
+    "clarifications": {
+      "I": "I am looking for a hotel building.",
+      "D": "I intend to convert it into a residential senior care facility (RSA).",
+      "L": "The location is in Turin.",
+      "Cb": "I have no requirement on building size, capacity or structural features.",
+      "Ce": "I prefer a property in energy class D or better.",
+      "Cp": "I prefer properties near healthcare services."
+    },
+    "expected_mapping": {
+      "I": "SPECIFIED",
+      "D": "SPECIFIED",
+      "L": "SPECIFIED",
+      "Cb": "NOT_REQUESTED",
+      "Ce": "SPECIFIED",
+      "Cp": "SPECIFIED"
+    },
+    "repeats": 1,
+    "imperfect_user": {
+      "profile": "optout",
+      "dimension": "Cb"
+    }
+  },
+  "artifact_file": "runs/bench_784b3fe9aa92.json",
+  "artifact_schema_version": 4,
+  "ranking_ids": [
+    "2863",
+    "M00441",
+    "18989",
+    "22257",
+    "3490",
+    "4805",
+    "6509",
+    "24918",
+    "16496",
+    "16497"
+  ],
+  "top": [
+    {
+      "id": "2863",
+      "score": 84.156,
+      "distance_km": null
+    },
+    {
+      "id": "M00441",
+      "score": 84.156,
+      "distance_km": null
+    },
+    {
+      "id": "18989",
+      "score": 83.408,
+      "distance_km": null
+    },
+    {
+      "id": "22257",
+      "score": 18.156000000000002,
+      "distance_km": null
+    },
+    {
+      "id": "3490",
+      "score": 18.156000000000002,
+      "distance_km": null
+    },
+    {
+      "id": "4805",
+      "score": 18.156000000000002,
+      "distance_km": null
+    },
+    {
+      "id": "6509",
+      "score": 18.156000000000002,
+      "distance_km": null
+    },
+    {
+      "id": "24918",
+      "score": 17.476,
+      "distance_km": null
+    },
+    {
+      "id": "16496",
+      "score": 17.306,
+      "distance_km": null
+    },
+    {
+      "id": "16497",
+      "score": 17.306,
+      "distance_km": null
+    }
+  ],
+  "api_response": {
+    "agent_trace": [
+      {
+        "agent_name": "regulatory-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "found": false,
+          "matched_use_cases": [
+            "Senior Residential Care (RSA)"
+          ],
+          "requirements": []
+        }
+      },
+      {
+        "agent_name": "ranking-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "ranking": [
+            {
+              "agent_name": "building",
+              "rank": 1
+            },
+            {
+              "agent_name": "proximity",
+              "rank": 2
+            },
+            {
+              "agent_name": "location",
+              "rank": 3
+            },
+            {
+              "agent_name": "regulatory",
+              "rank": 4
+            },
+            {
+              "agent_name": "energy",
+              "rank": 5
+            }
+          ],
+          "weights": {
+            "location": 0.15,
+            "regulatory": 0.11,
+            "energy": 0.09,
+            "building": 0.43,
+            "proximity": 0.22
+          }
+        }
+      },
+      {
+        "agent_name": "energy-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "requirements": [],
+          "found": false
+        }
+      },
+      {
+        "agent_name": "building-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "typologies": [
+            "Hotels, pensions, and similar"
+          ],
+          "found": true,
+          "requirements": []
+        }
+      },
+      {
+        "agent_name": "proximity-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "requirements": [
+            {
+              "target_column": "healthcare",
+              "operator": ">=",
+              "value": 90,
+              "description": "Prefers properties near healthcare services; threshold is rounded up from the 75th percentile (89.9)."
+            }
+          ]
+        }
+      },
+      {
+        "agent_name": "location-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "places": [],
+          "found": false
+        }
+      },
+      {
+        "agent_name": "sql-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "sql": "SELECT * FROM ESTATES WHERE property_type = 'Hotels, pensions, and similar' AND healthcare >= 90 ORDER BY id ASC",
+          "explanation": "Filters for the specified hotel property type and healthcare proximity score, then orders by id."
+        }
+      },
+      {
+        "agent_name": "relaxation-agent",
+        "agent_mode": "extraction",
+        "output": [
+          {
+            "condizione_iniziale": "property_type = 'Hotels, pensions, and similar'",
+            "condizione_relaxed": "property_type IN ('Hotels, pensions, and similar', 'Residential (Temporary/Holiday)')",
+            "piani_progressivi": [],
+            "strategia": "Category widening",
+            "motivazione": "Temporary and holiday residences are the closest adjacent category to hotels and similar lodging, broadening the search while preserving its accommodation intent.",
+            "livello_rilassamento": "low"
+          },
+          {
+            "condizione_iniziale": "property_type = 'Hotels, pensions, and similar'",
+            "condizione_relaxed": "property_type IN ('Hotels, pensions, and similar', 'Residential (Temporary/Holiday)', 'Commercial activities and similar')",
+            "piani_progressivi": [
+              "property_type IN ('Hotels, pensions, and similar', 'Residential (Temporary/Holiday)')"
+            ],
+            "strategia": "Category widening",
+            "motivazione": "Adding commercial activities and similar includes a broader range of potentially lodging-related properties while retaining the original category.",
+            "livello_rilassamento": "medium"
+          },
+          {
+            "condizione_iniziale": "property_type = 'Hotels, pensions, and similar'",
+            "condizione_relaxed": "property_type IN ('Hotels, pensions, and similar', 'Residential (Temporary/Holiday)', 'Commercial activities and similar', 'Bars, restaurants, dance halls and similar')",
+            "piani_progressivi": [
+              "property_type IN ('Hotels, pensions, and similar', 'Residential (Temporary/Holiday)')",
+              "property_type IN ('Hotels, pensions, and similar', 'Residential (Temporary/Holiday)', 'Commercial activities and similar')"
+            ],
+            "strategia": "Category widening",
+            "motivazione": "Adding food and hospitality venues broadens the search to nearby commercial uses associated with visitor accommodation.",
+            "livello_rilassamento": "high"
+          },
+          {
+            "condizione_iniziale": "healthcare >= 90",
+            "condizione_relaxed": "healthcare >= 89.9",
+            "piani_progressivi": [],
+            "strategia": "Threshold change",
+            "motivazione": "The 75th percentile is 89.9, so this small reduction should admit more records while keeping healthcare scores near the original high threshold.",
+            "livello_rilassamento": "low"
+          },
+          {
+            "condizione_iniziale": "healthcare >= 90",
+            "condizione_relaxed": "healthcare >= 80.08",
+            "piani_progressivi": [
+              "healthcare >= 89.9"
+            ],
+            "strategia": "Threshold change",
+            "motivazione": "Lowering the threshold to the median should increase coverage while retaining properties with at least typical healthcare scores.",
+            "livello_rilassamento": "medium"
+          },
+          {
+            "condizione_iniziale": "healthcare >= 90",
+            "condizione_relaxed": "healthcare >= 70.14",
+            "piani_progressivi": [
+              "healthcare >= 89.9",
+              "healthcare >= 80.08"
+            ],
+            "strategia": "Threshold change",
+            "motivazione": "The 25th percentile provides a broader range of healthcare scores while keeping the condition tied to a substantial baseline of access.",
+            "livello_rilassamento": "high"
+          }
+        ],
+        "batch_id": null,
+        "timestamp": "2026-11-18T22:31:14.433980",
+        "execution_time_ms": 24121.505737304688
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "2863",
+          "evaluation_text": "The hotel’s existing use and 555.87 sqm area make it a relevant candidate for conversion to an RSA, with a strong location match for the preference for nearby healthcare services. The data do not establish whether the building’s layout can meet the required room, shared-space, and care-unit configuration. The regional standard includes net minimums for individual rooms and specific functions; these cannot be used to infer that the property’s total area is sufficient. Urban-planning compatibility, change-of-use approval, accessibility, safety, and sector authorization all require verification. Energy class C is moderate, while the plant, envelope, and renewables scores indicate potential weaknesses to assess during feasibility work.",
+          "final_ranking_score": 84,
+          "pros": [
+            "Hotel use provides a potentially relevant starting point for an RSA conversion, subject to layout and authorization checks.",
+            "Healthcare proximity is very strong (96.03), matching the stated preference.",
+            "The 555.87 sqm recorded area and 2000 construction period provide a substantial existing asset to assess for adaptation."
+          ],
+          "cons": [
+            "The data do not confirm that the existing layout can meet RSA requirements for rooms, care units, and shared functions.",
+            "The 555.87 sqm property area cannot be compared with room-specific net standards to establish capacity or compliance; no verified gross-area threshold is provided.",
+            "Energy performance warrants assessment: class C, with low plant, envelope, and renewables scores."
+          ]
+        },
+        "batch_id": 1,
+        "timestamp": "2026-11-18T22:31:30.180816",
+        "execution_time_ms": 15659.798383712769
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "22257",
+          "evaluation_text": "The property’s strongest strategic advantage is its very high healthcare proximity score (96.03), matching the preference for nearby healthcare services. However, its recorded area of 12.6 m² and residential temporary/holiday classification provide little evidence of suitability for conversion into an RSA. The supplied regional standard specifies minimum net areas for particular rooms and shared functions, but does not establish a minimum gross property area; the property's area therefore cannot be treated as a direct regulatory pass or failure. Planning compatibility, change of use, layout, accessibility, building condition, and sector authorization all require verification. Its low energy performance and overall relevance score indicate limited current alignment with the objective.",
+          "final_ranking_score": 18,
+          "pros": [
+            "Healthcare proximity is very high (96.03), directly matching the stated preference.",
+            "Mobility (95.26) and access to commercial services (96.35) are also strong.",
+            "Central B1 location may be advantageous for access to urban services, subject to planning and site checks."
+          ],
+          "cons": [
+            "The recorded surface area is only 12.6 m², with no evidence that the property can accommodate RSA rooms or shared functions.",
+            "The property is classified as residential (temporary/holiday), and planning compatibility and authorization for an RSA conversion are unverified.",
+            "Energy class F and the minimum energy sub-scores indicate substantial efficiency and building-system weaknesses."
+          ]
+        },
+        "batch_id": 2,
+        "timestamp": "2026-11-18T22:31:30.555511",
+        "execution_time_ms": 16031.837463378906
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "18989",
+          "evaluation_text": "This 9,974.26 sqm hotel property in central Turin is a strong candidate for conversion to a senior residential care facility, supported by its existing hotel use and a high deterministic relevance score of 83. Its healthcare proximity percentile of 92.19 aligns closely with the stated preference, and its location also scores highly for public transport and nearby services. The data do not establish whether the building’s layout, accessibility, planning status, or technical condition can meet RSA requirements; these require verification. The cited regional standard specifies net room and functional-space requirements, but provides no verified minimum gross property area, so the property’s gross area alone does not establish compliance. The regulatory result reports no requirements, while identifying the RSA use case and relevant normative entry; authorization and all listed checks remain to be confirmed.",
+          "final_ranking_score": 83,
+          "pros": [
+            "Existing hotel classification offers a potentially relevant starting point for conversion, subject to confirmation of the building’s configuration and suitability.",
+            "Healthcare proximity is high (92.19 percentile), matching the stated preference.",
+            "Central location has very high public transport accessibility (99.1 percentile) and strong access to education (99.83) and commercial services (92.48)."
+          ],
+          "cons": [
+            "Energy performance is mixed: class B and plant score 3, but envelope and renewables scores are both 1, with a total energy score of 8.",
+            "Constructed in 1930; structural condition, accessibility, fire safety, and the feasibility of meeting current RSA requirements are not established by the supplied data.",
+            "Planning compatibility, change-of-use approval, hygiene requirements, and sector authorization require verification; the cited standard sets functional net-area requirements but no verified minimum gross property area."
+          ]
+        },
+        "batch_id": 3,
+        "timestamp": "2026-11-18T22:31:31.113137",
+        "execution_time_ms": 16590.48581123352
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "M00441",
+          "evaluation_text": "This 1,025.66 sqm hotel property, built in 2000, is a promising candidate for conversion to a senior residential care facility, particularly given the strong healthcare proximity percentile of 96.03 and very high access to mobility and other services. Its existing hotel use may offer a relevant starting point for adaptation, but the data do not establish room layouts, accessibility, planning compatibility, or authorization for RSA use. The verified regional standard specifies net room and shared-space requirements; it sets no verified minimum gross property area, so the listed surface alone does not establish compliance or capacity. Conversion would require checks including planning and change-of-use approval, health and accessibility requirements, fire and structural safety where applicable, and sector authorization. Energy performance is a material weakness, with a total energy score of 6 and low plant, envelope, and renewable sub-scores.",
+          "final_ranking_score": 84,
+          "pros": [
+            "Healthcare proximity is very high (96.03 percentile), matching the stated preference.",
+            "The 1,025.66 sqm hotel property provides a substantial existing building for assessment as a potential RSA conversion.",
+            "Mobility (95.26), commercial services (96.35), and education (96.15) proximity percentiles are also very high."
+          ],
+          "cons": [
+            "Energy performance is weak overall (energy score total 6); plant, envelope, and renewables each score 1.",
+            "The property data do not establish room configuration or whether the net area requirements for RSA rooms and shared spaces can be met.",
+            "Urban-planning compatibility, change-of-use approval, accessibility, safety requirements, and sector authorization all require verification."
+          ]
+        },
+        "batch_id": 4,
+        "timestamp": "2026-11-18T22:31:31.204119",
+        "execution_time_ms": 16682.059288024902
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "4805",
+          "evaluation_text": "The property has limited suitability for conversion into a senior residential care facility. Its healthcare proximity percentile is very high (96.03), matching the stated location preference, but the reported 57.46 m² area and residential temporary/holiday classification do not establish that it can accommodate the required care functions or qualify for the use. The cited regional standard specifies net areas for individual rooms and functions; it provides no verified minimum gross property area. Planning compatibility, change-of-use authorization, layout, accessibility, fire and structural safety, and sector authorization require verification. Its very low energy indicators add to the refurbishment challenge. The deterministic ranking score is 18.",
+          "final_ranking_score": 18,
+          "pros": [
+            "Very high healthcare proximity percentile (96.03), aligned with the user's preference.",
+            "Strong access to mobility (95.26), commercial services (96.35), and education (96.15) according to the supplied proximity percentiles.",
+            "The property is in an existing built-up setting, so conversion can be explored subject to planning, building, and sector authorization checks."
+          ],
+          "cons": [
+            "At 57.46 m², the reported property area is limited for a care-facility conversion; the data do not establish that required functions or layouts can be accommodated.",
+            "Energy class G and a total energy score of 4/20 indicate substantial energy-performance weaknesses.",
+            "The supplied information does not establish planning compatibility, change-of-use approval, accessibility, safety compliance, or sector authorization for RSA use."
+          ]
+        },
+        "batch_id": 5,
+        "timestamp": "2026-11-18T22:31:38.742857",
+        "execution_time_ms": 8187.271356582642
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "3490",
+          "evaluation_text": "The property has limited demonstrated suitability for conversion into an RSA. Its healthcare proximity is exceptionally strong (96.03), matching the stated location preference, and its A4 energy class and high plant score are positive starting points. However, the supplied data describe a 116.84 sqm residential temporary/holiday property, and do not establish that it can accommodate the required care layout, resident capacity, or clinical and communal spaces. The cited regional standard specifies net areas for particular rooms; it does not set a verified minimum gross property area, so the property’s total area alone cannot establish eligibility. Urban-planning compatibility, change of use, accessibility, hygiene, fire and structural safety, and sector authorization require verification.",
+          "final_ranking_score": 18,
+          "pros": [
+            "Healthcare proximity is very high (96.03), directly aligning with the stated preference.",
+            "Energy class A4 and a thermal plant score of 5 indicate favorable energy characteristics.",
+            "The central B1 location also has strong mobility (95.26), commercial (96.35), and education (96.15) proximity scores."
+          ],
+          "cons": [
+            "At 116.84 sqm, the property’s area is modest for the intended conversion; the data do not establish whether the required RSA rooms and layout can fit.",
+            "The current use is Residential (Temporary/Holiday); urban-planning compatibility and authorization for change of use need verification.",
+            "Accessibility, hygiene, fire and structural safety, and sector authorization are unverified; energy envelope and renewables scores are also low (1 each)."
+          ]
+        },
+        "batch_id": 6,
+        "timestamp": "2026-11-18T22:31:39.225452",
+        "execution_time_ms": 9044.35920715332
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "6509",
+          "evaluation_text": "The property has a strong location advantage for the stated preference: its healthcare proximity percentile is 96.03, with high access to public transport and daily services. However, the supplied data identify it as a 35.98 sqm residential temporary/holiday property, not a hotel building, and do not establish the space, layout, or technical capacity needed for an RSA. The cited regional standard includes room-specific net area requirements, but provides no verified minimum gross property-area threshold; the property's surface area therefore cannot establish regulatory eligibility. Urban-planning compatibility, change-of-use authorization, accessibility, building and fire safety, and the sector authorization procedure all require verification. Its F energy class and low envelope and renewables scores are further constraints. Overall, despite excellent healthcare proximity, the evidence indicates limited suitability for the requested hotel-to-RSA conversion.",
+          "final_ranking_score": 18,
+          "pros": [
+            "Healthcare proximity is very high (96.03 percentile), matching the stated preference.",
+            "Public transport access is high (95.26 percentile), supporting access for residents, visitors, and staff.",
+            "Commercial services (96.35 percentile) and education (96.15 percentile) are also highly accessible."
+          ],
+          "cons": [
+            "The 35.98 sqm surface and residential temporary/holiday classification do not establish a hotel building or support the space and layout needed for an RSA.",
+            "The F energy class and low envelope and renewables scores indicate substantial energy-performance limitations.",
+            "Planning compatibility, change-of-use authorization, accessibility, hygiene, structural and fire safety, and sector authorization remain unverified; no gross-area threshold is established by the cited standard."
+          ]
+        },
+        "batch_id": 7,
+        "timestamp": "2026-11-18T22:31:39.644824",
+        "execution_time_ms": 8532.21082687378
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "24918",
+          "evaluation_text": "The property offers a location advantage for an RSA, with healthcare proximity at 92.46 and strong access to mobility and other services. However, the supplied data identify it as a 12.66 m² residential property rather than a hotel building, and do not establish that it can accommodate an RSA’s required rooms, shared areas, or resident capacity. The RSA source specifies net room and function requirements, while no verified minimum gross property area is provided; the listed area therefore cannot establish overall suitability or legal ineligibility. Planning compatibility, change-of-use approval, accessibility, technical feasibility, and sector authorization all require verification. Its 1960 construction period and F energy class, with a total energy score of 4, add substantial refurbishment considerations. Overall, the excellent service access is outweighed by the apparent mismatch in scale and unverified conversion feasibility.",
+          "final_ranking_score": 17,
+          "pros": [
+            "Healthcare proximity is high (92.46), matching the stated preference for access to healthcare services.",
+            "Public transport accessibility is strong (98.83), supporting access for residents, staff, and visitors.",
+            "Commercial (92.78) and education (99.72) proximity scores indicate broad access to local services."
+          ],
+          "cons": [
+            "The recorded surface area is 12.66 m², and the data do not support an RSA-scale accommodation or establish capacity for the required rooms and shared functions.",
+            "The property is listed as Residential (Temporary/Holiday), not a hotel building; planning compatibility, change of use, and sector authorization need verification.",
+            "Energy class F and the lowest listed energy sub-scores (total 4) indicate significant energy-efficiency concerns; the 1960 construction period also makes technical condition and upgrade needs important to assess."
+          ]
+        },
+        "batch_id": 8,
+        "timestamp": "2026-11-18T22:31:40.181201",
+        "execution_time_ms": 8977.805614471436
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "16497",
+          "evaluation_text": "The property has strong locational appeal for a senior care project, particularly given its high healthcare proximity percentile (91.66) and central access to mobility and services. However, the supplied data describe a 37.75 sqm residential temporary/holiday property, which does not establish suitability for an RSA’s required room mix, resident capacity, accessibility, or authorization. The verified 12 sqm standard applies only to a single bedroom’s net area; it is not a whole-property threshold. Urban-planning compatibility, change of use, building and hygiene requirements, fire and structural safety, and sector authorization all require verification. The low deterministic score of 17 reflects the limited evidenced fit despite the favorable location.",
+          "final_ranking_score": 17,
+          "pros": [
+            "Healthcare proximity is high at 91.66 percentile, matching the stated preference.",
+            "Mobility (91.54), commercial services (91.68), and education (90.91) percentiles indicate strong access to urban services.",
+            "The 1950 construction date and residential use provide a possible starting point for adaptive reuse, subject to feasibility checks."
+          ],
+          "cons": [
+            "At 37.75 sqm, the recorded property area provides little evidenced capacity for the rooms and shared functions described in the RSA standards; actual layout and net areas are unknown.",
+            "The property is listed as Residential (Temporary/Holiday), and urban-planning compatibility, change-of-use permission, and sector authorization are unverified.",
+            "Energy performance is modest (class D; total 8), with low envelope and renewables scores; accessibility, hygiene, fire safety, and structural suitability also need verification."
+          ]
+        },
+        "batch_id": 9,
+        "timestamp": "2026-11-18T22:31:55.608575",
+        "execution_time_ms": 16383.683681488037
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "16496",
+          "evaluation_text": "The property offers excellent proximity to healthcare services (91.66) and strong access to mobility, commercial services, and education. However, its 43.33 m² area and residential temporary/holiday classification do not establish suitability for a senior residential care facility. The supplied regulatory result identifies the RSA use case but lists no screening requirements; it provides no verified minimum gross property area. The regional standards cover specific net-use areas and facility configuration, so they cannot be used to determine whether this property's gross area is sufficient. Urban-planning compatibility, change-of-use authorization, accessibility, room layout, safety, and sector authorization all require verification. Its energy class is D, with a low total energy score of 8/20. Overall, the healthcare location is attractive, but the available data indicate substantial uncertainty about conversion feasibility and scale.",
+          "final_ranking_score": 17,
+          "pros": [
+            "Healthcare proximity is high at 91.66, directly matching the stated preference.",
+            "Mobility (91.54) and commercial services (91.68) are also strong, supporting convenient access to urban services.",
+            "Energy class D and a thermal plant score of 3/5 provide some positive baseline information, although overall energy performance is limited."
+          ],
+          "cons": [
+            "At 43.33 m², the property is small for the proposed institutional use; the data do not establish that it can accommodate required RSA functions or rooms.",
+            "Its residential temporary/holiday classification does not establish urban-planning compatibility or authorization for an RSA conversion; these require verification.",
+            "The energy total is low at 8/20, with envelope and renewables scores of 1/5 each, suggesting potential improvement needs."
+          ]
+        },
+        "batch_id": 10,
+        "timestamp": "2026-11-18T22:31:57.074538",
+        "execution_time_ms": 18332.72671699524
+      }
+    ],
+    "evaluation_results": [
+      {
+        "id": "2863",
+        "evaluation_text": "The hotel’s existing use and 555.87 sqm area make it a relevant candidate for conversion to an RSA, with a strong location match for the preference for nearby healthcare services. The data do not establish whether the building’s layout can meet the required room, shared-space, and care-unit configuration. The regional standard includes net minimums for individual rooms and specific functions; these cannot be used to infer that the property’s total area is sufficient. Urban-planning compatibility, change-of-use approval, accessibility, safety, and sector authorization all require verification. Energy class C is moderate, while the plant, envelope, and renewables scores indicate potential weaknesses to assess during feasibility work.",
+        "final_ranking_score": 84,
+        "pros": [
+          "Hotel use provides a potentially relevant starting point for an RSA conversion, subject to layout and authorization checks.",
+          "Healthcare proximity is very strong (96.03), matching the stated preference.",
+          "The 555.87 sqm recorded area and 2000 construction period provide a substantial existing asset to assess for adaptation."
+        ],
+        "cons": [
+          "The data do not confirm that the existing layout can meet RSA requirements for rooms, care units, and shared functions.",
+          "The 555.87 sqm property area cannot be compared with room-specific net standards to establish capacity or compliance; no verified gross-area threshold is provided.",
+          "Energy performance warrants assessment: class C, with low plant, envelope, and renewables scores."
+        ]
+      },
+      {
+        "id": "M00441",
+        "evaluation_text": "This 1,025.66 sqm hotel property, built in 2000, is a promising candidate for conversion to a senior residential care facility, particularly given the strong healthcare proximity percentile of 96.03 and very high access to mobility and other services. Its existing hotel use may offer a relevant starting point for adaptation, but the data do not establish room layouts, accessibility, planning compatibility, or authorization for RSA use. The verified regional standard specifies net room and shared-space requirements; it sets no verified minimum gross property area, so the listed surface alone does not establish compliance or capacity. Conversion would require checks including planning and change-of-use approval, health and accessibility requirements, fire and structural safety where applicable, and sector authorization. Energy performance is a material weakness, with a total energy score of 6 and low plant, envelope, and renewable sub-scores.",
+        "final_ranking_score": 84,
+        "pros": [
+          "Healthcare proximity is very high (96.03 percentile), matching the stated preference.",
+          "The 1,025.66 sqm hotel property provides a substantial existing building for assessment as a potential RSA conversion.",
+          "Mobility (95.26), commercial services (96.35), and education (96.15) proximity percentiles are also very high."
+        ],
+        "cons": [
+          "Energy performance is weak overall (energy score total 6); plant, envelope, and renewables each score 1.",
+          "The property data do not establish room configuration or whether the net area requirements for RSA rooms and shared spaces can be met.",
+          "Urban-planning compatibility, change-of-use approval, accessibility, safety requirements, and sector authorization all require verification."
+        ]
+      },
+      {
+        "id": "18989",
+        "evaluation_text": "This 9,974.26 sqm hotel property in central Turin is a strong candidate for conversion to a senior residential care facility, supported by its existing hotel use and a high deterministic relevance score of 83. Its healthcare proximity percentile of 92.19 aligns closely with the stated preference, and its location also scores highly for public transport and nearby services. The data do not establish whether the building’s layout, accessibility, planning status, or technical condition can meet RSA requirements; these require verification. The cited regional standard specifies net room and functional-space requirements, but provides no verified minimum gross property area, so the property’s gross area alone does not establish compliance. The regulatory result reports no requirements, while identifying the RSA use case and relevant normative entry; authorization and all listed checks remain to be confirmed.",
+        "final_ranking_score": 83,
+        "pros": [
+          "Existing hotel classification offers a potentially relevant starting point for conversion, subject to confirmation of the building’s configuration and suitability.",
+          "Healthcare proximity is high (92.19 percentile), matching the stated preference.",
+          "Central location has very high public transport accessibility (99.1 percentile) and strong access to education (99.83) and commercial services (92.48)."
+        ],
+        "cons": [
+          "Energy performance is mixed: class B and plant score 3, but envelope and renewables scores are both 1, with a total energy score of 8.",
+          "Constructed in 1930; structural condition, accessibility, fire safety, and the feasibility of meeting current RSA requirements are not established by the supplied data.",
+          "Planning compatibility, change-of-use approval, hygiene requirements, and sector authorization require verification; the cited standard sets functional net-area requirements but no verified minimum gross property area."
+        ]
+      },
+      {
+        "id": "22257",
+        "evaluation_text": "The property’s strongest strategic advantage is its very high healthcare proximity score (96.03), matching the preference for nearby healthcare services. However, its recorded area of 12.6 m² and residential temporary/holiday classification provide little evidence of suitability for conversion into an RSA. The supplied regional standard specifies minimum net areas for particular rooms and shared functions, but does not establish a minimum gross property area; the property's area therefore cannot be treated as a direct regulatory pass or failure. Planning compatibility, change of use, layout, accessibility, building condition, and sector authorization all require verification. Its low energy performance and overall relevance score indicate limited current alignment with the objective.",
+        "final_ranking_score": 18,
+        "pros": [
+          "Healthcare proximity is very high (96.03), directly matching the stated preference.",
+          "Mobility (95.26) and access to commercial services (96.35) are also strong.",
+          "Central B1 location may be advantageous for access to urban services, subject to planning and site checks."
+        ],
+        "cons": [
+          "The recorded surface area is only 12.6 m², with no evidence that the property can accommodate RSA rooms or shared functions.",
+          "The property is classified as residential (temporary/holiday), and planning compatibility and authorization for an RSA conversion are unverified.",
+          "Energy class F and the minimum energy sub-scores indicate substantial efficiency and building-system weaknesses."
+        ]
+      },
+      {
+        "id": "3490",
+        "evaluation_text": "The property has limited demonstrated suitability for conversion into an RSA. Its healthcare proximity is exceptionally strong (96.03), matching the stated location preference, and its A4 energy class and high plant score are positive starting points. However, the supplied data describe a 116.84 sqm residential temporary/holiday property, and do not establish that it can accommodate the required care layout, resident capacity, or clinical and communal spaces. The cited regional standard specifies net areas for particular rooms; it does not set a verified minimum gross property area, so the property’s total area alone cannot establish eligibility. Urban-planning compatibility, change of use, accessibility, hygiene, fire and structural safety, and sector authorization require verification.",
+        "final_ranking_score": 18,
+        "pros": [
+          "Healthcare proximity is very high (96.03), directly aligning with the stated preference.",
+          "Energy class A4 and a thermal plant score of 5 indicate favorable energy characteristics.",
+          "The central B1 location also has strong mobility (95.26), commercial (96.35), and education (96.15) proximity scores."
+        ],
+        "cons": [
+          "At 116.84 sqm, the property’s area is modest for the intended conversion; the data do not establish whether the required RSA rooms and layout can fit.",
+          "The current use is Residential (Temporary/Holiday); urban-planning compatibility and authorization for change of use need verification.",
+          "Accessibility, hygiene, fire and structural safety, and sector authorization are unverified; energy envelope and renewables scores are also low (1 each)."
+        ]
+      },
+      {
+        "id": "4805",
+        "evaluation_text": "The property has limited suitability for conversion into a senior residential care facility. Its healthcare proximity percentile is very high (96.03), matching the stated location preference, but the reported 57.46 m² area and residential temporary/holiday classification do not establish that it can accommodate the required care functions or qualify for the use. The cited regional standard specifies net areas for individual rooms and functions; it provides no verified minimum gross property area. Planning compatibility, change-of-use authorization, layout, accessibility, fire and structural safety, and sector authorization require verification. Its very low energy indicators add to the refurbishment challenge. The deterministic ranking score is 18.",
+        "final_ranking_score": 18,
+        "pros": [
+          "Very high healthcare proximity percentile (96.03), aligned with the user's preference.",
+          "Strong access to mobility (95.26), commercial services (96.35), and education (96.15) according to the supplied proximity percentiles.",
+          "The property is in an existing built-up setting, so conversion can be explored subject to planning, building, and sector authorization checks."
+        ],
+        "cons": [
+          "At 57.46 m², the reported property area is limited for a care-facility conversion; the data do not establish that required functions or layouts can be accommodated.",
+          "Energy class G and a total energy score of 4/20 indicate substantial energy-performance weaknesses.",
+          "The supplied information does not establish planning compatibility, change-of-use approval, accessibility, safety compliance, or sector authorization for RSA use."
+        ]
+      },
+      {
+        "id": "6509",
+        "evaluation_text": "The property has a strong location advantage for the stated preference: its healthcare proximity percentile is 96.03, with high access to public transport and daily services. However, the supplied data identify it as a 35.98 sqm residential temporary/holiday property, not a hotel building, and do not establish the space, layout, or technical capacity needed for an RSA. The cited regional standard includes room-specific net area requirements, but provides no verified minimum gross property-area threshold; the property's surface area therefore cannot establish regulatory eligibility. Urban-planning compatibility, change-of-use authorization, accessibility, building and fire safety, and the sector authorization procedure all require verification. Its F energy class and low envelope and renewables scores are further constraints. Overall, despite excellent healthcare proximity, the evidence indicates limited suitability for the requested hotel-to-RSA conversion.",
+        "final_ranking_score": 18,
+        "pros": [
+          "Healthcare proximity is very high (96.03 percentile), matching the stated preference.",
+          "Public transport access is high (95.26 percentile), supporting access for residents, visitors, and staff.",
+          "Commercial services (96.35 percentile) and education (96.15 percentile) are also highly accessible."
+        ],
+        "cons": [
+          "The 35.98 sqm surface and residential temporary/holiday classification do not establish a hotel building or support the space and layout needed for an RSA.",
+          "The F energy class and low envelope and renewables scores indicate substantial energy-performance limitations.",
+          "Planning compatibility, change-of-use authorization, accessibility, hygiene, structural and fire safety, and sector authorization remain unverified; no gross-area threshold is established by the cited standard."
+        ]
+      },
+      {
+        "id": "24918",
+        "evaluation_text": "The property offers a location advantage for an RSA, with healthcare proximity at 92.46 and strong access to mobility and other services. However, the supplied data identify it as a 12.66 m² residential property rather than a hotel building, and do not establish that it can accommodate an RSA’s required rooms, shared areas, or resident capacity. The RSA source specifies net room and function requirements, while no verified minimum gross property area is provided; the listed area therefore cannot establish overall suitability or legal ineligibility. Planning compatibility, change-of-use approval, accessibility, technical feasibility, and sector authorization all require verification. Its 1960 construction period and F energy class, with a total energy score of 4, add substantial refurbishment considerations. Overall, the excellent service access is outweighed by the apparent mismatch in scale and unverified conversion feasibility.",
+        "final_ranking_score": 17,
+        "pros": [
+          "Healthcare proximity is high (92.46), matching the stated preference for access to healthcare services.",
+          "Public transport accessibility is strong (98.83), supporting access for residents, staff, and visitors.",
+          "Commercial (92.78) and education (99.72) proximity scores indicate broad access to local services."
+        ],
+        "cons": [
+          "The recorded surface area is 12.66 m², and the data do not support an RSA-scale accommodation or establish capacity for the required rooms and shared functions.",
+          "The property is listed as Residential (Temporary/Holiday), not a hotel building; planning compatibility, change of use, and sector authorization need verification.",
+          "Energy class F and the lowest listed energy sub-scores (total 4) indicate significant energy-efficiency concerns; the 1960 construction period also makes technical condition and upgrade needs important to assess."
+        ]
+      },
+      {
+        "id": "16496",
+        "evaluation_text": "The property offers excellent proximity to healthcare services (91.66) and strong access to mobility, commercial services, and education. However, its 43.33 m² area and residential temporary/holiday classification do not establish suitability for a senior residential care facility. The supplied regulatory result identifies the RSA use case but lists no screening requirements; it provides no verified minimum gross property area. The regional standards cover specific net-use areas and facility configuration, so they cannot be used to determine whether this property's gross area is sufficient. Urban-planning compatibility, change-of-use authorization, accessibility, room layout, safety, and sector authorization all require verification. Its energy class is D, with a low total energy score of 8/20. Overall, the healthcare location is attractive, but the available data indicate substantial uncertainty about conversion feasibility and scale.",
+        "final_ranking_score": 17,
+        "pros": [
+          "Healthcare proximity is high at 91.66, directly matching the stated preference.",
+          "Mobility (91.54) and commercial services (91.68) are also strong, supporting convenient access to urban services.",
+          "Energy class D and a thermal plant score of 3/5 provide some positive baseline information, although overall energy performance is limited."
+        ],
+        "cons": [
+          "At 43.33 m², the property is small for the proposed institutional use; the data do not establish that it can accommodate required RSA functions or rooms.",
+          "Its residential temporary/holiday classification does not establish urban-planning compatibility or authorization for an RSA conversion; these require verification.",
+          "The energy total is low at 8/20, with envelope and renewables scores of 1/5 each, suggesting potential improvement needs."
+        ]
+      },
+      {
+        "id": "16497",
+        "evaluation_text": "The property has strong locational appeal for a senior care project, particularly given its high healthcare proximity percentile (91.66) and central access to mobility and services. However, the supplied data describe a 37.75 sqm residential temporary/holiday property, which does not establish suitability for an RSA’s required room mix, resident capacity, accessibility, or authorization. The verified 12 sqm standard applies only to a single bedroom’s net area; it is not a whole-property threshold. Urban-planning compatibility, change of use, building and hygiene requirements, fire and structural safety, and sector authorization all require verification. The low deterministic score of 17 reflects the limited evidenced fit despite the favorable location.",
+        "final_ranking_score": 17,
+        "pros": [
+          "Healthcare proximity is high at 91.66 percentile, matching the stated preference.",
+          "Mobility (91.54), commercial services (91.68), and education (90.91) percentiles indicate strong access to urban services.",
+          "The 1950 construction date and residential use provide a possible starting point for adaptive reuse, subject to feasibility checks."
+        ],
+        "cons": [
+          "At 37.75 sqm, the recorded property area provides little evidenced capacity for the rooms and shared functions described in the RSA standards; actual layout and net areas are unknown.",
+          "The property is listed as Residential (Temporary/Holiday), and urban-planning compatibility, change-of-use permission, and sector authorization are unverified.",
+          "Energy performance is modest (class D; total 8), with low envelope and renewables scores; accessibility, hygiene, fire safety, and structural suitability also need verification."
+        ]
+      }
+    ],
+    "relaxation_applied": true,
+    "relaxation_count": 1,
+    "fallback_activated": false,
+    "agent_errors": []
+  }
+}

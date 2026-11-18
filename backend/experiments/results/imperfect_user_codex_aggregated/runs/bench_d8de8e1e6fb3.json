@@ -1,0 +1,1084 @@
+{
+  "run_id": "bench_d8de8e1e6fb3",
+  "condition": "refined",
+  "unit_id": "MS07_k2_vague",
+  "scenario_id": "MS07_k2_vague",
+  "base_case_id": "UC07_RSA_missing_use",
+  "missing_count": 2,
+  "scenario_name": "2 omitted dimensions; intended use: Senior Residential Care (RSA); vague first answer on Cb",
+  "tags": [
+    "edbt",
+    "controlled_missingness_v3",
+    "missing_2",
+    "UC07_RSA_missing_use",
+    "imperfect_user",
+    "vague"
+  ],
+  "model": "gpt-6-luna",
+  "repeat": 1,
+  "attempt": 2,
+  "input_sha256": "4609982b4ffbd0c93fed9f85782bd19a60496a5a1947ae6df9fd6e6d895ed6c7",
+  "scenario_sha256": "4609982b4ffbd0c93fed9f85782bd19a60496a5a1947ae6df9fd6e6d895ed6c7",
+  "initial_query": "I am looking for a hotel building. I intend to convert it into a residential senior care facility (RSA). I prefer a property in energy class D or better. I prefer properties near healthcare services.",
+  "options": {
+    "dataset_key": "full",
+    "map_limit": 1000,
+    "llm_limit": 10,
+    "analysis_mode": "agent",
+    "use_relaxation": true,
+    "use_data_knowledge": true,
+    "architecture": "multiagent",
+    "disabled_agents": null
+  },
+  "started_at": "2026-11-18T17:02:58.849764+00:00",
+  "clarification_seconds": 57.921,
+  "analysis_seconds": 128.61,
+  "conversation": {
+    "session_id": "58533c9f-f1e4-4974-bea8-10461d356813",
+    "initial_dimension_state": {
+      "I": {
+        "status": "SPECIFIED",
+        "value": "hotel building",
+        "evidence": "“a hotel building”"
+      },
+      "D": {
+        "status": "SPECIFIED",
+        "value": "Residential senior care (RSA)",
+        "evidence": "“convert it into a residential senior care facility (RSA)”"
+      },
+      "L": {
+        "status": "UNCONFIRMED_ABSENT",
+        "value": null,
+        "evidence": null
+      },
+      "Cb": {
+        "status": "UNCONFIRMED_ABSENT",
+        "value": null,
+        "evidence": null
+      },
+      "Ce": {
+        "status": "SPECIFIED",
+        "value": "Energy class D or better",
+        "evidence": "“in energy class D or better”"
+      },
+      "Cp": {
+        "status": "SPECIFIED",
+        "value": "Healthcare services",
+        "evidence": "“near healthcare services”"
+      }
+    },
+    "initial_missing": [
+      "Cb",
+      "L"
+    ],
+    "expected_initial_missing": [
+      "Cb",
+      "L"
+    ],
+    "missing_detection": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "turns": [
+      {
+        "question": "Which city or area should I search in, or does location not matter?",
+        "target_dimensions": [
+          "L"
+        ],
+        "times_asked_before": {
+          "L": 0
+        },
+        "answer": "The location is in Turin.",
+        "question_source": "llm_query_parser",
+        "status_after": "ASK",
+        "turn_after": 1,
+        "dimension_state_after": {
+          "I": {
+            "status": "SPECIFIED",
+            "value": "hotel building",
+            "evidence": "“a hotel building”"
+          },
+          "D": {
+            "status": "SPECIFIED",
+            "value": "Residential senior care (RSA)",
+            "evidence": "“convert it into a residential senior care facility (RSA)”"
+          },
+          "L": {
+            "status": "SPECIFIED",
+            "value": "Turin",
+            "evidence": "The location is in Turin."
+          },
+          "Cb": {
+            "status": "UNCONFIRMED_ABSENT",
+            "value": null,
+            "evidence": null
+          },
+          "Ce": {
+            "status": "SPECIFIED",
+            "value": "Energy class D or better",
+            "evidence": "“in energy class D or better”"
+          },
+          "Cp": {
+            "status": "SPECIFIED",
+            "value": "Healthcare services",
+            "evidence": "“near healthcare services”"
+          }
+        }
+      },
+      {
+        "question": "Are there any building constraints that would help, such as minimum floor area, occupancy capacity, or structural features, or do these not matter?",
+        "target_dimensions": [
+          "Cb"
+        ],
+        "times_asked_before": {
+          "Cb": 0
+        },
+        "answer": "It depends; something suitable for the project, I guess.",
+        "question_source": "llm_query_parser",
+        "status_after": "ASK",
+        "turn_after": 2,
+        "dimension_state_after": {
+          "I": {
+            "status": "SPECIFIED",
+            "value": "hotel building",
+            "evidence": "“a hotel building”"
+          },
+          "D": {
+            "status": "SPECIFIED",
+            "value": "Residential senior care (RSA)",
+            "evidence": "“convert it into a residential senior care facility (RSA)”"
+          },
+          "L": {
+            "status": "SPECIFIED",
+            "value": "Turin",
+            "evidence": "The location is in Turin."
+          },
+          "Cb": {
+            "status": "UNCONFIRMED_ABSENT",
+            "value": null,
+            "evidence": null
+          },
+          "Ce": {
+            "status": "SPECIFIED",
+            "value": "Energy class D or better",
+            "evidence": "“in energy class D or better”"
+          },
+          "Cp": {
+            "status": "SPECIFIED",
+            "value": "Healthcare services",
+            "evidence": "“near healthcare services”"
+          }
+        }
+      },
+      {
+        "question": "Could you specify the minimum floor area, occupancy capacity, or structural features the building needs for an RSA conversion, or should those details remain flexible?",
+        "target_dimensions": [
+          "Cb"
+        ],
+        "times_asked_before": {
+          "Cb": 1
+        },
+        "answer": "I need a property with at least 1600 sqm of gross floor area and capacity for 30 people.",
+        "question_source": "llm_omission_question",
+        "status_after": "READY",
+        "turn_after": 3,
+        "dimension_state_after": {
+          "I": {
+            "status": "SPECIFIED",
+            "value": "hotel building",
+            "evidence": "“a hotel building”"
+          },
+          "D": {
+            "status": "SPECIFIED",
+            "value": "Residential senior care (RSA)",
+            "evidence": "“convert it into a residential senior care facility (RSA)”"
+          },
+          "L": {
+            "status": "SPECIFIED",
+            "value": "Turin",
+            "evidence": "The location is in Turin."
+          },
+          "Cb": {
+            "status": "SPECIFIED",
+            "value": "At least 1600 sqm gross floor area; capacity for 30 people",
+            "evidence": "at least 1600 sqm of gross floor area and capacity for 30 people"
+          },
+          "Ce": {
+            "status": "SPECIFIED",
+            "value": "Energy class D or better",
+            "evidence": "“in energy class D or better”"
+          },
+          "Cp": {
+            "status": "SPECIFIED",
+            "value": "Healthcare services",
+            "evidence": "“near healthcare services”"
+          }
+        }
+      }
+    ],
+    "messages": [
+      {
+        "role": "user",
+        "content": "I am looking for a hotel building. I intend to convert it into a residential senior care facility (RSA). I prefer a property in energy class D or better. I prefer properties near healthcare services."
+      },
+      {
+        "role": "assistant",
+        "content": "Which city or area should I search in, or does location not matter?"
+      },
+      {
+        "role": "user",
+        "content": "The location is in Turin."
+      },
+      {
+        "role": "assistant",
+        "content": "Are there any building constraints that would help, such as minimum floor area, occupancy capacity, or structural features, or do these not matter?"
+      },
+      {
+        "role": "user",
+        "content": "It depends; something suitable for the project, I guess."
+      },
+      {
+        "role": "assistant",
+        "content": "Could you specify the minimum floor area, occupancy capacity, or structural features the building needs for an RSA conversion, or should those details remain flexible?"
+      },
+      {
+        "role": "user",
+        "content": "I need a property with at least 1600 sqm of gross floor area and capacity for 30 people."
+      },
+      {
+        "role": "assistant",
+        "content": "Query submitted for review: I’m looking for a hotel building in Turin to convert into a residential senior care facility (RSA). It must have at least 1,600 sqm of gross floor area and capacity for 30 people. I prefer energy class D or better and a location near healthcare services."
+      },
+      {
+        "role": "user",
+        "content": "Confirmed."
+      }
+    ],
+    "dimension_state": {
+      "I": {
+        "status": "SPECIFIED",
+        "value": "hotel building",
+        "evidence": "“a hotel building”"
+      },
+      "D": {
+        "status": "SPECIFIED",
+        "value": "Residential senior care (RSA)",
+        "evidence": "“convert it into a residential senior care facility (RSA)”"
+      },
+      "L": {
+        "status": "SPECIFIED",
+        "value": "Turin",
+        "evidence": "The location is in Turin."
+      },
+      "Cb": {
+        "status": "SPECIFIED",
+        "value": "At least 1600 sqm gross floor area; capacity for 30 people",
+        "evidence": "at least 1600 sqm of gross floor area and capacity for 30 people"
+      },
+      "Ce": {
+        "status": "SPECIFIED",
+        "value": "Energy class D or better",
+        "evidence": "“in energy class D or better”"
+      },
+      "Cp": {
+        "status": "SPECIFIED",
+        "value": "Healthcare services",
+        "evidence": "“near healthcare services”"
+      }
+    },
+    "mapping": {
+      "I": "SPECIFIED",
+      "D": "SPECIFIED",
+      "L": "SPECIFIED",
+      "Cb": "SPECIFIED",
+      "Ce": "SPECIFIED",
+      "Cp": "SPECIFIED"
+    },
+    "expected_mapping": {
+      "I": "SPECIFIED",
+      "D": "SPECIFIED",
+      "L": "SPECIFIED",
+      "Cb": "SPECIFIED",
+      "Ce": "SPECIFIED",
+      "Cp": "SPECIFIED"
+    },
+    "mapping_accuracy": 1.0,
+    "no_clarification": false,
+    "status": "READY",
+    "refined_query": "I’m looking for a hotel building in Turin to convert into a residential senior care facility (RSA). It must have at least 1,600 sqm of gross floor area and capacity for 30 people. I prefer energy class D or better and a location near healthcare services.",
+    "reviewed_query": "I’m looking for a hotel building in Turin to convert into a residential senior care facility (RSA). It must have at least 1,600 sqm of gross floor area and capacity for 30 people. I prefer energy class D or better and a location near healthcare services."
+  },
+  "submitted_query": "I’m looking for a hotel building in Turin to convert into a residential senior care facility (RSA). It must have at least 1,600 sqm of gross floor area and capacity for 30 people. I prefer energy class D or better and a location near healthcare services.",
+  "status": "completed",
+  "results_count": 14,
+  "top_ids": [
+    "18989",
+    "12669",
+    "19368",
+    "16696",
+    "23211",
+    "18830",
+    "19122",
+    "M03584",
+    "18514",
+    "M03578"
+  ],
+  "quality": {
+    "expected_count": 0,
+    "matched_expected": null,
+    "precision_at_returned": null,
+    "recall": null
+  },
+  "final_sql": "SELECT\n  *\nFROM ESTATES\nWHERE\n  property_type IN (\n    'Hotels, pensions, and similar',\n    'Commercial activities and similar',\n    'Bars, restaurants, dance halls and similar'\n  )\n  AND surface_area >= 1200\n  AND energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C', 'D', 'E')\n  AND healthcare >= 85\n  AND HAVERSINE_KM(latitude, longitude, 45.0677551, 7.6824892) <= 3.0\nORDER BY\n  HAVERSINE_KM(latitude, longitude, 45.0677551, 7.6824892) ASC",
+  "duration_seconds": 186.545,
+  "scenario_definition": {
+    "id": "MS07_k2_vague",
+    "name": "2 omitted dimensions; intended use: Senior Residential Care (RSA); vague first answer on Cb",
+    "tags": [
+      "edbt",
+      "controlled_missingness_v3",
+      "missing_2",
+      "UC07_RSA_missing_use",
+      "imperfect_user",
+      "vague"
+    ],
+    "base_case_id": "UC07_RSA_missing_use",
+    "missing_count": 2,
+    "initial_query": "I am looking for a hotel building. I intend to convert it into a residential senior care facility (RSA). I prefer a property in energy class D or better. I prefer properties near healthcare services.",
+    "one_shot_query": "I am looking for a hotel building. I intend to convert it into a residential senior care facility (RSA). I prefer a property in energy class D or better. I prefer properties near healthcare services.",
+    "oracle_query": "Find a hotel building to convert it into a residential senior care facility (RSA) for 30 residents in Turin with at least 1600 sqm of gross floor area in energy class D or better near healthcare services.",
+    "expected_initial_missing": [
+      "Cb",
+      "L"
+    ],
+    "clarifications": {
+      "I": "I am looking for a hotel building.",
+      "D": "I intend to convert it into a residential senior care facility (RSA).",
+      "L": "The location is in Turin.",
+      "Cb": [
+        "It depends; something suitable for the project, I guess.",
+        "I need a property with at least 1600 sqm of gross floor area and capacity for 30 people."
+      ],
+      "Ce": "I prefer a property in energy class D or better.",
+      "Cp": "I prefer properties near healthcare services."
+    },
+    "expected_mapping": {
+      "I": "SPECIFIED",
+      "D": "SPECIFIED",
+      "L": "SPECIFIED",
+      "Cb": "SPECIFIED",
+      "Ce": "SPECIFIED",
+      "Cp": "SPECIFIED"
+    },
+    "repeats": 1,
+    "imperfect_user": {
+      "profile": "vague",
+      "dimension": "Cb"
+    }
+  },
+  "artifact_file": "runs/bench_d8de8e1e6fb3.json",
+  "artifact_schema_version": 4,
+  "ranking_ids": [
+    "18989",
+    "12669",
+    "19368",
+    "16696",
+    "23211",
+    "18830",
+    "19122",
+    "M03584",
+    "18514",
+    "M03578",
+    "16845",
+    "M00720",
+    "24265",
+    "M04648"
+  ],
+  "top": [
+    {
+      "id": "18989",
+      "score": 86.79400000000001,
+      "distance_km": 0.31
+    },
+    {
+      "id": "12669",
+      "score": 80.712,
+      "distance_km": 0.99
+    },
+    {
+      "id": "19368",
+      "score": 65.311,
+      "distance_km": 1.03
+    },
+    {
+      "id": "16696",
+      "score": 60.31,
+      "distance_km": 0.31
+    },
+    {
+      "id": "23211",
+      "score": 55.65,
+      "distance_km": 1.25
+    },
+    {
+      "id": "18830",
+      "score": 54.552,
+      "distance_km": 0.08
+    },
+    {
+      "id": "19122",
+      "score": 53.549,
+      "distance_km": 0.53
+    },
+    {
+      "id": "M03584",
+      "score": 53.176,
+      "distance_km": 0.18
+    },
+    {
+      "id": "18514",
+      "score": 53.028,
+      "distance_km": 1.01
+    },
+    {
+      "id": "M03578",
+      "score": 51.88,
+      "distance_km": 0.12
+    }
+  ],
+  "api_response": {
+    "agent_trace": [
+      {
+        "agent_name": "regulatory-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "found": false,
+          "matched_use_cases": [
+            "Senior Residential Care (RSA)"
+          ],
+          "requirements": []
+        }
+      },
+      {
+        "agent_name": "location-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "places": [
+            {
+              "name": "Turin",
+              "city": "Turin",
+              "lat": 45.0677551,
+              "lon": 7.6824892,
+              "radius_km": 3.0
+            }
+          ],
+          "found": true
+        }
+      },
+      {
+        "agent_name": "proximity-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "requirements": [
+            {
+              "target_column": "healthcare",
+              "operator": ">=",
+              "value": 90,
+              "description": "Near healthcare services; threshold rounded to the 75th percentile of 89.9."
+            }
+          ]
+        }
+      },
+      {
+        "agent_name": "building-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "typologies": [
+            "Hotels, pensions, and similar"
+          ],
+          "found": true,
+          "requirements": [
+            {
+              "target_column": "surface_area",
+              "operator": ">=",
+              "value": 1600,
+              "description": "The requested minimum gross floor area is 1,600 sqm."
+            }
+          ]
+        }
+      },
+      {
+        "agent_name": "ranking-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "ranking": [
+            {
+              "agent_name": "location",
+              "rank": 1
+            },
+            {
+              "agent_name": "building",
+              "rank": 1
+            },
+            {
+              "agent_name": "regulatory",
+              "rank": 1
+            },
+            {
+              "agent_name": "energy",
+              "rank": 2
+            },
+            {
+              "agent_name": "proximity",
+              "rank": 2
+            }
+          ],
+          "weights": {
+            "location": 0.26,
+            "regulatory": 0.25,
+            "energy": 0.12,
+            "building": 0.25,
+            "proximity": 0.12
+          }
+        }
+      },
+      {
+        "agent_name": "energy-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "requirements": [
+            {
+              "target_column": "energy_class",
+              "operator": "IN",
+              "value": [
+                "A1",
+                "A2",
+                "A3",
+                "A4",
+                "B",
+                "C",
+                "D"
+              ],
+              "description": "Energy class D or better"
+            }
+          ],
+          "found": true
+        }
+      },
+      {
+        "agent_name": "sql-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "sql": "SELECT * FROM ESTATES WHERE property_type = 'Hotels, pensions, and similar' AND surface_area >= 1600 AND energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C', 'D') AND healthcare >= 90 AND haversine_km(latitude, longitude, 45.0677551, 7.6824892) <= 3.0 ORDER BY haversine_km(latitude, longitude, 45.0677551, 7.6824892) ASC",
+          "explanation": "Filters for the specified hotel type, minimum area, energy classes, healthcare score, and 3 km radius, then sorts by distance."
+        }
+      },
+      {
+        "agent_name": "relaxation-agent",
+        "agent_mode": "extraction",
+        "output": [
+          {
+            "condizione_iniziale": "property_type = 'Hotels, pensions, and similar'",
+            "condizione_relaxed": "property_type IN ('Hotels, pensions, and similar', 'Commercial activities and similar', 'Bars, restaurants, dance halls and similar')",
+            "piani_progressivi": [],
+            "strategia": "Category widening",
+            "motivazione": "Hotels are commercial properties, so adding commercial activities and similar categories is a plausible widening while preserving the focus on non-residential properties.",
+            "livello_rilassamento": "low"
+          },
+          {
+            "condizione_iniziale": "property_type = 'Hotels, pensions, and similar'",
+            "condizione_relaxed": "property_type IN ('Hotels, pensions, and similar', 'Commercial activities and similar', 'Bars, restaurants, dance halls and similar', 'Offices and similar')",
+            "piani_progressivi": [],
+            "strategia": "Category widening",
+            "motivazione": "Including offices expands the search to other commercial property types that may serve a similar investment purpose.",
+            "livello_rilassamento": "medium"
+          },
+          {
+            "condizione_iniziale": "property_type = 'Hotels, pensions, and similar'",
+            "condizione_relaxed": "property_type IN ('Hotels, pensions, and similar', 'Commercial activities and similar', 'Bars, restaurants, dance halls and similar', 'Offices and similar', 'Residential (Temporary/Holiday)')",
+            "piani_progressivi": [],
+            "strategia": "Category widening",
+            "motivazione": "Temporary or holiday residences are adjacent to lodging properties and broaden the search while retaining a hospitality-related focus.",
+            "livello_rilassamento": "high"
+          },
+          {
+            "condizione_iniziale": "surface_area >= 1600",
+            "condizione_relaxed": "surface_area >= 1200",
+            "piani_progressivi": [],
+            "strategia": "Threshold change",
+            "motivazione": "Reducing the minimum area modestly may include large properties below the original threshold; the dataset mean is 1047.48, while its median is 70.14.",
+            "livello_rilassamento": "low"
+          },
+          {
+            "condizione_iniziale": "surface_area >= 1600",
+            "condizione_relaxed": "surface_area >= 500",
+            "piani_progressivi": [],
+            "strategia": "Threshold change",
+            "motivazione": "A lower minimum of 500 still selects substantial properties and moves closer to the dataset mean of 1047.48.",
+            "livello_rilassamento": "medium"
+          },
+          {
+            "condizione_iniziale": "surface_area >= 1600",
+            "condizione_relaxed": "surface_area >= 109.71",
+            "piani_progressivi": [],
+            "strategia": "Threshold change",
+            "motivazione": "Using the 75th percentile as the minimum considerably broadens the search while retaining properties larger than most records.",
+            "livello_rilassamento": "high"
+          },
+          {
+            "condizione_iniziale": "energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C', 'D')",
+            "condizione_relaxed": "energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C', 'D', 'E')",
+            "piani_progressivi": [],
+            "strategia": "Category widening",
+            "motivazione": "Adding the adjacent E class expands the eligible set by 10632 records while preserving the preference for better-rated properties.",
+            "livello_rilassamento": "low"
+          },
+          {
+            "condizione_iniziale": "energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C', 'D')",
+            "condizione_relaxed": "energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C', 'D', 'E', 'F')",
+            "piani_progressivi": [],
+            "strategia": "Category widening",
+            "motivazione": "Including E and F adds common adjacent energy classes and substantially increases the eligible population.",
+            "livello_rilassamento": "medium"
+          },
+          {
+            "condizione_iniziale": "energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C', 'D')",
+            "condizione_relaxed": "energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C', 'D', 'E', 'F', 'G')",
+            "piani_progressivi": [],
+            "strategia": "Category widening",
+            "motivazione": "Including all observed energy classes removes this restriction and is the broadest progression supported by the supplied categories.",
+            "livello_rilassamento": "high"
+          },
+          {
+            "condizione_iniziale": "healthcare >= 90",
+            "condizione_relaxed": "healthcare >= 85",
+            "piani_progressivi": [],
+            "strategia": "Threshold change",
+            "motivazione": "Lowering the threshold to 85 modestly widens eligibility while keeping the score above the dataset median of 80.08.",
+            "livello_rilassamento": "low"
+          },
+          {
+            "condizione_iniziale": "healthcare >= 90",
+            "condizione_relaxed": "healthcare >= 80.08",
+            "piani_progressivi": [],
+            "strategia": "Threshold change",
+            "motivazione": "The median threshold includes approximately the upper half of records and provides a statistics-based broader cutoff.",
+            "livello_rilassamento": "medium"
+          },
+          {
+            "condizione_iniziale": "healthcare >= 90",
+            "condizione_relaxed": "healthcare >= 70.14",
+            "piani_progressivi": [],
+            "strategia": "Threshold change",
+            "motivazione": "The 25th percentile cutoff broadens the eligible scores substantially while excluding the lowest-scoring quarter.",
+            "livello_rilassamento": "high"
+          },
+          {
+            "condizione_iniziale": "HAVERSINE_KM(latitude, longitude, 45.0677551, 7.6824892) <= 3.0",
+            "condizione_relaxed": "HAVERSINE_KM(latitude, longitude, 45.0677551, 7.6824892) <= 4.0",
+            "piani_progressivi": [],
+            "strategia": "Radius expansion",
+            "motivazione": "Expanding the search radius by one kilometer may include nearby properties while keeping the location constraint focused.",
+            "livello_rilassamento": "low"
+          },
+          {
+            "condizione_iniziale": "HAVERSINE_KM(latitude, longitude, 45.0677551, 7.6824892) <= 3.0",
+            "condizione_relaxed": "HAVERSINE_KM(latitude, longitude, 45.0677551, 7.6824892) <= 5.0",
+            "piani_progressivi": [],
+            "strategia": "Radius expansion",
+            "motivazione": "A five-kilometer radius broadens the nearby search while remaining geographically local.",
+            "livello_rilassamento": "medium"
+          },
+          {
+            "condizione_iniziale": "HAVERSINE_KM(latitude, longitude, 45.0677551, 7.6824892) <= 3.0",
+            "condizione_relaxed": "HAVERSINE_KM(latitude, longitude, 45.0677551, 7.6824892) <= 8.0",
+            "piani_progressivi": [],
+            "strategia": "Radius expansion",
+            "motivazione": "An eight-kilometer radius provides a broader local search when the original area returns too few results.",
+            "livello_rilassamento": "high"
+          }
+        ],
+        "batch_id": null,
+        "timestamp": "2026-11-18T18:05:07.696984",
+        "execution_time_ms": 42671.36216163635
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "19368",
+          "evaluation_text": "The property has strategic appeal for an RSA conversion because it is in Turin, has strong healthcare proximity (90.26), and meets the stated energy preference with EPC class D. Its central location and strong mobility score may also support access for residents, staff, and visitors. However, the supplied property record does not establish that this is a hotel, that its area meets the requested minimum of 1,600 sqm, or that it can accommodate 30 people. The reported surface_area is 15,880,627.08, but its unit and relationship to gross floor area are not established, so it cannot confirm the area requirement. RSA conversion would require planning, building-use, hygiene, accessibility, fire-safety where applicable, structural, and sector authorization checks. The cited regional room and shared-space standards describe net functional areas and do not establish a minimum gross property area.",
+          "final_ranking_score": 65,
+          "pros": [
+            "EPC class D meets the stated energy-class preference; the thermal plant score is strong at 5.",
+            "Healthcare proximity is high at 90.26, aligning with the location preference.",
+            "The mobility score of 91.08 and central Turin location support access for residents, staff, and visitors."
+          ],
+          "cons": [
+            "The record identifies the property as commercial activities and similar, not as a hotel; its suitability as a hotel building is unverified.",
+            "The dataset does not establish gross floor area in sqm or confirm the requested minimum of 1,600 sqm; the reported surface_area value has no specified unit.",
+            "Capacity for 30 people and compliance with RSA layout, accessibility, planning, hygiene, structural, fire-safety, and sector authorization requirements remain unverified."
+          ]
+        },
+        "batch_id": 1,
+        "timestamp": "2026-11-18T18:05:24.700966",
+        "execution_time_ms": 16882.266998291016
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "18989",
+          "evaluation_text": "This hotel in central Turin is a strong candidate for conversion: its 9,974.26 sqm gross area substantially exceeds the requested 1,600 sqm threshold, and the existing hotel use offers a relevant starting point for assessing residential care adaptation. Energy class B meets the preference for D or better, and healthcare proximity is high (92.19). The supplied regulatory result identifies the RSA use case but reports no verified minimum gross property area. It provides specific net room and shared-space standards; these cannot establish whether this building’s layout meets them. Urban-planning compatibility, change-of-use authorization, accessibility, safety, sanitary standards, and sector authorization require verification. The stated 30-person capacity likewise cannot be confirmed from gross area alone.",
+          "final_ranking_score": 87,
+          "pros": [
+            "Hotel property type and 9,974.26 sqm gross area make it a substantial candidate for the requested conversion and exceed the user's stated area threshold.",
+            "Energy class B is better than the preferred D threshold.",
+            "Healthcare proximity percentile of 92.19 is strong; mobility (99.1) and education (99.83) are also high."
+          ],
+          "cons": [
+            "The data do not establish that the building can accommodate 30 residents or meet RSA room, shared-space, and service requirements; layout and net usable areas need assessment.",
+            "The regulatory result identifies no verified gross-area minimum; planning compatibility, change of use, accessibility, sanitary and safety requirements, and sector authorization remain to be checked.",
+            "Despite energy class B, the energy subscores show a low envelope rating (1) and no renewables reported (1), which may indicate upgrade needs."
+          ]
+        },
+        "batch_id": 2,
+        "timestamp": "2026-11-18T18:05:24.911056",
+        "execution_time_ms": 17096.52590751648
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "12669",
+          "evaluation_text": "This 3,682.01 sqm hotel property in central Turin is a strong candidate for conversion to a senior residential care facility: its reported gross area exceeds the requested 1,600 sqm, and its hotel use may offer a relevant starting point for adaptation. Its A3 energy class exceeds the user's D-or-better preference, while healthcare proximity is high at 89.47. The data do not establish capacity for 30 residents, room layouts, planning compatibility, accessibility, or technical and authorization feasibility. The cited regional standard specifies net areas for particular rooms and functions, not a minimum gross area for the entire property; the applicable checks and authorization process therefore remain material.",
+          "final_ranking_score": 81,
+          "pros": [
+            "Reported gross area of 3,682.01 sqm exceeds the 1,600 sqm target, although capacity for 30 residents requires confirmation through a layout and feasibility review.",
+            "Energy class A3 is better than the requested D-or-better preference; the energy data also report a high class score and a total energy score of 14/20.",
+            "Healthcare proximity percentile is 89.47, supporting the preference for a location near healthcare services; mobility, green space, commercial services, and education also score highly."
+          ],
+          "cons": [
+            "The supplied data do not confirm that the building can accommodate 30 residents or provide the required bedroom, communal, and service spaces at compliant net areas.",
+            "Urban-planning compatibility, change-of-use authorization, hygiene and accessibility requirements, fire and structural safety, and sector authorization all require verification.",
+            "The building dates to 1850; despite its A3 rating, the reported envelope score is 3/5 and renewables score is 1/5, so the condition and scope of any adaptation works need assessment."
+          ]
+        },
+        "batch_id": 3,
+        "timestamp": "2026-11-18T18:05:25.274972",
+        "execution_time_ms": 17459.946632385254
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "16696",
+          "evaluation_text": "This large central Turin property is a promising candidate for conversion to a 30-person RSA: its reported 10,171.92 sqm gross area substantially exceeds the user's 1,600 sqm target, and healthcare proximity is exceptionally high. However, the data do not establish that it is currently a hotel, that its layout can accommodate the required care functions, or that the conversion is authorized and technically feasible. Its energy class E misses the preferred D-or-better threshold. The cited regional standard gives net room and function-specific requirements, while no verified minimum gross property area is supplied; the 12 sqm figure applies only to a single bedroom. Urban-planning compatibility, change-of-use approvals, health and accessibility requirements, fire and structural safety, and sector authorization require verification.",
+          "final_ranking_score": 60,
+          "pros": [
+            "Reported gross area of 10,171.92 sqm comfortably exceeds the user's 1,600 sqm target, subject to verification of the area and its measurement basis.",
+            "Healthcare proximity percentile is exceptionally high at 99.98, aligning closely with the user's location preference.",
+            "Central location with strong mobility (91.46), commercial services (92.44), and education (91.63) proximity percentiles."
+          ],
+          "cons": [
+            "Energy class E is below the preferred D-or-better level; the envelope score is 1 and renewables score is 1, indicating areas for investigation in any retrofit.",
+            "The listed property type is commercial activities and similar, not hotel; existing room configuration and suitability for 30 residents are not established.",
+            "Conversion feasibility is unverified: planning compatibility, change-of-use approvals, sanitary and accessibility compliance, fire and structural safety, and sector authorization all require checks."
+          ]
+        },
+        "batch_id": 4,
+        "timestamp": "2026-11-18T18:05:26.154492",
+        "execution_time_ms": 18334.836721420288
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "18830",
+          "evaluation_text": "The property is centrally located in Turin and has excellent proximity to healthcare services (99.89). Its energy class B meets the stated preference for D or better, and its commercial use may offer a basis for conversion. However, its reported area of 1,320.7 sqm is below the requested 1,600 sqm, and the data do not establish capacity for 30 residents or suitability for RSA use. Conversion would require verification of planning compatibility, change-of-use and building permits, health and accessibility requirements, structural and fire safety, and sector authorization. The cited regional standard covers net areas for specific rooms and shared functions; it does not establish a minimum gross area for the property.",
+          "final_ranking_score": 55,
+          "pros": [
+            "Energy class B meets the user's preference for D or better.",
+            "Healthcare proximity is exceptionally high (99.89), supporting the preferred location criterion.",
+            "The central Turin location and existing commercial use provide a potential starting point for assessing a change of use."
+          ],
+          "cons": [
+            "Reported area is 1,320.7 sqm, 279.3 sqm below the requested 1,600 sqm.",
+            "The data do not confirm whether the building can accommodate 30 residents or meet RSA room and shared-space requirements.",
+            "Planning compatibility, conversion authorization, accessibility, health standards, structural and fire safety, and sector authorization require verification."
+          ]
+        },
+        "batch_id": 5,
+        "timestamp": "2026-11-18T18:05:40.761858",
+        "execution_time_ms": 15850.747346878052
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "19122",
+          "evaluation_text": "The property offers a strong location for a senior care conversion, with healthcare proximity at 92.14 and excellent public transport access. Its reported energy class B meets the stated preference for class D or better. However, its 1,570.7 sqm surface area is below the requested 1,600 sqm gross floor area, and the supplied data do not establish capacity for 30 residents, a hotel use, or the feasibility of conversion. The regulatory data provide no verified minimum gross property area; their room and facility standards apply to specific net usable areas and functions. Urban-planning compatibility, change-of-use approval, accessibility, layout, and technical and sector authorization requirements need verification. Overall, location and energy class are favorable, while the area shortfall and unresolved conversion requirements limit its fit.",
+          "final_ranking_score": 54,
+          "pros": [
+            "Healthcare proximity is high (92.14), aligning with the preference for nearby healthcare services.",
+            "Energy class B is better than the requested threshold of D.",
+            "Excellent mobility access (99.09) and a central Turin location support accessibility for residents and visitors."
+          ],
+          "cons": [
+            "Reported surface area is 1,570.7 sqm, 29.3 sqm below the requested minimum of 1,600 sqm gross floor area.",
+            "The data do not establish capacity for 30 residents or confirm that the property is a hotel building.",
+            "Conversion feasibility remains unverified, including urban-planning compatibility, change of use, accessibility, layout, and required authorizations."
+          ]
+        },
+        "batch_id": 6,
+        "timestamp": "2026-11-18T18:05:41.454933",
+        "execution_time_ms": 16179.713487625122
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "23211",
+          "evaluation_text": "This hotel property in Turin offers a relevant starting point for conversion to a senior residential care facility: its hotel use aligns with the search, it was built in 2019, and its energy class D meets the stated preference. Healthcare proximity is strong (86.57), alongside good public transport access (87.77). However, the recorded area is 1,400 sqm, below the requested 1,600 sqm, and the supplied data do not establish capacity for 30 residents. The regulatory material provides room and function specific net-area standards but no verified minimum gross property area; it also identifies planning, change-of-use, accessibility, safety, and sector authorization checks. Conversion feasibility therefore requires detailed verification.",
+          "final_ranking_score": 56,
+          "pros": [
+            "Hotel classification offers a potentially relevant existing use for conversion, subject to planning and authorization checks.",
+            "Energy class D meets the user's stated preference; the property dates from 2019 and has a thermal plant score of 5.",
+            "Healthcare proximity is strong at 86.57, with public transport accessibility also high at 87.77."
+          ],
+          "cons": [
+            "The recorded 1,400 sqm is 200 sqm below the requested 1,600 sqm gross floor area.",
+            "Capacity for 30 residents is not established by the supplied property data, and room layout and required net areas need verification.",
+            "Urban-planning compatibility, change-of-use approval, accessibility, safety, and sector authorization remain required checks; the data do not establish conversion feasibility."
+          ]
+        },
+        "batch_id": 7,
+        "timestamp": "2026-11-18T18:05:42.483526",
+        "execution_time_ms": 17783.3251953125
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "M03584",
+          "evaluation_text": "The property has strong locational appeal for a senior residential care facility, with healthcare proximity at the 99.53 percentile and excellent access to mobility and services. Its energy class C meets the stated preference for class D or better, although the low energy sub-scores indicate weaknesses in the heating plant, building envelope, and renewable energy provision. The 1,300.29 sqm recorded surface area is below the requested 1,600 sqm gross floor area, and the data do not establish capacity for 30 residents. The supplied regional standard specifies net areas for individual rooms and shared functions; it provides no verified minimum gross property area, so those net figures cannot establish whether the property is large enough overall. Its current property type is commercial, and conversion, layout, urban-planning compatibility, accessibility, and sector authorization all require verification.",
+          "final_ranking_score": 53,
+          "pros": [
+            "Healthcare proximity is exceptionally strong (99.53 percentile), matching the location preference.",
+            "Energy class C meets the user's preference for class D or better.",
+            "Excellent mobility (91.57 percentile) and access to commercial services (99.88 percentile) support day-to-day accessibility."
+          ],
+          "cons": [
+            "Recorded surface area is 1,300.29 sqm, below the requested 1,600 sqm gross floor area.",
+            "The property data do not establish capacity for 30 people or suitable room and shared-space layouts.",
+            "Energy plant, envelope, and renewables score poorly; conversion from commercial use and the required planning, accessibility, safety, and authorization checks remain unresolved."
+          ]
+        },
+        "batch_id": 8,
+        "timestamp": "2026-11-18T18:05:44.416894",
+        "execution_time_ms": 18262.77208328247
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "18514",
+          "evaluation_text": "This Turin property offers strong energy performance and a well-served location for a potential senior residential care facility. Its A1 energy class exceeds the stated preference for D or better, and healthcare proximity is high (91.42). However, the recorded area is 1,339.26 sqm, below the requested 1,600 sqm gross floor area, and the data do not establish capacity for 30 residents or that the property is a hotel. The supplied regulatory context verifies room and shared-space standards but provides no validated minimum gross property area; the standards therefore do not establish overall area sufficiency. Urban-planning compatibility, change of use, accessibility, sanitary and safety requirements, and sector authorization require verification. Overall, the energy and location are attractive, while the stated area shortfall and unverified conversion suitability materially limit its fit.",
+          "final_ranking_score": 53,
+          "pros": [
+            "A1 energy class, exceeding the user's preference for D or better.",
+            "High healthcare proximity score of 91.42, consistent with the location preference.",
+            "Built in 2020, which may offer a favorable starting point for adaptation, subject to technical and regulatory checks."
+          ],
+          "cons": [
+            "Recorded surface area of 1,339.26 sqm is below the requested 1,600 sqm gross floor area.",
+            "Property data classify it as “Commercial activities and similar”; they do not establish that it is a hotel or that it can accommodate 30 residents.",
+            "RSA conversion feasibility is unverified, including urban-planning compatibility, change of use, accessibility, technical requirements, and sector authorization."
+          ]
+        },
+        "batch_id": 9,
+        "timestamp": "2026-11-18T18:05:49.268614",
+        "execution_time_ms": 8507.429122924805
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "M03578",
+          "evaluation_text": "This centrally located Turin property offers a strong healthcare-access advantage and meets the preferred energy threshold with class D. Its reported surface area of 1,300.77 sqm is below the requested 1,600 sqm gross floor area, and the data do not establish capacity for 30 residents or suitability for conversion from commercial use. The cited RSA standard gives specific net room and shared-space requirements, but establishes no verified minimum gross property area; those room standards cannot confirm overall area sufficiency. Urban planning compatibility, change-of-use approval, accessibility, health and safety requirements, layout, and sector authorization all require verification. The deterministic relevance score is 52.",
+          "final_ranking_score": 52,
+          "pros": [
+            "Energy class D meets the user's stated preference.",
+            "Healthcare proximity is exceptionally high (99.85), supporting access to services.",
+            "Central location with strong public transport (91.18) and nearby green areas (86.07)."
+          ],
+          "cons": [
+            "Reported surface area (1,300.77 sqm) is below the requested 1,600 sqm gross floor area.",
+            "The data do not establish a 30-person capacity or show that the layout can meet RSA room and shared-space requirements.",
+            "The property is listed as commercial; planning compatibility, change-of-use authorization, accessibility, safety, and sector authorization need verification."
+          ]
+        },
+        "batch_id": 10,
+        "timestamp": "2026-11-18T18:05:49.324342",
+        "execution_time_ms": 7870.06139755249
+      }
+    ],
+    "evaluation_results": [
+      {
+        "id": "18989",
+        "evaluation_text": "This hotel in central Turin is a strong candidate for conversion: its 9,974.26 sqm gross area substantially exceeds the requested 1,600 sqm threshold, and the existing hotel use offers a relevant starting point for assessing residential care adaptation. Energy class B meets the preference for D or better, and healthcare proximity is high (92.19). The supplied regulatory result identifies the RSA use case but reports no verified minimum gross property area. It provides specific net room and shared-space standards; these cannot establish whether this building’s layout meets them. Urban-planning compatibility, change-of-use authorization, accessibility, safety, sanitary standards, and sector authorization require verification. The stated 30-person capacity likewise cannot be confirmed from gross area alone.",
+        "final_ranking_score": 87,
+        "pros": [
+          "Hotel property type and 9,974.26 sqm gross area make it a substantial candidate for the requested conversion and exceed the user's stated area threshold.",
+          "Energy class B is better than the preferred D threshold.",
+          "Healthcare proximity percentile of 92.19 is strong; mobility (99.1) and education (99.83) are also high."
+        ],
+        "cons": [
+          "The data do not establish that the building can accommodate 30 residents or meet RSA room, shared-space, and service requirements; layout and net usable areas need assessment.",
+          "The regulatory result identifies no verified gross-area minimum; planning compatibility, change of use, accessibility, sanitary and safety requirements, and sector authorization remain to be checked.",
+          "Despite energy class B, the energy subscores show a low envelope rating (1) and no renewables reported (1), which may indicate upgrade needs."
+        ]
+      },
+      {
+        "id": "12669",
+        "evaluation_text": "This 3,682.01 sqm hotel property in central Turin is a strong candidate for conversion to a senior residential care facility: its reported gross area exceeds the requested 1,600 sqm, and its hotel use may offer a relevant starting point for adaptation. Its A3 energy class exceeds the user's D-or-better preference, while healthcare proximity is high at 89.47. The data do not establish capacity for 30 residents, room layouts, planning compatibility, accessibility, or technical and authorization feasibility. The cited regional standard specifies net areas for particular rooms and functions, not a minimum gross area for the entire property; the applicable checks and authorization process therefore remain material.",
+        "final_ranking_score": 81,
+        "pros": [
+          "Reported gross area of 3,682.01 sqm exceeds the 1,600 sqm target, although capacity for 30 residents requires confirmation through a layout and feasibility review.",
+          "Energy class A3 is better than the requested D-or-better preference; the energy data also report a high class score and a total energy score of 14/20.",
+          "Healthcare proximity percentile is 89.47, supporting the preference for a location near healthcare services; mobility, green space, commercial services, and education also score highly."
+        ],
+        "cons": [
+          "The supplied data do not confirm that the building can accommodate 30 residents or provide the required bedroom, communal, and service spaces at compliant net areas.",
+          "Urban-planning compatibility, change-of-use authorization, hygiene and accessibility requirements, fire and structural safety, and sector authorization all require verification.",
+          "The building dates to 1850; despite its A3 rating, the reported envelope score is 3/5 and renewables score is 1/5, so the condition and scope of any adaptation works need assessment."
+        ]
+      },
+      {
+        "id": "19368",
+        "evaluation_text": "The property has strategic appeal for an RSA conversion because it is in Turin, has strong healthcare proximity (90.26), and meets the stated energy preference with EPC class D. Its central location and strong mobility score may also support access for residents, staff, and visitors. However, the supplied property record does not establish that this is a hotel, that its area meets the requested minimum of 1,600 sqm, or that it can accommodate 30 people. The reported surface_area is 15,880,627.08, but its unit and relationship to gross floor area are not established, so it cannot confirm the area requirement. RSA conversion would require planning, building-use, hygiene, accessibility, fire-safety where applicable, structural, and sector authorization checks. The cited regional room and shared-space standards describe net functional areas and do not establish a minimum gross property area.",
+        "final_ranking_score": 65,
+        "pros": [
+          "EPC class D meets the stated energy-class preference; the thermal plant score is strong at 5.",
+          "Healthcare proximity is high at 90.26, aligning with the location preference.",
+          "The mobility score of 91.08 and central Turin location support access for residents, staff, and visitors."
+        ],
+        "cons": [
+          "The record identifies the property as commercial activities and similar, not as a hotel; its suitability as a hotel building is unverified.",
+          "The dataset does not establish gross floor area in sqm or confirm the requested minimum of 1,600 sqm; the reported surface_area value has no specified unit.",
+          "Capacity for 30 people and compliance with RSA layout, accessibility, planning, hygiene, structural, fire-safety, and sector authorization requirements remain unverified."
+        ]
+      },
+      {
+        "id": "16696",
+        "evaluation_text": "This large central Turin property is a promising candidate for conversion to a 30-person RSA: its reported 10,171.92 sqm gross area substantially exceeds the user's 1,600 sqm target, and healthcare proximity is exceptionally high. However, the data do not establish that it is currently a hotel, that its layout can accommodate the required care functions, or that the conversion is authorized and technically feasible. Its energy class E misses the preferred D-or-better threshold. The cited regional standard gives net room and function-specific requirements, while no verified minimum gross property area is supplied; the 12 sqm figure applies only to a single bedroom. Urban-planning compatibility, change-of-use approvals, health and accessibility requirements, fire and structural safety, and sector authorization require verification.",
+        "final_ranking_score": 60,
+        "pros": [
+          "Reported gross area of 10,171.92 sqm comfortably exceeds the user's 1,600 sqm target, subject to verification of the area and its measurement basis.",
+          "Healthcare proximity percentile is exceptionally high at 99.98, aligning closely with the user's location preference.",
+          "Central location with strong mobility (91.46), commercial services (92.44), and education (91.63) proximity percentiles."
+        ],
+        "cons": [
+          "Energy class E is below the preferred D-or-better level; the envelope score is 1 and renewables score is 1, indicating areas for investigation in any retrofit.",
+          "The listed property type is commercial activities and similar, not hotel; existing room configuration and suitability for 30 residents are not established.",
+          "Conversion feasibility is unverified: planning compatibility, change-of-use approvals, sanitary and accessibility compliance, fire and structural safety, and sector authorization all require checks."
+        ]
+      },
+      {
+        "id": "23211",
+        "evaluation_text": "This hotel property in Turin offers a relevant starting point for conversion to a senior residential care facility: its hotel use aligns with the search, it was built in 2019, and its energy class D meets the stated preference. Healthcare proximity is strong (86.57), alongside good public transport access (87.77). However, the recorded area is 1,400 sqm, below the requested 1,600 sqm, and the supplied data do not establish capacity for 30 residents. The regulatory material provides room and function specific net-area standards but no verified minimum gross property area; it also identifies planning, change-of-use, accessibility, safety, and sector authorization checks. Conversion feasibility therefore requires detailed verification.",
+        "final_ranking_score": 56,
+        "pros": [
+          "Hotel classification offers a potentially relevant existing use for conversion, subject to planning and authorization checks.",
+          "Energy class D meets the user's stated preference; the property dates from 2019 and has a thermal plant score of 5.",
+          "Healthcare proximity is strong at 86.57, with public transport accessibility also high at 87.77."
+        ],
+        "cons": [
+          "The recorded 1,400 sqm is 200 sqm below the requested 1,600 sqm gross floor area.",
+          "Capacity for 30 residents is not established by the supplied property data, and room layout and required net areas need verification.",
+          "Urban-planning compatibility, change-of-use approval, accessibility, safety, and sector authorization remain required checks; the data do not establish conversion feasibility."
+        ]
+      },
+      {
+        "id": "18830",
+        "evaluation_text": "The property is centrally located in Turin and has excellent proximity to healthcare services (99.89). Its energy class B meets the stated preference for D or better, and its commercial use may offer a basis for conversion. However, its reported area of 1,320.7 sqm is below the requested 1,600 sqm, and the data do not establish capacity for 30 residents or suitability for RSA use. Conversion would require verification of planning compatibility, change-of-use and building permits, health and accessibility requirements, structural and fire safety, and sector authorization. The cited regional standard covers net areas for specific rooms and shared functions; it does not establish a minimum gross area for the property.",
+        "final_ranking_score": 55,
+        "pros": [
+          "Energy class B meets the user's preference for D or better.",
+          "Healthcare proximity is exceptionally high (99.89), supporting the preferred location criterion.",
+          "The central Turin location and existing commercial use provide a potential starting point for assessing a change of use."
+        ],
+        "cons": [
+          "Reported area is 1,320.7 sqm, 279.3 sqm below the requested 1,600 sqm.",
+          "The data do not confirm whether the building can accommodate 30 residents or meet RSA room and shared-space requirements.",
+          "Planning compatibility, conversion authorization, accessibility, health standards, structural and fire safety, and sector authorization require verification."
+        ]
+      },
+      {
+        "id": "19122",
+        "evaluation_text": "The property offers a strong location for a senior care conversion, with healthcare proximity at 92.14 and excellent public transport access. Its reported energy class B meets the stated preference for class D or better. However, its 1,570.7 sqm surface area is below the requested 1,600 sqm gross floor area, and the supplied data do not establish capacity for 30 residents, a hotel use, or the feasibility of conversion. The regulatory data provide no verified minimum gross property area; their room and facility standards apply to specific net usable areas and functions. Urban-planning compatibility, change-of-use approval, accessibility, layout, and technical and sector authorization requirements need verification. Overall, location and energy class are favorable, while the area shortfall and unresolved conversion requirements limit its fit.",
+        "final_ranking_score": 54,
+        "pros": [
+          "Healthcare proximity is high (92.14), aligning with the preference for nearby healthcare services.",
+          "Energy class B is better than the requested threshold of D.",
+          "Excellent mobility access (99.09) and a central Turin location support accessibility for residents and visitors."
+        ],
+        "cons": [
+          "Reported surface area is 1,570.7 sqm, 29.3 sqm below the requested minimum of 1,600 sqm gross floor area.",
+          "The data do not establish capacity for 30 residents or confirm that the property is a hotel building.",
+          "Conversion feasibility remains unverified, including urban-planning compatibility, change of use, accessibility, layout, and required authorizations."
+        ]
+      },
+      {
+        "id": "M03584",
+        "evaluation_text": "The property has strong locational appeal for a senior residential care facility, with healthcare proximity at the 99.53 percentile and excellent access to mobility and services. Its energy class C meets the stated preference for class D or better, although the low energy sub-scores indicate weaknesses in the heating plant, building envelope, and renewable energy provision. The 1,300.29 sqm recorded surface area is below the requested 1,600 sqm gross floor area, and the data do not establish capacity for 30 residents. The supplied regional standard specifies net areas for individual rooms and shared functions; it provides no verified minimum gross property area, so those net figures cannot establish whether the property is large enough overall. Its current property type is commercial, and conversion, layout, urban-planning compatibility, accessibility, and sector authorization all require verification.",
+        "final_ranking_score": 53,
+        "pros": [
+          "Healthcare proximity is exceptionally strong (99.53 percentile), matching the location preference.",
+          "Energy class C meets the user's preference for class D or better.",
+          "Excellent mobility (91.57 percentile) and access to commercial services (99.88 percentile) support day-to-day accessibility."
+        ],
+        "cons": [
+          "Recorded surface area is 1,300.29 sqm, below the requested 1,600 sqm gross floor area.",
+          "The property data do not establish capacity for 30 people or suitable room and shared-space layouts.",
+          "Energy plant, envelope, and renewables score poorly; conversion from commercial use and the required planning, accessibility, safety, and authorization checks remain unresolved."
+        ]
+      },
+      {
+        "id": "18514",
+        "evaluation_text": "This Turin property offers strong energy performance and a well-served location for a potential senior residential care facility. Its A1 energy class exceeds the stated preference for D or better, and healthcare proximity is high (91.42). However, the recorded area is 1,339.26 sqm, below the requested 1,600 sqm gross floor area, and the data do not establish capacity for 30 residents or that the property is a hotel. The supplied regulatory context verifies room and shared-space standards but provides no validated minimum gross property area; the standards therefore do not establish overall area sufficiency. Urban-planning compatibility, change of use, accessibility, sanitary and safety requirements, and sector authorization require verification. Overall, the energy and location are attractive, while the stated area shortfall and unverified conversion suitability materially limit its fit.",
+        "final_ranking_score": 53,
+        "pros": [
+          "A1 energy class, exceeding the user's preference for D or better.",
+          "High healthcare proximity score of 91.42, consistent with the location preference.",
+          "Built in 2020, which may offer a favorable starting point for adaptation, subject to technical and regulatory checks."
+        ],
+        "cons": [
+          "Recorded surface area of 1,339.26 sqm is below the requested 1,600 sqm gross floor area.",
+          "Property data classify it as “Commercial activities and similar”; they do not establish that it is a hotel or that it can accommodate 30 residents.",
+          "RSA conversion feasibility is unverified, including urban-planning compatibility, change of use, accessibility, technical requirements, and sector authorization."
+        ]
+      },
+      {
+        "id": "M03578",
+        "evaluation_text": "This centrally located Turin property offers a strong healthcare-access advantage and meets the preferred energy threshold with class D. Its reported surface area of 1,300.77 sqm is below the requested 1,600 sqm gross floor area, and the data do not establish capacity for 30 residents or suitability for conversion from commercial use. The cited RSA standard gives specific net room and shared-space requirements, but establishes no verified minimum gross property area; those room standards cannot confirm overall area sufficiency. Urban planning compatibility, change-of-use approval, accessibility, health and safety requirements, layout, and sector authorization all require verification. The deterministic relevance score is 52.",
+        "final_ranking_score": 52,
+        "pros": [
+          "Energy class D meets the user's stated preference.",
+          "Healthcare proximity is exceptionally high (99.85), supporting access to services.",
+          "Central location with strong public transport (91.18) and nearby green areas (86.07)."
+        ],
+        "cons": [
+          "Reported surface area (1,300.77 sqm) is below the requested 1,600 sqm gross floor area.",
+          "The data do not establish a 30-person capacity or show that the layout can meet RSA room and shared-space requirements.",
+          "The property is listed as commercial; planning compatibility, change-of-use authorization, accessibility, safety, and sector authorization need verification."
+        ]
+      }
+    ],
+    "relaxation_applied": true,
+    "relaxation_count": 1,
+    "fallback_activated": false,
+    "agent_errors": []
+  }
+}

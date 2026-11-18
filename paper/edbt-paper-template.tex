@@ -151,12 +151,7 @@ enumerable alternatives are ordered using uniform weights: with $n$
 options, the EVPI score is $1-1/n$. Open omission questions have no
 enumerable alternatives and receive score zero, so unasked omissions
 retain their template order. A penalty is subtracted for each earlier
-question on the same aspect. This is an \emph{ordering heuristic}, not a
-readiness test: every unconfirmed omission must be answered or explicitly
-declined before analysis. The weights are not calibrated posteriors and
-nothing is trained. A turn limit blocks sessions that cannot be resolved;
-the reported experiments used six turns, while the current default is
-twenty.
+question on the same aspect.
 
 \paragraph{Answers and review.} The LLM classifies each answer
 (requirement, opt-out, unknown, rejection of the offered options, or
@@ -260,6 +255,32 @@ three times, yielding 225 dialogue runs per model. We also run the complete
 reference request five times for each intent (40 reference runs per
 model). We ran this protocol separately with \texttt{claude-haiku-5-5}
 and \texttt{gpt-6-luna}.
+
+\paragraph{Search intents.} The eight intents instantiate distinct uses
+from the regional catalogue (Table~\ref{tab:intents}). The table describes
+the domain context of the benchmark inputs; the 75 scenarios vary the
+omitted dimensions and simulated response type across these intents. We
+report aggregate results over intents, not per-intent performance.
+
+\begin{table}[t]
+\caption{Eight search intents represented in the benchmark.}
+\label{tab:intents}
+\centering\footnotesize\setlength{\tabcolsep}{3pt}
+\begin{tabular*}{\columnwidth}{@{\extracolsep{\fill}}p{.32\columnwidth}p{.63\columnwidth}@{}}
+\toprule
+Intent & Scenario context \\
+\midrule
+Micro-nursery & Conversion to a small early-childhood service. \\
+Nursery & Conversion to a nursery with its own facility requirements. \\
+Spring section & A service integrated into a host nursery or kindergarten. \\
+Baby parking & An hourly childcare service with a distinct use classification. \\
+Home-based nursery & Childcare hosted in a residential unit, with dedicated space to consider. \\
+Senior day center & A daytime, non-residential care service for older adults. \\
+Senior residential care (RSA) & A residential care facility for older adults. \\
+Student residence & Student housing tied to the specific CDP/PNRR grant scenario. \\
+\bottomrule
+\end{tabular*}
+\end{table}
 
 
 \paragraph{Measures.} For explicit declines, we check whether the system

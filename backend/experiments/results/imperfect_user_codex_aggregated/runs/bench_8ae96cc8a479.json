@@ -1,0 +1,904 @@
+{
+  "run_id": "bench_8ae96cc8a479",
+  "condition": "refined",
+  "unit_id": "MS02_k1_vague",
+  "scenario_id": "MS02_k1_vague",
+  "base_case_id": "UC02_nursery_missing_use",
+  "missing_count": 1,
+  "scenario_name": "1 omitted dimensions; intended use: Nursery; vague first answer on Cb",
+  "tags": [
+    "edbt",
+    "controlled_missingness_v3",
+    "missing_1",
+    "UC02_nursery_missing_use",
+    "imperfect_user",
+    "vague"
+  ],
+  "model": "gpt-6-luna",
+  "repeat": 2,
+  "attempt": 1,
+  "input_sha256": "1a15165f64693c5a98e2f4306fef6849bebfac78125adee8e95fea31680902c8",
+  "scenario_sha256": "1a15165f64693c5a98e2f4306fef6849bebfac78125adee8e95fea31680902c8",
+  "initial_query": "I am looking for an existing school building. I intend to convert it into a nursery. The location is in Turin. I prefer a property in energy class D or better. I prefer properties near green spaces.",
+  "options": {
+    "dataset_key": "full",
+    "map_limit": 1000,
+    "llm_limit": 10,
+    "analysis_mode": "agent",
+    "use_relaxation": true,
+    "use_data_knowledge": true,
+    "architecture": "multiagent",
+    "disabled_agents": null
+  },
+  "started_at": "2026-11-18T16:15:53.095091+00:00",
+  "clarification_seconds": 45.412,
+  "analysis_seconds": 99.015,
+  "conversation": {
+    "session_id": "aa50a66c-202a-4dcb-a5e9-52968545c902",
+    "initial_dimension_state": {
+      "I": {
+        "status": "SPECIFIED",
+        "value": "school building",
+        "evidence": "“existing school building”"
+      },
+      "D": {
+        "status": "SPECIFIED",
+        "value": "Nursery",
+        "evidence": "“convert it into a nursery”"
+      },
+      "L": {
+        "status": "SPECIFIED",
+        "value": "Turin",
+        "evidence": "“The location is in Turin”"
+      },
+      "Cb": {
+        "status": "UNCONFIRMED_ABSENT",
+        "value": null,
+        "evidence": null
+      },
+      "Ce": {
+        "status": "SPECIFIED",
+        "value": "Energy class D or better",
+        "evidence": "“energy class D or better”"
+      },
+      "Cp": {
+        "status": "SPECIFIED",
+        "value": "Green spaces",
+        "evidence": "“near green spaces”"
+      }
+    },
+    "initial_missing": [
+      "Cb"
+    ],
+    "expected_initial_missing": [
+      "Cb"
+    ],
+    "missing_detection": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "turns": [
+      {
+        "question": "Are there any useful building constraints, such as minimum floor area, capacity for a certain number of children, or structural features? You can also say these do not matter.",
+        "target_dimensions": [
+          "Cb"
+        ],
+        "times_asked_before": {
+          "Cb": 0
+        },
+        "answer": "It depends; something suitable for the project, I guess.",
+        "question_source": "llm_query_parser",
+        "status_after": "ASK",
+        "turn_after": 1,
+        "dimension_state_after": {
+          "I": {
+            "status": "SPECIFIED",
+            "value": "school building",
+            "evidence": "“existing school building”"
+          },
+          "D": {
+            "status": "SPECIFIED",
+            "value": "Nursery",
+            "evidence": "“convert it into a nursery”"
+          },
+          "L": {
+            "status": "SPECIFIED",
+            "value": "Turin",
+            "evidence": "“The location is in Turin”"
+          },
+          "Cb": {
+            "status": "UNCONFIRMED_ABSENT",
+            "value": null,
+            "evidence": null
+          },
+          "Ce": {
+            "status": "SPECIFIED",
+            "value": "Energy class D or better",
+            "evidence": "“energy class D or better”"
+          },
+          "Cp": {
+            "status": "SPECIFIED",
+            "value": "Green spaces",
+            "evidence": "“near green spaces”"
+          }
+        }
+      },
+      {
+        "question": "What floor area, child capacity, or structural features would make a school building suitable for your nursery conversion, if any? You can also say these details do not matter.",
+        "target_dimensions": [
+          "Cb"
+        ],
+        "times_asked_before": {
+          "Cb": 1
+        },
+        "answer": "I need a property with at least 600 sqm of gross floor area and capacity for 45 people.",
+        "question_source": "llm_omission_question",
+        "status_after": "READY",
+        "turn_after": 2,
+        "dimension_state_after": {
+          "I": {
+            "status": "SPECIFIED",
+            "value": "school building",
+            "evidence": "“existing school building”"
+          },
+          "D": {
+            "status": "SPECIFIED",
+            "value": "Nursery",
+            "evidence": "“convert it into a nursery”"
+          },
+          "L": {
+            "status": "SPECIFIED",
+            "value": "Turin",
+            "evidence": "“The location is in Turin”"
+          },
+          "Cb": {
+            "status": "SPECIFIED",
+            "value": "At least 600 sqm gross floor area; capacity for 45 people",
+            "evidence": "at least 600 sqm of gross floor area and capacity for 45 people"
+          },
+          "Ce": {
+            "status": "SPECIFIED",
+            "value": "Energy class D or better",
+            "evidence": "“energy class D or better”"
+          },
+          "Cp": {
+            "status": "SPECIFIED",
+            "value": "Green spaces",
+            "evidence": "“near green spaces”"
+          }
+        }
+      }
+    ],
+    "messages": [
+      {
+        "role": "user",
+        "content": "I am looking for an existing school building. I intend to convert it into a nursery. The location is in Turin. I prefer a property in energy class D or better. I prefer properties near green spaces."
+      },
+      {
+        "role": "assistant",
+        "content": "Are there any useful building constraints, such as minimum floor area, capacity for a certain number of children, or structural features? You can also say these do not matter."
+      },
+      {
+        "role": "user",
+        "content": "It depends; something suitable for the project, I guess."
+      },
+      {
+        "role": "assistant",
+        "content": "What floor area, child capacity, or structural features would make a school building suitable for your nursery conversion, if any? You can also say these details do not matter."
+      },
+      {
+        "role": "user",
+        "content": "I need a property with at least 600 sqm of gross floor area and capacity for 45 people."
+      },
+      {
+        "role": "assistant",
+        "content": "Query submitted for review: I’m looking for an existing school building in Turin to convert into a nursery, with at least 600 sqm of gross floor area and capacity for 45 people. I prefer energy class D or better and a location near green spaces."
+      },
+      {
+        "role": "user",
+        "content": "Confirmed."
+      }
+    ],
+    "dimension_state": {
+      "I": {
+        "status": "SPECIFIED",
+        "value": "school building",
+        "evidence": "“existing school building”"
+      },
+      "D": {
+        "status": "SPECIFIED",
+        "value": "Nursery",
+        "evidence": "“convert it into a nursery”"
+      },
+      "L": {
+        "status": "SPECIFIED",
+        "value": "Turin",
+        "evidence": "“The location is in Turin”"
+      },
+      "Cb": {
+        "status": "SPECIFIED",
+        "value": "At least 600 sqm gross floor area; capacity for 45 people",
+        "evidence": "at least 600 sqm of gross floor area and capacity for 45 people"
+      },
+      "Ce": {
+        "status": "SPECIFIED",
+        "value": "Energy class D or better",
+        "evidence": "“energy class D or better”"
+      },
+      "Cp": {
+        "status": "SPECIFIED",
+        "value": "Green spaces",
+        "evidence": "“near green spaces”"
+      }
+    },
+    "mapping": {
+      "I": "SPECIFIED",
+      "D": "SPECIFIED",
+      "L": "SPECIFIED",
+      "Cb": "SPECIFIED",
+      "Ce": "SPECIFIED",
+      "Cp": "SPECIFIED"
+    },
+    "expected_mapping": {
+      "I": "SPECIFIED",
+      "D": "SPECIFIED",
+      "L": "SPECIFIED",
+      "Cb": "SPECIFIED",
+      "Ce": "SPECIFIED",
+      "Cp": "SPECIFIED"
+    },
+    "mapping_accuracy": 1.0,
+    "no_clarification": false,
+    "status": "READY",
+    "refined_query": "I’m looking for an existing school building in Turin to convert into a nursery, with at least 600 sqm of gross floor area and capacity for 45 people. I prefer energy class D or better and a location near green spaces.",
+    "reviewed_query": "I’m looking for an existing school building in Turin to convert into a nursery, with at least 600 sqm of gross floor area and capacity for 45 people. I prefer energy class D or better and a location near green spaces."
+  },
+  "submitted_query": "I’m looking for an existing school building in Turin to convert into a nursery, with at least 600 sqm of gross floor area and capacity for 45 people. I prefer energy class D or better and a location near green spaces.",
+  "status": "completed",
+  "results_count": 13,
+  "top_ids": [
+    "18501",
+    "M03513",
+    "22364",
+    "22363",
+    "18513",
+    "15853",
+    "19627",
+    "M03717",
+    "24857",
+    "25095"
+  ],
+  "quality": {
+    "expected_count": 0,
+    "matched_expected": null,
+    "precision_at_returned": null,
+    "recall": null
+  },
+  "final_sql": "SELECT * FROM ESTATES WHERE property_type = 'Schools and educational activities' AND surface_area >= 600 AND haversine_km(latitude, longitude, 45.0677551, 7.6824892) <= 3.0 AND energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C', 'D') AND green >= 89 ORDER BY haversine_km(latitude, longitude, 45.0677551, 7.6824892) ASC",
+  "duration_seconds": 144.442,
+  "scenario_definition": {
+    "id": "MS02_k1_vague",
+    "name": "1 omitted dimensions; intended use: Nursery; vague first answer on Cb",
+    "tags": [
+      "edbt",
+      "controlled_missingness_v3",
+      "missing_1",
+      "UC02_nursery_missing_use",
+      "imperfect_user",
+      "vague"
+    ],
+    "base_case_id": "UC02_nursery_missing_use",
+    "missing_count": 1,
+    "initial_query": "I am looking for an existing school building. I intend to convert it into a nursery. The location is in Turin. I prefer a property in energy class D or better. I prefer properties near green spaces.",
+    "one_shot_query": "I am looking for an existing school building. I intend to convert it into a nursery. The location is in Turin. I prefer a property in energy class D or better. I prefer properties near green spaces.",
+    "oracle_query": "Find an existing school building to convert it into a nursery for 45 children in Turin with at least 600 sqm of gross floor area in energy class D or better near green spaces.",
+    "expected_initial_missing": [
+      "Cb"
+    ],
+    "clarifications": {
+      "I": "I am looking for an existing school building.",
+      "D": "I intend to convert it into a nursery.",
+      "L": "The location is in Turin.",
+      "Cb": [
+        "It depends; something suitable for the project, I guess.",
+        "I need a property with at least 600 sqm of gross floor area and capacity for 45 people."
+      ],
+      "Ce": "I prefer a property in energy class D or better.",
+      "Cp": "I prefer properties near green spaces."
+    },
+    "expected_mapping": {
+      "I": "SPECIFIED",
+      "D": "SPECIFIED",
+      "L": "SPECIFIED",
+      "Cb": "SPECIFIED",
+      "Ce": "SPECIFIED",
+      "Cp": "SPECIFIED"
+    },
+    "repeats": 1,
+    "imperfect_user": {
+      "profile": "vague",
+      "dimension": "Cb"
+    }
+  },
+  "artifact_file": "runs/bench_8ae96cc8a479.json",
+  "artifact_schema_version": 4,
+  "ranking_ids": [
+    "18501",
+    "M03513",
+    "22364",
+    "22363",
+    "18513",
+    "15853",
+    "19627",
+    "M03717",
+    "24857",
+    "25095",
+    "M04818",
+    "10600",
+    "12286"
+  ],
+  "top": [
+    {
+      "id": "18501",
+      "score": 89.045,
+      "distance_km": 1.01
+    },
+    {
+      "id": "M03513",
+      "score": 89.045,
+      "distance_km": 1.01
+    },
+    {
+      "id": "22364",
+      "score": 88.08099999999999,
+      "distance_km": 0.87
+    },
+    {
+      "id": "22363",
+      "score": 86.71800000000002,
+      "distance_km": 0.96
+    },
+    {
+      "id": "18513",
+      "score": 82.83300000000001,
+      "distance_km": 1.01
+    },
+    {
+      "id": "15853",
+      "score": 80.242,
+      "distance_km": 1.97
+    },
+    {
+      "id": "19627",
+      "score": 78.975,
+      "distance_km": 1.84
+    },
+    {
+      "id": "M03717",
+      "score": 78.897,
+      "distance_km": 1.84
+    },
+    {
+      "id": "24857",
+      "score": 68.577,
+      "distance_km": 2.35
+    },
+    {
+      "id": "25095",
+      "score": 66.328,
+      "distance_km": 2.53
+    }
+  ],
+  "api_response": {
+    "agent_trace": [
+      {
+        "agent_name": "regulatory-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "found": false,
+          "matched_use_cases": [
+            "Nursery"
+          ],
+          "requirements": []
+        }
+      },
+      {
+        "agent_name": "proximity-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "requirements": [
+            {
+              "target_column": "green",
+              "operator": ">=",
+              "value": 89,
+              "description": "Near green spaces; meets or exceeds the 75th percentile (89.49)."
+            }
+          ]
+        }
+      },
+      {
+        "agent_name": "energy-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "requirements": [
+            {
+              "target_column": "energy_class",
+              "operator": "IN",
+              "value": [
+                "A1",
+                "A2",
+                "A3",
+                "A4",
+                "B",
+                "C",
+                "D"
+              ],
+              "description": "Energy class D or better"
+            }
+          ],
+          "found": true
+        }
+      },
+      {
+        "agent_name": "location-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "places": [
+            {
+              "name": "Turin",
+              "city": "Turin",
+              "lat": 45.0677551,
+              "lon": 7.6824892,
+              "radius_km": 3.0
+            }
+          ],
+          "found": true
+        }
+      },
+      {
+        "agent_name": "building-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "typologies": [
+            "Schools and educational activities"
+          ],
+          "found": true,
+          "requirements": [
+            {
+              "target_column": "property_type",
+              "operator": "=",
+              "value": "Schools and educational activities",
+              "description": "The user is seeking an existing school building; the future nursery use does not change its current typology."
+            },
+            {
+              "target_column": "surface_area",
+              "operator": ">=",
+              "value": 600,
+              "description": "The user explicitly requires at least 600 sqm of gross floor area."
+            }
+          ]
+        }
+      },
+      {
+        "agent_name": "ranking-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "ranking": [
+            {
+              "agent_name": "building",
+              "rank": 1
+            },
+            {
+              "agent_name": "location",
+              "rank": 1
+            },
+            {
+              "agent_name": "regulatory",
+              "rank": 2
+            },
+            {
+              "agent_name": "proximity",
+              "rank": 3
+            },
+            {
+              "agent_name": "energy",
+              "rank": 4
+            }
+          ],
+          "weights": {
+            "location": 0.32,
+            "regulatory": 0.16,
+            "energy": 0.08,
+            "building": 0.33,
+            "proximity": 0.11
+          }
+        }
+      },
+      {
+        "agent_name": "sql-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "sql": "SELECT * FROM ESTATES WHERE property_type = 'Schools and educational activities' AND surface_area >= 600 AND haversine_km(latitude, longitude, 45.0677551, 7.6824892) <= 3.0 AND energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C', 'D') AND green >= 89 ORDER BY haversine_km(latitude, longitude, 45.0677551, 7.6824892) ASC",
+          "explanation": "Filters for school properties with at least 600 sqm, within 3 km of the supplied coordinates, in energy classes A1–D, and with a green score of at least 89; orders by distance."
+        }
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "22364",
+          "evaluation_text": "This existing school at Via Plana 10 is a strong candidate for conversion to a nursery: its reported 1,988.38 sqm gross area is well above the requested 600 sqm, and its current educational use is relevant to the objective. The supplied data do not confirm capacity for 45 people, usable-area distribution, planning compatibility, or authorization for the change of use; these require project-specific verification. Energy class C meets the preference for D or better, and the green proximity score is high. The regulatory context provides a 465 sqm useful covered design model for 45 places, with an indicated ±10% variation; this is not a gross-area threshold. The applicable requirements and transition rules should be checked at the time of application.",
+          "final_ranking_score": 88,
+          "pros": [
+            "Existing school use is directly relevant to the proposed nursery conversion; reported gross area is 1,988.38 sqm, exceeding the requested 600 sqm.",
+            "Energy class C meets the stated preference for D or better.",
+            "Green proximity score is high at 91.71, alongside strong mobility and service proximity scores."
+          ],
+          "cons": [
+            "Capacity for 45 people and the required room layout are not established by the supplied data.",
+            "Urban-planning compatibility, change-of-use authorization, and sector authorization need verification.",
+            "The building dates from 1960; structural, seismic, accessibility, sanitary, and fire-safety checks may be required, and its energy plant and renewables scores are low."
+          ]
+        },
+        "batch_id": 1,
+        "timestamp": "2026-11-18T17:17:27.842605",
+        "execution_time_ms": 18545.528650283813
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "18501",
+          "evaluation_text": "This 2020 school and educational property is a strong strategic candidate for conversion: its stated area of 7,080.07 sqm is well above the requested 600 sqm, and the property’s current educational use provides a relevant starting point. Its A1 energy class exceeds the preferred D threshold, and the green-space proximity score is high at 93.38. The data do not establish capacity for 45 people, nursery room layout, or approval for the change of use. The regulatory context gives a 465 sqm useful covered total as a verified design model for 45 places, with ±10% variation; this is not a universal gross-area threshold and cannot be directly compared with the property’s reported area. Turin planning compatibility, building and health requirements, accessibility, fire and structural safety where applicable, and the sector authorization process require verification. The supplied regulatory result found no requirements, so it does not establish that the conversion is authorized or compliant.",
+          "final_ranking_score": 89,
+          "pros": [
+            "Reported area of 7,080.07 sqm exceeds the requested 600 sqm gross floor area, subject to confirming that the dataset area corresponds to gross floor area.",
+            "Existing school and educational use offers a relevant basis for assessing a nursery conversion.",
+            "A1 energy class is better than the preferred D threshold, and the green proximity score is high at 93.38."
+          ],
+          "cons": [
+            "The reported area does not establish that a 45-person nursery can be accommodated; room layout and usable area need assessment against the applicable requirements.",
+            "Planning compatibility, change-of-use approval, health and accessibility requirements, and sector authorization remain to be verified.",
+            "The plant score is 1 and renewables score is 1; the energy class alone does not establish strong plant performance or on-site renewable provision."
+          ]
+        },
+        "batch_id": 2,
+        "timestamp": "2026-11-18T17:17:28.381881",
+        "execution_time_ms": 19085.994243621826
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "M03513",
+          "evaluation_text": "This 2020 school property in Turin is a strong strategic candidate for conversion to a nursery: its recorded gross floor area of 13,253.31 sqm is well above the requested 600 sqm, and its existing educational use is relevant. The A1 energy class exceeds the preferred D threshold, while the green-space proximity score of 93.38 indicates a strong match for the location preference. The supplied data do not establish whether the building can accommodate 45 people in a nursery layout or whether conversion is authorized and technically feasible. The cited 45-place design model specifies 465 sqm of useful covered area, with a stated ±10% variation; it is not a universal gross-area threshold. Applicable requirements and the necessary planning, building, health, accessibility, fire-safety, structural, and sector authorization checks should be confirmed for the application date.",
+          "final_ranking_score": 89,
+          "pros": [
+            "Existing school and educational use aligns with the proposed nursery conversion.",
+            "Recorded gross floor area of 13,253.31 sqm exceeds the requested 600 sqm; the cited 45-place model is 465 sqm of useful covered area, not a gross-area minimum.",
+            "A1 energy class is better than the preferred D threshold, and the green proximity score is high at 93.38."
+          ],
+          "cons": [
+            "The dataset does not confirm that the building layout supports a nursery for 45 people or satisfies function-specific space needs.",
+            "Planning compatibility, change-of-use permission, building title, and sector authorization require verification.",
+            "Health, accessibility, applicable fire-safety, and structural requirements have not been established by the supplied property data."
+          ]
+        },
+        "batch_id": 3,
+        "timestamp": "2026-11-18T17:17:28.587177",
+        "execution_time_ms": 19290.82751274109
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "22363",
+          "evaluation_text": "This existing educational building is a strong strategic candidate for conversion: its reported 3,021 sqm gross area is well above the requested 600 sqm, its property type aligns with the search, and its energy class D meets the stated preference. The green proximity percentile is high at 91.1. The supplied data do not establish capacity for 45 people, room layout, planning compatibility, accessibility, or technical feasibility, all of which require verification. Regulatory context provides a 465 sqm useful covered design model for 45 places, with a stated ±10% variation; this is not a universal gross-area threshold and cannot by itself establish suitability. Check the applicable rules at the time of application, including the noted authorization transition.",
+          "final_ranking_score": 87,
+          "pros": [
+            "Existing school and educational use offers a relevant starting point for the intended nursery conversion.",
+            "Reported gross area of 3,021 sqm exceeds the requested 600 sqm; the 45-place design model cites 465 sqm of useful covered area, a distinct measure that does not confirm the building's usable layout or capacity.",
+            "Energy class D meets the preference, and green-space proximity is high (91.1 percentile)."
+          ],
+          "cons": [
+            "The energy component scores indicate limited performance beyond the class rating: envelope and renewables each score 1, with total energy score 8/20.",
+            "No supplied evidence confirms capacity for 45 people, suitable room arrangement, or nursery-specific functional requirements.",
+            "Planning compatibility, change-of-use approval, sanitary standards, accessibility, fire and structural safety, and sector authorization require verification."
+          ]
+        },
+        "batch_id": 4,
+        "timestamp": "2026-11-18T17:17:28.932311",
+        "execution_time_ms": 19634.532928466797
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "M03717",
+          "evaluation_text": "This 1900 school and educational property is a strong candidate for conversion to a nursery: its existing educational use aligns with the objective, its recorded area of 16,956.73 sqm is well above the requested 600 sqm, and its B energy class exceeds the preferred D threshold. Its green-space proximity percentile is very high at 95.94. The data do not establish capacity for 45 people, room layout, planning compatibility, accessibility, or technical and sector authorization; these require verification. The cited nursery guidance gives useful-area parameters and a 465 sqm useful-area design model for 45 places, but this is not a universal gross-area minimum and cannot establish suitability from the property's gross area alone.",
+          "final_ranking_score": 79,
+          "pros": [
+            "Existing school and educational use is well aligned with the proposed nursery conversion.",
+            "Recorded area of 16,956.73 sqm exceeds the requested 600 sqm gross floor area, subject to confirming the area basis and usable configuration.",
+            "Energy class B meets the stated D-or-better preference, and green-space proximity is high (95.94 percentile)."
+          ],
+          "cons": [
+            "Capacity for 45 people and the internal layout for nursery functions are not established by the supplied data.",
+            "Attributing nursery use requires verification of Turin planning compatibility, change-of-use and building permits, and applicable sector authorization.",
+            "Accessibility, hygiene and health requirements, fire safety where required, and structural safety need assessment before feasibility can be confirmed."
+          ]
+        },
+        "batch_id": 5,
+        "timestamp": "2026-11-18T17:17:37.774952",
+        "execution_time_ms": 8842.70453453064
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "18513",
+          "evaluation_text": "This 869.26 sqm property is already classified for schools and educational activities, was built in 2020, and has energy class B, meeting the stated preference for class D or better. Its size and existing educational use make it a promising candidate for conversion to a nursery serving 45 people. Green-space proximity is strong (93.38), alongside high access to healthcare, public transport, and other services. The supplied regulatory data do not establish a verified minimum gross area or confirm that the building is authorized or suitable for nursery use. The cited 465 sqm figure for a 45-place model is a useful-area design guideline, not a gross-area threshold; layout and compliance therefore require assessment. Confirm Turin planning compatibility, change-of-use and building permits, sanitary and accessibility requirements, fire safety where applicable, structural safety, and the authorization procedure under the rules in force when applying. The energy class is favorable, while the plant and renewables scores indicate potential areas for improvement.",
+          "final_ranking_score": 83,
+          "pros": [
+            "869.26 sqm gross area exceeds the user's 600 sqm target, and the 2020 construction date supports potential for adaptation, subject to verifying layout and condition.",
+            "Existing schools and educational activities use is aligned with the nursery objective; energy class B meets the stated D-or-better preference.",
+            "Strong green-space proximity (93.38), with high public transport (90.93) and healthcare access (91.42)."
+          ],
+          "cons": [
+            "The supplied data do not confirm planning compatibility, authorization for nursery use, or feasibility of the required change of use.",
+            "The 45-place model cites 465 sqm of useful covered area; this cannot be compared directly with the property's gross area, so room capacity and layout need verification.",
+            "Thermal plant and renewables scores are both 1, indicating potential energy-system improvement needs despite the B energy class."
+          ]
+        },
+        "batch_id": 6,
+        "timestamp": "2026-11-18T17:17:38.059416",
+        "execution_time_ms": 10217.1630859375
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "15853",
+          "evaluation_text": "This 2021 school building in Turin is a strong candidate for conversion to a nursery: its existing educational use is strategically aligned, its reported 3,762.3 sqm gross area is well above the 600 sqm target, and its A4 energy class exceeds the preferred D-or-better threshold. The green proximity percentile is exceptionally high at 97.88. The supplied data do not establish capacity for 45 people, room layout, planning compatibility, or authorization for a change of use, so these require project-specific verification. The cited regional design guidance gives 465 sqm useful covered area for its 45-place model, with approximately ±10% variation; this is a net useful-area design reference, not a minimum gross property-area rule. The regulatory result reports no verified gross screening threshold. Confirm the applicable 0–3 requirements at the application date, including the transition associated with D.G.R. 3-1937/2025, and complete the listed planning, building, health, accessibility, fire-safety where required, structural, and sector authorization checks.",
+          "final_ranking_score": 80,
+          "pros": [
+            "Existing school and educational use is closely aligned with the proposed nursery conversion.",
+            "Reported gross area of 3,762.3 sqm exceeds the 600 sqm target; A4 energy class also exceeds the D-or-better preference.",
+            "Green proximity percentile is 97.88, indicating a very strong reported match to the preference for green spaces."
+          ],
+          "cons": [
+            "The data do not confirm that the building can accommodate 45 people or provide the required room layout; capacity and functional suitability need assessment.",
+            "Turin PRG compatibility, change-of-use title, and sector authorization are unverified and must be checked under the rules applicable when applying.",
+            "Hygiene, accessibility, structural and seismic safety, and fire-safety requirements where prescribed remain to be verified."
+          ]
+        },
+        "batch_id": 7,
+        "timestamp": "2026-11-18T17:17:38.733854",
+        "execution_time_ms": 10352.293968200684
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "19627",
+          "evaluation_text": "This existing educational property in Turin is a strong candidate for conversion to a nursery: its stated property type aligns with the objective, its reported 16,904.19 sqm surface area is well above the requested 600 sqm gross floor area, and its energy class B exceeds the preferred D threshold. Green-space proximity is especially strong (96.98), with good access to healthcare, public transport, commercial services, and education. The supplied nursery guidance lists 465 sqm of useful covered space for a 45-place model, but that is a design-guideline metric, not a universal gross-area minimum; the property's reported area does not establish its usable layout or capacity. Confirm the applicable rules at the application date and verify planning compatibility, change-of-use and building permits, hygiene, accessibility, fire safety where required, structural safety, and sector authorization. The building's 1900 construction date also makes technical condition and adaptation requirements important to assess.",
+          "final_ranking_score": 79,
+          "pros": [
+            "Existing school and educational use is closely aligned with the proposed nursery conversion.",
+            "Reported surface area of 16,904.19 sqm is well above the requested 600 sqm gross-area threshold; class B meets the energy preference.",
+            "Very high green-space proximity (96.98), with strong mobility (84.94) and healthcare access (82.94)."
+          ],
+          "cons": [
+            "The data do not confirm that the requested 45-person capacity can be accommodated; usable area, room layout, and applicable design requirements need verification.",
+            "Planning compatibility, change-of-use approval, hygiene, accessibility, safety, and sector authorization remain required checks, and no validated gross-area threshold is supplied by the regulatory context.",
+            "Dating from 1900, the building may require substantial condition assessment and adaptation; the data do not establish its current technical state or renewable-energy provision."
+          ]
+        },
+        "batch_id": 8,
+        "timestamp": "2026-11-18T17:17:39.100864",
+        "execution_time_ms": 10514.244794845581
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "25095",
+          "evaluation_text": "This 6,663.31 sqm property in Turin is a strong candidate for conversion: its existing school and educational use aligns with a nursery, its reported area exceeds the requested 600 sqm gross area, and its energy class C meets the preference for D or better. The green-space proximity score is very high (96.12), supporting the location preference. The supplied information does not establish capacity for 45 people, room layout, planning compatibility, accessibility, or technical feasibility, so these require verification. The cited 465 sqm standard for a 45-place model is useful covered net area, not a gross-property minimum; it cannot establish that the building is suitable. The overall relevance score is 66, reflecting substantial area, building-use, energy, and green-space strengths alongside unresolved authorization and conversion checks.",
+          "final_ranking_score": 66,
+          "pros": [
+            "Reported gross floor area of 6,663.31 sqm is well above the requested 600 sqm.",
+            "Existing schools and educational activities use offers a relevant starting point for nursery conversion; energy class C meets the stated preference.",
+            "Green-space proximity score is 96.12, indicating a strong match for the location preference."
+          ],
+          "cons": [
+            "The data do not establish that the building can accommodate the requested capacity of 45 people or provide the necessary room layout.",
+            "Turin planning compatibility, change-of-use approval, sector authorization, and applicable requirements need verification.",
+            "Accessibility, health and safety requirements, fire safety where required, and structural condition need assessment; the 1965 construction period alone does not establish compliance."
+          ]
+        },
+        "batch_id": 9,
+        "timestamp": "2026-11-18T17:17:57.329276",
+        "execution_time_ms": 19270.053386688232
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "24857",
+          "evaluation_text": "This existing school in Turin is a strong strategic candidate for conversion to a nursery: its 4,735.59 sqm reported area is well above the requested 600 sqm, its property type is aligned with the objective, and its energy class D meets the stated preference. Green-space proximity is especially strong (96.74), supported by high scores for healthcare (91.24), sports (90), and education (82.95). The score is tempered by the building’s 1887 construction date and weak envelope and renewables indicators. The regulatory data provide verified design guidance for nursery spaces, including a 465 sqm useful covered model for 45 places, but do not establish a universal gross-area minimum. Actual capacity, room layout, planning compatibility, change-of-use approval, accessibility, health and safety requirements, structural condition, and the applicable authorization procedure all require verification. The reported property area alone does not establish that the building can accommodate 45 people.",
+          "final_ranking_score": 69,
+          "pros": [
+            "Existing school and educational use is strategically aligned with conversion to a nursery.",
+            "Reported area of 4,735.59 sqm exceeds the requested 600 sqm gross-area target; the regulatory source lists 465 sqm useful covered area as a 45-place design model, not a universal gross threshold.",
+            "Energy class D meets the stated preference, and the green proximity score is very high at 96.74."
+          ],
+          "cons": [
+            "The 1887 construction period makes assessment of structural condition, accessibility, and required upgrades important; these are not established by the supplied data.",
+            "Energy total is 10, with a low envelope score of 1 and renewables score of 1, indicating potential efficiency improvement needs despite the D class and plant score of 5.",
+            "Planning compatibility, change of use, health and safety compliance, room layout, 45-person capacity, and the applicable sector authorization remain unverified."
+          ]
+        },
+        "batch_id": 10,
+        "timestamp": "2026-11-18T17:17:58.565618",
+        "execution_time_ms": 20790.919542312622
+      }
+    ],
+    "evaluation_results": [
+      {
+        "id": "18501",
+        "evaluation_text": "This 2020 school and educational property is a strong strategic candidate for conversion: its stated area of 7,080.07 sqm is well above the requested 600 sqm, and the property’s current educational use provides a relevant starting point. Its A1 energy class exceeds the preferred D threshold, and the green-space proximity score is high at 93.38. The data do not establish capacity for 45 people, nursery room layout, or approval for the change of use. The regulatory context gives a 465 sqm useful covered total as a verified design model for 45 places, with ±10% variation; this is not a universal gross-area threshold and cannot be directly compared with the property’s reported area. Turin planning compatibility, building and health requirements, accessibility, fire and structural safety where applicable, and the sector authorization process require verification. The supplied regulatory result found no requirements, so it does not establish that the conversion is authorized or compliant.",
+        "final_ranking_score": 89,
+        "pros": [
+          "Reported area of 7,080.07 sqm exceeds the requested 600 sqm gross floor area, subject to confirming that the dataset area corresponds to gross floor area.",
+          "Existing school and educational use offers a relevant basis for assessing a nursery conversion.",
+          "A1 energy class is better than the preferred D threshold, and the green proximity score is high at 93.38."
+        ],
+        "cons": [
+          "The reported area does not establish that a 45-person nursery can be accommodated; room layout and usable area need assessment against the applicable requirements.",
+          "Planning compatibility, change-of-use approval, health and accessibility requirements, and sector authorization remain to be verified.",
+          "The plant score is 1 and renewables score is 1; the energy class alone does not establish strong plant performance or on-site renewable provision."
+        ]
+      },
+      {
+        "id": "M03513",
+        "evaluation_text": "This 2020 school property in Turin is a strong strategic candidate for conversion to a nursery: its recorded gross floor area of 13,253.31 sqm is well above the requested 600 sqm, and its existing educational use is relevant. The A1 energy class exceeds the preferred D threshold, while the green-space proximity score of 93.38 indicates a strong match for the location preference. The supplied data do not establish whether the building can accommodate 45 people in a nursery layout or whether conversion is authorized and technically feasible. The cited 45-place design model specifies 465 sqm of useful covered area, with a stated ±10% variation; it is not a universal gross-area threshold. Applicable requirements and the necessary planning, building, health, accessibility, fire-safety, structural, and sector authorization checks should be confirmed for the application date.",
+        "final_ranking_score": 89,
+        "pros": [
+          "Existing school and educational use aligns with the proposed nursery conversion.",
+          "Recorded gross floor area of 13,253.31 sqm exceeds the requested 600 sqm; the cited 45-place model is 465 sqm of useful covered area, not a gross-area minimum.",
+          "A1 energy class is better than the preferred D threshold, and the green proximity score is high at 93.38."
+        ],
+        "cons": [
+          "The dataset does not confirm that the building layout supports a nursery for 45 people or satisfies function-specific space needs.",
+          "Planning compatibility, change-of-use permission, building title, and sector authorization require verification.",
+          "Health, accessibility, applicable fire-safety, and structural requirements have not been established by the supplied property data."
+        ]
+      },
+      {
+        "id": "22364",
+        "evaluation_text": "This existing school at Via Plana 10 is a strong candidate for conversion to a nursery: its reported 1,988.38 sqm gross area is well above the requested 600 sqm, and its current educational use is relevant to the objective. The supplied data do not confirm capacity for 45 people, usable-area distribution, planning compatibility, or authorization for the change of use; these require project-specific verification. Energy class C meets the preference for D or better, and the green proximity score is high. The regulatory context provides a 465 sqm useful covered design model for 45 places, with an indicated ±10% variation; this is not a gross-area threshold. The applicable requirements and transition rules should be checked at the time of application.",
+        "final_ranking_score": 88,
+        "pros": [
+          "Existing school use is directly relevant to the proposed nursery conversion; reported gross area is 1,988.38 sqm, exceeding the requested 600 sqm.",
+          "Energy class C meets the stated preference for D or better.",
+          "Green proximity score is high at 91.71, alongside strong mobility and service proximity scores."
+        ],
+        "cons": [
+          "Capacity for 45 people and the required room layout are not established by the supplied data.",
+          "Urban-planning compatibility, change-of-use authorization, and sector authorization need verification.",
+          "The building dates from 1960; structural, seismic, accessibility, sanitary, and fire-safety checks may be required, and its energy plant and renewables scores are low."
+        ]
+      },
+      {
+        "id": "22363",
+        "evaluation_text": "This existing educational building is a strong strategic candidate for conversion: its reported 3,021 sqm gross area is well above the requested 600 sqm, its property type aligns with the search, and its energy class D meets the stated preference. The green proximity percentile is high at 91.1. The supplied data do not establish capacity for 45 people, room layout, planning compatibility, accessibility, or technical feasibility, all of which require verification. Regulatory context provides a 465 sqm useful covered design model for 45 places, with a stated ±10% variation; this is not a universal gross-area threshold and cannot by itself establish suitability. Check the applicable rules at the time of application, including the noted authorization transition.",
+        "final_ranking_score": 87,
+        "pros": [
+          "Existing school and educational use offers a relevant starting point for the intended nursery conversion.",
+          "Reported gross area of 3,021 sqm exceeds the requested 600 sqm; the 45-place design model cites 465 sqm of useful covered area, a distinct measure that does not confirm the building's usable layout or capacity.",
+          "Energy class D meets the preference, and green-space proximity is high (91.1 percentile)."
+        ],
+        "cons": [
+          "The energy component scores indicate limited performance beyond the class rating: envelope and renewables each score 1, with total energy score 8/20.",
+          "No supplied evidence confirms capacity for 45 people, suitable room arrangement, or nursery-specific functional requirements.",
+          "Planning compatibility, change-of-use approval, sanitary standards, accessibility, fire and structural safety, and sector authorization require verification."
+        ]
+      },
+      {
+        "id": "18513",
+        "evaluation_text": "This 869.26 sqm property is already classified for schools and educational activities, was built in 2020, and has energy class B, meeting the stated preference for class D or better. Its size and existing educational use make it a promising candidate for conversion to a nursery serving 45 people. Green-space proximity is strong (93.38), alongside high access to healthcare, public transport, and other services. The supplied regulatory data do not establish a verified minimum gross area or confirm that the building is authorized or suitable for nursery use. The cited 465 sqm figure for a 45-place model is a useful-area design guideline, not a gross-area threshold; layout and compliance therefore require assessment. Confirm Turin planning compatibility, change-of-use and building permits, sanitary and accessibility requirements, fire safety where applicable, structural safety, and the authorization procedure under the rules in force when applying. The energy class is favorable, while the plant and renewables scores indicate potential areas for improvement.",
+        "final_ranking_score": 83,
+        "pros": [
+          "869.26 sqm gross area exceeds the user's 600 sqm target, and the 2020 construction date supports potential for adaptation, subject to verifying layout and condition.",
+          "Existing schools and educational activities use is aligned with the nursery objective; energy class B meets the stated D-or-better preference.",
+          "Strong green-space proximity (93.38), with high public transport (90.93) and healthcare access (91.42)."
+        ],
+        "cons": [
+          "The supplied data do not confirm planning compatibility, authorization for nursery use, or feasibility of the required change of use.",
+          "The 45-place model cites 465 sqm of useful covered area; this cannot be compared directly with the property's gross area, so room capacity and layout need verification.",
+          "Thermal plant and renewables scores are both 1, indicating potential energy-system improvement needs despite the B energy class."
+        ]
+      },
+      {
+        "id": "15853",
+        "evaluation_text": "This 2021 school building in Turin is a strong candidate for conversion to a nursery: its existing educational use is strategically aligned, its reported 3,762.3 sqm gross area is well above the 600 sqm target, and its A4 energy class exceeds the preferred D-or-better threshold. The green proximity percentile is exceptionally high at 97.88. The supplied data do not establish capacity for 45 people, room layout, planning compatibility, or authorization for a change of use, so these require project-specific verification. The cited regional design guidance gives 465 sqm useful covered area for its 45-place model, with approximately ±10% variation; this is a net useful-area design reference, not a minimum gross property-area rule. The regulatory result reports no verified gross screening threshold. Confirm the applicable 0–3 requirements at the application date, including the transition associated with D.G.R. 3-1937/2025, and complete the listed planning, building, health, accessibility, fire-safety where required, structural, and sector authorization checks.",
+        "final_ranking_score": 80,
+        "pros": [
+          "Existing school and educational use is closely aligned with the proposed nursery conversion.",
+          "Reported gross area of 3,762.3 sqm exceeds the 600 sqm target; A4 energy class also exceeds the D-or-better preference.",
+          "Green proximity percentile is 97.88, indicating a very strong reported match to the preference for green spaces."
+        ],
+        "cons": [
+          "The data do not confirm that the building can accommodate 45 people or provide the required room layout; capacity and functional suitability need assessment.",
+          "Turin PRG compatibility, change-of-use title, and sector authorization are unverified and must be checked under the rules applicable when applying.",
+          "Hygiene, accessibility, structural and seismic safety, and fire-safety requirements where prescribed remain to be verified."
+        ]
+      },
+      {
+        "id": "19627",
+        "evaluation_text": "This existing educational property in Turin is a strong candidate for conversion to a nursery: its stated property type aligns with the objective, its reported 16,904.19 sqm surface area is well above the requested 600 sqm gross floor area, and its energy class B exceeds the preferred D threshold. Green-space proximity is especially strong (96.98), with good access to healthcare, public transport, commercial services, and education. The supplied nursery guidance lists 465 sqm of useful covered space for a 45-place model, but that is a design-guideline metric, not a universal gross-area minimum; the property's reported area does not establish its usable layout or capacity. Confirm the applicable rules at the application date and verify planning compatibility, change-of-use and building permits, hygiene, accessibility, fire safety where required, structural safety, and sector authorization. The building's 1900 construction date also makes technical condition and adaptation requirements important to assess.",
+        "final_ranking_score": 79,
+        "pros": [
+          "Existing school and educational use is closely aligned with the proposed nursery conversion.",
+          "Reported surface area of 16,904.19 sqm is well above the requested 600 sqm gross-area threshold; class B meets the energy preference.",
+          "Very high green-space proximity (96.98), with strong mobility (84.94) and healthcare access (82.94)."
+        ],
+        "cons": [
+          "The data do not confirm that the requested 45-person capacity can be accommodated; usable area, room layout, and applicable design requirements need verification.",
+          "Planning compatibility, change-of-use approval, hygiene, accessibility, safety, and sector authorization remain required checks, and no validated gross-area threshold is supplied by the regulatory context.",
+          "Dating from 1900, the building may require substantial condition assessment and adaptation; the data do not establish its current technical state or renewable-energy provision."
+        ]
+      },
+      {
+        "id": "M03717",
+        "evaluation_text": "This 1900 school and educational property is a strong candidate for conversion to a nursery: its existing educational use aligns with the objective, its recorded area of 16,956.73 sqm is well above the requested 600 sqm, and its B energy class exceeds the preferred D threshold. Its green-space proximity percentile is very high at 95.94. The data do not establish capacity for 45 people, room layout, planning compatibility, accessibility, or technical and sector authorization; these require verification. The cited nursery guidance gives useful-area parameters and a 465 sqm useful-area design model for 45 places, but this is not a universal gross-area minimum and cannot establish suitability from the property's gross area alone.",
+        "final_ranking_score": 79,
+        "pros": [
+          "Existing school and educational use is well aligned with the proposed nursery conversion.",
+          "Recorded area of 16,956.73 sqm exceeds the requested 600 sqm gross floor area, subject to confirming the area basis and usable configuration.",
+          "Energy class B meets the stated D-or-better preference, and green-space proximity is high (95.94 percentile)."
+        ],
+        "cons": [
+          "Capacity for 45 people and the internal layout for nursery functions are not established by the supplied data.",
+          "Attributing nursery use requires verification of Turin planning compatibility, change-of-use and building permits, and applicable sector authorization.",
+          "Accessibility, hygiene and health requirements, fire safety where required, and structural safety need assessment before feasibility can be confirmed."
+        ]
+      },
+      {
+        "id": "24857",
+        "evaluation_text": "This existing school in Turin is a strong strategic candidate for conversion to a nursery: its 4,735.59 sqm reported area is well above the requested 600 sqm, its property type is aligned with the objective, and its energy class D meets the stated preference. Green-space proximity is especially strong (96.74), supported by high scores for healthcare (91.24), sports (90), and education (82.95). The score is tempered by the building’s 1887 construction date and weak envelope and renewables indicators. The regulatory data provide verified design guidance for nursery spaces, including a 465 sqm useful covered model for 45 places, but do not establish a universal gross-area minimum. Actual capacity, room layout, planning compatibility, change-of-use approval, accessibility, health and safety requirements, structural condition, and the applicable authorization procedure all require verification. The reported property area alone does not establish that the building can accommodate 45 people.",
+        "final_ranking_score": 69,
+        "pros": [
+          "Existing school and educational use is strategically aligned with conversion to a nursery.",
+          "Reported area of 4,735.59 sqm exceeds the requested 600 sqm gross-area target; the regulatory source lists 465 sqm useful covered area as a 45-place design model, not a universal gross threshold.",
+          "Energy class D meets the stated preference, and the green proximity score is very high at 96.74."
+        ],
+        "cons": [
+          "The 1887 construction period makes assessment of structural condition, accessibility, and required upgrades important; these are not established by the supplied data.",
+          "Energy total is 10, with a low envelope score of 1 and renewables score of 1, indicating potential efficiency improvement needs despite the D class and plant score of 5.",
+          "Planning compatibility, change of use, health and safety compliance, room layout, 45-person capacity, and the applicable sector authorization remain unverified."
+        ]
+      },
+      {
+        "id": "25095",
+        "evaluation_text": "This 6,663.31 sqm property in Turin is a strong candidate for conversion: its existing school and educational use aligns with a nursery, its reported area exceeds the requested 600 sqm gross area, and its energy class C meets the preference for D or better. The green-space proximity score is very high (96.12), supporting the location preference. The supplied information does not establish capacity for 45 people, room layout, planning compatibility, accessibility, or technical feasibility, so these require verification. The cited 465 sqm standard for a 45-place model is useful covered net area, not a gross-property minimum; it cannot establish that the building is suitable. The overall relevance score is 66, reflecting substantial area, building-use, energy, and green-space strengths alongside unresolved authorization and conversion checks.",
+        "final_ranking_score": 66,
+        "pros": [
+          "Reported gross floor area of 6,663.31 sqm is well above the requested 600 sqm.",
+          "Existing schools and educational activities use offers a relevant starting point for nursery conversion; energy class C meets the stated preference.",
+          "Green-space proximity score is 96.12, indicating a strong match for the location preference."
+        ],
+        "cons": [
+          "The data do not establish that the building can accommodate the requested capacity of 45 people or provide the necessary room layout.",
+          "Turin planning compatibility, change-of-use approval, sector authorization, and applicable requirements need verification.",
+          "Accessibility, health and safety requirements, fire safety where required, and structural condition need assessment; the 1965 construction period alone does not establish compliance."
+        ]
+      }
+    ],
+    "relaxation_applied": false,
+    "relaxation_count": 0,
+    "fallback_activated": false,
+    "agent_errors": []
+  }
+}

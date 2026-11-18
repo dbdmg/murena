@@ -1,0 +1,822 @@
+{
+  "run_id": "bench_c3d49c8e8bf1",
+  "condition": "oracle",
+  "unit_id": "UC07_RSA_missing_use",
+  "scenario_id": null,
+  "base_case_id": "UC07_RSA_missing_use",
+  "missing_count": null,
+  "scenario_name": null,
+  "tags": [],
+  "model": "gpt-6-luna",
+  "repeat": 5,
+  "attempt": 2,
+  "input_sha256": "1e450f56cc6f3000cd2b4a32198673adddc640144b523dfa41a5c77f4ba2789d",
+  "scenario_sha256": null,
+  "initial_query": "Find a hotel building to convert it into a residential senior care facility (RSA) for 30 residents in Turin with at least 1600 sqm of gross floor area in energy class D or better near healthcare services.",
+  "options": {
+    "dataset_key": "full",
+    "map_limit": 1000,
+    "llm_limit": 10,
+    "analysis_mode": "agent",
+    "use_relaxation": true,
+    "use_data_knowledge": true,
+    "architecture": "multiagent",
+    "disabled_agents": null
+  },
+  "started_at": "2026-11-18T17:13:20.718731+00:00",
+  "clarification_seconds": null,
+  "analysis_seconds": 111.499,
+  "submitted_query": "Find a hotel building to convert it into a residential senior care facility (RSA) for 30 residents in Turin with at least 1600 sqm of gross floor area in energy class D or better near healthcare services.",
+  "status": "completed",
+  "results_count": 11,
+  "top_ids": [
+    "18989",
+    "12669",
+    "17251",
+    "20084",
+    "857",
+    "15851",
+    "23211",
+    "24885",
+    "15850",
+    "25094"
+  ],
+  "quality": {
+    "expected_count": 0,
+    "matched_expected": null,
+    "precision_at_returned": null,
+    "recall": null
+  },
+  "final_sql": "SELECT\n  *\nFROM ESTATES\nWHERE\n  property_type IN (\n    'Hotels, pensions, and similar',\n    'Hospitals, clinics, nursing homes and similar',\n    'Hospitals, retirement homes, prisons, barracks, convents'\n  )\n  AND surface_area >= 1200\n  AND energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C', 'D', 'E')\n  AND healthcare >= 80.08\n  AND HAVERSINE_KM(latitude, longitude, 45.0677551, 7.6824892) <= 6.0\nORDER BY\n  HAVERSINE_KM(latitude, longitude, 45.0677551, 7.6824892) ASC",
+  "duration_seconds": 111.512,
+  "scenario_definition": {
+    "id": "MS07_k1_optout",
+    "name": "1 omitted dimensions; intended use: Senior Residential Care (RSA); opt-out on Cb",
+    "tags": [
+      "edbt",
+      "controlled_missingness_v3",
+      "missing_1",
+      "UC07_RSA_missing_use",
+      "imperfect_user",
+      "optout"
+    ],
+    "base_case_id": "UC07_RSA_missing_use",
+    "missing_count": 1,
+    "initial_query": "I am looking for a hotel building. I intend to convert it into a residential senior care facility (RSA). The location is in Turin. I prefer a property in energy class D or better. I prefer properties near healthcare services.",
+    "one_shot_query": "I am looking for a hotel building. I intend to convert it into a residential senior care facility (RSA). The location is in Turin. I prefer a property in energy class D or better. I prefer properties near healthcare services.",
+    "oracle_query": "Find a hotel building to convert it into a residential senior care facility (RSA) for 30 residents in Turin with at least 1600 sqm of gross floor area in energy class D or better near healthcare services.",
+    "expected_initial_missing": [
+      "Cb"
+    ],
+    "clarifications": {
+      "I": "I am looking for a hotel building.",
+      "D": "I intend to convert it into a residential senior care facility (RSA).",
+      "L": "The location is in Turin.",
+      "Cb": "I have no requirement on building size, capacity or structural features.",
+      "Ce": "I prefer a property in energy class D or better.",
+      "Cp": "I prefer properties near healthcare services."
+    },
+    "expected_mapping": {
+      "I": "SPECIFIED",
+      "D": "SPECIFIED",
+      "L": "SPECIFIED",
+      "Cb": "NOT_REQUESTED",
+      "Ce": "SPECIFIED",
+      "Cp": "SPECIFIED"
+    },
+    "repeats": 1,
+    "imperfect_user": {
+      "profile": "optout",
+      "dimension": "Cb"
+    }
+  },
+  "artifact_file": "runs/bench_c3d49c8e8bf1.json",
+  "artifact_schema_version": 4,
+  "ranking_ids": [
+    "18989",
+    "12669",
+    "17251",
+    "20084",
+    "857",
+    "15851",
+    "23211",
+    "24885",
+    "15850",
+    "25094",
+    "27183"
+  ],
+  "top": [
+    {
+      "id": "18989",
+      "score": 85.81300000000002,
+      "distance_km": 0.31
+    },
+    {
+      "id": "12669",
+      "score": 80.96700000000001,
+      "distance_km": 0.99
+    },
+    {
+      "id": "17251",
+      "score": 69.871,
+      "distance_km": 0.18
+    },
+    {
+      "id": "20084",
+      "score": 56.89,
+      "distance_km": 1.25
+    },
+    {
+      "id": "857",
+      "score": 53.471000000000004,
+      "distance_km": 2.11
+    },
+    {
+      "id": "15851",
+      "score": 52.601,
+      "distance_km": 2.04
+    },
+    {
+      "id": "23211",
+      "score": 52.14,
+      "distance_km": 1.25
+    },
+    {
+      "id": "24885",
+      "score": 51.093,
+      "distance_km": 2.35
+    },
+    {
+      "id": "15850",
+      "score": 48.319,
+      "distance_km": 2.0
+    },
+    {
+      "id": "25094",
+      "score": 47.626000000000005,
+      "distance_km": 2.6
+    }
+  ],
+  "api_response": {
+    "agent_trace": [
+      {
+        "agent_name": "regulatory-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "found": false,
+          "matched_use_cases": [
+            "Senior Residential Care (RSA)"
+          ],
+          "requirements": []
+        }
+      },
+      {
+        "agent_name": "proximity-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "requirements": [
+            {
+              "target_column": "healthcare",
+              "operator": ">=",
+              "value": 90,
+              "description": "Healthcare services should be nearby; threshold rounded to the 75th percentile of 89.9."
+            }
+          ]
+        }
+      },
+      {
+        "agent_name": "building-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "typologies": [
+            "Hotels, pensions, and similar"
+          ],
+          "found": true,
+          "requirements": [
+            {
+              "target_column": "surface_area",
+              "operator": ">=",
+              "value": 1600,
+              "description": "The request explicitly requires at least 1600 sqm of gross floor area."
+            }
+          ]
+        }
+      },
+      {
+        "agent_name": "location-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "places": [
+            {
+              "name": "Turin",
+              "city": "Turin",
+              "lat": 45.0677551,
+              "lon": 7.6824892,
+              "radius_km": 3.0
+            }
+          ],
+          "found": true
+        }
+      },
+      {
+        "agent_name": "energy-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "requirements": [
+            {
+              "target_column": "energy_class",
+              "operator": "IN",
+              "value": [
+                "A1",
+                "A2",
+                "A3",
+                "A4",
+                "B",
+                "C",
+                "D"
+              ],
+              "description": "Energy class D or better."
+            }
+          ],
+          "found": true
+        }
+      },
+      {
+        "agent_name": "ranking-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "ranking": [
+            {
+              "agent_name": "regulatory",
+              "rank": 1
+            },
+            {
+              "agent_name": "building",
+              "rank": 2
+            },
+            {
+              "agent_name": "location",
+              "rank": 3
+            },
+            {
+              "agent_name": "energy",
+              "rank": 4
+            },
+            {
+              "agent_name": "proximity",
+              "rank": 5
+            }
+          ],
+          "weights": {
+            "location": 0.15,
+            "regulatory": 0.43,
+            "energy": 0.11,
+            "building": 0.22,
+            "proximity": 0.09
+          }
+        }
+      },
+      {
+        "agent_name": "sql-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "sql": "SELECT * FROM ESTATES WHERE property_type = 'Hotels, pensions, and similar' AND surface_area >= 1600 AND energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C', 'D') AND healthcare >= 90 AND haversine_km(latitude, longitude, 45.0677551, 7.6824892) <= 3.0 ORDER BY haversine_km(latitude, longitude, 45.0677551, 7.6824892) ASC",
+          "explanation": "Filters for the specified hotel property type, minimum area, energy classes, healthcare score, and 3 km radius; orders by distance."
+        }
+      },
+      {
+        "agent_name": "relaxation-agent",
+        "agent_mode": "extraction",
+        "output": [
+          {
+            "condizione_iniziale": "property_type = 'Hotels, pensions, and similar'",
+            "condizione_relaxed": "property_type IN ('Hotels, pensions, and similar', 'Hospitals, clinics, nursing homes and similar', 'Hospitals, retirement homes, prisons, barracks, convents')",
+            "piani_progressivi": [
+              "property_type IN ('Hotels, pensions, and similar', 'Hospitals, clinics, nursing homes and similar')"
+            ],
+            "strategia": "Category widening",
+            "motivazione": "Adds less common accommodation and care facility categories that are similar in use, while retaining the hotel category.",
+            "livello_rilassamento": "low"
+          },
+          {
+            "condizione_iniziale": "property_type = 'Hotels, pensions, and similar'",
+            "condizione_relaxed": "property_type IN ('Hotels, pensions, and similar', 'Hospitals, clinics, nursing homes and similar', 'Hospitals, retirement homes, prisons, barracks, convents', 'Residential (Temporary/Holiday)')",
+            "piani_progressivi": [
+              "property_type IN ('Hotels, pensions, and similar', 'Hospitals, clinics, nursing homes and similar', 'Hospitals, retirement homes, prisons, barracks, convents')"
+            ],
+            "strategia": "Category widening",
+            "motivazione": "Adds temporary or holiday residential properties alongside accommodation and care facilities, broadening the search to related lodging uses.",
+            "livello_rilassamento": "medium"
+          },
+          {
+            "condizione_iniziale": "property_type = 'Hotels, pensions, and similar'",
+            "condizione_relaxed": "property_type IN ('Hotels, pensions, and similar', 'Hospitals, clinics, nursing homes and similar', 'Hospitals, retirement homes, prisons, barracks, convents', 'Residential (Temporary/Holiday)', 'Commercial activities and similar')",
+            "piani_progressivi": [
+              "property_type IN ('Hotels, pensions, and similar', 'Hospitals, clinics, nursing homes and similar', 'Hospitals, retirement homes, prisons, barracks, convents', 'Residential (Temporary/Holiday)')"
+            ],
+            "strategia": "Category widening",
+            "motivazione": "Adds the broader commercial category, which may include properties suitable for hospitality, while preserving all closer lodging-related categories.",
+            "livello_rilassamento": "high"
+          },
+          {
+            "condizione_iniziale": "surface_area >= 1600",
+            "condizione_relaxed": "surface_area >= 1200",
+            "piani_progressivi": [
+              "surface_area >= 1400"
+            ],
+            "strategia": "Threshold change",
+            "motivazione": "The current 1600 threshold exceeds the dataset mean of 1047.48 by a substantial margin; lowering it modestly should admit more large properties while keeping the size requirement well above the median of 70.14.",
+            "livello_rilassamento": "low"
+          },
+          {
+            "condizione_iniziale": "surface_area >= 1600",
+            "condizione_relaxed": "surface_area >= 800",
+            "piani_progressivi": [
+              "surface_area >= 1200"
+            ],
+            "strategia": "Threshold change",
+            "motivazione": "Moving the minimum closer to the dataset mean can add sizeable properties while retaining a substantial floor compared with the 70.14 median.",
+            "livello_rilassamento": "medium"
+          },
+          {
+            "condizione_iniziale": "surface_area >= 1600",
+            "condizione_relaxed": "surface_area >= 109.71",
+            "piani_progressivi": [
+              "surface_area >= 800"
+            ],
+            "strategia": "Threshold change",
+            "motivazione": "The 75th percentile is 109.71, so using it as the minimum substantially broadens the search while still requiring an area above that of most records.",
+            "livello_rilassamento": "high"
+          },
+          {
+            "condizione_iniziale": "energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C', 'D')",
+            "condizione_relaxed": "energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C', 'D', 'E')",
+            "piani_progressivi": [],
+            "strategia": "Category widening",
+            "motivazione": "Adds the adjacent E class, represented by 10632 records, while retaining all originally accepted classes.",
+            "livello_rilassamento": "low"
+          },
+          {
+            "condizione_iniziale": "energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C', 'D')",
+            "condizione_relaxed": "energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C', 'D', 'E', 'F')",
+            "piani_progressivi": [
+              "energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C', 'D', 'E')"
+            ],
+            "strategia": "Category widening",
+            "motivazione": "Adds the adjacent E and F classes, which are common in the dataset, broadening coverage while preserving the original energy classes.",
+            "livello_rilassamento": "medium"
+          },
+          {
+            "condizione_iniziale": "energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C', 'D')",
+            "condizione_relaxed": "energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C', 'D', 'E', 'F', 'G')",
+            "piani_progressivi": [
+              "energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C', 'D', 'E', 'F')"
+            ],
+            "strategia": "Category widening",
+            "motivazione": "Includes every listed energy class, adding the remaining common lower-rated classes to maximize coverage while retaining the original preference.",
+            "livello_rilassamento": "high"
+          },
+          {
+            "condizione_iniziale": "healthcare >= 90",
+            "condizione_relaxed": "healthcare >= 85",
+            "piani_progressivi": [
+              "healthcare >= 89.9"
+            ],
+            "strategia": "Threshold change",
+            "motivazione": "The current minimum is just above the 75th percentile of 89.9; lowering it to 85 should include more records while maintaining a relatively high healthcare score.",
+            "livello_rilassamento": "low"
+          },
+          {
+            "condizione_iniziale": "healthcare >= 90",
+            "condizione_relaxed": "healthcare >= 80.08",
+            "piani_progressivi": [
+              "healthcare >= 85"
+            ],
+            "strategia": "Threshold change",
+            "motivazione": "The median is 80.08, a data-supported threshold that broadens eligibility while retaining at least a typical healthcare score.",
+            "livello_rilassamento": "medium"
+          },
+          {
+            "condizione_iniziale": "healthcare >= 90",
+            "condizione_relaxed": "healthcare >= 70.14",
+            "piani_progressivi": [
+              "healthcare >= 80.08"
+            ],
+            "strategia": "Threshold change",
+            "motivazione": "The 25th percentile is 70.14; using it substantially widens coverage while keeping a minimum score tied to the observed distribution.",
+            "livello_rilassamento": "high"
+          },
+          {
+            "condizione_iniziale": "HAVERSINE_KM(latitude, longitude, 45.0677551, 7.6824892) <= 3.0",
+            "condizione_relaxed": "HAVERSINE_KM(latitude, longitude, 45.0677551, 7.6824892) <= 4.0",
+            "piani_progressivi": [
+              "HAVERSINE_KM(latitude, longitude, 45.0677551, 7.6824892) <= 3.5"
+            ],
+            "strategia": "Radius expansion",
+            "motivazione": "A one-kilometer increase keeps the search near the specified location while plausibly including nearby properties beyond the original radius.",
+            "livello_rilassamento": "low"
+          },
+          {
+            "condizione_iniziale": "HAVERSINE_KM(latitude, longitude, 45.0677551, 7.6824892) <= 3.0",
+            "condizione_relaxed": "HAVERSINE_KM(latitude, longitude, 45.0677551, 7.6824892) <= 6.0",
+            "piani_progressivi": [
+              "HAVERSINE_KM(latitude, longitude, 45.0677551, 7.6824892) <= 4.0"
+            ],
+            "strategia": "Radius expansion",
+            "motivazione": "Doubling the radius can capture a wider nearby area while keeping the geographic constraint anchored to the same location.",
+            "livello_rilassamento": "medium"
+          },
+          {
+            "condizione_iniziale": "HAVERSINE_KM(latitude, longitude, 45.0677551, 7.6824892) <= 3.0",
+            "condizione_relaxed": "HAVERSINE_KM(latitude, longitude, 45.0677551, 7.6824892) <= 10.0",
+            "piani_progressivi": [
+              "HAVERSINE_KM(latitude, longitude, 45.0677551, 7.6824892) <= 6.0"
+            ],
+            "strategia": "Radius expansion",
+            "motivazione": "A ten-kilometer radius substantially increases geographic coverage while retaining the original center and a bounded search area.",
+            "livello_rilassamento": "high"
+          }
+        ],
+        "batch_id": null,
+        "timestamp": "2026-11-18T18:14:24.322996",
+        "execution_time_ms": 43920.38369178772
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "20084",
+          "evaluation_text": "This recently constructed, 7,857.15 sqm facility is a strong physical and energy match for conversion to a 30-resident RSA: its stated area exceeds the 1,600 sqm target and its A1 energy class is better than the requested D threshold. The healthcare proximity indicator is high at 86.57, supporting the location preference. Its current classification as a hospital, clinic, nursing home, or similar may offer relevant reuse potential, but does not establish that the existing layout or authorization is suitable for the proposed RSA. The regional standard specifies room-level and function-specific net areas; it provides no verified minimum gross property area, so those figures cannot establish overall sufficiency. Verify the building’s configuration against RSA requirements and confirm PRG compatibility, change-of-use and building permits, hygiene, accessibility, fire and structural safety, and sector authorization. The deterministic relevance score remains 57, reflecting that the promising size, energy, and healthcare indicators do not resolve these regulatory and conversion checks.",
+          "final_ranking_score": 57,
+          "pros": [
+            "7,857.15 sqm of stated area exceeds the requested 1,600 sqm gross floor area.",
+            "A1 energy class exceeds the requested D-or-better threshold; the building dates to 2021.",
+            "Healthcare proximity indicator is high at 86.57; the listed property type may offer relevant reuse potential."
+          ],
+          "cons": [
+            "Listed area and property type do not establish an RSA-compliant layout or technical feasibility for 30 residents.",
+            "PRG compatibility, change-of-use and building permits, hygiene, accessibility, fire and structural safety, and sector authorization require verification.",
+            "The regulatory data provide no verified gross-area threshold; function-specific net room standards cannot establish overall area sufficiency."
+          ]
+        },
+        "batch_id": 1,
+        "timestamp": "2026-11-18T18:14:41.747438",
+        "execution_time_ms": 17296.462774276733
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "18989",
+          "evaluation_text": "This hotel is a strong strategic candidate for conversion to a 30-resident RSA: its hotel use is aligned with the intended transformation, its reported 9,974.26 sqm gross area is well above the requested 1,600 sqm, and its energy class B exceeds the requested D-or-better threshold. Healthcare proximity is very high (92.19), with strong access to mobility and other services. The supplied regulatory result identifies the RSA use case but reports no requirements and no verified gross-area threshold; the cited 12 sqm standard applies only to a single bedroom’s net area, not to the whole property. Layout, planning compatibility, change-of-use authorization, accessibility, technical condition, and sector authorization therefore require verification. The low energy envelope and renewables subscores also suggest possible upgrade needs despite the reported class B.",
+          "final_ranking_score": 86,
+          "pros": [
+            "Hotel property type and substantial reported gross floor area (9,974.26 sqm) make it a compelling candidate for assessing conversion to a 30-resident RSA.",
+            "Reported energy class B meets the requested D-or-better threshold.",
+            "Healthcare proximity is high (92.19), with excellent mobility (99.1) and access to education (99.83)."
+          ],
+          "cons": [
+            "The property’s room layout and net usable areas are not supplied, so compliance with RSA room and shared-space standards cannot be established.",
+            "Urban-planning compatibility, change-of-use authorization, accessibility, safety, and sector authorization remain required checks.",
+            "The energy envelope and renewables subscores are both 1, indicating potential upgrade needs despite the reported energy class B."
+          ]
+        },
+        "batch_id": 2,
+        "timestamp": "2026-11-18T18:14:41.922445",
+        "execution_time_ms": 17478.275060653687
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "12669",
+          "evaluation_text": "This historic hotel in central Turin is a strong strategic candidate for conversion to a 30-resident RSA. Its 3,682.01 sqm gross area exceeds the stated 1,600 sqm target, and its A3 energy class exceeds the requested D-or-better threshold. Healthcare proximity is high (89.47), with strong access to public transport and other services. The supplied regulatory result identifies the RSA use case but reports no matched requirements; its gross-area threshold is not verified. The cited regional standards include net-area requirements for particular rooms and functions, not a minimum gross area for the whole property. Suitability therefore depends on verifying the layout, room areas, planning compatibility, change-of-use permissions, accessibility, technical and safety requirements, and sector authorization. The 1850 construction date also makes assessment of the existing structure and adaptation needs important.",
+          "final_ranking_score": 81,
+          "pros": [
+            "Hotel property type and 3,682.01 sqm gross area align with the conversion objective and exceed the user's stated 1,600 sqm target.",
+            "A3 energy class meets the requested D-or-better standard; the reported energy class and plant scores are strong.",
+            "Healthcare proximity percentile of 89.47 is high, and mobility (90.36) and commercial services (91.06) are also strong."
+          ],
+          "cons": [
+            "The supplied data do not establish that the existing layout can accommodate 30 residents and the required RSA rooms and shared functions.",
+            "Urban-planning compatibility, change-of-use permissions, accessibility, safety, and sector authorization require verification; the regulatory result lists these checks and no verified gross-area threshold.",
+            "The 1850 construction period means structural condition and the scope and feasibility of adaptation need assessment; the supplied data do not establish these."
+          ]
+        },
+        "batch_id": 3,
+        "timestamp": "2026-11-18T18:14:42.310806",
+        "execution_time_ms": 17865.436553955078
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "17251",
+          "evaluation_text": "This 2020 property has a reported gross area of 7,359.88 sqm, exceeding the requested 1,600 sqm, and is already classified as a hospital, clinic, nursing home, or similar facility. Its A2 energy class exceeds the requested D threshold, and healthcare proximity is strong (96.03). These features make it a promising candidate for conversion to an RSA for 30 residents. The supplied regulatory result identifies the RSA use case but provides no verified gross-area threshold and no matched requirements; the cited regional standards include net room and function-specific areas, not a minimum total property area. The data do not establish hotel use, planning compatibility, room layout, accessibility, or authorization for the proposed RSA; these require verification, including the listed planning, building, health, safety, and sector authorization checks.",
+          "final_ranking_score": 70,
+          "pros": [
+            "Reported gross area of 7,359.88 sqm exceeds the 1,600 sqm target, with substantial area for adaptation subject to layout and technical verification.",
+            "Energy class A2 is better than the requested D threshold; the listed class, plant, and envelope subscores are each 5.",
+            "Healthcare proximity is high at 96.03, and the property is already categorized as a hospital, clinic, nursing home, or similar facility."
+          ],
+          "cons": [
+            "The supplied data do not identify the building as a hotel, so the requested hotel-building criterion is unconfirmed.",
+            "The data do not establish that the existing layout can accommodate an RSA for 30 residents or meet the applicable room and shared-space standards.",
+            "PRG compatibility, change-of-use approval, accessibility, health and safety compliance, and sector authorization remain to be checked."
+          ]
+        },
+        "batch_id": 4,
+        "timestamp": "2026-11-18T18:14:42.457062",
+        "execution_time_ms": 18008.06474685669
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "23211",
+          "evaluation_text": "This hotel property has a relevant starting point for the proposed RSA conversion: its hotel use and 2019 construction period may support adaptation, and its healthcare proximity score is 86.57. Its energy class D meets the stated threshold, with a strong plant score of 5, though the overall energy profile is moderate. However, the reported 1,400 sqm is below the requested 1,600 sqm gross area, so it does not meet that stated size criterion. The data do not establish whether an expansion is possible, whether the layout can accommodate 30 residents and required shared and clinical spaces, or whether planning, accessibility, building, and sector authorization requirements can be met. The cited regional standard includes room and function-specific net area requirements; it supplies no verified minimum gross property area.",
+          "final_ranking_score": 52,
+          "pros": [
+            "Existing hotel use offers a potentially relevant basis for conversion, subject to planning and authorization checks.",
+            "Healthcare proximity is relatively strong, with a score of 86.57.",
+            "Energy class D meets the requested efficiency threshold, and the thermal plant score is 5."
+          ],
+          "cons": [
+            "Reported surface area is 1,400 sqm, 200 sqm below the requested minimum gross floor area of 1,600 sqm.",
+            "The overall energy score is moderate at 10/20, with envelope and renewables scores of 1 each.",
+            "The supplied data do not verify capacity for 30 residents, required room and shared-space layouts, accessibility, urban-planning compatibility, technical feasibility, or sector authorization."
+          ]
+        },
+        "batch_id": 5,
+        "timestamp": "2026-11-18T18:14:51.274923",
+        "execution_time_ms": 8964.192628860474
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "24885",
+          "evaluation_text": "This 2018 property offers a strong initial fit for conversion to a 30-resident RSA: its reported 2,222.77 sqm gross area exceeds the user's 1,600 sqm target, it is already classified among hospitals, clinics, nursing homes and similar properties, and its A3 energy class is better than the requested D threshold. Healthcare proximity is high (91.18). These features support further investigation, but do not establish the existing layout, authorization for RSA use, or feasibility of conversion. The applicable regional entry specifies net room and function requirements, while no verified minimum gross property area is provided; therefore, the gross-area comparison is only against the user's stated target. Planning compatibility, change-of-use permissions, accessibility, hygiene, fire and structural safety, and sector authorization require verification. The deterministic relevance score is 51 and is retained unchanged.",
+          "final_ranking_score": 51,
+          "pros": [
+            "Reported gross area of 2,222.77 sqm exceeds the user's 1,600 sqm target for the project.",
+            "A3 energy class meets the requested D-or-better threshold; the building dates from 2018.",
+            "Healthcare proximity percentile is high at 91.18, and the recorded property type is hospitals, clinics, nursing homes and similar."
+          ],
+          "cons": [
+            "The recorded property type does not establish current hotel use or authorization for conversion to an RSA; planning compatibility and change-of-use title require verification.",
+            "The supplied data do not establish room layout or compliance with RSA net-space, accessibility, hygiene, fire-safety, structural and sector-authorization requirements.",
+            "No verified regulatory minimum gross property area is provided; the reported gross area alone does not establish that the building can accommodate all required functions for 30 residents."
+          ]
+        },
+        "batch_id": 6,
+        "timestamp": "2026-11-18T18:14:52.277448",
+        "execution_time_ms": 9820.160150527954
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "15851",
+          "evaluation_text": "This 2019 property is a strong candidate for the requested conversion: its 3,852.91 sqm gross area exceeds the 1,600 sqm target, it is already classified as a hospital, retirement home, prison, barracks, or convent, and its A3 energy class is better than the requested D threshold. Healthcare proximity is high (81.56), supporting the location preference. The data do not confirm hotel use, authorization for an RSA, room layout, accessibility, or technical and planning feasibility; these require verification. The regional standard provides net area requirements for particular rooms and functions, but no verified minimum gross property area, so it does not establish overall area sufficiency for an RSA for 30 residents. The regulatory result reports no requirements found, and the listed planning, building, health, accessibility, safety, and sector authorization checks remain outstanding.",
+          "final_ranking_score": 53,
+          "pros": [
+            "Gross floor area of 3,852.91 sqm exceeds the user's 1,600 sqm target, though RSA suitability for 30 residents depends on layout and applicable requirements.",
+            "Energy class A3 exceeds the requested D threshold; the building dates from 2019.",
+            "Healthcare proximity score is high at 81.56; the listed property type is institutional or care-related."
+          ],
+          "cons": [
+            "The listed property type does not establish that this is a hotel building or that it is authorized for RSA use; planning compatibility and change-of-use approval require verification.",
+            "The data do not establish room layout, accessibility, or compliance with the regional requirements for a 30-resident facility; technical and sector authorization checks are needed.",
+            "The regulatory result found no requirements, and there is no verified gross-area threshold; the property's area alone cannot establish that the required RSA spaces can be accommodated."
+          ]
+        },
+        "batch_id": 7,
+        "timestamp": "2026-11-18T18:14:52.524889",
+        "execution_time_ms": 10602.7672290802
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "857",
+          "evaluation_text": "The property has strategic potential for conversion to a 30-resident RSA: its recorded use as a hospital, clinic, nursing home or similar suggests a relevant institutional context, and its reported 54,756.71 sqm area is well above the user's 1,600 sqm gross-area target. The energy class C meets the requested D-or-better threshold, and healthcare proximity is strong (90.51). However, the data do not establish that the property is a hotel, that its recorded area corresponds to usable space available for this project, or that its layout and condition can support 30 residents. The regional standard specifies net areas for individual rooms and shared functions; it does not establish a minimum gross property area, so room-level compliance and the required planning, building, accessibility, safety and sector authorization checks remain to be verified. The low total energy sub-score (6/20), including low plant, envelope and renewables scores, also points to potential efficiency upgrades despite the stated class C.",
+          "final_ranking_score": 53,
+          "pros": [
+            "Reported surface area of 54,756.71 sqm exceeds the 1,600 sqm gross-area target, subject to confirming the area is available and measured on a comparable basis.",
+            "Energy class C is within the requested D-or-better range.",
+            "Healthcare proximity is high at 90.51, supporting access to nearby services."
+          ],
+          "cons": [
+            "The recorded property type is hospitals, clinics, nursing homes and similar, so the data do not confirm it is a hotel building.",
+            "The low energy total score of 6/20, with plant, envelope and renewables each scored 1, suggests substantial efficiency improvements may be needed despite class C.",
+            "The data do not verify a 30-resident layout or compliance with net room and shared-space standards; planning compatibility, change of use, accessibility, safety and sector authorization require checks."
+          ]
+        },
+        "batch_id": 8,
+        "timestamp": "2026-11-18T18:14:52.703790",
+        "execution_time_ms": 10957.112789154053
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "15850",
+          "evaluation_text": "This 2006 property is classified as a hospital, retirement home, prison, barracks, or convent, making its existing institutional use a potentially relevant starting point for conversion to an RSA. Its 12,528.72 sqm gross area is well above the requested 1,600 sqm, and energy class B exceeds the requested D-or-better threshold. Healthcare proximity is relatively strong (81.74), with the reference point 2.0 km away. These attributes support further feasibility assessment for 30 residents, but do not establish that the building can accommodate the required rooms, meet authorization or planning rules, or be converted without substantial works. The cited regional standard provides net room and shared-space parameters, not a minimum gross area for the whole property; the applicable layout and required checks need verification.",
+          "final_ranking_score": 48,
+          "pros": [
+            "Gross floor area of 12,528.72 sqm substantially exceeds the user's 1,600 sqm target, providing a strong area basis for feasibility assessment.",
+            "Energy class B meets the requested D-or-better threshold; the building dates from 2006.",
+            "Healthcare proximity is relatively strong at 81.74, with the reference point 2.0 km away; the institutional property classification may also be relevant to the proposed use."
+          ],
+          "cons": [
+            "The property data do not establish that its layout can accommodate an RSA for 30 residents, including required rooms and shared spaces.",
+            "Urban-planning compatibility, change-of-use permissions, accessibility, fire and structural safety, and sector authorization require verification.",
+            "Energy sub-scores total 10/20, with no renewables indicated; area and property type alone do not establish technical or regulatory feasibility."
+          ]
+        },
+        "batch_id": 9,
+        "timestamp": "2026-11-18T18:15:01.756007",
+        "execution_time_ms": 10481.63652420044
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "25094",
+          "evaluation_text": "The property merits consideration for conversion to a 30-resident RSA: its reported 8,368.18 sqm gross area exceeds the requested 1,600 sqm target, and its A4 energy class is better than the requested D threshold. Its existing classification as a hospital, clinic, nursing home, or similar suggests a potentially relevant starting point, but does not establish that the building is a hotel or that an RSA conversion is authorized or technically feasible. Healthcare proximity is relatively strong in the supplied percentile data. The regulatory context identifies verified net-area standards for individual rooms and shared functions, but supplies no verified minimum gross property-area threshold; the 12 sqm figure applies only to a single bedroom. Suitability for 30 residents therefore depends on verifying the actual layout and applicable requirements, along with Turin planning compatibility, change-of-use and building permits, health and accessibility standards, structural and fire safety where required, and sector authorization.",
+          "final_ranking_score": 48,
+          "pros": [
+            "Reported gross area of 8,368.18 sqm comfortably exceeds the user’s 1,600 sqm target, subject to confirmation of the measured area and usable layout.",
+            "A4 energy class exceeds the requested D-or-better threshold; energy subscores show strong plant and envelope ratings, though no renewables are reported.",
+            "Healthcare proximity is relatively strong at the 83.96 percentile, and the listed property type is already healthcare or care related."
+          ],
+          "cons": [
+            "The supplied data do not identify the building as a hotel, establish its existing room configuration, or show that it can accommodate 30 residents under applicable RSA requirements.",
+            "Turin planning compatibility, change of use, permits, hygiene, accessibility, structural safety, fire safety where prescribed, and sector authorization remain required checks; none is established by the data.",
+            "The 8,368.18 sqm figure is gross property area and does not establish compliant net room or shared-space areas; the regulatory source provides no verified gross-area minimum."
+          ]
+        },
+        "batch_id": 10,
+        "timestamp": "2026-11-18T18:15:02.565509",
+        "execution_time_ms": 10288.469552993774
+      }
+    ],
+    "evaluation_results": [
+      {
+        "id": "18989",
+        "evaluation_text": "This hotel is a strong strategic candidate for conversion to a 30-resident RSA: its hotel use is aligned with the intended transformation, its reported 9,974.26 sqm gross area is well above the requested 1,600 sqm, and its energy class B exceeds the requested D-or-better threshold. Healthcare proximity is very high (92.19), with strong access to mobility and other services. The supplied regulatory result identifies the RSA use case but reports no requirements and no verified gross-area threshold; the cited 12 sqm standard applies only to a single bedroom’s net area, not to the whole property. Layout, planning compatibility, change-of-use authorization, accessibility, technical condition, and sector authorization therefore require verification. The low energy envelope and renewables subscores also suggest possible upgrade needs despite the reported class B.",
+        "final_ranking_score": 86,
+        "pros": [
+          "Hotel property type and substantial reported gross floor area (9,974.26 sqm) make it a compelling candidate for assessing conversion to a 30-resident RSA.",
+          "Reported energy class B meets the requested D-or-better threshold.",
+          "Healthcare proximity is high (92.19), with excellent mobility (99.1) and access to education (99.83)."
+        ],
+        "cons": [
+          "The property’s room layout and net usable areas are not supplied, so compliance with RSA room and shared-space standards cannot be established.",
+          "Urban-planning compatibility, change-of-use authorization, accessibility, safety, and sector authorization remain required checks.",
+          "The energy envelope and renewables subscores are both 1, indicating potential upgrade needs despite the reported energy class B."
+        ]
+      },
+      {
+        "id": "12669",
+        "evaluation_text": "This historic hotel in central Turin is a strong strategic candidate for conversion to a 30-resident RSA. Its 3,682.01 sqm gross area exceeds the stated 1,600 sqm target, and its A3 energy class exceeds the requested D-or-better threshold. Healthcare proximity is high (89.47), with strong access to public transport and other services. The supplied regulatory result identifies the RSA use case but reports no matched requirements; its gross-area threshold is not verified. The cited regional standards include net-area requirements for particular rooms and functions, not a minimum gross area for the whole property. Suitability therefore depends on verifying the layout, room areas, planning compatibility, change-of-use permissions, accessibility, technical and safety requirements, and sector authorization. The 1850 construction date also makes assessment of the existing structure and adaptation needs important.",
+        "final_ranking_score": 81,
+        "pros": [
+          "Hotel property type and 3,682.01 sqm gross area align with the conversion objective and exceed the user's stated 1,600 sqm target.",
+          "A3 energy class meets the requested D-or-better standard; the reported energy class and plant scores are strong.",
+          "Healthcare proximity percentile of 89.47 is high, and mobility (90.36) and commercial services (91.06) are also strong."
+        ],
+        "cons": [
+          "The supplied data do not establish that the existing layout can accommodate 30 residents and the required RSA rooms and shared functions.",
+          "Urban-planning compatibility, change-of-use permissions, accessibility, safety, and sector authorization require verification; the regulatory result lists these checks and no verified gross-area threshold.",
+          "The 1850 construction period means structural condition and the scope and feasibility of adaptation need assessment; the supplied data do not establish these."
+        ]
+      },
+      {
+        "id": "17251",
+        "evaluation_text": "This 2020 property has a reported gross area of 7,359.88 sqm, exceeding the requested 1,600 sqm, and is already classified as a hospital, clinic, nursing home, or similar facility. Its A2 energy class exceeds the requested D threshold, and healthcare proximity is strong (96.03). These features make it a promising candidate for conversion to an RSA for 30 residents. The supplied regulatory result identifies the RSA use case but provides no verified gross-area threshold and no matched requirements; the cited regional standards include net room and function-specific areas, not a minimum total property area. The data do not establish hotel use, planning compatibility, room layout, accessibility, or authorization for the proposed RSA; these require verification, including the listed planning, building, health, safety, and sector authorization checks.",
+        "final_ranking_score": 70,
+        "pros": [
+          "Reported gross area of 7,359.88 sqm exceeds the 1,600 sqm target, with substantial area for adaptation subject to layout and technical verification.",
+          "Energy class A2 is better than the requested D threshold; the listed class, plant, and envelope subscores are each 5.",
+          "Healthcare proximity is high at 96.03, and the property is already categorized as a hospital, clinic, nursing home, or similar facility."
+        ],
+        "cons": [
+          "The supplied data do not identify the building as a hotel, so the requested hotel-building criterion is unconfirmed.",
+          "The data do not establish that the existing layout can accommodate an RSA for 30 residents or meet the applicable room and shared-space standards.",
+          "PRG compatibility, change-of-use approval, accessibility, health and safety compliance, and sector authorization remain to be checked."
+        ]
+      },
+      {
+        "id": "20084",
+        "evaluation_text": "This recently constructed, 7,857.15 sqm facility is a strong physical and energy match for conversion to a 30-resident RSA: its stated area exceeds the 1,600 sqm target and its A1 energy class is better than the requested D threshold. The healthcare proximity indicator is high at 86.57, supporting the location preference. Its current classification as a hospital, clinic, nursing home, or similar may offer relevant reuse potential, but does not establish that the existing layout or authorization is suitable for the proposed RSA. The regional standard specifies room-level and function-specific net areas; it provides no verified minimum gross property area, so those figures cannot establish overall sufficiency. Verify the building’s configuration against RSA requirements and confirm PRG compatibility, change-of-use and building permits, hygiene, accessibility, fire and structural safety, and sector authorization. The deterministic relevance score remains 57, reflecting that the promising size, energy, and healthcare indicators do not resolve these regulatory and conversion checks.",
+        "final_ranking_score": 57,
+        "pros": [
+          "7,857.15 sqm of stated area exceeds the requested 1,600 sqm gross floor area.",
+          "A1 energy class exceeds the requested D-or-better threshold; the building dates to 2021.",
+          "Healthcare proximity indicator is high at 86.57; the listed property type may offer relevant reuse potential."
+        ],
+        "cons": [
+          "Listed area and property type do not establish an RSA-compliant layout or technical feasibility for 30 residents.",
+          "PRG compatibility, change-of-use and building permits, hygiene, accessibility, fire and structural safety, and sector authorization require verification.",
+          "The regulatory data provide no verified gross-area threshold; function-specific net room standards cannot establish overall area sufficiency."
+        ]
+      },
+      {
+        "id": "857",
+        "evaluation_text": "The property has strategic potential for conversion to a 30-resident RSA: its recorded use as a hospital, clinic, nursing home or similar suggests a relevant institutional context, and its reported 54,756.71 sqm area is well above the user's 1,600 sqm gross-area target. The energy class C meets the requested D-or-better threshold, and healthcare proximity is strong (90.51). However, the data do not establish that the property is a hotel, that its recorded area corresponds to usable space available for this project, or that its layout and condition can support 30 residents. The regional standard specifies net areas for individual rooms and shared functions; it does not establish a minimum gross property area, so room-level compliance and the required planning, building, accessibility, safety and sector authorization checks remain to be verified. The low total energy sub-score (6/20), including low plant, envelope and renewables scores, also points to potential efficiency upgrades despite the stated class C.",
+        "final_ranking_score": 53,
+        "pros": [
+          "Reported surface area of 54,756.71 sqm exceeds the 1,600 sqm gross-area target, subject to confirming the area is available and measured on a comparable basis.",
+          "Energy class C is within the requested D-or-better range.",
+          "Healthcare proximity is high at 90.51, supporting access to nearby services."
+        ],
+        "cons": [
+          "The recorded property type is hospitals, clinics, nursing homes and similar, so the data do not confirm it is a hotel building.",
+          "The low energy total score of 6/20, with plant, envelope and renewables each scored 1, suggests substantial efficiency improvements may be needed despite class C.",
+          "The data do not verify a 30-resident layout or compliance with net room and shared-space standards; planning compatibility, change of use, accessibility, safety and sector authorization require checks."
+        ]
+      },
+      {
+        "id": "15851",
+        "evaluation_text": "This 2019 property is a strong candidate for the requested conversion: its 3,852.91 sqm gross area exceeds the 1,600 sqm target, it is already classified as a hospital, retirement home, prison, barracks, or convent, and its A3 energy class is better than the requested D threshold. Healthcare proximity is high (81.56), supporting the location preference. The data do not confirm hotel use, authorization for an RSA, room layout, accessibility, or technical and planning feasibility; these require verification. The regional standard provides net area requirements for particular rooms and functions, but no verified minimum gross property area, so it does not establish overall area sufficiency for an RSA for 30 residents. The regulatory result reports no requirements found, and the listed planning, building, health, accessibility, safety, and sector authorization checks remain outstanding.",
+        "final_ranking_score": 53,
+        "pros": [
+          "Gross floor area of 3,852.91 sqm exceeds the user's 1,600 sqm target, though RSA suitability for 30 residents depends on layout and applicable requirements.",
+          "Energy class A3 exceeds the requested D threshold; the building dates from 2019.",
+          "Healthcare proximity score is high at 81.56; the listed property type is institutional or care-related."
+        ],
+        "cons": [
+          "The listed property type does not establish that this is a hotel building or that it is authorized for RSA use; planning compatibility and change-of-use approval require verification.",
+          "The data do not establish room layout, accessibility, or compliance with the regional requirements for a 30-resident facility; technical and sector authorization checks are needed.",
+          "The regulatory result found no requirements, and there is no verified gross-area threshold; the property's area alone cannot establish that the required RSA spaces can be accommodated."
+        ]
+      },
+      {
+        "id": "23211",
+        "evaluation_text": "This hotel property has a relevant starting point for the proposed RSA conversion: its hotel use and 2019 construction period may support adaptation, and its healthcare proximity score is 86.57. Its energy class D meets the stated threshold, with a strong plant score of 5, though the overall energy profile is moderate. However, the reported 1,400 sqm is below the requested 1,600 sqm gross area, so it does not meet that stated size criterion. The data do not establish whether an expansion is possible, whether the layout can accommodate 30 residents and required shared and clinical spaces, or whether planning, accessibility, building, and sector authorization requirements can be met. The cited regional standard includes room and function-specific net area requirements; it supplies no verified minimum gross property area.",
+        "final_ranking_score": 52,
+        "pros": [
+          "Existing hotel use offers a potentially relevant basis for conversion, subject to planning and authorization checks.",
+          "Healthcare proximity is relatively strong, with a score of 86.57.",
+          "Energy class D meets the requested efficiency threshold, and the thermal plant score is 5."
+        ],
+        "cons": [
+          "Reported surface area is 1,400 sqm, 200 sqm below the requested minimum gross floor area of 1,600 sqm.",
+          "The overall energy score is moderate at 10/20, with envelope and renewables scores of 1 each.",
+          "The supplied data do not verify capacity for 30 residents, required room and shared-space layouts, accessibility, urban-planning compatibility, technical feasibility, or sector authorization."
+        ]
+      },
+      {
+        "id": "24885",
+        "evaluation_text": "This 2018 property offers a strong initial fit for conversion to a 30-resident RSA: its reported 2,222.77 sqm gross area exceeds the user's 1,600 sqm target, it is already classified among hospitals, clinics, nursing homes and similar properties, and its A3 energy class is better than the requested D threshold. Healthcare proximity is high (91.18). These features support further investigation, but do not establish the existing layout, authorization for RSA use, or feasibility of conversion. The applicable regional entry specifies net room and function requirements, while no verified minimum gross property area is provided; therefore, the gross-area comparison is only against the user's stated target. Planning compatibility, change-of-use permissions, accessibility, hygiene, fire and structural safety, and sector authorization require verification. The deterministic relevance score is 51 and is retained unchanged.",
+        "final_ranking_score": 51,
+        "pros": [
+          "Reported gross area of 2,222.77 sqm exceeds the user's 1,600 sqm target for the project.",
+          "A3 energy class meets the requested D-or-better threshold; the building dates from 2018.",
+          "Healthcare proximity percentile is high at 91.18, and the recorded property type is hospitals, clinics, nursing homes and similar."
+        ],
+        "cons": [
+          "The recorded property type does not establish current hotel use or authorization for conversion to an RSA; planning compatibility and change-of-use title require verification.",
+          "The supplied data do not establish room layout or compliance with RSA net-space, accessibility, hygiene, fire-safety, structural and sector-authorization requirements.",
+          "No verified regulatory minimum gross property area is provided; the reported gross area alone does not establish that the building can accommodate all required functions for 30 residents."
+        ]
+      },
+      {
+        "id": "15850",
+        "evaluation_text": "This 2006 property is classified as a hospital, retirement home, prison, barracks, or convent, making its existing institutional use a potentially relevant starting point for conversion to an RSA. Its 12,528.72 sqm gross area is well above the requested 1,600 sqm, and energy class B exceeds the requested D-or-better threshold. Healthcare proximity is relatively strong (81.74), with the reference point 2.0 km away. These attributes support further feasibility assessment for 30 residents, but do not establish that the building can accommodate the required rooms, meet authorization or planning rules, or be converted without substantial works. The cited regional standard provides net room and shared-space parameters, not a minimum gross area for the whole property; the applicable layout and required checks need verification.",
+        "final_ranking_score": 48,
+        "pros": [
+          "Gross floor area of 12,528.72 sqm substantially exceeds the user's 1,600 sqm target, providing a strong area basis for feasibility assessment.",
+          "Energy class B meets the requested D-or-better threshold; the building dates from 2006.",
+          "Healthcare proximity is relatively strong at 81.74, with the reference point 2.0 km away; the institutional property classification may also be relevant to the proposed use."
+        ],
+        "cons": [
+          "The property data do not establish that its layout can accommodate an RSA for 30 residents, including required rooms and shared spaces.",
+          "Urban-planning compatibility, change-of-use permissions, accessibility, fire and structural safety, and sector authorization require verification.",
+          "Energy sub-scores total 10/20, with no renewables indicated; area and property type alone do not establish technical or regulatory feasibility."
+        ]
+      },
+      {
+        "id": "25094",
+        "evaluation_text": "The property merits consideration for conversion to a 30-resident RSA: its reported 8,368.18 sqm gross area exceeds the requested 1,600 sqm target, and its A4 energy class is better than the requested D threshold. Its existing classification as a hospital, clinic, nursing home, or similar suggests a potentially relevant starting point, but does not establish that the building is a hotel or that an RSA conversion is authorized or technically feasible. Healthcare proximity is relatively strong in the supplied percentile data. The regulatory context identifies verified net-area standards for individual rooms and shared functions, but supplies no verified minimum gross property-area threshold; the 12 sqm figure applies only to a single bedroom. Suitability for 30 residents therefore depends on verifying the actual layout and applicable requirements, along with Turin planning compatibility, change-of-use and building permits, health and accessibility standards, structural and fire safety where required, and sector authorization.",
+        "final_ranking_score": 48,
+        "pros": [
+          "Reported gross area of 8,368.18 sqm comfortably exceeds the user’s 1,600 sqm target, subject to confirmation of the measured area and usable layout.",
+          "A4 energy class exceeds the requested D-or-better threshold; energy subscores show strong plant and envelope ratings, though no renewables are reported.",
+          "Healthcare proximity is relatively strong at the 83.96 percentile, and the listed property type is already healthcare or care related."
+        ],
+        "cons": [
+          "The supplied data do not identify the building as a hotel, establish its existing room configuration, or show that it can accommodate 30 residents under applicable RSA requirements.",
+          "Turin planning compatibility, change of use, permits, hygiene, accessibility, structural safety, fire safety where prescribed, and sector authorization remain required checks; none is established by the data.",
+          "The 8,368.18 sqm figure is gross property area and does not establish compliant net room or shared-space areas; the regulatory source provides no verified gross-area minimum."
+        ]
+      }
+    ],
+    "relaxation_applied": true,
+    "relaxation_count": 1,
+    "fallback_activated": false,
+    "agent_errors": []
+  }
+}

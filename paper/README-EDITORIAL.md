@@ -62,12 +62,13 @@ offline scripted mode, which contains no property results.
 3. Confirm the actual audience deployment and the dataset it will use.
 4. Check the final EDBT demo-track formatting and page limits.
 5. The cooperative results are the complete 304-run Haiku series
-   (`missingness_v3_haiku_r2`); imperfect-user results are the separate
-   complete 265-run Codex series (`imperfect_user_codex_vlast`). Do not pool
-   model runs, the earlier partial cooperative run (115 of 123), or the v4
-   sample. The earlier Haiku imperfect-user findings remain commented in the
-   LaTeX source. Verify benchmark outputs and record provenance in OKF before
-   changing reported results.
+   (`missingness_v3_haiku_r2`). The imperfect-user section presents two
+   comparable replications side by side: Haiku (`imperfect_user_haiku_c7b9f7a`,
+   264/265 completed) and Codex (`imperfect_user_codex_vlast`, 265/265
+   completed). Keep model-specific results separate rather than pooling their
+   run-level scores. Do not include the earlier partial cooperative run (115
+   of 123) or the v4 sample. Verify benchmark outputs and record provenance
+   in OKF before changing reported results.
 
 ## Build
 

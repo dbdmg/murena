@@ -1,0 +1,699 @@
+{
+  "run_id": "bench_b4760b8275d6",
+  "condition": "one_shot",
+  "unit_id": "MS07_k4_optout",
+  "scenario_id": "MS07_k4_optout",
+  "base_case_id": "UC07_RSA_missing_use",
+  "missing_count": 4,
+  "scenario_name": "4 omitted dimensions; intended use: Senior Residential Care (RSA); opt-out on Cb",
+  "tags": [
+    "edbt",
+    "controlled_missingness_v3",
+    "missing_4",
+    "UC07_RSA_missing_use",
+    "imperfect_user",
+    "optout"
+  ],
+  "model": "gpt-6-luna",
+  "repeat": 3,
+  "attempt": 1,
+  "input_sha256": "7f4f015f52a741466bf275c8b84bb673069a095707cb36b360fa577058d42834",
+  "scenario_sha256": "18e3137b51019dbd034068e92508994f54163c3ac388e776bc02e8472095f62f",
+  "initial_query": "I am looking for a hotel building. I prefer properties near healthcare services.",
+  "options": {
+    "dataset_key": "full",
+    "map_limit": 1000,
+    "llm_limit": 10,
+    "analysis_mode": "agent",
+    "use_relaxation": true,
+    "use_data_knowledge": true,
+    "architecture": "multiagent",
+    "disabled_agents": null
+  },
+  "started_at": "2026-11-18T21:31:17.313078+00:00",
+  "clarification_seconds": null,
+  "analysis_seconds": 97.214,
+  "submitted_query": "I am looking for a hotel building. I prefer properties near healthcare services.",
+  "status": "completed",
+  "results_count": 10,
+  "top_ids": [
+    "2863",
+    "M00441",
+    "18989",
+    "22257",
+    "3490",
+    "4805",
+    "6509",
+    "24918",
+    "16496",
+    "16497"
+  ],
+  "quality": {
+    "expected_count": 0,
+    "matched_expected": null,
+    "precision_at_returned": null,
+    "recall": null
+  },
+  "final_sql": "SELECT\n  *\nFROM ESTATES\nWHERE\n  property_type IN ('Hotels, pensions, and similar', 'Residential (Temporary/Holiday)')\n  AND healthcare >= 90\nORDER BY\n  id ASC",
+  "duration_seconds": 97.226,
+  "scenario_definition": {
+    "id": "MS07_k4_optout",
+    "name": "4 omitted dimensions; intended use: Senior Residential Care (RSA); opt-out on Cb",
+    "tags": [
+      "edbt",
+      "controlled_missingness_v3",
+      "missing_4",
+      "UC07_RSA_missing_use",
+      "imperfect_user",
+      "optout"
+    ],
+    "base_case_id": "UC07_RSA_missing_use",
+    "missing_count": 4,
+    "initial_query": "I am looking for a hotel building. I prefer properties near healthcare services.",
+    "one_shot_query": "I am looking for a hotel building. I prefer properties near healthcare services.",
+    "oracle_query": "Find a hotel building to convert it into a residential senior care facility (RSA) for 30 residents in Turin with at least 1600 sqm of gross floor area in energy class D or better near healthcare services.",
+    "expected_initial_missing": [
+      "Cb",
+      "L",
+      "Ce",
+      "D"
+    ],
+    "clarifications": {
+      "I": "I am looking for a hotel building.",
+      "D": "I intend to convert it into a residential senior care facility (RSA).",
+      "L": "The location is in Turin.",
+      "Cb": "I have no requirement on building size, capacity or structural features.",
+      "Ce": "I prefer a property in energy class D or better.",
+      "Cp": "I prefer properties near healthcare services."
+    },
+    "expected_mapping": {
+      "I": "SPECIFIED",
+      "D": "SPECIFIED",
+      "L": "SPECIFIED",
+      "Cb": "NOT_REQUESTED",
+      "Ce": "SPECIFIED",
+      "Cp": "SPECIFIED"
+    },
+    "repeats": 1,
+    "imperfect_user": {
+      "profile": "optout",
+      "dimension": "Cb"
+    }
+  },
+  "artifact_file": "runs/bench_b4760b8275d6.json",
+  "artifact_schema_version": 4,
+  "ranking_ids": [
+    "2863",
+    "M00441",
+    "18989",
+    "22257",
+    "3490",
+    "4805",
+    "6509",
+    "24918",
+    "16496",
+    "16497"
+  ],
+  "top": [
+    {
+      "id": "2863",
+      "score": 84.156,
+      "distance_km": null
+    },
+    {
+      "id": "M00441",
+      "score": 84.156,
+      "distance_km": null
+    },
+    {
+      "id": "18989",
+      "score": 83.408,
+      "distance_km": null
+    },
+    {
+      "id": "22257",
+      "score": 18.156000000000002,
+      "distance_km": null
+    },
+    {
+      "id": "3490",
+      "score": 18.156000000000002,
+      "distance_km": null
+    },
+    {
+      "id": "4805",
+      "score": 18.156000000000002,
+      "distance_km": null
+    },
+    {
+      "id": "6509",
+      "score": 18.156000000000002,
+      "distance_km": null
+    },
+    {
+      "id": "24918",
+      "score": 17.476,
+      "distance_km": null
+    },
+    {
+      "id": "16496",
+      "score": 17.306,
+      "distance_km": null
+    },
+    {
+      "id": "16497",
+      "score": 17.306,
+      "distance_km": null
+    }
+  ],
+  "api_response": {
+    "agent_trace": [
+      {
+        "agent_name": "energy-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "requirements": [],
+          "found": false
+        }
+      },
+      {
+        "agent_name": "proximity-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "requirements": [
+            {
+              "target_column": "healthcare",
+              "operator": ">=",
+              "value": 90,
+              "description": "Prefers proximity to healthcare services; threshold meets the 75th percentile."
+            }
+          ]
+        }
+      },
+      {
+        "agent_name": "building-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "typologies": [
+            "Hotels, pensions, and similar"
+          ],
+          "found": true,
+          "requirements": []
+        }
+      },
+      {
+        "agent_name": "regulatory-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "found": false,
+          "matched_use_cases": [],
+          "requirements": []
+        }
+      },
+      {
+        "agent_name": "ranking-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "ranking": [
+            {
+              "agent_name": "building",
+              "rank": 1
+            },
+            {
+              "agent_name": "proximity",
+              "rank": 2
+            },
+            {
+              "agent_name": "location",
+              "rank": 3
+            },
+            {
+              "agent_name": "regulatory",
+              "rank": 4
+            },
+            {
+              "agent_name": "energy",
+              "rank": 5
+            }
+          ],
+          "weights": {
+            "location": 0.15,
+            "regulatory": 0.11,
+            "energy": 0.09,
+            "building": 0.43,
+            "proximity": 0.22
+          }
+        }
+      },
+      {
+        "agent_name": "location-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "places": [],
+          "found": false
+        }
+      },
+      {
+        "agent_name": "sql-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "sql": "SELECT * FROM ESTATES WHERE property_type = 'Hotels, pensions, and similar' AND healthcare >= 90 ORDER BY id ASC",
+          "explanation": "Filters for the specified hotel property type and healthcare score of at least 90, then orders by ID."
+        }
+      },
+      {
+        "agent_name": "relaxation-agent",
+        "agent_mode": "extraction",
+        "output": [
+          {
+            "condizione_iniziale": "property_type = 'Hotels, pensions, and similar'",
+            "condizione_relaxed": "property_type IN ('Hotels, pensions, and similar', 'Residential (Temporary/Holiday)')",
+            "piani_progressivi": [],
+            "strategia": "Adjacent category widening",
+            "motivazione": "Adds the closely related temporary and holiday residential category while preserving the accommodation search intent.",
+            "livello_rilassamento": "low"
+          },
+          {
+            "condizione_iniziale": "property_type = 'Hotels, pensions, and similar'",
+            "condizione_relaxed": "property_type IN ('Hotels, pensions, and similar', 'Residential (Temporary/Holiday)', 'Bars, restaurants, dance halls and similar')",
+            "piani_progressivi": [],
+            "strategia": "Category widening",
+            "motivazione": "Includes nearby hospitality categories to broaden the search while keeping it focused on visitor-serving properties.",
+            "livello_rilassamento": "medium"
+          },
+          {
+            "condizione_iniziale": "property_type = 'Hotels, pensions, and similar'",
+            "condizione_relaxed": "property_type IN ('Hotels, pensions, and similar', 'Residential (Temporary/Holiday)', 'Bars, restaurants, dance halls and similar', 'Commercial activities and similar')",
+            "piani_progressivi": [],
+            "strategia": "Category widening",
+            "motivazione": "Adds broader commercial properties as a wider fallback for the accommodation-oriented search.",
+            "livello_rilassamento": "high"
+          },
+          {
+            "condizione_iniziale": "healthcare >= 90",
+            "condizione_relaxed": "healthcare >= 89.9",
+            "piani_progressivi": [],
+            "strategia": "Threshold change",
+            "motivazione": "Lowers the threshold slightly to the 75th percentile, plausibly admitting additional records while retaining a high healthcare score.",
+            "livello_rilassamento": "low"
+          },
+          {
+            "condizione_iniziale": "healthcare >= 90",
+            "condizione_relaxed": "healthcare >= 80.08",
+            "piani_progressivi": [],
+            "strategia": "Threshold change",
+            "motivazione": "Lowers the threshold to the median, substantially widening the range while keeping the score at or above a typical dataset value.",
+            "livello_rilassamento": "medium"
+          },
+          {
+            "condizione_iniziale": "healthcare >= 90",
+            "condizione_relaxed": "healthcare >= 70.14",
+            "piani_progressivi": [],
+            "strategia": "Threshold change",
+            "motivazione": "Lowers the threshold to the 25th percentile as a broader fallback while retaining a meaningful minimum healthcare score.",
+            "livello_rilassamento": "high"
+          }
+        ],
+        "batch_id": null,
+        "timestamp": "2026-11-18T22:31:50.194200",
+        "execution_time_ms": 13302.913665771484
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "18989",
+          "evaluation_text": "This large property is already classified as a hotel, making it a strong strategic match for the search. Its healthcare proximity percentile of 92.19 aligns with the stated preference, and exceptionally high mobility and education proximity values further support its location. The supplied data do not establish planning authorization, room configuration, accessibility, or technical suitability for continued or renewed hotel use, so these require verification. The B energy class is positive, while the component scores indicate weaknesses in the building envelope and renewable energy provision.",
+          "final_ranking_score": 83,
+          "pros": [
+            "Hotel, pension, or similar property type directly matches the requested use.",
+            "Healthcare proximity is high at 92.19; commercial services are also nearby (92.48).",
+            "Excellent mobility (99.1) and education proximity (99.83) support access and the surrounding service network."
+          ],
+          "cons": [
+            "The 1930 construction period and envelope score of 1 point to potential retrofit needs; the data do not confirm the building's current technical condition.",
+            "Renewables score is 1 and the total energy score is 8, indicating opportunities for energy upgrades despite the B energy class.",
+            "Planning compatibility, hotel-use authorization, accessibility, and internal layout are not established by the supplied data and need verification."
+          ]
+        },
+        "batch_id": 1,
+        "timestamp": "2026-11-18T22:32:05.965135",
+        "execution_time_ms": 15674.241781234741
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "M00441",
+          "evaluation_text": "This property is a strong candidate for the hotel objective: it is already classified as a hotel or similar property, dates from 2000, and has a substantial reported area of 1,025.66 sqm. Its healthcare proximity percentile of 96.03 aligns closely with the stated preference, while mobility and commercial services are also high. The available data do not establish its current condition, room layout, planning compatibility, or authorization for continued or changed hotel use; these require verification. No hotel-specific regulatory requirements were found in the supplied regulatory context.",
+          "final_ranking_score": 84,
+          "pros": [
+            "Hotel, pension, or similar property type directly matches the requested building use.",
+            "Healthcare proximity percentile is very high at 96.03, matching the stated preference.",
+            "Reported area of 1,025.66 sqm and strong mobility (95.26) and commercial proximity (96.35) support further investigation."
+          ],
+          "cons": [
+            "Energy performance indicators are weak overall: energy class C and total energy score 6, with low plant, envelope, and renewables scores.",
+            "The supplied data do not establish the property's condition, room layout, accessibility, or technical suitability for hotel operations.",
+            "No matching hotel regulatory entries were supplied, so planning compatibility and authorization require verification."
+          ]
+        },
+        "batch_id": 2,
+        "timestamp": "2026-11-18T22:32:06.079859",
+        "execution_time_ms": 15789.368867874146
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "2863",
+          "evaluation_text": "This 555.87 sqm property is classified as a hotel or similar accommodation, making it a strong match for the stated objective. Its healthcare proximity percentile is 96.03, in line with the preference for nearby healthcare services; mobility, commercial services, and education also score highly. The building dates from 2000 and has energy class C, but its total energy score of 6 reflects weak plant, envelope, and renewables ratings. No regulatory requirements or matched use cases were supplied, so planning compatibility and any applicable hotel-specific requirements need verification. The data do not establish the internal layout, accessibility, or technical feasibility of any proposed use.",
+          "final_ranking_score": 84,
+          "pros": [
+            "Property type is listed as hotels, pensions, and similar, directly matching the search objective.",
+            "Healthcare proximity is high at 96.03 percentile.",
+            "Strong access context: mobility is 95.26, commercial services 96.35, and education 96.15 percentiles."
+          ],
+          "cons": [
+            "Energy class C and total energy score 6 indicate limited energy performance, with low plant, envelope, and renewables scores.",
+            "The supplied regulatory context contains no matched use cases or requirements; planning compatibility and applicable standards require verification.",
+            "The data do not establish room layout, accessibility, condition, or technical feasibility for hotel operations."
+          ]
+        },
+        "batch_id": 3,
+        "timestamp": "2026-11-18T22:32:06.504649",
+        "execution_time_ms": 16215.69800376892
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "22257",
+          "evaluation_text": "The property has a strong location advantage for the stated preference: its healthcare proximity percentile is 96.03, alongside high mobility and commercial scores. However, its recorded surface area of 12.6 sqm and residential (temporary/holiday) classification provide little evidence that it could function as a hotel building. Conversion potential, planning authorization, layout, and technical feasibility would all require verification. Its 1900 construction period and lowest energy sub-scores also indicate substantial constraints. The regulatory context contains no matched requirements or source entries for the requested use.",
+          "final_ranking_score": 18,
+          "pros": [
+            "Healthcare proximity is high (96.03 percentile), matching the stated preference.",
+            "Mobility (95.26) and commercial services (96.35) also score highly, supporting a well-connected location.",
+            "The central B1 OMI zone may be a locational advantage, though hotel use compatibility requires verification."
+          ],
+          "cons": [
+            "The recorded surface area is only 12.6 sqm, which provides no evidence of capacity for a hotel building.",
+            "The property is classified as Residential (Temporary/Holiday); authorization and planning compatibility for hotel use are not established.",
+            "Energy class F and an energy score total of 4 indicate poor recorded energy performance; the 1900 construction period also warrants technical assessment."
+          ]
+        },
+        "batch_id": 4,
+        "timestamp": "2026-11-18T22:32:06.609676",
+        "execution_time_ms": 16318.524837493896
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "3490",
+          "evaluation_text": "The property has some strategic appeal as a possible hotel conversion: its temporary/holiday residential classification is directionally relevant, and healthcare proximity is exceptionally strong at the 96.03 percentile, matching the stated preference. Mobility and commercial access are also strong. However, the 116.84 sqm area does not establish hotel capacity, room layout, planning authorization, or technical feasibility, all of which require verification. Its overall deterministic relevance score is low at 18, and the energy profile is mixed despite the A4 class and high-quality plant.",
+          "final_ranking_score": 18,
+          "pros": [
+            "Healthcare proximity is very high (96.03 percentile), aligning closely with the user's preference.",
+            "Mobility (95.26 percentile) and commercial services (96.35 percentile) indicate strong access to transport and everyday amenities.",
+            "Energy class A4 and a top-rated thermal plant support an efficient energy profile."
+          ],
+          "cons": [
+            "At 116.84 sqm, the recorded area alone does not establish that the property can accommodate hotel use or a viable guest-room layout.",
+            "Planning compatibility, authorization, accessibility, and technical feasibility for hotel use are not established and need verification.",
+            "The energy profile is uneven: envelope and renewable-energy scores are both 1, and the supplied deterministic relevance score is low at 18."
+          ]
+        },
+        "batch_id": 5,
+        "timestamp": "2026-11-18T22:32:21.399817",
+        "execution_time_ms": 15435.018539428711
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "6509",
+          "evaluation_text": "The property has a strong location match for the stated healthcare preference, with a healthcare proximity percentile of 96.03, alongside high mobility and commercial proximity. Its stated residential (temporary/holiday) type may offer some alignment with visitor accommodation, but the supplied data do not establish that it is suitable or authorized for hotel use. The small 35.98 sqm area, 1961 construction period, and weak energy profile limit its apparent potential and warrant careful feasibility checks. The deterministic ranking score is 18.",
+          "final_ranking_score": 18,
+          "pros": [
+            "Healthcare proximity is high at 96.03, closely matching the stated preference.",
+            "Mobility (95.26) and commercial services (96.35) also score highly, supporting convenient access.",
+            "The residential (temporary/holiday) classification may be relevant to accommodation use, subject to verification of permitted use."
+          ],
+          "cons": [
+            "At 35.98 sqm, the property is small; the data do not establish that it can support hotel operations or any particular room layout.",
+            "Energy class F and a total energy score of 6 indicate a weak energy profile, with limited envelope and no renewables recorded.",
+            "Hotel-use authorization, planning compatibility, accessibility, and technical feasibility are unverified; no applicable regulatory requirements were identified in the supplied context."
+          ]
+        },
+        "batch_id": 6,
+        "timestamp": "2026-11-18T22:32:21.898469",
+        "execution_time_ms": 15393.368005752563
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "24918",
+          "evaluation_text": "The property has a strong location match for the stated healthcare preference, with healthcare proximity at 92.46, alongside high scores for mobility, commercial services, education, and sport. However, its recorded surface area of 12.66 sqm and residential (temporary/holiday) classification do not establish suitability as a hotel building. The 1960 construction date and energy class F, with the lowest scores across all four energy components, indicate substantial performance limitations. No regulatory requirements or matched use cases were found in the supplied context, so planning compatibility, authorization, building configuration, and conversion feasibility require verification. Overall, the location is attractive, but the available property data support only limited interest for the hotel objective.",
+          "final_ranking_score": 17,
+          "pros": [
+            "Healthcare proximity is high at 92.46, matching the stated preference.",
+            "Mobility (98.83), commercial services (92.78), and education (99.72) indicate strong access to everyday services.",
+            "Green and sports proximity scores of 70.28 and 88 add further neighborhood amenities."
+          ],
+          "cons": [
+            "The recorded surface area is only 12.66 sqm, and the data do not establish capacity or layout for hotel use.",
+            "The property is classified as Residential (Temporary/Holiday); hotel authorization and planning compatibility require verification.",
+            "Energy class F and total energy score 4 indicate weak recorded performance, with the lowest score for each energy component."
+          ]
+        },
+        "batch_id": 7,
+        "timestamp": "2026-11-18T22:32:22.157904",
+        "execution_time_ms": 15548.720836639404
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "4805",
+          "evaluation_text": "The property has limited potential for the hotel objective: it is classified as residential (temporary/holiday), but the supplied data do not establish that hotel use is authorized or feasible. Its strongest strategic fit is location, with healthcare proximity at the 96.03 percentile and similarly high mobility and commercial access. However, at 57.46 sqm it is a small asset, and the very poor energy profile may require substantial improvement. Planning, layout, technical suitability, and any applicable hotel requirements need verification. The deterministic relevance score is 18.",
+          "final_ranking_score": 18,
+          "pros": [
+            "Healthcare proximity is very high (96.03 percentile), matching the stated preference.",
+            "Public transport accessibility is very high (95.26 percentile), supporting visitor access.",
+            "Commercial services and education also score highly at 96.35 and 96.15 percentiles."
+          ],
+          "cons": [
+            "The 57.46 sqm area is limited for a hotel building; the data do not establish suitable room layout or capacity.",
+            "Energy performance is very poor: class G and total energy score 4, with the lowest score in each listed energy category.",
+            "Hotel-use authorization and planning compatibility are not established; technical feasibility and applicable requirements need verification."
+          ]
+        },
+        "batch_id": 8,
+        "timestamp": "2026-11-18T22:32:22.355308",
+        "execution_time_ms": 16276.450634002686
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "16496",
+          "evaluation_text": "The property aligns with the hotel search at the location level: healthcare proximity is strong (91.66), matching the stated preference, and mobility (91.54) and commercial services (91.68) are also high. However, the supplied data describe a 43.33 sqm residential temporary/holiday property, not a hotel building. Its small area and residential classification make its suitability for hotel use uncertain; planning compatibility, authorization, layout, and technical feasibility require verification. The 1950 construction date and low energy total of 8 indicate potential upgrading needs. No matching regulatory requirements or source entries were provided, so the regulatory context does not establish whether hotel use is permitted.",
+          "final_ranking_score": 17,
+          "pros": [
+            "Very high healthcare proximity (91.66), closely matching the stated preference.",
+            "High mobility (91.54) and commercial proximity (91.68) support convenient access to services.",
+            "Existing temporary/holiday residential classification may offer some relevance to visitor accommodation, subject to verification of permitted use."
+          ],
+          "cons": [
+            "At 43.33 sqm, the property is small for the requested hotel-building objective; the data do not establish its layout or capacity.",
+            "The property is classified as residential, and the supplied regulatory context provides no evidence that hotel use is authorized or compatible.",
+            "Energy total is low (8), with envelope and renewables scores of 1; upgrading may be needed, and the 1950 construction date warrants technical checks."
+          ]
+        },
+        "batch_id": 9,
+        "timestamp": "2026-11-18T22:32:37.003217",
+        "execution_time_ms": 15603.697061538696
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "16497",
+          "evaluation_text": "The property has a strong location advantage for the stated preference: its healthcare proximity percentile is 91.66, alongside high mobility and commercial service percentiles. However, its 37.75 sqm area and residential (temporary/holiday) classification do not establish suitability or authorization for hotel use. The 1950 construction date and energy score total of 8 indicate potential adaptation and efficiency constraints that require technical assessment. No applicable regulatory requirements were identified in the supplied context. Overall, the property has limited strategic interest as a hotel prospect despite its excellent healthcare proximity.",
+          "final_ranking_score": 17,
+          "pros": [
+            "Healthcare proximity is strong, at the 91.66 percentile, matching the user's stated preference.",
+            "Mobility and commercial service proximity are also high, at 91.54 and 91.68 respectively.",
+            "Energy class D and a condensation or biomass plant score of 3 provide some positive energy attributes."
+          ],
+          "cons": [
+            "At 37.75 sqm, the property is small; the data do not establish a hotel-ready layout or adequate capacity.",
+            "Its residential (temporary/holiday) classification does not confirm authorization or planning compatibility for hotel use; these require verification.",
+            "The 1950 construction period, envelope score of 1, renewables score of 1, and energy total of 8 point to potential retrofit needs."
+          ]
+        },
+        "batch_id": 10,
+        "timestamp": "2026-11-18T22:32:37.730053",
+        "execution_time_ms": 15832.181453704834
+      }
+    ],
+    "evaluation_results": [
+      {
+        "id": "2863",
+        "evaluation_text": "This 555.87 sqm property is classified as a hotel or similar accommodation, making it a strong match for the stated objective. Its healthcare proximity percentile is 96.03, in line with the preference for nearby healthcare services; mobility, commercial services, and education also score highly. The building dates from 2000 and has energy class C, but its total energy score of 6 reflects weak plant, envelope, and renewables ratings. No regulatory requirements or matched use cases were supplied, so planning compatibility and any applicable hotel-specific requirements need verification. The data do not establish the internal layout, accessibility, or technical feasibility of any proposed use.",
+        "final_ranking_score": 84,
+        "pros": [
+          "Property type is listed as hotels, pensions, and similar, directly matching the search objective.",
+          "Healthcare proximity is high at 96.03 percentile.",
+          "Strong access context: mobility is 95.26, commercial services 96.35, and education 96.15 percentiles."
+        ],
+        "cons": [
+          "Energy class C and total energy score 6 indicate limited energy performance, with low plant, envelope, and renewables scores.",
+          "The supplied regulatory context contains no matched use cases or requirements; planning compatibility and applicable standards require verification.",
+          "The data do not establish room layout, accessibility, condition, or technical feasibility for hotel operations."
+        ]
+      },
+      {
+        "id": "M00441",
+        "evaluation_text": "This property is a strong candidate for the hotel objective: it is already classified as a hotel or similar property, dates from 2000, and has a substantial reported area of 1,025.66 sqm. Its healthcare proximity percentile of 96.03 aligns closely with the stated preference, while mobility and commercial services are also high. The available data do not establish its current condition, room layout, planning compatibility, or authorization for continued or changed hotel use; these require verification. No hotel-specific regulatory requirements were found in the supplied regulatory context.",
+        "final_ranking_score": 84,
+        "pros": [
+          "Hotel, pension, or similar property type directly matches the requested building use.",
+          "Healthcare proximity percentile is very high at 96.03, matching the stated preference.",
+          "Reported area of 1,025.66 sqm and strong mobility (95.26) and commercial proximity (96.35) support further investigation."
+        ],
+        "cons": [
+          "Energy performance indicators are weak overall: energy class C and total energy score 6, with low plant, envelope, and renewables scores.",
+          "The supplied data do not establish the property's condition, room layout, accessibility, or technical suitability for hotel operations.",
+          "No matching hotel regulatory entries were supplied, so planning compatibility and authorization require verification."
+        ]
+      },
+      {
+        "id": "18989",
+        "evaluation_text": "This large property is already classified as a hotel, making it a strong strategic match for the search. Its healthcare proximity percentile of 92.19 aligns with the stated preference, and exceptionally high mobility and education proximity values further support its location. The supplied data do not establish planning authorization, room configuration, accessibility, or technical suitability for continued or renewed hotel use, so these require verification. The B energy class is positive, while the component scores indicate weaknesses in the building envelope and renewable energy provision.",
+        "final_ranking_score": 83,
+        "pros": [
+          "Hotel, pension, or similar property type directly matches the requested use.",
+          "Healthcare proximity is high at 92.19; commercial services are also nearby (92.48).",
+          "Excellent mobility (99.1) and education proximity (99.83) support access and the surrounding service network."
+        ],
+        "cons": [
+          "The 1930 construction period and envelope score of 1 point to potential retrofit needs; the data do not confirm the building's current technical condition.",
+          "Renewables score is 1 and the total energy score is 8, indicating opportunities for energy upgrades despite the B energy class.",
+          "Planning compatibility, hotel-use authorization, accessibility, and internal layout are not established by the supplied data and need verification."
+        ]
+      },
+      {
+        "id": "22257",
+        "evaluation_text": "The property has a strong location advantage for the stated preference: its healthcare proximity percentile is 96.03, alongside high mobility and commercial scores. However, its recorded surface area of 12.6 sqm and residential (temporary/holiday) classification provide little evidence that it could function as a hotel building. Conversion potential, planning authorization, layout, and technical feasibility would all require verification. Its 1900 construction period and lowest energy sub-scores also indicate substantial constraints. The regulatory context contains no matched requirements or source entries for the requested use.",
+        "final_ranking_score": 18,
+        "pros": [
+          "Healthcare proximity is high (96.03 percentile), matching the stated preference.",
+          "Mobility (95.26) and commercial services (96.35) also score highly, supporting a well-connected location.",
+          "The central B1 OMI zone may be a locational advantage, though hotel use compatibility requires verification."
+        ],
+        "cons": [
+          "The recorded surface area is only 12.6 sqm, which provides no evidence of capacity for a hotel building.",
+          "The property is classified as Residential (Temporary/Holiday); authorization and planning compatibility for hotel use are not established.",
+          "Energy class F and an energy score total of 4 indicate poor recorded energy performance; the 1900 construction period also warrants technical assessment."
+        ]
+      },
+      {
+        "id": "3490",
+        "evaluation_text": "The property has some strategic appeal as a possible hotel conversion: its temporary/holiday residential classification is directionally relevant, and healthcare proximity is exceptionally strong at the 96.03 percentile, matching the stated preference. Mobility and commercial access are also strong. However, the 116.84 sqm area does not establish hotel capacity, room layout, planning authorization, or technical feasibility, all of which require verification. Its overall deterministic relevance score is low at 18, and the energy profile is mixed despite the A4 class and high-quality plant.",
+        "final_ranking_score": 18,
+        "pros": [
+          "Healthcare proximity is very high (96.03 percentile), aligning closely with the user's preference.",
+          "Mobility (95.26 percentile) and commercial services (96.35 percentile) indicate strong access to transport and everyday amenities.",
+          "Energy class A4 and a top-rated thermal plant support an efficient energy profile."
+        ],
+        "cons": [
+          "At 116.84 sqm, the recorded area alone does not establish that the property can accommodate hotel use or a viable guest-room layout.",
+          "Planning compatibility, authorization, accessibility, and technical feasibility for hotel use are not established and need verification.",
+          "The energy profile is uneven: envelope and renewable-energy scores are both 1, and the supplied deterministic relevance score is low at 18."
+        ]
+      },
+      {
+        "id": "4805",
+        "evaluation_text": "The property has limited potential for the hotel objective: it is classified as residential (temporary/holiday), but the supplied data do not establish that hotel use is authorized or feasible. Its strongest strategic fit is location, with healthcare proximity at the 96.03 percentile and similarly high mobility and commercial access. However, at 57.46 sqm it is a small asset, and the very poor energy profile may require substantial improvement. Planning, layout, technical suitability, and any applicable hotel requirements need verification. The deterministic relevance score is 18.",
+        "final_ranking_score": 18,
+        "pros": [
+          "Healthcare proximity is very high (96.03 percentile), matching the stated preference.",
+          "Public transport accessibility is very high (95.26 percentile), supporting visitor access.",
+          "Commercial services and education also score highly at 96.35 and 96.15 percentiles."
+        ],
+        "cons": [
+          "The 57.46 sqm area is limited for a hotel building; the data do not establish suitable room layout or capacity.",
+          "Energy performance is very poor: class G and total energy score 4, with the lowest score in each listed energy category.",
+          "Hotel-use authorization and planning compatibility are not established; technical feasibility and applicable requirements need verification."
+        ]
+      },
+      {
+        "id": "6509",
+        "evaluation_text": "The property has a strong location match for the stated healthcare preference, with a healthcare proximity percentile of 96.03, alongside high mobility and commercial proximity. Its stated residential (temporary/holiday) type may offer some alignment with visitor accommodation, but the supplied data do not establish that it is suitable or authorized for hotel use. The small 35.98 sqm area, 1961 construction period, and weak energy profile limit its apparent potential and warrant careful feasibility checks. The deterministic ranking score is 18.",
+        "final_ranking_score": 18,
+        "pros": [
+          "Healthcare proximity is high at 96.03, closely matching the stated preference.",
+          "Mobility (95.26) and commercial services (96.35) also score highly, supporting convenient access.",
+          "The residential (temporary/holiday) classification may be relevant to accommodation use, subject to verification of permitted use."
+        ],
+        "cons": [
+          "At 35.98 sqm, the property is small; the data do not establish that it can support hotel operations or any particular room layout.",
+          "Energy class F and a total energy score of 6 indicate a weak energy profile, with limited envelope and no renewables recorded.",
+          "Hotel-use authorization, planning compatibility, accessibility, and technical feasibility are unverified; no applicable regulatory requirements were identified in the supplied context."
+        ]
+      },
+      {
+        "id": "24918",
+        "evaluation_text": "The property has a strong location match for the stated healthcare preference, with healthcare proximity at 92.46, alongside high scores for mobility, commercial services, education, and sport. However, its recorded surface area of 12.66 sqm and residential (temporary/holiday) classification do not establish suitability as a hotel building. The 1960 construction date and energy class F, with the lowest scores across all four energy components, indicate substantial performance limitations. No regulatory requirements or matched use cases were found in the supplied context, so planning compatibility, authorization, building configuration, and conversion feasibility require verification. Overall, the location is attractive, but the available property data support only limited interest for the hotel objective.",
+        "final_ranking_score": 17,
+        "pros": [
+          "Healthcare proximity is high at 92.46, matching the stated preference.",
+          "Mobility (98.83), commercial services (92.78), and education (99.72) indicate strong access to everyday services.",
+          "Green and sports proximity scores of 70.28 and 88 add further neighborhood amenities."
+        ],
+        "cons": [
+          "The recorded surface area is only 12.66 sqm, and the data do not establish capacity or layout for hotel use.",
+          "The property is classified as Residential (Temporary/Holiday); hotel authorization and planning compatibility require verification.",
+          "Energy class F and total energy score 4 indicate weak recorded performance, with the lowest score for each energy component."
+        ]
+      },
+      {
+        "id": "16496",
+        "evaluation_text": "The property aligns with the hotel search at the location level: healthcare proximity is strong (91.66), matching the stated preference, and mobility (91.54) and commercial services (91.68) are also high. However, the supplied data describe a 43.33 sqm residential temporary/holiday property, not a hotel building. Its small area and residential classification make its suitability for hotel use uncertain; planning compatibility, authorization, layout, and technical feasibility require verification. The 1950 construction date and low energy total of 8 indicate potential upgrading needs. No matching regulatory requirements or source entries were provided, so the regulatory context does not establish whether hotel use is permitted.",
+        "final_ranking_score": 17,
+        "pros": [
+          "Very high healthcare proximity (91.66), closely matching the stated preference.",
+          "High mobility (91.54) and commercial proximity (91.68) support convenient access to services.",
+          "Existing temporary/holiday residential classification may offer some relevance to visitor accommodation, subject to verification of permitted use."
+        ],
+        "cons": [
+          "At 43.33 sqm, the property is small for the requested hotel-building objective; the data do not establish its layout or capacity.",
+          "The property is classified as residential, and the supplied regulatory context provides no evidence that hotel use is authorized or compatible.",
+          "Energy total is low (8), with envelope and renewables scores of 1; upgrading may be needed, and the 1950 construction date warrants technical checks."
+        ]
+      },
+      {
+        "id": "16497",
+        "evaluation_text": "The property has a strong location advantage for the stated preference: its healthcare proximity percentile is 91.66, alongside high mobility and commercial service percentiles. However, its 37.75 sqm area and residential (temporary/holiday) classification do not establish suitability or authorization for hotel use. The 1950 construction date and energy score total of 8 indicate potential adaptation and efficiency constraints that require technical assessment. No applicable regulatory requirements were identified in the supplied context. Overall, the property has limited strategic interest as a hotel prospect despite its excellent healthcare proximity.",
+        "final_ranking_score": 17,
+        "pros": [
+          "Healthcare proximity is strong, at the 91.66 percentile, matching the user's stated preference.",
+          "Mobility and commercial service proximity are also high, at 91.54 and 91.68 respectively.",
+          "Energy class D and a condensation or biomass plant score of 3 provide some positive energy attributes."
+        ],
+        "cons": [
+          "At 37.75 sqm, the property is small; the data do not establish a hotel-ready layout or adequate capacity.",
+          "Its residential (temporary/holiday) classification does not confirm authorization or planning compatibility for hotel use; these require verification.",
+          "The 1950 construction period, envelope score of 1, renewables score of 1, and energy total of 8 point to potential retrofit needs."
+        ]
+      }
+    ],
+    "relaxation_applied": true,
+    "relaxation_count": 1,
+    "fallback_activated": false,
+    "agent_errors": []
+  }
+}

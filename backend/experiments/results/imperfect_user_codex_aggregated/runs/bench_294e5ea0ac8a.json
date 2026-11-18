@@ -1,0 +1,673 @@
+{
+  "run_id": "bench_294e5ea0ac8a",
+  "condition": "oracle",
+  "unit_id": "UC08_student_grant_missing_use",
+  "scenario_id": null,
+  "base_case_id": "UC08_student_grant_missing_use",
+  "missing_count": null,
+  "scenario_name": null,
+  "tags": [],
+  "model": "gpt-6-luna",
+  "repeat": 3,
+  "attempt": 2,
+  "input_sha256": "dda07bc2a0b55f34146d168272efd3f8c19a55fbbee9de67d40286f0ace1ae2a",
+  "scenario_sha256": null,
+  "initial_query": "Find an office building to convert it into a university student residence with 60 beds under the specific CDP/PNRR funding program in Turin with at least 850 sqm of gross floor area in energy class C or better near public transport.",
+  "options": {
+    "dataset_key": "full",
+    "map_limit": 1000,
+    "llm_limit": 10,
+    "analysis_mode": "agent",
+    "use_relaxation": true,
+    "use_data_knowledge": true,
+    "architecture": "multiagent",
+    "disabled_agents": null
+  },
+  "started_at": "2026-11-18T17:13:36.124505+00:00",
+  "clarification_seconds": null,
+  "analysis_seconds": 77.692,
+  "submitted_query": "Find an office building to convert it into a university student residence with 60 beds under the specific CDP/PNRR funding program in Turin with at least 850 sqm of gross floor area in energy class C or better near public transport.",
+  "status": "completed",
+  "results_count": 17,
+  "top_ids": [
+    "18842",
+    "16224",
+    "M03152",
+    "18504",
+    "18829",
+    "M03576",
+    "16747",
+    "16234",
+    "23101",
+    "23102"
+  ],
+  "quality": {
+    "expected_count": 0,
+    "matched_expected": null,
+    "precision_at_returned": null,
+    "recall": null
+  },
+  "final_sql": "SELECT * FROM ESTATES WHERE property_type = 'Offices and similar' AND surface_area >= 850 AND haversine_km(latitude, longitude, 45.0677551, 7.6824892) <= 3.0 AND energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C') AND mobility >= 88 ORDER BY haversine_km(latitude, longitude, 45.0677551, 7.6824892) ASC",
+  "duration_seconds": 77.706,
+  "scenario_definition": {
+    "id": "MS08_k1_vague",
+    "name": "1 omitted dimensions; intended use: University Student Residence (specific CDP/PNRR grant); vague first answer on L",
+    "tags": [
+      "edbt",
+      "controlled_missingness_v3",
+      "missing_1",
+      "UC08_student_grant_missing_use",
+      "imperfect_user",
+      "vague"
+    ],
+    "base_case_id": "UC08_student_grant_missing_use",
+    "missing_count": 1,
+    "initial_query": "I am looking for an office building. I intend to convert it into a university student residence under the specific CDP/PNRR funding program. I need a property with at least 850 sqm of gross floor area and capacity for 60 people. I prefer a property in energy class C or better. I prefer properties near public transport.",
+    "one_shot_query": "I am looking for an office building. I intend to convert it into a university student residence under the specific CDP/PNRR funding program. I need a property with at least 850 sqm of gross floor area and capacity for 60 people. I prefer a property in energy class C or better. I prefer properties near public transport.",
+    "oracle_query": "Find an office building to convert it into a university student residence with 60 beds under the specific CDP/PNRR funding program in Turin with at least 850 sqm of gross floor area in energy class C or better near public transport.",
+    "expected_initial_missing": [
+      "L"
+    ],
+    "clarifications": {
+      "I": "I am looking for an office building.",
+      "D": "I intend to convert it into a university student residence under the specific CDP/PNRR funding program.",
+      "L": [
+        "It depends; something suitable for the project, I guess.",
+        "The location is in Turin."
+      ],
+      "Cb": "I need a property with at least 850 sqm of gross floor area and capacity for 60 people.",
+      "Ce": "I prefer a property in energy class C or better.",
+      "Cp": "I prefer properties near public transport."
+    },
+    "expected_mapping": {
+      "I": "SPECIFIED",
+      "D": "SPECIFIED",
+      "L": "SPECIFIED",
+      "Cb": "SPECIFIED",
+      "Ce": "SPECIFIED",
+      "Cp": "SPECIFIED"
+    },
+    "repeats": 1,
+    "imperfect_user": {
+      "profile": "vague",
+      "dimension": "L"
+    }
+  },
+  "artifact_file": "runs/bench_294e5ea0ac8a.json",
+  "artifact_schema_version": 4,
+  "ranking_ids": [
+    "18842",
+    "16224",
+    "M03152",
+    "18504",
+    "18829",
+    "M03576",
+    "16747",
+    "16234",
+    "23101",
+    "23102",
+    "23107",
+    "18835",
+    "3125",
+    "M03612",
+    "23189",
+    "M04448",
+    "23177"
+  ],
+  "top": [
+    {
+      "id": "18842",
+      "score": 90.43599999999999,
+      "distance_km": 0.06
+    },
+    {
+      "id": "16224",
+      "score": 88.7,
+      "distance_km": 0.72
+    },
+    {
+      "id": "M03152",
+      "score": 88.484,
+      "distance_km": 0.34
+    },
+    {
+      "id": "18504",
+      "score": 85.01200000000001,
+      "distance_km": 1.01
+    },
+    {
+      "id": "18829",
+      "score": 84.72,
+      "distance_km": 0.1
+    },
+    {
+      "id": "M03576",
+      "score": 84.72,
+      "distance_km": 0.12
+    },
+    {
+      "id": "16747",
+      "score": 83.414,
+      "distance_km": 0.34
+    },
+    {
+      "id": "16234",
+      "score": 83.28000000000002,
+      "distance_km": 0.56
+    },
+    {
+      "id": "23101",
+      "score": 83.156,
+      "distance_km": 0.18
+    },
+    {
+      "id": "23102",
+      "score": 83.156,
+      "distance_km": 0.18
+    }
+  ],
+  "api_response": {
+    "agent_trace": [
+      {
+        "agent_name": "energy-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "requirements": [
+            {
+              "target_column": "energy_class",
+              "operator": "IN",
+              "value": [
+                "A1",
+                "A2",
+                "A3",
+                "A4",
+                "B",
+                "C"
+              ],
+              "description": "Energy class C or better."
+            }
+          ],
+          "found": true
+        }
+      },
+      {
+        "agent_name": "location-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "places": [
+            {
+              "name": "Turin",
+              "city": "Turin",
+              "lat": 45.0677551,
+              "lon": 7.6824892,
+              "radius_km": 3.0
+            }
+          ],
+          "found": true
+        }
+      },
+      {
+        "agent_name": "proximity-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "requirements": [
+            {
+              "target_column": "mobility",
+              "operator": ">=",
+              "value": 88,
+              "description": "Public transport nearby; threshold rounded to the 75th percentile of 87.77."
+            }
+          ]
+        }
+      },
+      {
+        "agent_name": "building-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "typologies": [
+            "Offices and similar"
+          ],
+          "found": true,
+          "requirements": [
+            {
+              "target_column": "surface_area",
+              "operator": ">=",
+              "value": 850,
+              "description": "The request explicitly requires at least 850 sqm of gross floor area."
+            }
+          ]
+        }
+      },
+      {
+        "agent_name": "regulatory-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "found": false,
+          "matched_use_cases": [
+            "University Student Residence (specific CDP/PNRR grant)"
+          ],
+          "requirements": []
+        }
+      },
+      {
+        "agent_name": "ranking-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "ranking": [
+            {
+              "agent_name": "regulatory",
+              "rank": 1
+            },
+            {
+              "agent_name": "building",
+              "rank": 2
+            },
+            {
+              "agent_name": "location",
+              "rank": 3
+            },
+            {
+              "agent_name": "energy",
+              "rank": 4
+            },
+            {
+              "agent_name": "proximity",
+              "rank": 5
+            }
+          ],
+          "weights": {
+            "location": 0.15,
+            "regulatory": 0.43,
+            "energy": 0.11,
+            "building": 0.22,
+            "proximity": 0.09
+          }
+        }
+      },
+      {
+        "agent_name": "sql-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "sql": "SELECT * FROM ESTATES WHERE property_type = 'Offices and similar' AND surface_area >= 850 AND haversine_km(latitude, longitude, 45.0677551, 7.6824892) <= 3.0 AND energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C') AND mobility >= 88 ORDER BY haversine_km(latitude, longitude, 45.0677551, 7.6824892) ASC",
+          "explanation": "Filters offices by minimum surface area, energy class, mobility score, and 3 km radius; sorts by distance."
+        }
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "M03152",
+          "evaluation_text": "This 1,762.83 sqm office property is a strong candidate for conversion to a 60-bed student residence under the specified CDP/PNRR program. Its A2 energy class exceeds the requested C-or-better threshold, and its mobility percentile of 91.65 indicates strong public transport proximity. The gross area is substantial, but it does not establish that the building can accommodate 60 beds or meet the grant’s room-level net-area standards; layout and usable areas require verification. The supplied regulatory result found no validated gross-area screening threshold. Urban-planning compatibility, change-of-use permissions, accessibility, health and safety requirements, and other listed checks remain to be confirmed.",
+          "final_ranking_score": 88,
+          "pros": [
+            "Office use and 1,762.83 sqm gross area make the property relevant for the requested conversion, subject to verifying the internal layout and net usable areas for 60 beds.",
+            "A2 energy class is better than the requested minimum of C.",
+            "Mobility percentile of 91.65 indicates strong proximity to public transport; healthcare, commercial services, and education also score above the 90th percentile."
+          ],
+          "cons": [
+            "The available data do not establish that the layout can meet the grant-specific net-area standards for 60 beds, including room sizes and shared functions.",
+            "Turin PRG compatibility, change-of-use authorization, accessibility, health requirements, and applicable fire and structural safety checks remain unresolved.",
+            "The energy sub-scores show no renewables and only medium plant and envelope ratings, despite the A2 energy class."
+          ]
+        },
+        "batch_id": 1,
+        "timestamp": "2026-11-18T18:14:13.349132",
+        "execution_time_ms": 17102.46968269348
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "18504",
+          "evaluation_text": "This modern office property is a strong candidate for conversion to a 60-bed university residence under the specified CDP/PNRR program. Its 1,752.46 sqm gross area and A1 energy class align with the stated gross-area and energy targets, while mobility is high at 90.93. These indicators support further assessment, but do not establish that the building can accommodate the required room layouts or beds. The grant standard specifies net residential area per bed and other scoped requirements; it provides no verified minimum gross property area. Torino planning compatibility, change-of-use authorization, health and accessibility requirements, fire safety where applicable, structural safety, and sector authorization all require verification.",
+          "final_ranking_score": 85,
+          "pros": [
+            "Office use, recent 2020 construction, and 1,752.46 sqm gross area make this a substantial candidate for conversion, subject to layout and technical feasibility checks for 60 beds.",
+            "A1 energy class exceeds the user's minimum of C and indicates strong energy-class alignment.",
+            "High mobility percentile of 90.93, supported by strong nearby service indicators, matches the preference for access to public transport."
+          ],
+          "cons": [
+            "The supplied data do not establish whether net room areas, accessible-bed provisions, bathrooms, and other CDP/PNRR grant standards can be met for 60 beds.",
+            "Torino PRG compatibility, change-of-use title, health requirements, accessibility, structural safety, and sector authorization remain to be verified; fire-safety review may also be required.",
+            "The thermal plant score is 3 and renewables score is 1, leaving potential plant and renewable-energy improvements to assess despite the A1 class."
+          ]
+        },
+        "batch_id": 2,
+        "timestamp": "2026-11-18T18:14:13.824244",
+        "execution_time_ms": 17575.27732849121
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "18842",
+          "evaluation_text": "This 8,798.03 sqm office property in central Turin is a strong strategic candidate for conversion to a 60-bed student residence: its area is well above the requested 850 sqm, it has an A3 energy class, and public transport accessibility is high (mobility percentile 91.74). Its 1900 construction date and office use make conversion potential relevant, but neither establishes that the building can accommodate the required residential layout or that the change of use is authorized. The supplied regulatory result reports no requirements; the matched CDP/MUR entry identifies grant-specific net area standards, while no verified minimum gross-property-area threshold is provided. Eligibility therefore depends on verifying the applicable room and accessible-bed standards, Turin planning compatibility, building and sector authorizations, hygiene, accessibility, fire safety where required, and structural and seismic safety. The recorded energy sub-scores also show weak envelope and renewables components despite the A3 class, warranting technical review.",
+          "final_ranking_score": 90,
+          "pros": [
+            "At 8,798.03 sqm gross area, the property exceeds the user's 850 sqm screening threshold by a wide margin; this does not by itself establish that the grant's room or functional standards can be met.",
+            "A3 energy class satisfies the requested C-or-better screening criterion; the energy class sub-score is 5, while the overall energy sub-score total is 12.",
+            "High public transport accessibility (mobility percentile 91.74) and central Turin location support access to university and city services."
+          ],
+          "cons": [
+            "The building dates from 1900, so structural and seismic safety, accessibility, fire safety where prescribed, and technical suitability for the proposed conversion require assessment.",
+            "Office classification does not establish planning compatibility or authorization for student residence use; Turin PRG compatibility, building permits, change of use, hygiene, and sector procedures need verification.",
+            "Despite A3 classification, envelope and renewable energy sub-scores are both 1; the grant-specific net room and accessible-bed standards also need to be checked against an actual layout."
+          ]
+        },
+        "batch_id": 3,
+        "timestamp": "2026-11-18T18:14:15.517467",
+        "execution_time_ms": 19278.15842628479
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "16224",
+          "evaluation_text": "This 2016 office property at Corso Siccardi Giuseppe n.13 has strong strategic potential for conversion to a 60-bed university residence. Its reported 10,283.58 sqm gross area is well above the user’s 850 sqm target, and its A2 energy class exceeds the requested C threshold. Mobility is exceptionally strong at 99.73, with high access to healthcare, education, and commercial services. The score of 89 reflects this compelling combination of scale, energy performance, and central accessibility. The available data do not establish that the building can accommodate 60 beds or meet the grant’s room, accessible-bed, planning, change-of-use, hygiene, fire-safety, structural, and sector authorization requirements; these need verification. The supplied grant standard concerns net usable area per bed and does not establish a minimum gross property area.",
+          "final_ranking_score": 89,
+          "pros": [
+            "At 10,283.58 sqm, the reported gross area substantially exceeds the requested 850 sqm, offering considerable scale for a potential conversion.",
+            "A2 energy class exceeds the requested C-or-better threshold; the energy profile also reports top scores for class, plant, and envelope.",
+            "Mobility percentile of 99.73 indicates excellent proximity to public transport, complemented by strong healthcare, education, and commercial proximity scores."
+          ],
+          "cons": [
+            "The area figure alone does not establish that 60 beds can fit the required net room areas, shared facilities, circulation, or accessible accommodation under the CDP/PNRR program.",
+            "Urban-planning compatibility, building permit and change of use, hygiene, accessibility, fire safety where required, structural safety, and sector authorization remain to be checked.",
+            "Renewable energy sources are reported as absent, and the supplied data do not establish the building’s detailed layout or technical feasibility for residential conversion."
+          ]
+        },
+        "batch_id": 4,
+        "timestamp": "2026-11-18T18:14:16.284486",
+        "execution_time_ms": 20044.81291770935
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "18829",
+          "evaluation_text": "This 1,796.37 sqm office property in central Turin is a strong candidate for conversion to a 60-bed student residence. Its gross area exceeds the user’s stated 850 sqm threshold, its energy class B meets the requested C-or-better level, and its mobility score of 91.45 indicates strong public transport accessibility. The supplied data do not establish whether the building can accommodate the required room layouts or meet the CDP/PNRR grant’s net-area and accessibility standards. Urban-planning compatibility, change-of-use authorization, health and safety requirements, and technical feasibility all require verification. The regulatory result lists no requirements, and the cited gross-area parameter is unverified; neither establishes grant eligibility.",
+          "final_ranking_score": 85,
+          "pros": [
+            "Gross floor area of 1,796.37 sqm exceeds the requested 850 sqm threshold, providing a substantial basis for assessing a 60-bed conversion.",
+            "Energy class B meets the requested C-or-better level.",
+            "Mobility score of 91.45 and central Turin location support access to public transport and city services."
+          ],
+          "cons": [
+            "The data do not establish whether the building’s layout can provide 60 beds while meeting the grant-specific net-area standards for rooms and residential functions.",
+            "At five reserved accessible beds for 60 places, the grant’s stated accessibility standard and its additional area requirement would need to be incorporated and verified.",
+            "PRG compatibility, change-of-use authorization, sanitary and accessibility compliance, fire safety where prescribed, structural safety, and sector authorization remain unverified."
+          ]
+        },
+        "batch_id": 5,
+        "timestamp": "2026-11-18T18:14:30.878718",
+        "execution_time_ms": 17529.50358390808
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "M03576",
+          "evaluation_text": "This centrally located office property has strong strategic potential for conversion to a university residence: its reported 8,324.36 sqm gross area exceeds the requested 850 sqm threshold, its B energy class meets the stated C-or-better target, and its mobility percentile of 91.52 indicates strong public transport proximity. The exceptionally high reported healthcare, commercial, and education proximity scores further support the location. These factors make it a compelling candidate for further assessment, but they do not establish that 60 beds can be accommodated or that the conversion qualifies for the CDP/PNRR program. The supplied regulatory result reports no validated minimum gross-area threshold; its room and bed standards are grant-specific net-area requirements. Urban-planning compatibility, change-of-use authorization, layout, accessibility, fire safety where required, and other listed technical checks need verification.",
+          "final_ranking_score": 85,
+          "pros": [
+            "Reported gross area of 8,324.36 sqm comfortably exceeds the user's 850 sqm screening threshold, offering substantial area for conversion assessment.",
+            "Energy class B meets the requested C-or-better level; the reported thermal plant score is strong (5).",
+            "Mobility percentile of 91.52 indicates strong public transport proximity, alongside very high healthcare, commercial, and education proximity scores."
+          ],
+          "cons": [
+            "The 1933 construction date and low envelope score (1), with no renewables indicated, point to potential building-upgrade needs despite the B energy class.",
+            "The data do not establish that the layout can support 60 beds or satisfy the grant's net room and bed-area standards, including accessible-bed provisions.",
+            "Turin planning compatibility, change-of-use approval, hygiene, accessibility, fire and structural safety, and sector authorization remain to be checked; the regulatory result found no verified gross-area threshold."
+          ]
+        },
+        "batch_id": 6,
+        "timestamp": "2026-11-18T18:14:31.298906",
+        "execution_time_ms": 17475.188493728638
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "16234",
+          "evaluation_text": "This 11,235.82 sqm office property in central Turin is a strong candidate for conversion to a 60-bed student residence: its stated gross area substantially exceeds the user's 850 sqm target, and its C energy class meets the requested threshold. Excellent public transport proximity supports student access. The supplied data do not establish that the layout can accommodate 60 beds or meet the CDP/PNRR grant’s net room and accessibility standards. Grant eligibility, planning compatibility, change-of-use authorization, and technical requirements therefore need verification. The verified grant-specific figures concern net residential area per bed and room, not a minimum gross property area.",
+          "final_ranking_score": 83,
+          "pros": [
+            "Large stated area of 11,235.82 sqm, well above the 850 sqm gross-area target, with scope to assess a 60-bed conversion.",
+            "Energy class C meets the requested minimum.",
+            "Very high mobility percentile (99.52) supports access by public transport."
+          ],
+          "cons": [
+            "The 1940 construction date and low envelope score (1) indicate that building fabric and retrofit needs warrant detailed assessment.",
+            "The supplied data do not confirm that the existing layout can provide 60 beds while meeting grant-specific net-area, room, and accessibility standards.",
+            "Turin planning compatibility, change of use, building authorization, and other required safety and health checks remain unverified."
+          ]
+        },
+        "batch_id": 7,
+        "timestamp": "2026-11-18T18:14:32.859290",
+        "execution_time_ms": 16575.20055770874
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "16747",
+          "evaluation_text": "This 1,256.45 sqm office property in central Turin is a promising candidate for conversion to a 60-bed university residence under the specified CDP/PNRR program. Its A2 energy class exceeds the requested C threshold, and its mobility percentile of 91.65 indicates strong public transport access. The supplied data do not establish whether the building can accommodate 60 beds or meet the program’s room, accessibility, planning, and technical requirements; these need verification. The normative context reports no verified minimum gross-area threshold, so gross area alone does not confirm eligibility.",
+          "final_ranking_score": 83,
+          "pros": [
+            "Office use and 1,256.45 sqm gross area make it a substantial starting point for the proposed conversion, though capacity for 60 beds is unverified.",
+            "A2 energy class is better than the requested C-or-better threshold.",
+            "Strong public transport proximity, with a mobility percentile of 91.65, alongside high access to healthcare, commercial services, and education."
+          ],
+          "cons": [
+            "The provided data do not establish that the building layout can deliver 60 beds while meeting grant-specific net room and residential-function standards.",
+            "Turin planning compatibility, change-of-use authorization, hygiene, accessibility, fire-safety, structural, and sector authorization checks remain necessary.",
+            "The 1950 construction period and energy sub-scores for plant, envelope, and renewables leave technical condition and conversion requirements to be verified."
+          ]
+        },
+        "batch_id": 8,
+        "timestamp": "2026-11-18T18:14:34.547882",
+        "execution_time_ms": 19030.97176551819
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "23101",
+          "evaluation_text": "The office building at CORSO MARCONI 10 is a promising candidate for conversion to a 60-bed student residence under the specified CDP/PNRR program. Its 1,707.66 sqm reported area and central location support further assessment, and its energy class C meets the stated energy threshold. Mobility access is strong. The supplied data do not verify a gross-area minimum for the grant or establish that the building can accommodate the required rooms and shared facilities. Urban-planning compatibility, change-of-use authorization, accessibility, hygiene, fire and structural requirements, and sector approvals all need verification. The low energy component scores for plant, envelope, and renewables also indicate potential upgrade needs despite the class C rating.",
+          "final_ranking_score": 83,
+          "pros": [
+            "Office use provides a relevant starting point for considering conversion to student housing, subject to planning and building approvals.",
+            "Reported area is 1,707.66 sqm, exceeding the user's 850 sqm screening threshold; detailed layout and usable-area suitability remain unverified.",
+            "Energy class C meets the requested threshold, and the mobility percentile of 95.26 indicates strong public-transport accessibility."
+          ],
+          "cons": [
+            "The regulatory data provide no verified grant-specific gross-area threshold; bed capacity and compliance with net room and shared-space standards require design verification.",
+            "The building dates from 1950, and urban-planning compatibility, change of use, accessibility, hygiene, fire safety, structural safety, and sector approvals remain to be checked.",
+            "Energy plant, envelope, and renewables scores are each 1, suggesting significant efficiency constraints or upgrade needs despite the overall class C."
+          ]
+        },
+        "batch_id": 9,
+        "timestamp": "2026-11-18T18:14:44.077578",
+        "execution_time_ms": 13199.180364608765
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "23102",
+          "evaluation_text": "This 1,707.66 sqm office property on Corso Marconi is a promising candidate for conversion to a 60-bed university residence under the specified CDP/PNRR program. Its reported gross area and C energy class align with the user’s requested screening criteria, and its strong public transport proximity is a clear location advantage. However, the data do not establish whether the building’s layout can meet the grant’s room and accessibility standards or whether the conversion is authorized and technically feasible. The grant-specific standard includes net residential area requirements of 10.6 sqm per single-room bed or 8.1 sqm per double-room bed, alongside additional accessibility and bathroom provisions; these cannot be verified from the property’s gross area alone. Urban planning, change-of-use, health, accessibility, fire-safety, structural and sector authorization checks remain necessary.",
+          "final_ranking_score": 83,
+          "pros": [
+            "Reported gross area of 1,707.66 sqm exceeds the user’s 850 sqm screening threshold, though it does not establish compliance with net room or other grant standards.",
+            "Energy class C meets the requested minimum energy class.",
+            "Mobility percentile of 95.26 indicates strong proximity to public transport."
+          ],
+          "cons": [
+            "The building’s 1950 construction period and low plant, envelope and renewables scores (1 each) indicate potential upgrade needs despite its C energy class.",
+            "Available data do not establish that room layouts, net area, accessible-bed provision or bathroom requirements can support 60 beds under the grant standards.",
+            "Turin PRG compatibility, change-of-use authorization, and required health, accessibility, fire-safety, structural and sector approvals remain unverified."
+          ]
+        },
+        "batch_id": 10,
+        "timestamp": "2026-11-18T18:14:45.962097",
+        "execution_time_ms": 14663.348197937012
+      }
+    ],
+    "evaluation_results": [
+      {
+        "id": "18842",
+        "evaluation_text": "This 8,798.03 sqm office property in central Turin is a strong strategic candidate for conversion to a 60-bed student residence: its area is well above the requested 850 sqm, it has an A3 energy class, and public transport accessibility is high (mobility percentile 91.74). Its 1900 construction date and office use make conversion potential relevant, but neither establishes that the building can accommodate the required residential layout or that the change of use is authorized. The supplied regulatory result reports no requirements; the matched CDP/MUR entry identifies grant-specific net area standards, while no verified minimum gross-property-area threshold is provided. Eligibility therefore depends on verifying the applicable room and accessible-bed standards, Turin planning compatibility, building and sector authorizations, hygiene, accessibility, fire safety where required, and structural and seismic safety. The recorded energy sub-scores also show weak envelope and renewables components despite the A3 class, warranting technical review.",
+        "final_ranking_score": 90,
+        "pros": [
+          "At 8,798.03 sqm gross area, the property exceeds the user's 850 sqm screening threshold by a wide margin; this does not by itself establish that the grant's room or functional standards can be met.",
+          "A3 energy class satisfies the requested C-or-better screening criterion; the energy class sub-score is 5, while the overall energy sub-score total is 12.",
+          "High public transport accessibility (mobility percentile 91.74) and central Turin location support access to university and city services."
+        ],
+        "cons": [
+          "The building dates from 1900, so structural and seismic safety, accessibility, fire safety where prescribed, and technical suitability for the proposed conversion require assessment.",
+          "Office classification does not establish planning compatibility or authorization for student residence use; Turin PRG compatibility, building permits, change of use, hygiene, and sector procedures need verification.",
+          "Despite A3 classification, envelope and renewable energy sub-scores are both 1; the grant-specific net room and accessible-bed standards also need to be checked against an actual layout."
+        ]
+      },
+      {
+        "id": "16224",
+        "evaluation_text": "This 2016 office property at Corso Siccardi Giuseppe n.13 has strong strategic potential for conversion to a 60-bed university residence. Its reported 10,283.58 sqm gross area is well above the user’s 850 sqm target, and its A2 energy class exceeds the requested C threshold. Mobility is exceptionally strong at 99.73, with high access to healthcare, education, and commercial services. The score of 89 reflects this compelling combination of scale, energy performance, and central accessibility. The available data do not establish that the building can accommodate 60 beds or meet the grant’s room, accessible-bed, planning, change-of-use, hygiene, fire-safety, structural, and sector authorization requirements; these need verification. The supplied grant standard concerns net usable area per bed and does not establish a minimum gross property area.",
+        "final_ranking_score": 89,
+        "pros": [
+          "At 10,283.58 sqm, the reported gross area substantially exceeds the requested 850 sqm, offering considerable scale for a potential conversion.",
+          "A2 energy class exceeds the requested C-or-better threshold; the energy profile also reports top scores for class, plant, and envelope.",
+          "Mobility percentile of 99.73 indicates excellent proximity to public transport, complemented by strong healthcare, education, and commercial proximity scores."
+        ],
+        "cons": [
+          "The area figure alone does not establish that 60 beds can fit the required net room areas, shared facilities, circulation, or accessible accommodation under the CDP/PNRR program.",
+          "Urban-planning compatibility, building permit and change of use, hygiene, accessibility, fire safety where required, structural safety, and sector authorization remain to be checked.",
+          "Renewable energy sources are reported as absent, and the supplied data do not establish the building’s detailed layout or technical feasibility for residential conversion."
+        ]
+      },
+      {
+        "id": "M03152",
+        "evaluation_text": "This 1,762.83 sqm office property is a strong candidate for conversion to a 60-bed student residence under the specified CDP/PNRR program. Its A2 energy class exceeds the requested C-or-better threshold, and its mobility percentile of 91.65 indicates strong public transport proximity. The gross area is substantial, but it does not establish that the building can accommodate 60 beds or meet the grant’s room-level net-area standards; layout and usable areas require verification. The supplied regulatory result found no validated gross-area screening threshold. Urban-planning compatibility, change-of-use permissions, accessibility, health and safety requirements, and other listed checks remain to be confirmed.",
+        "final_ranking_score": 88,
+        "pros": [
+          "Office use and 1,762.83 sqm gross area make the property relevant for the requested conversion, subject to verifying the internal layout and net usable areas for 60 beds.",
+          "A2 energy class is better than the requested minimum of C.",
+          "Mobility percentile of 91.65 indicates strong proximity to public transport; healthcare, commercial services, and education also score above the 90th percentile."
+        ],
+        "cons": [
+          "The available data do not establish that the layout can meet the grant-specific net-area standards for 60 beds, including room sizes and shared functions.",
+          "Turin PRG compatibility, change-of-use authorization, accessibility, health requirements, and applicable fire and structural safety checks remain unresolved.",
+          "The energy sub-scores show no renewables and only medium plant and envelope ratings, despite the A2 energy class."
+        ]
+      },
+      {
+        "id": "18504",
+        "evaluation_text": "This modern office property is a strong candidate for conversion to a 60-bed university residence under the specified CDP/PNRR program. Its 1,752.46 sqm gross area and A1 energy class align with the stated gross-area and energy targets, while mobility is high at 90.93. These indicators support further assessment, but do not establish that the building can accommodate the required room layouts or beds. The grant standard specifies net residential area per bed and other scoped requirements; it provides no verified minimum gross property area. Torino planning compatibility, change-of-use authorization, health and accessibility requirements, fire safety where applicable, structural safety, and sector authorization all require verification.",
+        "final_ranking_score": 85,
+        "pros": [
+          "Office use, recent 2020 construction, and 1,752.46 sqm gross area make this a substantial candidate for conversion, subject to layout and technical feasibility checks for 60 beds.",
+          "A1 energy class exceeds the user's minimum of C and indicates strong energy-class alignment.",
+          "High mobility percentile of 90.93, supported by strong nearby service indicators, matches the preference for access to public transport."
+        ],
+        "cons": [
+          "The supplied data do not establish whether net room areas, accessible-bed provisions, bathrooms, and other CDP/PNRR grant standards can be met for 60 beds.",
+          "Torino PRG compatibility, change-of-use title, health requirements, accessibility, structural safety, and sector authorization remain to be verified; fire-safety review may also be required.",
+          "The thermal plant score is 3 and renewables score is 1, leaving potential plant and renewable-energy improvements to assess despite the A1 class."
+        ]
+      },
+      {
+        "id": "18829",
+        "evaluation_text": "This 1,796.37 sqm office property in central Turin is a strong candidate for conversion to a 60-bed student residence. Its gross area exceeds the user’s stated 850 sqm threshold, its energy class B meets the requested C-or-better level, and its mobility score of 91.45 indicates strong public transport accessibility. The supplied data do not establish whether the building can accommodate the required room layouts or meet the CDP/PNRR grant’s net-area and accessibility standards. Urban-planning compatibility, change-of-use authorization, health and safety requirements, and technical feasibility all require verification. The regulatory result lists no requirements, and the cited gross-area parameter is unverified; neither establishes grant eligibility.",
+        "final_ranking_score": 85,
+        "pros": [
+          "Gross floor area of 1,796.37 sqm exceeds the requested 850 sqm threshold, providing a substantial basis for assessing a 60-bed conversion.",
+          "Energy class B meets the requested C-or-better level.",
+          "Mobility score of 91.45 and central Turin location support access to public transport and city services."
+        ],
+        "cons": [
+          "The data do not establish whether the building’s layout can provide 60 beds while meeting the grant-specific net-area standards for rooms and residential functions.",
+          "At five reserved accessible beds for 60 places, the grant’s stated accessibility standard and its additional area requirement would need to be incorporated and verified.",
+          "PRG compatibility, change-of-use authorization, sanitary and accessibility compliance, fire safety where prescribed, structural safety, and sector authorization remain unverified."
+        ]
+      },
+      {
+        "id": "M03576",
+        "evaluation_text": "This centrally located office property has strong strategic potential for conversion to a university residence: its reported 8,324.36 sqm gross area exceeds the requested 850 sqm threshold, its B energy class meets the stated C-or-better target, and its mobility percentile of 91.52 indicates strong public transport proximity. The exceptionally high reported healthcare, commercial, and education proximity scores further support the location. These factors make it a compelling candidate for further assessment, but they do not establish that 60 beds can be accommodated or that the conversion qualifies for the CDP/PNRR program. The supplied regulatory result reports no validated minimum gross-area threshold; its room and bed standards are grant-specific net-area requirements. Urban-planning compatibility, change-of-use authorization, layout, accessibility, fire safety where required, and other listed technical checks need verification.",
+        "final_ranking_score": 85,
+        "pros": [
+          "Reported gross area of 8,324.36 sqm comfortably exceeds the user's 850 sqm screening threshold, offering substantial area for conversion assessment.",
+          "Energy class B meets the requested C-or-better level; the reported thermal plant score is strong (5).",
+          "Mobility percentile of 91.52 indicates strong public transport proximity, alongside very high healthcare, commercial, and education proximity scores."
+        ],
+        "cons": [
+          "The 1933 construction date and low envelope score (1), with no renewables indicated, point to potential building-upgrade needs despite the B energy class.",
+          "The data do not establish that the layout can support 60 beds or satisfy the grant's net room and bed-area standards, including accessible-bed provisions.",
+          "Turin planning compatibility, change-of-use approval, hygiene, accessibility, fire and structural safety, and sector authorization remain to be checked; the regulatory result found no verified gross-area threshold."
+        ]
+      },
+      {
+        "id": "16747",
+        "evaluation_text": "This 1,256.45 sqm office property in central Turin is a promising candidate for conversion to a 60-bed university residence under the specified CDP/PNRR program. Its A2 energy class exceeds the requested C threshold, and its mobility percentile of 91.65 indicates strong public transport access. The supplied data do not establish whether the building can accommodate 60 beds or meet the program’s room, accessibility, planning, and technical requirements; these need verification. The normative context reports no verified minimum gross-area threshold, so gross area alone does not confirm eligibility.",
+        "final_ranking_score": 83,
+        "pros": [
+          "Office use and 1,256.45 sqm gross area make it a substantial starting point for the proposed conversion, though capacity for 60 beds is unverified.",
+          "A2 energy class is better than the requested C-or-better threshold.",
+          "Strong public transport proximity, with a mobility percentile of 91.65, alongside high access to healthcare, commercial services, and education."
+        ],
+        "cons": [
+          "The provided data do not establish that the building layout can deliver 60 beds while meeting grant-specific net room and residential-function standards.",
+          "Turin planning compatibility, change-of-use authorization, hygiene, accessibility, fire-safety, structural, and sector authorization checks remain necessary.",
+          "The 1950 construction period and energy sub-scores for plant, envelope, and renewables leave technical condition and conversion requirements to be verified."
+        ]
+      },
+      {
+        "id": "16234",
+        "evaluation_text": "This 11,235.82 sqm office property in central Turin is a strong candidate for conversion to a 60-bed student residence: its stated gross area substantially exceeds the user's 850 sqm target, and its C energy class meets the requested threshold. Excellent public transport proximity supports student access. The supplied data do not establish that the layout can accommodate 60 beds or meet the CDP/PNRR grant’s net room and accessibility standards. Grant eligibility, planning compatibility, change-of-use authorization, and technical requirements therefore need verification. The verified grant-specific figures concern net residential area per bed and room, not a minimum gross property area.",
+        "final_ranking_score": 83,
+        "pros": [
+          "Large stated area of 11,235.82 sqm, well above the 850 sqm gross-area target, with scope to assess a 60-bed conversion.",
+          "Energy class C meets the requested minimum.",
+          "Very high mobility percentile (99.52) supports access by public transport."
+        ],
+        "cons": [
+          "The 1940 construction date and low envelope score (1) indicate that building fabric and retrofit needs warrant detailed assessment.",
+          "The supplied data do not confirm that the existing layout can provide 60 beds while meeting grant-specific net-area, room, and accessibility standards.",
+          "Turin planning compatibility, change of use, building authorization, and other required safety and health checks remain unverified."
+        ]
+      },
+      {
+        "id": "23101",
+        "evaluation_text": "The office building at CORSO MARCONI 10 is a promising candidate for conversion to a 60-bed student residence under the specified CDP/PNRR program. Its 1,707.66 sqm reported area and central location support further assessment, and its energy class C meets the stated energy threshold. Mobility access is strong. The supplied data do not verify a gross-area minimum for the grant or establish that the building can accommodate the required rooms and shared facilities. Urban-planning compatibility, change-of-use authorization, accessibility, hygiene, fire and structural requirements, and sector approvals all need verification. The low energy component scores for plant, envelope, and renewables also indicate potential upgrade needs despite the class C rating.",
+        "final_ranking_score": 83,
+        "pros": [
+          "Office use provides a relevant starting point for considering conversion to student housing, subject to planning and building approvals.",
+          "Reported area is 1,707.66 sqm, exceeding the user's 850 sqm screening threshold; detailed layout and usable-area suitability remain unverified.",
+          "Energy class C meets the requested threshold, and the mobility percentile of 95.26 indicates strong public-transport accessibility."
+        ],
+        "cons": [
+          "The regulatory data provide no verified grant-specific gross-area threshold; bed capacity and compliance with net room and shared-space standards require design verification.",
+          "The building dates from 1950, and urban-planning compatibility, change of use, accessibility, hygiene, fire safety, structural safety, and sector approvals remain to be checked.",
+          "Energy plant, envelope, and renewables scores are each 1, suggesting significant efficiency constraints or upgrade needs despite the overall class C."
+        ]
+      },
+      {
+        "id": "23102",
+        "evaluation_text": "This 1,707.66 sqm office property on Corso Marconi is a promising candidate for conversion to a 60-bed university residence under the specified CDP/PNRR program. Its reported gross area and C energy class align with the user’s requested screening criteria, and its strong public transport proximity is a clear location advantage. However, the data do not establish whether the building’s layout can meet the grant’s room and accessibility standards or whether the conversion is authorized and technically feasible. The grant-specific standard includes net residential area requirements of 10.6 sqm per single-room bed or 8.1 sqm per double-room bed, alongside additional accessibility and bathroom provisions; these cannot be verified from the property’s gross area alone. Urban planning, change-of-use, health, accessibility, fire-safety, structural and sector authorization checks remain necessary.",
+        "final_ranking_score": 83,
+        "pros": [
+          "Reported gross area of 1,707.66 sqm exceeds the user’s 850 sqm screening threshold, though it does not establish compliance with net room or other grant standards.",
+          "Energy class C meets the requested minimum energy class.",
+          "Mobility percentile of 95.26 indicates strong proximity to public transport."
+        ],
+        "cons": [
+          "The building’s 1950 construction period and low plant, envelope and renewables scores (1 each) indicate potential upgrade needs despite its C energy class.",
+          "Available data do not establish that room layouts, net area, accessible-bed provision or bathroom requirements can support 60 beds under the grant standards.",
+          "Turin PRG compatibility, change-of-use authorization, and required health, accessibility, fire-safety, structural and sector approvals remain unverified."
+        ]
+      }
+    ],
+    "relaxation_applied": false,
+    "relaxation_count": 0,
+    "fallback_activated": false,
+    "agent_errors": []
+  }
+}

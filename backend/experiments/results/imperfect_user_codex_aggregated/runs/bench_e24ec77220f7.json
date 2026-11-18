@@ -1,0 +1,705 @@
+{
+  "run_id": "bench_e24ec77220f7",
+  "condition": "one_shot",
+  "unit_id": "MS06_k1_vague",
+  "scenario_id": "MS06_k1_vague",
+  "base_case_id": "UC06_senior_day_missing_use",
+  "missing_count": 1,
+  "scenario_name": "1 omitted dimensions; intended use: Senior Day Center (CDI / CDIA / CDAA / CDAI); vague first answer on D",
+  "tags": [
+    "edbt",
+    "controlled_missingness_v3",
+    "missing_1",
+    "UC06_senior_day_missing_use",
+    "imperfect_user",
+    "vague"
+  ],
+  "model": "gpt-6-luna",
+  "repeat": 3,
+  "attempt": 1,
+  "input_sha256": "925ac036399fc4ea7ffacb765b728285cabebe6ad6293038be0b9a4e226465e0",
+  "scenario_sha256": "8ed994d87ff7625c83ca167f6677c907ff32004d4cae8a3d90e968c464b13af9",
+  "initial_query": "I am looking for an office building. The location is in Turin. I need a property with at least 360 sqm of gross floor area and capacity for 18 people. I prefer a property in energy class D or better. I prefer properties near healthcare services.",
+  "options": {
+    "dataset_key": "full",
+    "map_limit": 1000,
+    "llm_limit": 10,
+    "analysis_mode": "agent",
+    "use_relaxation": true,
+    "use_data_knowledge": true,
+    "architecture": "multiagent",
+    "disabled_agents": null
+  },
+  "started_at": "2026-11-18T21:27:37.880689+00:00",
+  "clarification_seconds": null,
+  "analysis_seconds": 80.677,
+  "submitted_query": "I am looking for an office building. The location is in Turin. I need a property with at least 360 sqm of gross floor area and capacity for 18 people. I prefer a property in energy class D or better. I prefer properties near healthcare services.",
+  "status": "completed",
+  "results_count": 43,
+  "top_ids": [
+    "18842",
+    "16747",
+    "M03152",
+    "3125",
+    "16224",
+    "18829",
+    "M03576",
+    "M03612",
+    "18835",
+    "18504"
+  ],
+  "quality": {
+    "expected_count": 0,
+    "matched_expected": null,
+    "precision_at_returned": null,
+    "recall": null
+  },
+  "final_sql": "SELECT * FROM ESTATES WHERE property_type = 'Offices and similar' AND surface_area >= 360 AND haversine_km(latitude, longitude, 45.0677551, 7.6824892) <= 3.0 AND energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C', 'D') AND healthcare >= 90 ORDER BY haversine_km(latitude, longitude, 45.0677551, 7.6824892) ASC",
+  "duration_seconds": 80.692,
+  "scenario_definition": {
+    "id": "MS06_k1_vague",
+    "name": "1 omitted dimensions; intended use: Senior Day Center (CDI / CDIA / CDAA / CDAI); vague first answer on D",
+    "tags": [
+      "edbt",
+      "controlled_missingness_v3",
+      "missing_1",
+      "UC06_senior_day_missing_use",
+      "imperfect_user",
+      "vague"
+    ],
+    "base_case_id": "UC06_senior_day_missing_use",
+    "missing_count": 1,
+    "initial_query": "I am looking for an office building. The location is in Turin. I need a property with at least 360 sqm of gross floor area and capacity for 18 people. I prefer a property in energy class D or better. I prefer properties near healthcare services.",
+    "one_shot_query": "I am looking for an office building. The location is in Turin. I need a property with at least 360 sqm of gross floor area and capacity for 18 people. I prefer a property in energy class D or better. I prefer properties near healthcare services.",
+    "oracle_query": "Find an office building to convert it into an autonomous senior day center (CDIA) for 18 guests in Turin with at least 360 sqm of gross floor area in energy class D or better near healthcare services.",
+    "expected_initial_missing": [
+      "D"
+    ],
+    "clarifications": {
+      "I": "I am looking for an office building.",
+      "D": [
+        "It depends; something suitable for the project, I guess.",
+        "I intend to convert it into an autonomous senior day center (CDIA)."
+      ],
+      "L": "The location is in Turin.",
+      "Cb": "I need a property with at least 360 sqm of gross floor area and capacity for 18 people.",
+      "Ce": "I prefer a property in energy class D or better.",
+      "Cp": "I prefer properties near healthcare services."
+    },
+    "expected_mapping": {
+      "I": "SPECIFIED",
+      "D": "SPECIFIED",
+      "L": "SPECIFIED",
+      "Cb": "SPECIFIED",
+      "Ce": "SPECIFIED",
+      "Cp": "SPECIFIED"
+    },
+    "repeats": 1,
+    "imperfect_user": {
+      "profile": "vague",
+      "dimension": "D"
+    }
+  },
+  "artifact_file": "runs/bench_e24ec77220f7.json",
+  "artifact_schema_version": 4,
+  "ranking_ids": [
+    "18842",
+    "16747",
+    "M03152",
+    "3125",
+    "16224",
+    "18829",
+    "M03576",
+    "M03612",
+    "18835",
+    "18504",
+    "23101",
+    "23102",
+    "23107",
+    "M03553",
+    "22355",
+    "16234",
+    "18841",
+    "18833",
+    "18837",
+    "16320",
+    "17862",
+    "23105",
+    "23117",
+    "23118",
+    "M03044",
+    "M04435",
+    "18870",
+    "18871",
+    "M03546",
+    "23103",
+    "23116",
+    "18805",
+    "16534",
+    "16706",
+    "18656",
+    "23109",
+    "M04187",
+    "23120",
+    "M03040",
+    "M02068",
+    "18658",
+    "24327",
+    "M04675"
+  ],
+  "top": [
+    {
+      "id": "18842",
+      "score": 91.536,
+      "distance_km": 0.06
+    },
+    {
+      "id": "16747",
+      "score": 90.142,
+      "distance_km": 0.34
+    },
+    {
+      "id": "M03152",
+      "score": 90.142,
+      "distance_km": 0.34
+    },
+    {
+      "id": "3125",
+      "score": 89.872,
+      "distance_km": 0.18
+    },
+    {
+      "id": "16224",
+      "score": 88.73,
+      "distance_km": 0.72
+    },
+    {
+      "id": "18829",
+      "score": 87.55199999999999,
+      "distance_km": 0.1
+    },
+    {
+      "id": "M03576",
+      "score": 87.55199999999999,
+      "distance_km": 0.12
+    },
+    {
+      "id": "M03612",
+      "score": 86.601,
+      "distance_km": 0.5
+    },
+    {
+      "id": "18835",
+      "score": 86.208,
+      "distance_km": 0.1
+    },
+    {
+      "id": "18504",
+      "score": 86.14800000000001,
+      "distance_km": 1.01
+    }
+  ],
+  "api_response": {
+    "agent_trace": [
+      {
+        "agent_name": "regulatory-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "found": false,
+          "matched_use_cases": [],
+          "requirements": []
+        }
+      },
+      {
+        "agent_name": "building-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "typologies": [
+            "Offices and similar"
+          ],
+          "found": true,
+          "requirements": [
+            {
+              "target_column": "surface_area",
+              "operator": ">=",
+              "value": 360,
+              "description": "The request specifies at least 360 sqm of gross floor area."
+            }
+          ]
+        }
+      },
+      {
+        "agent_name": "proximity-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "requirements": [
+            {
+              "target_column": "healthcare",
+              "operator": ">=",
+              "value": 90,
+              "description": "Prefers proximity to healthcare services; meets the 75th percentile threshold of 89.9."
+            }
+          ]
+        }
+      },
+      {
+        "agent_name": "location-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "places": [
+            {
+              "name": "Turin",
+              "city": "Turin",
+              "lat": 45.0677551,
+              "lon": 7.6824892,
+              "radius_km": 3.0
+            }
+          ],
+          "found": true
+        }
+      },
+      {
+        "agent_name": "ranking-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "ranking": [
+            {
+              "agent_name": "building",
+              "rank": 1
+            },
+            {
+              "agent_name": "location",
+              "rank": 1
+            },
+            {
+              "agent_name": "regulatory",
+              "rank": 1
+            },
+            {
+              "agent_name": "energy",
+              "rank": 2
+            },
+            {
+              "agent_name": "proximity",
+              "rank": 2
+            }
+          ],
+          "weights": {
+            "location": 0.25,
+            "regulatory": 0.25,
+            "energy": 0.12,
+            "building": 0.26,
+            "proximity": 0.12
+          }
+        }
+      },
+      {
+        "agent_name": "energy-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "requirements": [
+            {
+              "target_column": "energy_class",
+              "operator": "IN",
+              "value": [
+                "A1",
+                "A2",
+                "A3",
+                "A4",
+                "B",
+                "C",
+                "D"
+              ],
+              "description": "Energy class D or better."
+            }
+          ],
+          "found": true
+        }
+      },
+      {
+        "agent_name": "sql-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "sql": "SELECT * FROM ESTATES WHERE property_type = 'Offices and similar' AND surface_area >= 360 AND haversine_km(latitude, longitude, 45.0677551, 7.6824892) <= 3.0 AND energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C', 'D') AND healthcare >= 90 ORDER BY haversine_km(latitude, longitude, 45.0677551, 7.6824892) ASC",
+          "explanation": "Filters by office property type, minimum area, the supplied 3 km radius, preferred energy classes, and healthcare proximity score."
+        }
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "M03152",
+          "evaluation_text": "This Turin office property is a strong strategic fit: its listed surface area of 1,762.83 sqm exceeds the 360 sqm requirement, and its A2 energy class is better than the preferred D threshold. Healthcare proximity is exceptionally high (99.91), supporting the location preference. The data do not establish capacity for 18 people, room layout, accessibility, planning compatibility, or technical suitability, so these require verification. No applicable regulatory requirements were returned in the supplied context.",
+          "final_ranking_score": 90,
+          "pros": [
+            "Listed surface area of 1,762.83 sqm is well above the 360 sqm requirement.",
+            "Energy class A2 exceeds the preferred D-or-better threshold.",
+            "Healthcare proximity percentile of 99.91 strongly matches the location preference."
+          ],
+          "cons": [
+            "Capacity for 18 people is not established by the supplied data and needs verification.",
+            "The data do not confirm office layout, accessibility, or technical suitability for the intended occupancy.",
+            "Planning compatibility and any property-specific authorization requirements remain unverified."
+          ]
+        },
+        "batch_id": 1,
+        "timestamp": "2026-11-18T22:28:19.964523",
+        "execution_time_ms": 14742.23017692566
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "16747",
+          "evaluation_text": "This Turin office property is a strong strategic match: its stated gross area of 1,256.45 sqm substantially exceeds the 360 sqm requirement, and its A2 energy class is better than the preferred D threshold. Healthcare proximity is exceptionally high (99.91), with the reference point 0.34 km away. The provided data do not establish capacity for 18 people, room configuration, accessibility, or planning and technical suitability, so these require verification before proceeding.",
+          "final_ranking_score": 90,
+          "pros": [
+            "The stated 1,256.45 sqm gross area exceeds the 360 sqm minimum by a wide margin.",
+            "Energy class A2 exceeds the preferred D-or-better standard.",
+            "Healthcare proximity is very strong at 99.91, with the reference point 0.34 km away."
+          ],
+          "cons": [
+            "Capacity for 18 people is not established by the supplied data and must be verified.",
+            "The floor plan, usable area, and suitability of the existing layout for the intended office use are unknown.",
+            "Planning compatibility, accessibility, and technical feasibility for the intended occupancy require verification."
+          ]
+        },
+        "batch_id": 2,
+        "timestamp": "2026-11-18T22:28:19.974572",
+        "execution_time_ms": 14752.941131591797
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "3125",
+          "evaluation_text": "This Turin office property is a strong strategic match: its reported gross area of 1,005.85 sqm exceeds the 360 sqm target, and its A2 energy class is better than the preferred D threshold. The healthcare proximity percentile is very high at 96.03, with public transport and other services also scoring strongly. The supplied data do not establish whether the building can accommodate 18 people in a suitable layout, nor do they confirm planning authorization, accessibility, or technical suitability; these require verification. No use-specific regulatory requirements were returned in the supplied context.",
+          "final_ranking_score": 90,
+          "pros": [
+            "Reported gross area of 1,005.85 sqm comfortably exceeds the 360 sqm target.",
+            "Energy class A2 surpasses the preferred D-or-better threshold.",
+            "Healthcare proximity is strong at the 96.03 percentile; mobility is also high at 95.26."
+          ],
+          "cons": [
+            "Capacity for 18 people and the internal layout are not documented and need verification.",
+            "Planning compatibility, accessibility, and technical suitability for the intended office use are unconfirmed.",
+            "The energy data show low envelope and renewable sub-scores (1 each), despite the A2 class and strong plant score."
+          ]
+        },
+        "batch_id": 3,
+        "timestamp": "2026-11-18T22:28:20.086560",
+        "execution_time_ms": 14863.788843154907
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "18842",
+          "evaluation_text": "This centrally located Turin office property is a strong strategic match: its stated 8,798.03 sqm gross area exceeds the 360 sqm threshold, and its A3 energy class is better than the preferred D-or-better standard. Healthcare proximity is exceptionally high (99.81), alongside strong access to mobility and other services. The supplied data do not establish capacity for 18 people, internal layout, accessibility, or planning compatibility, so these require verification. The 1900 construction period and low envelope and renewables energy subscores also warrant closer technical review despite the strong energy class.",
+          "final_ranking_score": 92,
+          "pros": [
+            "Office property in Turin with a stated gross area of 8,798.03 sqm, well above the 360 sqm requirement.",
+            "Energy class A3 exceeds the preferred D-or-better threshold.",
+            "Healthcare proximity percentile is 99.81, with very strong mobility and commercial-service proximity as well."
+          ],
+          "cons": [
+            "Capacity for 18 people and suitability of the internal layout are not established by the supplied data and require verification.",
+            "Planning compatibility, accessibility, and technical suitability for the intended office use are not documented.",
+            "The 1900 construction period and low envelope and renewables subscores (1 each) call for technical due diligence despite the A3 energy class."
+          ]
+        },
+        "batch_id": 4,
+        "timestamp": "2026-11-18T22:28:20.431840",
+        "execution_time_ms": 15204.21290397644
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "16224",
+          "evaluation_text": "This 2016 office property in Turin is a strong strategic match: its listed use aligns with the office-building objective, its 10,283.58 sqm area exceeds the 360 sqm threshold, and its A2 energy class is better than the preferred D threshold. Healthcare proximity is high (91.47), alongside excellent mobility and commercial-service indicators. The supplied data do not establish capacity for 18 people, internal layout, planning compatibility, or technical suitability, so these require verification. No matching regulatory requirements or normative entries were supplied.",
+          "final_ranking_score": 89,
+          "pros": [
+            "Office and similar property type, with 10,283.58 sqm listed area—well above the 360 sqm requirement.",
+            "A2 energy class exceeds the preferred D threshold; the building dates from 2016 and has a strong energy score total of 16.",
+            "High healthcare proximity (91.47), supported by very high mobility (99.73) and commercial-service (91.62) indicators."
+          ],
+          "cons": [
+            "Capacity for 18 people is not established by the supplied data and must be verified against the usable layout and occupancy conditions.",
+            "Planning compatibility, authorization, accessibility, and technical suitability for the intended office use are not established in the supplied data.",
+            "No matching regulatory requirements or normative entries were returned, so this data provides no specific regulatory assessment for the intended use."
+          ]
+        },
+        "batch_id": 5,
+        "timestamp": "2026-11-18T22:28:34.758402",
+        "execution_time_ms": 14793.20502281189
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "18829",
+          "evaluation_text": "This centrally located office property in Turin has strong strategic potential. Its reported 1,796.37 sqm gross area exceeds the 360 sqm requirement, and the office classification aligns with the intended use. Energy class B meets the stated preference, and healthcare proximity is exceptionally strong. The data do not establish capacity for 18 people, room layout, accessibility, or authorization and planning compatibility; these require verification. The regulatory context contains no matched requirements or normative entries.",
+          "final_ranking_score": 88,
+          "pros": [
+            "Reported gross area of 1,796.37 sqm exceeds the 360 sqm minimum.",
+            "Office property classification aligns with the intended use; energy class B meets the preference for D or better.",
+            "Healthcare proximity is very high (99.96), with strong public transport access (91.45)."
+          ],
+          "cons": [
+            "Capacity for 18 people is not established and needs verification against the actual layout and occupancy conditions.",
+            "Planning compatibility, authorization for the intended use, and accessibility are not established by the supplied data.",
+            "The energy component scores are mixed: envelope and renewables each score 1, and total energy score is 8 out of 20 despite the reported class B."
+          ]
+        },
+        "batch_id": 6,
+        "timestamp": "2026-11-18T22:28:35.092889",
+        "execution_time_ms": 15118.003129959106
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "M03612",
+          "evaluation_text": "This Turin office property is a strong strategic fit on the supplied data: its 1,141.45 sqm gross area is well above the 360 sqm requirement, and its office classification aligns with the intended use. Energy class B exceeds the preferred class D threshold, while healthcare proximity is high at 91.75. The data do not establish capacity for 18 people, internal layout, planning compatibility, accessibility, or technical condition, so these require verification. Its energy sub-scores indicate weak plant, envelope, and renewable-energy performance despite the B class, which merits closer review.",
+          "final_ranking_score": 87,
+          "pros": [
+            "1,141.45 sqm of area exceeds the 360 sqm minimum.",
+            "Classified as “Offices and similar,” matching the requested property type.",
+            "Energy class B is better than the preferred D threshold, and healthcare proximity is high (91.75)."
+          ],
+          "cons": [
+            "Capacity for 18 people and suitability of the internal layout are not established by the supplied data.",
+            "Plant, envelope, and renewables each have a low energy sub-score of 1, despite the overall B energy class.",
+            "Planning compatibility, accessibility, and technical condition require verification; the regulatory context contains no matched requirements."
+          ]
+        },
+        "batch_id": 7,
+        "timestamp": "2026-11-18T22:28:35.505548",
+        "execution_time_ms": 15080.034017562866
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "M03576",
+          "evaluation_text": "This centrally located Turin office property shows strong strategic potential: its 8,324.36 sqm reported surface area substantially exceeds the 360 sqm target, and its office classification aligns with the intended use. Energy class B meets the stated preference for class D or better, while the healthcare proximity percentile is exceptionally high. The supplied data do not establish capacity for 18 people, internal layout, planning authorization, accessibility, or technical suitability, so these require verification. No regulatory requirements or matched use cases were returned in the supplied context.",
+          "final_ranking_score": 88,
+          "pros": [
+            "Reported surface area of 8,324.36 sqm is well above the 360 sqm minimum, subject to confirmation of the area metric and usable space.",
+            "Classified as “Offices and similar,” directly aligned with the requested property type.",
+            "Energy class B meets the preferred threshold, and healthcare proximity is very high (99.96 percentile)."
+          ],
+          "cons": [
+            "Capacity for 18 people and suitability of the internal layout are not established by the supplied data.",
+            "The property dates to 1933; current condition, accessibility, and technical adaptation requirements need assessment.",
+            "Energy sub-scores show a weak envelope (1) and no renewables indicated (1), despite the overall B energy class."
+          ]
+        },
+        "batch_id": 8,
+        "timestamp": "2026-11-18T22:28:35.529831",
+        "execution_time_ms": 15443.559169769287
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "18835",
+          "evaluation_text": "This 1,785.78 sqm office property in Turin substantially exceeds the 360 sqm gross floor area requirement, and its office classification aligns with the stated objective. Its energy class C meets the preference for D or better. Healthcare proximity is exceptionally high (99.96), supporting the location preference. The supplied data do not establish capacity for 18 people, room layout, accessibility, planning compatibility, or technical suitability, so these require verification. The 1933 construction date and low envelope and renewables scores indicate potential energy-performance constraints despite the current class C rating.",
+          "final_ranking_score": 86,
+          "pros": [
+            "Reported surface area of 1,785.78 sqm is well above the 360 sqm requirement.",
+            "Office property classification and Turin location align with the objective.",
+            "Energy class C meets the stated D-or-better preference, and healthcare proximity is exceptionally high at 99.96."
+          ],
+          "cons": [
+            "Capacity for 18 people and the suitability of the internal layout are not established by the supplied data.",
+            "Planning compatibility, accessibility, and technical feasibility for the intended use require verification; no applicable regulatory entries were found in the supplied context.",
+            "The 1933 construction date, envelope score of 1, and renewables score of 1 point to energy-efficiency considerations despite the C rating."
+          ]
+        },
+        "batch_id": 9,
+        "timestamp": "2026-11-18T22:28:42.038585",
+        "execution_time_ms": 7280.949354171753
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "18504",
+          "evaluation_text": "This 2020 office property in Turin is a strong strategic fit: its reported 1,752.46 sqm gross area exceeds the 360 sqm requirement, and its A1 energy class is better than the preferred D threshold. Healthcare proximity is high (91.42), supporting the location preference. The supplied data do not establish capacity for 18 people, internal layout, accessibility, or planning and technical suitability, so these require verification before selection. No use-specific regulatory requirements or matched normative entries were found in the provided context.",
+          "final_ranking_score": 86,
+          "pros": [
+            "Office property with 1,752.46 sqm reported area, well above the 360 sqm requirement.",
+            "A1 energy class exceeds the preferred D threshold; the property dates from 2020.",
+            "High healthcare proximity score of 91.42, with strong reported scores for mobility (90.93) and green areas (93.38)."
+          ],
+          "cons": [
+            "Capacity for 18 people is not established by the supplied data and needs verification.",
+            "Floor layout, accessibility, and technical suitability for the intended office use are not documented.",
+            "No matching use-specific regulatory entries were found; planning compatibility and any applicable requirements need verification."
+          ]
+        },
+        "batch_id": 10,
+        "timestamp": "2026-11-18T22:28:42.163626",
+        "execution_time_ms": 7071.102142333984
+      }
+    ],
+    "evaluation_results": [
+      {
+        "id": "18842",
+        "evaluation_text": "This centrally located Turin office property is a strong strategic match: its stated 8,798.03 sqm gross area exceeds the 360 sqm threshold, and its A3 energy class is better than the preferred D-or-better standard. Healthcare proximity is exceptionally high (99.81), alongside strong access to mobility and other services. The supplied data do not establish capacity for 18 people, internal layout, accessibility, or planning compatibility, so these require verification. The 1900 construction period and low envelope and renewables energy subscores also warrant closer technical review despite the strong energy class.",
+        "final_ranking_score": 92,
+        "pros": [
+          "Office property in Turin with a stated gross area of 8,798.03 sqm, well above the 360 sqm requirement.",
+          "Energy class A3 exceeds the preferred D-or-better threshold.",
+          "Healthcare proximity percentile is 99.81, with very strong mobility and commercial-service proximity as well."
+        ],
+        "cons": [
+          "Capacity for 18 people and suitability of the internal layout are not established by the supplied data and require verification.",
+          "Planning compatibility, accessibility, and technical suitability for the intended office use are not documented.",
+          "The 1900 construction period and low envelope and renewables subscores (1 each) call for technical due diligence despite the A3 energy class."
+        ]
+      },
+      {
+        "id": "16747",
+        "evaluation_text": "This Turin office property is a strong strategic match: its stated gross area of 1,256.45 sqm substantially exceeds the 360 sqm requirement, and its A2 energy class is better than the preferred D threshold. Healthcare proximity is exceptionally high (99.91), with the reference point 0.34 km away. The provided data do not establish capacity for 18 people, room configuration, accessibility, or planning and technical suitability, so these require verification before proceeding.",
+        "final_ranking_score": 90,
+        "pros": [
+          "The stated 1,256.45 sqm gross area exceeds the 360 sqm minimum by a wide margin.",
+          "Energy class A2 exceeds the preferred D-or-better standard.",
+          "Healthcare proximity is very strong at 99.91, with the reference point 0.34 km away."
+        ],
+        "cons": [
+          "Capacity for 18 people is not established by the supplied data and must be verified.",
+          "The floor plan, usable area, and suitability of the existing layout for the intended office use are unknown.",
+          "Planning compatibility, accessibility, and technical feasibility for the intended occupancy require verification."
+        ]
+      },
+      {
+        "id": "M03152",
+        "evaluation_text": "This Turin office property is a strong strategic fit: its listed surface area of 1,762.83 sqm exceeds the 360 sqm requirement, and its A2 energy class is better than the preferred D threshold. Healthcare proximity is exceptionally high (99.91), supporting the location preference. The data do not establish capacity for 18 people, room layout, accessibility, planning compatibility, or technical suitability, so these require verification. No applicable regulatory requirements were returned in the supplied context.",
+        "final_ranking_score": 90,
+        "pros": [
+          "Listed surface area of 1,762.83 sqm is well above the 360 sqm requirement.",
+          "Energy class A2 exceeds the preferred D-or-better threshold.",
+          "Healthcare proximity percentile of 99.91 strongly matches the location preference."
+        ],
+        "cons": [
+          "Capacity for 18 people is not established by the supplied data and needs verification.",
+          "The data do not confirm office layout, accessibility, or technical suitability for the intended occupancy.",
+          "Planning compatibility and any property-specific authorization requirements remain unverified."
+        ]
+      },
+      {
+        "id": "3125",
+        "evaluation_text": "This Turin office property is a strong strategic match: its reported gross area of 1,005.85 sqm exceeds the 360 sqm target, and its A2 energy class is better than the preferred D threshold. The healthcare proximity percentile is very high at 96.03, with public transport and other services also scoring strongly. The supplied data do not establish whether the building can accommodate 18 people in a suitable layout, nor do they confirm planning authorization, accessibility, or technical suitability; these require verification. No use-specific regulatory requirements were returned in the supplied context.",
+        "final_ranking_score": 90,
+        "pros": [
+          "Reported gross area of 1,005.85 sqm comfortably exceeds the 360 sqm target.",
+          "Energy class A2 surpasses the preferred D-or-better threshold.",
+          "Healthcare proximity is strong at the 96.03 percentile; mobility is also high at 95.26."
+        ],
+        "cons": [
+          "Capacity for 18 people and the internal layout are not documented and need verification.",
+          "Planning compatibility, accessibility, and technical suitability for the intended office use are unconfirmed.",
+          "The energy data show low envelope and renewable sub-scores (1 each), despite the A2 class and strong plant score."
+        ]
+      },
+      {
+        "id": "16224",
+        "evaluation_text": "This 2016 office property in Turin is a strong strategic match: its listed use aligns with the office-building objective, its 10,283.58 sqm area exceeds the 360 sqm threshold, and its A2 energy class is better than the preferred D threshold. Healthcare proximity is high (91.47), alongside excellent mobility and commercial-service indicators. The supplied data do not establish capacity for 18 people, internal layout, planning compatibility, or technical suitability, so these require verification. No matching regulatory requirements or normative entries were supplied.",
+        "final_ranking_score": 89,
+        "pros": [
+          "Office and similar property type, with 10,283.58 sqm listed area—well above the 360 sqm requirement.",
+          "A2 energy class exceeds the preferred D threshold; the building dates from 2016 and has a strong energy score total of 16.",
+          "High healthcare proximity (91.47), supported by very high mobility (99.73) and commercial-service (91.62) indicators."
+        ],
+        "cons": [
+          "Capacity for 18 people is not established by the supplied data and must be verified against the usable layout and occupancy conditions.",
+          "Planning compatibility, authorization, accessibility, and technical suitability for the intended office use are not established in the supplied data.",
+          "No matching regulatory requirements or normative entries were returned, so this data provides no specific regulatory assessment for the intended use."
+        ]
+      },
+      {
+        "id": "18829",
+        "evaluation_text": "This centrally located office property in Turin has strong strategic potential. Its reported 1,796.37 sqm gross area exceeds the 360 sqm requirement, and the office classification aligns with the intended use. Energy class B meets the stated preference, and healthcare proximity is exceptionally strong. The data do not establish capacity for 18 people, room layout, accessibility, or authorization and planning compatibility; these require verification. The regulatory context contains no matched requirements or normative entries.",
+        "final_ranking_score": 88,
+        "pros": [
+          "Reported gross area of 1,796.37 sqm exceeds the 360 sqm minimum.",
+          "Office property classification aligns with the intended use; energy class B meets the preference for D or better.",
+          "Healthcare proximity is very high (99.96), with strong public transport access (91.45)."
+        ],
+        "cons": [
+          "Capacity for 18 people is not established and needs verification against the actual layout and occupancy conditions.",
+          "Planning compatibility, authorization for the intended use, and accessibility are not established by the supplied data.",
+          "The energy component scores are mixed: envelope and renewables each score 1, and total energy score is 8 out of 20 despite the reported class B."
+        ]
+      },
+      {
+        "id": "M03576",
+        "evaluation_text": "This centrally located Turin office property shows strong strategic potential: its 8,324.36 sqm reported surface area substantially exceeds the 360 sqm target, and its office classification aligns with the intended use. Energy class B meets the stated preference for class D or better, while the healthcare proximity percentile is exceptionally high. The supplied data do not establish capacity for 18 people, internal layout, planning authorization, accessibility, or technical suitability, so these require verification. No regulatory requirements or matched use cases were returned in the supplied context.",
+        "final_ranking_score": 88,
+        "pros": [
+          "Reported surface area of 8,324.36 sqm is well above the 360 sqm minimum, subject to confirmation of the area metric and usable space.",
+          "Classified as “Offices and similar,” directly aligned with the requested property type.",
+          "Energy class B meets the preferred threshold, and healthcare proximity is very high (99.96 percentile)."
+        ],
+        "cons": [
+          "Capacity for 18 people and suitability of the internal layout are not established by the supplied data.",
+          "The property dates to 1933; current condition, accessibility, and technical adaptation requirements need assessment.",
+          "Energy sub-scores show a weak envelope (1) and no renewables indicated (1), despite the overall B energy class."
+        ]
+      },
+      {
+        "id": "M03612",
+        "evaluation_text": "This Turin office property is a strong strategic fit on the supplied data: its 1,141.45 sqm gross area is well above the 360 sqm requirement, and its office classification aligns with the intended use. Energy class B exceeds the preferred class D threshold, while healthcare proximity is high at 91.75. The data do not establish capacity for 18 people, internal layout, planning compatibility, accessibility, or technical condition, so these require verification. Its energy sub-scores indicate weak plant, envelope, and renewable-energy performance despite the B class, which merits closer review.",
+        "final_ranking_score": 87,
+        "pros": [
+          "1,141.45 sqm of area exceeds the 360 sqm minimum.",
+          "Classified as “Offices and similar,” matching the requested property type.",
+          "Energy class B is better than the preferred D threshold, and healthcare proximity is high (91.75)."
+        ],
+        "cons": [
+          "Capacity for 18 people and suitability of the internal layout are not established by the supplied data.",
+          "Plant, envelope, and renewables each have a low energy sub-score of 1, despite the overall B energy class.",
+          "Planning compatibility, accessibility, and technical condition require verification; the regulatory context contains no matched requirements."
+        ]
+      },
+      {
+        "id": "18835",
+        "evaluation_text": "This 1,785.78 sqm office property in Turin substantially exceeds the 360 sqm gross floor area requirement, and its office classification aligns with the stated objective. Its energy class C meets the preference for D or better. Healthcare proximity is exceptionally high (99.96), supporting the location preference. The supplied data do not establish capacity for 18 people, room layout, accessibility, planning compatibility, or technical suitability, so these require verification. The 1933 construction date and low envelope and renewables scores indicate potential energy-performance constraints despite the current class C rating.",
+        "final_ranking_score": 86,
+        "pros": [
+          "Reported surface area of 1,785.78 sqm is well above the 360 sqm requirement.",
+          "Office property classification and Turin location align with the objective.",
+          "Energy class C meets the stated D-or-better preference, and healthcare proximity is exceptionally high at 99.96."
+        ],
+        "cons": [
+          "Capacity for 18 people and the suitability of the internal layout are not established by the supplied data.",
+          "Planning compatibility, accessibility, and technical feasibility for the intended use require verification; no applicable regulatory entries were found in the supplied context.",
+          "The 1933 construction date, envelope score of 1, and renewables score of 1 point to energy-efficiency considerations despite the C rating."
+        ]
+      },
+      {
+        "id": "18504",
+        "evaluation_text": "This 2020 office property in Turin is a strong strategic fit: its reported 1,752.46 sqm gross area exceeds the 360 sqm requirement, and its A1 energy class is better than the preferred D threshold. Healthcare proximity is high (91.42), supporting the location preference. The supplied data do not establish capacity for 18 people, internal layout, accessibility, or planning and technical suitability, so these require verification before selection. No use-specific regulatory requirements or matched normative entries were found in the provided context.",
+        "final_ranking_score": 86,
+        "pros": [
+          "Office property with 1,752.46 sqm reported area, well above the 360 sqm requirement.",
+          "A1 energy class exceeds the preferred D threshold; the property dates from 2020.",
+          "High healthcare proximity score of 91.42, with strong reported scores for mobility (90.93) and green areas (93.38)."
+        ],
+        "cons": [
+          "Capacity for 18 people is not established by the supplied data and needs verification.",
+          "Floor layout, accessibility, and technical suitability for the intended office use are not documented.",
+          "No matching use-specific regulatory entries were found; planning compatibility and any applicable requirements need verification."
+        ]
+      }
+    ],
+    "relaxation_applied": false,
+    "relaxation_count": 0,
+    "fallback_activated": false,
+    "agent_errors": []
+  }
+}
