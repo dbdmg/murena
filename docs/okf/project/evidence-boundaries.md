@@ -25,7 +25,7 @@ sources:
 **Risultati riportati nel paper (2026-11-18):** il manoscritto riporta la
 serie cooperativa Claude Haiku 5.5 (304/304 run, `missingness_v3_haiku_r2`)
 e la serie utente imperfetto Codex/gpt-6-luna (265/265 run,
-`imperfect_user_codex_vlast`), mantenendole separate. Nella serie cooperativa,
+`imperfect_user_codex_vlast`), mantenendole separate. La serie Codex usa un altro modello e un altro snapshot dei dati (hash `d3956041…` contro `bc6732c8…`); le sue 265 unità sono complete dopo il rilancio di 201 tentativi falliti per errori del CLI. Nella serie cooperativa,
 Jaccard@5 è
 0,88 refined e 0,16 one-shot; F1 dei filtri è 0,98 e 0,61. La serie con
 utenti imperfetti usa i propri oracle. I precedenti risultati Haiku per utenti

@@ -558,6 +558,12 @@ sugli otto intenti.
 | | tempo di chiarimento medio per run | 74,4 s [71,5; 76,7] |
 | oracle | Jaccard@5 oracle-vs-oracle | 0,703 [0,513; 0,893] |
 
+**Verifica del 2026-11-18 (sera).**
+
+- **Tentativi.** `runs.jsonl` contiene anche 201 tentativi in stato `error` (161 refined, 40 oracle), tutti con "Codex CLI LLM call failed". Ciascuna di quelle unità (condizione, scenario, ripetizione) ha poi una run completata, quindi le 265 unità previste sono complete su 466 tentativi registrati.
+- **Dataset.** L'hash `d3956041…` è diverso da quello della serie Haiku cooperativa (`bc6732c8…`): le due serie non condividono né il modello né lo snapshot dei dati.
+- **Paper.** Il testo dichiara entrambi i punti dalla PR #4. Il tetto oracle (0,70) è più basso di quello Haiku (0,87), quindi i valori si confrontano solo all'interno della stessa serie.
+
 Questa serie è distinta da Haiku e non sostituisce i risultati attivi nel
 paper. Per l'opt-out non si calcola accordo di ranking con l'oracle, che
 conserva il vincolo rifiutato. I valori misurano accordo con riferimenti
