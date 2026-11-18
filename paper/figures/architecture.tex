@@ -14,7 +14,7 @@
 % --- conversational stage (new) ---
 \node[box, text width=11mm] (q0) at (0,0) {Initial\\request $q_0$};
 \node[new, text width=15mm] (parse) at (2.15,0)
-  {LLM parser:\\per-dimension\\evidence};
+  {LLM parser};
 \node[new, text width=30mm] (state) at (5.55,0)
   {Dimension states $S_t$\\[1pt]
    \setlength{\tabcolsep}{2.2pt}%
@@ -25,12 +25,12 @@
 \node[new, text width=30mm] (select) at (5.55,-1.6)
   {Select next question};
 \node[new, text width=22mm] (answer) at (2.15,-1.6)
-  {User answer $a_t$: value\\or ``no requirement''};
+  {User answer $a_t$};
 \node[new, text width=30mm] (review) at (5.55,-2.85)
-  {Review: edit and confirm\\rewritten request $\hat q$};
+  {User review for $\hat q$};
 
 \draw[arr] (q0) -- (parse);
-\draw[arr] (parse) -- (state);
+\draw[arr] (parse) -- node[lbl, above] {update $S_t$} (state);
 \draw[arr] (state) -- node[lbl, right] {open $U$/$A$} (select);
 \draw[arr] (select) -- node[lbl, above] {ask $u_t$} (answer);
 \draw[arr] (answer) -- node[lbl, right] {interpret $a_t$} (parse);
@@ -39,8 +39,8 @@
 % --- inherited MURENA pipeline ---
 \node[old] (agents) at (0.75,-4.55) {Technical\\agents};
 \node[old] (sql) at (2.8,-4.55) {SQL agent};
-\node[old] (rank) at (4.85,-4.55) {Multi-criteria\\scoring, ranking};
-\node[old] (map) at (6.9,-4.55) {Map, ranked list,\\explanations};
+\node[old] (rank) at (4.85,-4.55) {Multi-criteria\\scoring};
+\node[old] (map) at (6.9,-4.55) {Ranked list \\of buildings};
 \draw[arr] (agents) -- (sql);
 \draw[arr] (sql) -- (rank);
 \draw[arr] (rank) -- (map);
