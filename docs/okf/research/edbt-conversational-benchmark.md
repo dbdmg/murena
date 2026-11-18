@@ -493,7 +493,48 @@ Le query one_shot e oracle sono input predefiniti, identici alla serie precedent
 - Con il filtro tipologia corretto, refined raggiunge il tetto oracle-vs-oracle a ogni `k` (0,85–0,90 contro 0,87), e anche il controllo k=0 è al tetto. Il divario residuo dall'unità riflette la variabilità della pipeline tra run identici.
 - Senza chiarimento, l'accordo crolla già a k=2 e la mediana dei risultati cresce di circa 45 volte da k=1 a k=5.
 - Valgono le cautele delle serie precedenti: l'oracle è un riferimento di query, non un giudizio di rilevanza; l'utente simulato è cooperativo ed esatto, quindi l'accordo refined-oracle è un limite superiore; `k` è accoppiato all'identità delle dimensioni omesse.
-- Il paper riporta ancora la serie superata; l'aggiornamento del manoscritto è un passo separato.
+- Aggiornamento: dal commit `cd0e18b` il paper riporta questa serie.
+
+## Risultati osservati: serie "utente imperfetto" con Claude Haiku 5.5 (2026-11-18)
+
+**Scenari.** `scenarios_v3/imperfect_user.yaml`, generato in modo deterministico da `derive_imperfect_user.py` a partire da `nested48_from_4a7c882.yaml`. Ogni variante cambia esattamente una risposta simulata di uno dei 40 scenari con k≥1:
+
+- **35 varianti opt-out:** la prima dimensione di preferenza omessa (Cb 17, Ce 9, Cp 9) riceve "I have no requirement on …" e lo stato atteso diventa `NOT_REQUESTED`. Per Cb la frase copre superficie, capienza e caratteristiche strutturali.
+- **40 varianti vague:** la prima dimensione omessa (D 10, L 10, Cb 10, Ce 5, Cp 5) riceve prima "It depends; something suitable for the project, I guess.", poi il frammento esatto se viene chiesta di nuovo.
+
+Query iniziali, one-shot e oracle restano identiche al disegno annidato.
+
+**Esecuzione.**
+
+- Configurazione: `claude-haiku-5-5` via `claude_cli`, effort medium; refined ×3, oracle ×5 per intento; concorrenza 10; dataset `full`.
+- Codice `62630c0`: per `claude_cli` differisce da `a5c1b09` (serie cooperativa) solo per i campi di provenienza aggiunti al manifest.
+- Svolgimento: il 2026-11-18 tra le 09:13 e le 10:08 circa, 265 run su 265 completate, 0 errori.
+- Risultati in `results/imperfect_user_haiku/`; analisi `analyze_imperfect_user.py` → `imperfect_user_summary.json`.
+
+**Risultati** (media sugli 8 intenti; IC 95% bootstrap a cluster).
+
+| Profilo | Misura | Valore |
+|---|---|---|
+| opt-out (105 run) | dimensione finale `NOT_REQUESTED` | 105/105 |
+| | chiesta una sola volta; turni = k | 105/105; 105/105 |
+| | nessun atomo di filtro sulla dimensione rifiutata | 0,90 [0,69; 1,00] (95/105 run) |
+| | F1 dei filtri sulle altre dimensioni vs oracle a maggioranza | 0,98 [0,95; 1,00] |
+| vague (120 run) | follow-up sulla dimensione vaga; turni = k+1 | 120/120; 120/120 |
+| | dimensione finale `SPECIFIED` | 120/120 |
+| | F1 dei filtri vs oracle a maggioranza | 0,99 [0,97; 1,00] |
+| | J5 vs oracle della stessa serie | 0,93 [0,89; 0,97] |
+| | RBO vs oracle | 0,95 [0,93; 0,97] |
+| | durata mediana del chiarimento | 36 s (media per intento 43 s); serie cooperativa: 26 s |
+| oracle | J5 oracle-vs-oracle | 0,93 [0,88; 0,98] |
+
+- **Unica eccezione opt-out:** tutti i 10 run con atomi sulla dimensione rifiutata appartengono a MS08 (studentato), con opt-out su Cp. L'agente di prossimità ereditato ricava `Cp:education`, e in un run anche `Cp:mobility`, dalla destinazione d'uso. La query raffinata non contiene il requisito. È un comportamento della pipeline MURENA, non del chiarimento.
+- **Verifica manuale** di 3 run per profilo (MS02_k2, MS06_k4, MS08_k5 opt-out; MS07_k3, MS01_k3, MS03_k1 vague): domande, risposte simulate (`times_asked_before`) e stati finali sono quelli attesi.
+- **Confronti:** il J5 della condizione vague si confronta con gli oracle della stessa serie; la serie non viene combinata con quella cooperativa. Il tetto oracle-oracle (0,93) è più alto di quello della serie cooperativa (0,87), con le stesse query oracle eseguite in un'altra finestra oraria: è variabilità fra esecuzioni.
+- **Esecuzioni precedenti, non riportate:**
+  - Una prima esecuzione (codice `a9a31cf`, 159 run su 265, interrotta) aveva mostrato blocchi dopo risposte vaghe classificate come *unknown* e dopo un opt-out parziale su Cb.
+  - Una seconda (`c7b9f7a`, 264 run completate su 265, in `results/imperfect_user_haiku_c7b9f7a`) aveva un blocco dovuto alla soglia di arresto EVPI.
+  - Entrambi i difetti sono stati corretti (`c7b9f7a`, `a5c1b09`) prima della serie riportata.
+- **Limiti:** utente simulato con un'unica formulazione per l'opt-out e per la risposta vaga; non è uno studio con utenti reali.
 
 ## Limiti
 

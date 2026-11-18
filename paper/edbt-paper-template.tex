@@ -45,10 +45,10 @@ under the same pipeline. Over 304 completed runs, clarification
 detected every omission without unnecessary questions, and refined
 queries reached top-5 agreement with the oracle of 0.88, at the level of
 the oracle's own run-to-run agreement (0.87), against 0.16 for one-shot
-queries.
-A prepared demonstration scenario shows how
-clarification changes the interpreted request and the resulting
-portfolio screening.
+queries. With simulated users who decline a dimension or first answer
+vaguely, declines were always recorded as non-preferences and vague
+answers always led to one follow-up. Attendees drive the system with
+their own requests and with controlled benchmark scenarios.
 \end{abstract}
 \keywords{conversational query clarification, requirement elicitation,
 real-estate decision support, multi-agent systems, text-to-SQL}
@@ -77,8 +77,9 @@ existing dimensions with explicit recording of non-preferences,
 (ii)~a question order adapted from the SAGE-Agent
 method~\cite{suri2026sage} and a mandatory review step, (iii)~a three-condition benchmark protocol that
 separates the cost of missing information from the effectiveness and
-cost of recovering it. A prepared demonstration illustrates the full
-interaction from the initial request to portfolio screening.
+cost of recovering it, complemented by simulated users who decline or
+answer vaguely. Attendees drive the full interaction, from their own
+request to portfolio screening.
 
 \section{Related Work}
 \label{sec:related}
@@ -301,9 +302,9 @@ intervals from a cluster bootstrap over the eight intents
 ($B=10{,}000$); the intent-level difference refined~$-$~one-shot is
 tested with an exact sign-flip test.
 
-\paragraph{Scope.} The simulated user reveals exactly what was omitted,
-so refined-versus-oracle agreement is an upper bound on recovery rather
-than evidence about real users; the comparison measures the value of
+\paragraph{Scope.} In the main series the simulated user reveals exactly
+what was omitted, so refined-versus-oracle agreement is an upper bound on
+recovery rather than evidence about real users; the comparison measures the value of
 the added information, not of dialogue over a static form. The level
 $k$ is coupled to the identity of the omitted dimensions, so results
 are stratified by $k$ and not read as a causal effect of the count. At
@@ -369,6 +370,27 @@ Filter $F_1$ vs.\ majority oracle: refined 0.98 [0.96, 1.00], one-shot
 [0.33, 0.41]. $p=0.008$ is the smallest attainable with 8 intents.
 \end{table}
 
+\paragraph{Imperfect users.} A second series exercises the behaviour a
+cooperative user never triggers. From the 40 scenarios with $k\ge1$, a
+deterministic generator changes exactly one simulated answer: in 35
+\emph{opt-out} variants the first omitted preference ($C_b$, $C_e$, or
+$C_p$) is answered ``I have no requirement on \dots''; in 40 \emph{vague}
+variants the first omitted dimension first receives ``It depends;
+something suitable for the project, I guess'' and the exact fragment
+only if asked again. All 225 refined (3 repetitions) and 40 oracle runs
+completed with the same model and pipeline. Opt-out: the dimension was
+recorded as not requested and not asked again in 105/105 runs ($k$
+turns); a filter on it appeared only in 10 student-residence runs,
+where the inherited proximity agent derives a university filter from
+the use; filter $F_1$ on the other dimensions was 0.98. Vague: each
+vague answer led to one rephrased follow-up and the exact requirement
+was then recorded (120/120, $k+1$ turns, filter $F_1$ 0.99), with top-5
+agreement 0.93 against the series' own oracle runs, equal to their
+mutual agreement (0.93); median clarification took 36\,s. A preliminary
+execution exposed two blocking cases (an ``unknown'' reading of a vague
+answer, and a stopping rule that skipped a required question), which
+were fixed before this series.
+
 \begin{figure}[t]
 \centering
 \begin{tikzpicture}
@@ -407,11 +429,17 @@ the ranking method: unresolved dimensions are made explicit, answered or
 declined, and confirmed by the user before analysis. The demonstration
 shows this interaction live, and the three-condition benchmark separates
 the cost of missing information from its recovery. Limitations remain:
-ambiguity detection depends on LLM interpretation, the simulated
-user is cooperative and exact, no static-form baseline isolates the
-contribution of dialogue, and agreement with an oracle query is not
-independently judged relevance. A user study and a form-based baseline
-are natural next steps.
+ambiguity detection depends on LLM interpretation, users are simulated
+(cooperative, or declining and vague in scripted ways), no static-form
+baseline isolates the contribution of dialogue, and agreement with an
+oracle query is not independently judged relevance. A user study and a
+form-based baseline are natural next steps.
+
+\paragraph{Availability.} Code, benchmark scenarios, analysis scripts,
+and the per-run records of the reported series are available at
+\url{https://github.com/dbdmg/murena}. The property data derive from
+energy performance certificates (APE) that the Piedmont Region publishes
+in reduced form.
 
 \bibliographystyle{ACM-Reference-Format}
 \bibliography{sample-base}

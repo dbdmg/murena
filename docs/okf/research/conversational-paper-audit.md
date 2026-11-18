@@ -68,3 +68,19 @@ I risultati della serie parziale (115/123 run) sono stati sostituiti nel paper d
 - La legenda della Figura 3 è stata spostata sopra il grafico: nella posizione precedente copriva il punto one-shot a k=1.
 
 PDF rigenerato con Tectonic e controllato visivamente: 4 pagine. Resta un overfull verticale di 1,34 pt nella routine di output, preesistente: la versione precedente ne segnalava 24,7 pt.
+
+## Aggiornamento del paper con le serie del 2026-11-18
+
+- **Tabella 1, Figura 3** (`data/per_k.csv`), abstract, Execution e Results usano il rerun cooperativo `missingness_v3_haiku_r2` (304/304, codice `a5c1b09`). La serie del 17-11 è citata come superata e non combinata.
+  - Il testo non dice più "seeded interleaved order": il runner corrente esegue per condizione.
+- **Nuovo paragrafo "Imperfect users":** numeri da `imperfect_user_haiku/imperfect_user_summary.json`. La serie è confrontata solo con i propri oracle.
+- **Demonstration riscritta** come attività del pubblico: richieste dal vivo con le attività a–d, pannello scenari offline, pagina dei risultati benchmark.
+  - Il confronto one-shot passa per run registrate: in UI il chiarimento non si disattiva al volo.
+  - Il pannello scenari ripete risposte preparate e top-10 registrati, senza modello.
+- **Execution nomina il modello:** Claude Haiku 5.5 via Claude Code CLI, effort medium, campionamento predefinito della CLI. La temperatura 0 non è dichiarata perché non viene applicata.
+- **Introduzione, Scope, Conclusion:** il limite "utente cooperativo ed esatto" diventa "utenti simulati".
+- **Nuovo paragrafo Availability:**
+  - Contiene il repository pubblico `dbdmg/murena`, verificato pubblico il 2026-11-18, e gli APE pubblicati in formato ridotto dalla Regione Piemonte.
+  - Mancano ancora l'URL del portale APE e il link al video: da confermare con l'utente.
+- **Lavori correlati:** aggiunto Sphinteract (PVLDB 18(4):1145–1158, 2024, DOI 10.14778/3717755.3717772), con metadati verificati sul blocco "PVLDB Reference Format" del PDF.
+- **PDF:** rigenerato con Tectonic e controllato visivamente, 4 pagine; overfull verticale di 1,9 pt nella routine di output, dello stesso tipo del precedente. Non è committato: il collega lo aveva rimosso (`b820dc6`).

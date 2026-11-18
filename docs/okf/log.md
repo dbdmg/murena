@@ -2,6 +2,17 @@
 
 ## 2026-11-18
 
+* **Serie "utente imperfetto" completata e paper aggiornato:**
+  * La serie ha 265 run su 265 completate, codice `62630c0`, in `results/imperfect_user_haiku`.
+    * Opt-out: 105/105 run con la dimensione registrata come `NOT_REQUESTED`, chiesta una sola volta.
+    * Vague: 120/120 run con un solo follow-up e requisito esatto finale; J5 0,93 contro il tetto oracle-oracle di 0,93.
+    * Dettagli e limiti in `research/edbt-conversational-benchmark.md`.
+  * Paper:
+    * Nuovo paragrafo "Imperfect users" e nuovo paragrafo Availability.
+    * Abstract, introduzione, Scope e Conclusion aggiornati.
+    * Dettagli in `research/conversational-paper-audit.md`.
+  * PDF rigenerato in locale (4 pagine), non committato.
+
 * **Serie cooperativa Haiku rieseguita sul codice `a5c1b09`, analisi completata** (`results/missingness_v3_haiku_r2`):
   * 304/304 run completati (144 refined, 120 one_shot, 40 oracle), nessun errore né fallback. Esecuzione 07:05–07:25 e, dopo `--resume`, 08:45–09:14. Ordine dei job fisso, non interleaved.
   * L'atomo `I:typology` è presente in tutti i 304 run (prima 24/40 oracle, 83/144 refined).
