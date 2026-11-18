@@ -715,8 +715,19 @@ class SageClarifier:
             current_best = max(normalized_beliefs(weights).values(), default=0.0)
             # Apply the SAGE stopping test only when the response domain is
             # enumerable. An unknown domain has no defensible answer prior,
-            # so it remains eligible for a targeted question.
-            if question.get("alternatives") and score < self.stop_alpha * current_best:
+            # so it remains eligible for a targeted question. A question that
+            # covers an unconfirmed omission or a critical detail is never
+            # stopped: readiness requires that dimension to be answered or
+            # declined, so dropping its question would only block the session.
+            required = any(
+                state["dimensions"][d]["status"] in {"UNCONFIRMED_ABSENT", "MISSING_CRITICAL"}
+                for d in targets
+            )
+            if (
+                not required
+                and question.get("alternatives")
+                and score < self.stop_alpha * current_best
+            ):
                 continue
             scored.append((score, evpi, -index, question))
         if not scored:

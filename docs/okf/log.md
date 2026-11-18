@@ -2,6 +2,11 @@
 
 ## 2026-11-18
 
+* **SAGE: la soglia di arresto EVPI non scarta più domande su omissioni non confermate** (`_select_question`):
+  * Il test di arresto (`score < SAGE_EVPI_STOP_ALPHA × max belief`, applicato solo a domande con alternative enumerabili) poteva scartare la domanda su una dimensione `UNCONFIRMED_ABSENT` o `MISSING_CRITICAL`. `_ready` richiede però che quella dimensione sia risolta o rifiutata, quindi la sessione finiva `BLOCKED` senza aver posto la domanda. Ora il test si applica solo a domande che non coprono omissioni o dettagli critici.
+  * Osservato in `MS03_k3_vague` della serie "utente imperfetto" (codice `c7b9f7a`): dopo il follow-up su Ce, Cp, mai chiesta, è rimasta irrisolta e l'analisi si è bloccata al turno 3 su 6. Causa individuata per esclusione: Cp non era mai stata chiesta, quindi non poteva essere fra gli aspetti senza risposta. Meccanismo riprodotto con un test deterministico, `test_evpi_stop_never_drops_an_unconfirmed_omission_question`.
+  * La serie in corso usa il codice precedente la correzione; va riportata con quel codice, senza combinarla con esecuzioni successive.
+
 * **SAGE: follow-up dopo una risposta `UNKNOWN`/`REJECTED` su una dimensione omessa** (`service.py`, `_apply_answer`):
   * Prima, la prima risposta di questo tipo rendeva la dimensione non più selezionabile, quindi l'analisi si bloccava. Ora la prima ottiene una domanda riformulata, che ricorda che la dimensione si può rifiutare; solo una seconda risposta dello stesso tipo blocca. Il contatore è `unresolved_answer_counts` nello stato della sessione.
   * Il messaggio `BLOCKED` di fine turni elenca le dimensioni irrisolte e invita a ripartire dando il requisito o dicendo che non conta. Non parla più di dettaglio "necessario" anche per dimensioni opzionali.

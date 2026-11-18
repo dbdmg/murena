@@ -561,6 +561,22 @@ def test_unknown_omission_answer_gets_one_followup_then_blocks():
     db.close()
 
 
+def test_evpi_stop_never_drops_an_unconfirmed_omission_question():
+    db = _db()
+    clarifier = SageClarifier(llm=FakeLLM(_payload(location_status="SPECIFIED")), max_turns=6)
+    first = clarifier.process(db=db, user_input="Find a property in Turin")
+    state = db.query(ClarificationSession).filter_by(session_id=first.session_id).first().state
+    for key in ("I", "D", "Cb", "Ce"):
+        state["dimensions"][key]["status"] = "SPECIFIED"
+    for question in state["questions"]:
+        if question["target_dimensions"] == ["Cp"]:
+            question["alternatives"] = ["healthcare", "mobility", "green spaces"]
+    clarifier.stop_alpha = 1e9  # the stopping test would discard every question
+    assert not clarifier._ready(state)
+    assert clarifier._select_question(state)["target_dimensions"] == ["Cp"]
+    db.close()
+
+
 def test_ambiguous_and_missing_critical_are_asked():
     db = _db()
     for status in ("AMBIGUOUS", "MISSING_CRITICAL"):
