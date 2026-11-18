@@ -1,0 +1,823 @@
+{
+  "run_id": "bench_efca0ed24998",
+  "condition": "refined",
+  "unit_id": "MS01_k2_vague",
+  "scenario_id": "MS01_k2_vague",
+  "base_case_id": "UC01_micro_nursery_missing_use",
+  "missing_count": 2,
+  "scenario_name": "2 omitted dimensions; intended use: Micro-nursery; vague first answer on D",
+  "tags": [
+    "edbt",
+    "controlled_missingness_v3",
+    "missing_2",
+    "UC01_micro_nursery_missing_use",
+    "imperfect_user",
+    "vague"
+  ],
+  "model": "claude-haiku-5-5",
+  "repeat": 3,
+  "attempt": 1,
+  "input_sha256": "2f3c82a4f4a50bc25ea10651b5e01879fdaec4d815a8176121b87323edf51dea",
+  "scenario_sha256": "2f3c82a4f4a50bc25ea10651b5e01879fdaec4d815a8176121b87323edf51dea",
+  "initial_query": "I am looking for an existing residential dwelling. The location is in Turin. I prefer a property in energy class C or better. I prefer properties near public transport.",
+  "options": {
+    "dataset_key": "full",
+    "map_limit": 1000,
+    "llm_limit": 10,
+    "analysis_mode": "agent",
+    "use_relaxation": true,
+    "use_data_knowledge": true,
+    "architecture": "multiagent",
+    "disabled_agents": null
+  },
+  "started_at": "2026-11-18T08:14:25.923280+00:00",
+  "clarification_seconds": 42.27,
+  "analysis_seconds": 77.434,
+  "conversation": {
+    "session_id": "949f4226-250e-4466-842c-2d56a20ee9e9",
+    "initial_dimension_state": {
+      "I": {
+        "status": "SPECIFIED",
+        "value": "residential dwelling",
+        "evidence": "I am looking for an existing residential dwelling."
+      },
+      "D": {
+        "status": "UNCONFIRMED_ABSENT",
+        "value": null,
+        "evidence": null
+      },
+      "L": {
+        "status": "SPECIFIED",
+        "value": "Turin",
+        "evidence": "The location is in Turin."
+      },
+      "Cb": {
+        "status": "UNCONFIRMED_ABSENT",
+        "value": null,
+        "evidence": null
+      },
+      "Ce": {
+        "status": "SPECIFIED",
+        "value": "energy class C or better",
+        "evidence": "I prefer a property in energy class C or better."
+      },
+      "Cp": {
+        "status": "SPECIFIED",
+        "value": "mobility",
+        "evidence": "I prefer properties near public transport."
+      }
+    },
+    "initial_missing": [
+      "Cb",
+      "D"
+    ],
+    "expected_initial_missing": [
+      "Cb",
+      "D"
+    ],
+    "missing_detection": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "turns": [
+      {
+        "question": "How do you plan to use the dwelling, for example as a private home or for a specific use such as a University Student Residence? You may also say the intended use does not matter.",
+        "target_dimensions": [
+          "D"
+        ],
+        "times_asked_before": {
+          "D": 0
+        },
+        "answer": "It depends; something suitable for the project, I guess.",
+        "question_source": "llm_query_parser",
+        "status_after": "ASK",
+        "turn_after": 1,
+        "dimension_state_after": {
+          "I": {
+            "status": "SPECIFIED",
+            "value": "residential dwelling",
+            "evidence": "I am looking for an existing residential dwelling."
+          },
+          "D": {
+            "status": "UNCONFIRMED_ABSENT",
+            "value": null,
+            "evidence": null
+          },
+          "L": {
+            "status": "SPECIFIED",
+            "value": "Turin",
+            "evidence": "The location is in Turin."
+          },
+          "Cb": {
+            "status": "UNCONFIRMED_ABSENT",
+            "value": null,
+            "evidence": null
+          },
+          "Ce": {
+            "status": "SPECIFIED",
+            "value": "energy class C or better",
+            "evidence": "I prefer a property in energy class C or better."
+          },
+          "Cp": {
+            "status": "SPECIFIED",
+            "value": "mobility",
+            "evidence": "I prefer properties near public transport."
+          }
+        }
+      },
+      {
+        "question": "Do you have any requirements for the building's size, occupancy capacity, or structural features, such as a minimum floor area or number of rooms? You may also say these do not matter.",
+        "target_dimensions": [
+          "Cb"
+        ],
+        "times_asked_before": {
+          "Cb": 0
+        },
+        "answer": "I need a property with at least 140 sqm of gross floor area and capacity for 18 people.",
+        "question_source": "llm_query_parser",
+        "status_after": "ASK",
+        "turn_after": 2,
+        "dimension_state_after": {
+          "I": {
+            "status": "SPECIFIED",
+            "value": "residential dwelling",
+            "evidence": "I am looking for an existing residential dwelling."
+          },
+          "D": {
+            "status": "UNCONFIRMED_ABSENT",
+            "value": null,
+            "evidence": null
+          },
+          "L": {
+            "status": "SPECIFIED",
+            "value": "Turin",
+            "evidence": "The location is in Turin."
+          },
+          "Cb": {
+            "status": "SPECIFIED",
+            "value": "minimum 140 sqm gross floor area; occupancy capacity for 18 people",
+            "evidence": "I need a property with at least 140 sqm of gross floor area and capacity for 18 people."
+          },
+          "Ce": {
+            "status": "SPECIFIED",
+            "value": "energy class C or better",
+            "evidence": "I prefer a property in energy class C or better."
+          },
+          "Cp": {
+            "status": "SPECIFIED",
+            "value": "mobility",
+            "evidence": "I prefer properties near public transport."
+          }
+        }
+      },
+      {
+        "question": "Your last answer mentioned the project, but I don't yet know what it involves. Could you describe what the dwelling will be used for, such as a student residence, a home-based nursery, or something else? If the intended use doesn't affect your search, just say so.",
+        "target_dimensions": [
+          "D"
+        ],
+        "times_asked_before": {
+          "D": 1
+        },
+        "answer": "I intend to convert it into a micro-nursery.",
+        "question_source": "llm_omission_question",
+        "status_after": "READY",
+        "turn_after": 3,
+        "dimension_state_after": {
+          "I": {
+            "status": "SPECIFIED",
+            "value": "residential dwelling",
+            "evidence": "I am looking for an existing residential dwelling."
+          },
+          "D": {
+            "status": "SPECIFIED",
+            "value": "micro-nursery",
+            "evidence": "I intend to convert it into a micro-nursery."
+          },
+          "L": {
+            "status": "SPECIFIED",
+            "value": "Turin",
+            "evidence": "The location is in Turin."
+          },
+          "Cb": {
+            "status": "SPECIFIED",
+            "value": "minimum 140 sqm gross floor area; occupancy capacity for 18 people",
+            "evidence": "I need a property with at least 140 sqm of gross floor area and capacity for 18 people."
+          },
+          "Ce": {
+            "status": "SPECIFIED",
+            "value": "energy class C or better",
+            "evidence": "I prefer a property in energy class C or better."
+          },
+          "Cp": {
+            "status": "SPECIFIED",
+            "value": "mobility",
+            "evidence": "I prefer properties near public transport."
+          }
+        }
+      }
+    ],
+    "messages": [
+      {
+        "role": "user",
+        "content": "I am looking for an existing residential dwelling. The location is in Turin. I prefer a property in energy class C or better. I prefer properties near public transport."
+      },
+      {
+        "role": "assistant",
+        "content": "How do you plan to use the dwelling, for example as a private home or for a specific use such as a University Student Residence? You may also say the intended use does not matter."
+      },
+      {
+        "role": "user",
+        "content": "It depends; something suitable for the project, I guess."
+      },
+      {
+        "role": "assistant",
+        "content": "Do you have any requirements for the building's size, occupancy capacity, or structural features, such as a minimum floor area or number of rooms? You may also say these do not matter."
+      },
+      {
+        "role": "user",
+        "content": "I need a property with at least 140 sqm of gross floor area and capacity for 18 people."
+      },
+      {
+        "role": "assistant",
+        "content": "Your last answer mentioned the project, but I don't yet know what it involves. Could you describe what the dwelling will be used for, such as a student residence, a home-based nursery, or something else? If the intended use doesn't affect your search, just say so."
+      },
+      {
+        "role": "user",
+        "content": "I intend to convert it into a micro-nursery."
+      },
+      {
+        "role": "assistant",
+        "content": "Query submitted for review: I am looking for an existing residential dwelling in Turin with at least 140 sqm of gross floor area and capacity for 18 people, to be converted into a micro-nursery. I prefer energy class C or better and properties near public transport."
+      },
+      {
+        "role": "user",
+        "content": "Confirmed."
+      }
+    ],
+    "dimension_state": {
+      "I": {
+        "status": "SPECIFIED",
+        "value": "residential dwelling",
+        "evidence": "I am looking for an existing residential dwelling."
+      },
+      "D": {
+        "status": "SPECIFIED",
+        "value": "micro-nursery",
+        "evidence": "I intend to convert it into a micro-nursery."
+      },
+      "L": {
+        "status": "SPECIFIED",
+        "value": "Turin",
+        "evidence": "The location is in Turin."
+      },
+      "Cb": {
+        "status": "SPECIFIED",
+        "value": "minimum 140 sqm gross floor area; occupancy capacity for 18 people",
+        "evidence": "I need a property with at least 140 sqm of gross floor area and capacity for 18 people."
+      },
+      "Ce": {
+        "status": "SPECIFIED",
+        "value": "energy class C or better",
+        "evidence": "I prefer a property in energy class C or better."
+      },
+      "Cp": {
+        "status": "SPECIFIED",
+        "value": "mobility",
+        "evidence": "I prefer properties near public transport."
+      }
+    },
+    "mapping": {
+      "I": "SPECIFIED",
+      "D": "SPECIFIED",
+      "L": "SPECIFIED",
+      "Cb": "SPECIFIED",
+      "Ce": "SPECIFIED",
+      "Cp": "SPECIFIED"
+    },
+    "expected_mapping": {
+      "I": "SPECIFIED",
+      "D": "SPECIFIED",
+      "L": "SPECIFIED",
+      "Cb": "SPECIFIED",
+      "Ce": "SPECIFIED",
+      "Cp": "SPECIFIED"
+    },
+    "mapping_accuracy": 1.0,
+    "no_clarification": false,
+    "status": "READY",
+    "refined_query": "I am looking for an existing residential dwelling in Turin with at least 140 sqm of gross floor area and capacity for 18 people, to be converted into a micro-nursery. I prefer energy class C or better and properties near public transport.",
+    "reviewed_query": "I am looking for an existing residential dwelling in Turin with at least 140 sqm of gross floor area and capacity for 18 people, to be converted into a micro-nursery. I prefer energy class C or better and properties near public transport."
+  },
+  "submitted_query": "I am looking for an existing residential dwelling in Turin with at least 140 sqm of gross floor area and capacity for 18 people, to be converted into a micro-nursery. I prefer energy class C or better and properties near public transport.",
+  "status": "completed",
+  "results_count": 254,
+  "top_ids": [
+    "38587",
+    "38597",
+    "M06860",
+    "38593",
+    "M06401",
+    "M11534",
+    "M11559",
+    "38596",
+    "44975",
+    "M07996"
+  ],
+  "quality": {
+    "expected_count": 0,
+    "matched_expected": null,
+    "precision_at_returned": null,
+    "recall": null
+  },
+  "final_sql": "SELECT * FROM ESTATES WHERE property_type IN ('Abitazioni adibite a residenza con carattere continuativo', 'Abitazioni adibite a residenza con occupazione saltuaria') AND surface_area >= 140 AND energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C') AND mobility >= 71 AND haversine_km(latitude, longitude, 45.0677551, 7.6824892) <= 3.0 ORDER BY haversine_km(latitude, longitude, 45.0677551, 7.6824892) ASC",
+  "duration_seconds": 119.783,
+  "scenario_definition": {
+    "id": "MS01_k2_vague",
+    "name": "2 omitted dimensions; intended use: Micro-nursery; vague first answer on D",
+    "tags": [
+      "edbt",
+      "controlled_missingness_v3",
+      "missing_2",
+      "UC01_micro_nursery_missing_use",
+      "imperfect_user",
+      "vague"
+    ],
+    "base_case_id": "UC01_micro_nursery_missing_use",
+    "missing_count": 2,
+    "initial_query": "I am looking for an existing residential dwelling. The location is in Turin. I prefer a property in energy class C or better. I prefer properties near public transport.",
+    "one_shot_query": "I am looking for an existing residential dwelling. The location is in Turin. I prefer a property in energy class C or better. I prefer properties near public transport.",
+    "oracle_query": "Find an existing residential dwelling to convert it into a micro-nursery for 18 children in Turin with at least 140 sqm of gross floor area in energy class C or better near public transport.",
+    "expected_initial_missing": [
+      "D",
+      "Cb"
+    ],
+    "clarifications": {
+      "I": "I am looking for an existing residential dwelling.",
+      "D": [
+        "It depends; something suitable for the project, I guess.",
+        "I intend to convert it into a micro-nursery."
+      ],
+      "L": "The location is in Turin.",
+      "Cb": "I need a property with at least 140 sqm of gross floor area and capacity for 18 people.",
+      "Ce": "I prefer a property in energy class C or better.",
+      "Cp": "I prefer properties near public transport."
+    },
+    "expected_mapping": {
+      "I": "SPECIFIED",
+      "D": "SPECIFIED",
+      "L": "SPECIFIED",
+      "Cb": "SPECIFIED",
+      "Ce": "SPECIFIED",
+      "Cp": "SPECIFIED"
+    },
+    "repeats": 1,
+    "imperfect_user": {
+      "profile": "vague",
+      "dimension": "D"
+    }
+  },
+  "artifact_file": "runs/bench_efca0ed24998.json",
+  "artifact_schema_version": 3,
+  "ranking_ids": [
+    "38587",
+    "38597",
+    "M06860",
+    "38593",
+    "M06401",
+    "M11534",
+    "M11559",
+    "38596",
+    "44975",
+    "M07996",
+    "38661",
+    "42012",
+    "M04662",
+    "M10128",
+    "M06688",
+    "M06871",
+    "38595",
+    "M07981",
+    "M06848",
+    "44985",
+    "M08447",
+    "M05110",
+    "M06973",
+    "M07971",
+    "M08021",
+    "M06966",
+    "39405",
+    "M05065",
+    "M03119",
+    "M06658",
+    "M06957",
+    "M07098",
+    "M09256",
+    "52810",
+    "M09452",
+    "68422",
+    "38591",
+    "M09501",
+    "M07982",
+    "39384",
+    "M05234",
+    "59858",
+    "M00371",
+    "M00372",
+    "M00477",
+    "M04104",
+    "M04582",
+    "M04866",
+    "M06812",
+    "M07307",
+    "M07908",
+    "M09238",
+    "M09239",
+    "M09714",
+    "44979",
+    "M07980",
+    "M00741",
+    "M10713",
+    "M13062",
+    "M07946",
+    "M07100",
+    "M01495",
+    "M07020",
+    "M06797",
+    "M06802",
+    "43915",
+    "M07835",
+    "M07085",
+    "39406",
+    "37597",
+    "40858",
+    "44480",
+    "54255",
+    "54696",
+    "M00373",
+    "M00836",
+    "M01269",
+    "M02214",
+    "M02911",
+    "M05206",
+    "M05917",
+    "M07086",
+    "M07628",
+    "M07956",
+    "M08823",
+    "M09768",
+    "M09840",
+    "M10145",
+    "M10260",
+    "M10369",
+    "M11397",
+    "M12078",
+    "M12334",
+    "M12916",
+    "M02669",
+    "M10447",
+    "M08443",
+    "45995",
+    "44968",
+    "44722",
+    "38594",
+    "M07834",
+    "56839",
+    "M06993",
+    "M07910",
+    "M07855",
+    "M08036",
+    "38012",
+    "M03389",
+    "59795",
+    "44976",
+    "M08079",
+    "37575",
+    "M06701",
+    "38081",
+    "44730",
+    "38589",
+    "M05176",
+    "M12507",
+    "34885",
+    "M06202",
+    "M05224",
+    "22572",
+    "M09250",
+    "M07892",
+    "53871",
+    "45225",
+    "M06990",
+    "37350",
+    "38662",
+    "M06700",
+    "28289",
+    "44973",
+    "M07877",
+    "38144",
+    "39400",
+    "38444",
+    "38274",
+    "54430",
+    "M09383",
+    "39176",
+    "38390",
+    "35554",
+    "M08551",
+    "45212",
+    "M06899",
+    "21312",
+    "M07987",
+    "37348",
+    "44803",
+    "37345",
+    "37360",
+    "M06398",
+    "38408",
+    "M00072",
+    "38658",
+    "M02768",
+    "M10665",
+    "29205",
+    "45503",
+    "10281",
+    "M01369",
+    "M03010",
+    "38199",
+    "38405",
+    "M03731",
+    "M08315",
+    "M06761",
+    "45188",
+    "35572",
+    "44016",
+    "11296",
+    "19207",
+    "M06757",
+    "37824",
+    "37347",
+    "M12511",
+    "M12308",
+    "40739",
+    "54225",
+    "51607",
+    "37344",
+    "37359",
+    "39365",
+    "44591",
+    "M05390",
+    "M05204",
+    "29201",
+    "35555",
+    "M08984",
+    "44906",
+    "M03123",
+    "44732",
+    "38324",
+    "44072",
+    "M07856",
+    "50339",
+    "44308",
+    "13782",
+    "M05141",
+    "46418",
+    "45363",
+    "37898",
+    "28225",
+    "44320",
+    "M09363",
+    "74485",
+    "13783",
+    "13785",
+    "35573",
+    "44181",
+    "44324",
+    "M06770",
+    "39915",
+    "M04404",
+    "57708",
+    "44323",
+    "64679",
+    "M04105",
+    "M00446",
+    "M03362",
+    "64024",
+    "45157",
+    "M01892",
+    "M09455",
+    "68576",
+    "37892",
+    "50251",
+    "55404",
+    "M04427",
+    "38056",
+    "38627",
+    "M05133",
+    "41459",
+    "M00023",
+    "44850",
+    "59631",
+    "M06063",
+    "45686",
+    "44319",
+    "M09219",
+    "M04440",
+    "52942",
+    "44630",
+    "43828",
+    "29671",
+    "29672",
+    "52310",
+    "28420",
+    "M06684",
+    "29787",
+    "29564",
+    "25151",
+    "22983"
+  ],
+  "top": [
+    {
+      "id": "38587",
+      "score": 95.953,
+      "distance_km": 0.35
+    },
+    {
+      "id": "38597",
+      "score": 95.953,
+      "distance_km": 0.35
+    },
+    {
+      "id": "M06860",
+      "score": 95.953,
+      "distance_km": 0.35
+    },
+    {
+      "id": "38593",
+      "score": 95.80100000000002,
+      "distance_km": 0.35
+    },
+    {
+      "id": "M06401",
+      "score": 95.112,
+      "distance_km": 0.18
+    },
+    {
+      "id": "M11534",
+      "score": 95.112,
+      "distance_km": 0.18
+    },
+    {
+      "id": "M11559",
+      "score": 95.112,
+      "distance_km": 0.18
+    },
+    {
+      "id": "38596",
+      "score": 94.88900000000001,
+      "distance_km": 0.35
+    },
+    {
+      "id": "44975",
+      "score": 94.595,
+      "distance_km": 0.26
+    },
+    {
+      "id": "M07996",
+      "score": 94.595,
+      "distance_km": 0.26
+    }
+  ],
+  "api_response": {
+    "agent_trace": [
+      {
+        "agent_name": "location-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "places": [
+            {
+              "name": "Turin",
+              "city": "Turin",
+              "lat": 45.0677551,
+              "lon": 7.6824892,
+              "radius_km": 3.0
+            }
+          ],
+          "found": true
+        }
+      },
+      {
+        "agent_name": "proximity-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "requirements": [
+            {
+              "target_column": "mobility",
+              "operator": ">=",
+              "value": 71,
+              "description": "User wants the property near public transport. 'Near' maps to the 75th percentile of the mobility distribution (70.93), rounded to 71."
+            }
+          ]
+        }
+      },
+      {
+        "agent_name": "regulatory-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "found": false,
+          "matched_use_cases": [
+            "Micro-nursery"
+          ],
+          "requirements": []
+        }
+      },
+      {
+        "agent_name": "energy-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "requirements": [
+            {
+              "target_column": "energy_class",
+              "operator": "IN",
+              "value": [
+                "A1",
+                "A2",
+                "A3",
+                "A4",
+                "B",
+                "C"
+              ],
+              "description": "User prefers energy class C or better, so classes A1 through A4, B, and C are included."
+            }
+          ],
+          "found": true
+        }
+      },
+      {
+        "agent_name": "ranking-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "ranking": [
+            {
+              "agent_name": "location",
+              "rank": 1
+            },
+            {
+              "agent_name": "building",
+              "rank": 1
+            },
+            {
+              "agent_name": "regulatory",
+              "rank": 2
+            },
+            {
+              "agent_name": "energy",
+              "rank": 3
+            },
+            {
+              "agent_name": "proximity",
+              "rank": 3
+            }
+          ],
+          "weights": {
+            "location": 0.3,
+            "regulatory": 0.16,
+            "energy": 0.11,
+            "building": 0.32,
+            "proximity": 0.11
+          }
+        }
+      },
+      {
+        "agent_name": "building-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "typologies": [
+            "Abitazioni adibite a residenza con carattere continuativo",
+            "Abitazioni adibite a residenza con occupazione saltuaria"
+          ],
+          "found": true,
+          "requirements": [
+            {
+              "target_column": "surface_area",
+              "operator": ">=",
+              "value": 140,
+              "description": "The user explicitly requires at least 140 sqm of gross floor area, so surface_area is filtered with >= 140. The 18-person capacity is not converted into an area filter because no verified gross-area threshold from the RegulatoryAgent is available. Energy class and public transport preferences are outside the REFERENCE COLUMNS and are not filtered here. Turin is a city name, not a cadastral code, so comune_code is not set."
+            }
+          ]
+        }
+      },
+      {
+        "agent_name": "sql-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "sql": "SELECT * FROM ESTATES WHERE property_type IN ('Abitazioni adibite a residenza con carattere continuativo', 'Abitazioni adibite a residenza con occupazione saltuaria') AND surface_area >= 140 AND energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C') AND mobility >= 71 AND haversine_km(latitude, longitude, 45.0677551, 7.6824892) <= 3.0 ORDER BY haversine_km(latitude, longitude, 45.0677551, 7.6824892) ASC",
+          "explanation": "Selects residential dwellings (continuous or occasional occupancy) with surface_area >= 140 sqm, energy_class in A1-A4, B or C, mobility score >= 71, and within 3.0 km of the Location Agent's coordinates (45.0677551, 7.6824892) via haversine_km on latitude/longitude. Results are ordered by distance from that point, nearest first. No LIMIT and no extra filters were added."
+        }
+      }
+    ],
+    "relaxation_applied": false,
+    "relaxation_count": 0,
+    "fallback_activated": false,
+    "agent_errors": []
+  }
+}

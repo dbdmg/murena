@@ -1,0 +1,551 @@
+{
+  "run_id": "bench_2bfaf91e6005",
+  "condition": "refined",
+  "unit_id": "MS08_k2_optout",
+  "scenario_id": "MS08_k2_optout",
+  "base_case_id": "UC08_student_grant_missing_use",
+  "missing_count": 2,
+  "scenario_name": "2 omitted dimensions; intended use: University Student Residence (specific CDP/PNRR grant); opt-out on Cp",
+  "tags": [
+    "edbt",
+    "controlled_missingness_v3",
+    "missing_2",
+    "UC08_student_grant_missing_use",
+    "imperfect_user",
+    "optout"
+  ],
+  "model": "claude-haiku-5-5",
+  "repeat": 1,
+  "attempt": 1,
+  "input_sha256": "edb510f9e666bb3404fbb8f3e0df732a2bc2fa24209e275bfe42c622b47d0ad9",
+  "scenario_sha256": "edb510f9e666bb3404fbb8f3e0df732a2bc2fa24209e275bfe42c622b47d0ad9",
+  "initial_query": "I am looking for an office building. I intend to convert it into a university student residence under the specific CDP/PNRR funding program. I need a property with at least 850 sqm of gross floor area and capacity for 60 people. I prefer a property in energy class C or better.",
+  "options": {
+    "dataset_key": "full",
+    "map_limit": 1000,
+    "llm_limit": 10,
+    "analysis_mode": "agent",
+    "use_relaxation": true,
+    "use_data_knowledge": true,
+    "architecture": "multiagent",
+    "disabled_agents": null
+  },
+  "started_at": "2026-11-18T08:52:49.133046+00:00",
+  "clarification_seconds": 23.16,
+  "analysis_seconds": 78.768,
+  "conversation": {
+    "session_id": "cfbf0c0f-a3a7-4ce8-b2e3-7ab4159c28f5",
+    "initial_dimension_state": {
+      "I": {
+        "status": "SPECIFIED",
+        "value": "Office building (offices/uffici)",
+        "evidence": "I am looking for an office building"
+      },
+      "D": {
+        "status": "SPECIFIED",
+        "value": "University Student Residence (specific CDP/PNRR grant)",
+        "evidence": "I intend to convert it into a university student residence under the specific CDP/PNRR funding program"
+      },
+      "L": {
+        "status": "UNCONFIRMED_ABSENT",
+        "value": null,
+        "evidence": null
+      },
+      "Cb": {
+        "status": "SPECIFIED",
+        "value": "Gross floor area of at least 850 sqm; occupancy capacity for 60 people",
+        "evidence": "at least 850 sqm of gross floor area and capacity for 60 people"
+      },
+      "Ce": {
+        "status": "SPECIFIED",
+        "value": "Energy class C or better",
+        "evidence": "I prefer a property in energy class C or better"
+      },
+      "Cp": {
+        "status": "UNCONFIRMED_ABSENT",
+        "value": null,
+        "evidence": null
+      }
+    },
+    "initial_missing": [
+      "Cp",
+      "L"
+    ],
+    "expected_initial_missing": [
+      "Cp",
+      "L"
+    ],
+    "missing_detection": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "turns": [
+      {
+        "question": "Are there nearby services that matter for the student residence, such as healthcare, public transport, green spaces, sports facilities, shops, or education (schools or universities)? You may also say that proximity does not matter.",
+        "target_dimensions": [
+          "Cp"
+        ],
+        "times_asked_before": {
+          "Cp": 0
+        },
+        "answer": "I have no requirement on nearby services.",
+        "question_source": "llm_query_parser",
+        "status_after": "ASK",
+        "turn_after": 1,
+        "dimension_state_after": {
+          "I": {
+            "status": "SPECIFIED",
+            "value": "Office building (offices/uffici)",
+            "evidence": "I am looking for an office building"
+          },
+          "D": {
+            "status": "SPECIFIED",
+            "value": "University Student Residence (specific CDP/PNRR grant)",
+            "evidence": "I intend to convert it into a university student residence under the specific CDP/PNRR funding program"
+          },
+          "L": {
+            "status": "UNCONFIRMED_ABSENT",
+            "value": null,
+            "evidence": null
+          },
+          "Cb": {
+            "status": "SPECIFIED",
+            "value": "Gross floor area of at least 850 sqm; occupancy capacity for 60 people",
+            "evidence": "at least 850 sqm of gross floor area and capacity for 60 people"
+          },
+          "Ce": {
+            "status": "SPECIFIED",
+            "value": "Energy class C or better",
+            "evidence": "I prefer a property in energy class C or better"
+          },
+          "Cp": {
+            "status": "NOT_REQUESTED",
+            "value": null,
+            "evidence": "I have no requirement on nearby services."
+          }
+        }
+      },
+      {
+        "question": "In which city or area should the office building be located?",
+        "target_dimensions": [
+          "L"
+        ],
+        "times_asked_before": {
+          "L": 0
+        },
+        "answer": "The location is in Turin.",
+        "question_source": "llm_query_parser",
+        "status_after": "READY",
+        "turn_after": 2,
+        "dimension_state_after": {
+          "I": {
+            "status": "SPECIFIED",
+            "value": "Office building (offices/uffici)",
+            "evidence": "I am looking for an office building"
+          },
+          "D": {
+            "status": "SPECIFIED",
+            "value": "University Student Residence (specific CDP/PNRR grant)",
+            "evidence": "I intend to convert it into a university student residence under the specific CDP/PNRR funding program"
+          },
+          "L": {
+            "status": "SPECIFIED",
+            "value": "Turin",
+            "evidence": "The location is in Turin."
+          },
+          "Cb": {
+            "status": "SPECIFIED",
+            "value": "Gross floor area of at least 850 sqm; occupancy capacity for 60 people",
+            "evidence": "at least 850 sqm of gross floor area and capacity for 60 people"
+          },
+          "Ce": {
+            "status": "SPECIFIED",
+            "value": "Energy class C or better",
+            "evidence": "I prefer a property in energy class C or better"
+          },
+          "Cp": {
+            "status": "NOT_REQUESTED",
+            "value": null,
+            "evidence": "I have no requirement on nearby services."
+          }
+        }
+      }
+    ],
+    "messages": [
+      {
+        "role": "user",
+        "content": "I am looking for an office building. I intend to convert it into a university student residence under the specific CDP/PNRR funding program. I need a property with at least 850 sqm of gross floor area and capacity for 60 people. I prefer a property in energy class C or better."
+      },
+      {
+        "role": "assistant",
+        "content": "Are there nearby services that matter for the student residence, such as healthcare, public transport, green spaces, sports facilities, shops, or education (schools or universities)? You may also say that proximity does not matter."
+      },
+      {
+        "role": "user",
+        "content": "I have no requirement on nearby services."
+      },
+      {
+        "role": "assistant",
+        "content": "In which city or area should the office building be located?"
+      },
+      {
+        "role": "user",
+        "content": "The location is in Turin."
+      },
+      {
+        "role": "assistant",
+        "content": "Query submitted for review: Find an office building in Turin with at least 850 sqm of gross floor area and capacity for 60 people, to be converted into a university student residence under the CDP/PNRR funding program. Prefer energy class C or better."
+      },
+      {
+        "role": "user",
+        "content": "Confirmed."
+      }
+    ],
+    "dimension_state": {
+      "I": {
+        "status": "SPECIFIED",
+        "value": "Office building (offices/uffici)",
+        "evidence": "I am looking for an office building"
+      },
+      "D": {
+        "status": "SPECIFIED",
+        "value": "University Student Residence (specific CDP/PNRR grant)",
+        "evidence": "I intend to convert it into a university student residence under the specific CDP/PNRR funding program"
+      },
+      "L": {
+        "status": "SPECIFIED",
+        "value": "Turin",
+        "evidence": "The location is in Turin."
+      },
+      "Cb": {
+        "status": "SPECIFIED",
+        "value": "Gross floor area of at least 850 sqm; occupancy capacity for 60 people",
+        "evidence": "at least 850 sqm of gross floor area and capacity for 60 people"
+      },
+      "Ce": {
+        "status": "SPECIFIED",
+        "value": "Energy class C or better",
+        "evidence": "I prefer a property in energy class C or better"
+      },
+      "Cp": {
+        "status": "NOT_REQUESTED",
+        "value": null,
+        "evidence": "I have no requirement on nearby services."
+      }
+    },
+    "mapping": {
+      "I": "SPECIFIED",
+      "D": "SPECIFIED",
+      "L": "SPECIFIED",
+      "Cb": "SPECIFIED",
+      "Ce": "SPECIFIED",
+      "Cp": "NOT_REQUESTED"
+    },
+    "expected_mapping": {
+      "I": "SPECIFIED",
+      "D": "SPECIFIED",
+      "L": "SPECIFIED",
+      "Cb": "SPECIFIED",
+      "Ce": "SPECIFIED",
+      "Cp": "NOT_REQUESTED"
+    },
+    "mapping_accuracy": 1.0,
+    "no_clarification": false,
+    "status": "READY",
+    "refined_query": "Find an office building in Turin with at least 850 sqm of gross floor area and capacity for 60 people, to be converted into a university student residence under the CDP/PNRR funding program. Prefer energy class C or better.",
+    "reviewed_query": "Find an office building in Turin with at least 850 sqm of gross floor area and capacity for 60 people, to be converted into a university student residence under the CDP/PNRR funding program. Prefer energy class C or better."
+  },
+  "submitted_query": "Find an office building in Turin with at least 850 sqm of gross floor area and capacity for 60 people, to be converted into a university student residence under the CDP/PNRR funding program. Prefer energy class C or better.",
+  "status": "completed",
+  "results_count": 39,
+  "top_ids": [
+    "44735",
+    "M07972",
+    "M07000",
+    "39316",
+    "38312",
+    "60762",
+    "67508",
+    "M10902",
+    "44708",
+    "M07968"
+  ],
+  "quality": {
+    "expected_count": 0,
+    "matched_expected": null,
+    "precision_at_returned": null,
+    "recall": null
+  },
+  "final_sql": "SELECT * FROM ESTATES WHERE property_type = 'Uffici e assimilabili' AND surface_area >= 850 AND haversine_km(latitude, longitude, 45.0677551, 7.6824892) <= 3.0 AND energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C') AND education >= 75 ORDER BY haversine_km(latitude, longitude, 45.0677551, 7.6824892) ASC",
+  "duration_seconds": 101.994,
+  "scenario_definition": {
+    "id": "MS08_k2_optout",
+    "name": "2 omitted dimensions; intended use: University Student Residence (specific CDP/PNRR grant); opt-out on Cp",
+    "tags": [
+      "edbt",
+      "controlled_missingness_v3",
+      "missing_2",
+      "UC08_student_grant_missing_use",
+      "imperfect_user",
+      "optout"
+    ],
+    "base_case_id": "UC08_student_grant_missing_use",
+    "missing_count": 2,
+    "initial_query": "I am looking for an office building. I intend to convert it into a university student residence under the specific CDP/PNRR funding program. I need a property with at least 850 sqm of gross floor area and capacity for 60 people. I prefer a property in energy class C or better.",
+    "one_shot_query": "I am looking for an office building. I intend to convert it into a university student residence under the specific CDP/PNRR funding program. I need a property with at least 850 sqm of gross floor area and capacity for 60 people. I prefer a property in energy class C or better.",
+    "oracle_query": "Find an office building to convert it into a university student residence with 60 beds under the specific CDP/PNRR funding program in Turin with at least 850 sqm of gross floor area in energy class C or better near public transport.",
+    "expected_initial_missing": [
+      "L",
+      "Cp"
+    ],
+    "clarifications": {
+      "I": "I am looking for an office building.",
+      "D": "I intend to convert it into a university student residence under the specific CDP/PNRR funding program.",
+      "L": "The location is in Turin.",
+      "Cb": "I need a property with at least 850 sqm of gross floor area and capacity for 60 people.",
+      "Ce": "I prefer a property in energy class C or better.",
+      "Cp": "I have no requirement on nearby services."
+    },
+    "expected_mapping": {
+      "I": "SPECIFIED",
+      "D": "SPECIFIED",
+      "L": "SPECIFIED",
+      "Cb": "SPECIFIED",
+      "Ce": "SPECIFIED",
+      "Cp": "NOT_REQUESTED"
+    },
+    "repeats": 1,
+    "imperfect_user": {
+      "profile": "optout",
+      "dimension": "Cp"
+    }
+  },
+  "artifact_file": "runs/bench_2bfaf91e6005.json",
+  "artifact_schema_version": 3,
+  "ranking_ids": [
+    "44735",
+    "M07972",
+    "M07000",
+    "39316",
+    "38312",
+    "60762",
+    "67508",
+    "M10902",
+    "44708",
+    "M07968",
+    "39408",
+    "40035",
+    "5925",
+    "46201",
+    "47484",
+    "54763",
+    "54764",
+    "54770",
+    "M09839",
+    "46009",
+    "43783",
+    "44717",
+    "M09402",
+    "M09590",
+    "38335",
+    "28706",
+    "M06805",
+    "53230",
+    "M08023",
+    "40036",
+    "M06967",
+    "46206",
+    "M08181",
+    "M10640",
+    "53551",
+    "M08049",
+    "55061",
+    "M09866",
+    "54995"
+  ],
+  "top": [
+    {
+      "id": "44735",
+      "score": 92.94000000000001,
+      "distance_km": 0.06
+    },
+    {
+      "id": "M07972",
+      "score": 92.92800000000001,
+      "distance_km": 0.06
+    },
+    {
+      "id": "M07000",
+      "score": 91.086,
+      "distance_km": 0.34
+    },
+    {
+      "id": "39316",
+      "score": 90.133,
+      "distance_km": 0.69
+    },
+    {
+      "id": "38312",
+      "score": 89.98599999999999,
+      "distance_km": 0.72
+    },
+    {
+      "id": "60762",
+      "score": 88.848,
+      "distance_km": 0.18
+    },
+    {
+      "id": "67508",
+      "score": 88.848,
+      "distance_km": 0.18
+    },
+    {
+      "id": "M10902",
+      "score": 88.848,
+      "distance_km": 0.18
+    },
+    {
+      "id": "44708",
+      "score": 88.116,
+      "distance_km": 0.1
+    },
+    {
+      "id": "M07968",
+      "score": 88.104,
+      "distance_km": 0.12
+    }
+  ],
+  "api_response": {
+    "agent_trace": [
+      {
+        "agent_name": "location-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "places": [
+            {
+              "name": "Turin",
+              "city": "Turin",
+              "lat": 45.0677551,
+              "lon": 7.6824892,
+              "radius_km": 3.0
+            }
+          ],
+          "found": true
+        }
+      },
+      {
+        "agent_name": "regulatory-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "found": false,
+          "matched_use_cases": [
+            "University Student Residence (specific CDP/PNRR grant)"
+          ],
+          "requirements": []
+        }
+      },
+      {
+        "agent_name": "proximity-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "requirements": [
+            {
+              "target_column": "education",
+              "operator": ">=",
+              "value": 75,
+              "description": "A student residence needs schools and universities nearby. Education is essential for this project type, so the threshold is set at the 75th percentile (75.14, rounded to 75) of the education distribution."
+            }
+          ]
+        }
+      },
+      {
+        "agent_name": "ranking-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "ranking": [
+            {
+              "agent_name": "location",
+              "rank": 1
+            },
+            {
+              "agent_name": "regulatory",
+              "rank": 2
+            },
+            {
+              "agent_name": "building",
+              "rank": 2
+            },
+            {
+              "agent_name": "energy",
+              "rank": 3
+            },
+            {
+              "agent_name": "proximity",
+              "rank": 4
+            }
+          ],
+          "weights": {
+            "location": 0.39,
+            "regulatory": 0.19,
+            "energy": 0.13,
+            "building": 0.19,
+            "proximity": 0.1
+          }
+        }
+      },
+      {
+        "agent_name": "building-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "typologies": [
+            "Uffici e assimilabili"
+          ],
+          "found": true,
+          "requirements": [
+            {
+              "target_column": "surface_area",
+              "operator": ">=",
+              "value": 850,
+              "description": "The user explicitly requires at least 850 sqm of gross floor area. Capacity for 60 people is not converted into an area filter because no verified gross-area threshold was supplied by the RegulatoryAgent. The intended future use as a student residence does not affect the current typology, so only office-type properties are selected. The Turin location is handled by the Location Agent, and the energy class preference is outside the reference columns."
+            }
+          ]
+        }
+      },
+      {
+        "agent_name": "energy-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "requirements": [
+            {
+              "target_column": "energy_class",
+              "operator": "IN",
+              "value": [
+                "A1",
+                "A2",
+                "A3",
+                "A4",
+                "B",
+                "C"
+              ],
+              "description": "Preferred energy class C or better (A1-A4, B, C). Stated as a preference, so it is applied as a ranking criterion rather than a hard restriction on the initial SQL filter. Floor area (850 sqm), capacity (60 people), Turin location and the CDP/PNRR funding program are not in the available columns and are not translated into filters."
+            }
+          ],
+          "found": true
+        }
+      },
+      {
+        "agent_name": "sql-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "sql": "SELECT * FROM ESTATES WHERE property_type = 'Uffici e assimilabili' AND surface_area >= 850 AND haversine_km(latitude, longitude, 45.0677551, 7.6824892) <= 3.0 AND energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C') AND education >= 75 ORDER BY haversine_km(latitude, longitude, 45.0677551, 7.6824892) ASC",
+          "explanation": "Filters on the office property type, gross surface of at least 850 sqm, a 3.0 km radius around the supplied coordinates, energy class A1 to C, and education score of at least 75. Results are ordered by distance from the coordinates. The 60-person capacity is not an extracted requirement, so it is not filtered on."
+        }
+      }
+    ],
+    "relaxation_applied": false,
+    "relaxation_count": 0,
+    "fallback_activated": false,
+    "agent_errors": []
+  }
+}

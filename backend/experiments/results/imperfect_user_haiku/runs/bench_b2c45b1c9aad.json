@@ -1,0 +1,650 @@
+{
+  "run_id": "bench_b2c45b1c9aad",
+  "condition": "refined",
+  "unit_id": "MS03_k4_optout",
+  "scenario_id": "MS03_k4_optout",
+  "base_case_id": "UC03_spring_missing_use",
+  "missing_count": 4,
+  "scenario_name": "4 omitted dimensions; intended use: Spring section (Sezione primavera); opt-out on Ce",
+  "tags": [
+    "edbt",
+    "controlled_missingness_v3",
+    "missing_4",
+    "UC03_spring_missing_use",
+    "imperfect_user",
+    "optout"
+  ],
+  "model": "claude-haiku-5-5",
+  "repeat": 2,
+  "attempt": 1,
+  "input_sha256": "d925e385993621201416195c406fcd442c874da40460adce217f11555a5a61ed",
+  "scenario_sha256": "d925e385993621201416195c406fcd442c874da40460adce217f11555a5a61ed",
+  "initial_query": "I am looking for an existing school building. I need a property with at least 180 sqm of gross floor area and capacity for 14 people.",
+  "options": {
+    "dataset_key": "full",
+    "map_limit": 1000,
+    "llm_limit": 10,
+    "analysis_mode": "agent",
+    "use_relaxation": true,
+    "use_data_knowledge": true,
+    "architecture": "multiagent",
+    "disabled_agents": null
+  },
+  "started_at": "2026-11-18T08:27:08.568435+00:00",
+  "clarification_seconds": 30.973,
+  "analysis_seconds": 66.969,
+  "conversation": {
+    "session_id": "bef35f1b-3138-4f5c-8c9c-09b40212cadf",
+    "initial_dimension_state": {
+      "I": {
+        "status": "SPECIFIED",
+        "value": "school building (existing)",
+        "evidence": "I am looking for an existing school building"
+      },
+      "D": {
+        "status": "UNCONFIRMED_ABSENT",
+        "value": null,
+        "evidence": null
+      },
+      "L": {
+        "status": "UNCONFIRMED_ABSENT",
+        "value": null,
+        "evidence": null
+      },
+      "Cb": {
+        "status": "SPECIFIED",
+        "value": {
+          "min_gross_floor_area_sqm": 180,
+          "occupancy_capacity_people": 14
+        },
+        "evidence": "at least 180 sqm of gross floor area and capacity for 14 people"
+      },
+      "Ce": {
+        "status": "UNCONFIRMED_ABSENT",
+        "value": null,
+        "evidence": null
+      },
+      "Cp": {
+        "status": "UNCONFIRMED_ABSENT",
+        "value": null,
+        "evidence": null
+      }
+    },
+    "initial_missing": [
+      "Ce",
+      "Cp",
+      "D",
+      "L"
+    ],
+    "expected_initial_missing": [
+      "Ce",
+      "Cp",
+      "D",
+      "L"
+    ],
+    "missing_detection": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "turns": [
+      {
+        "question": "What do you plan to use the building for, such as a micro-nursery or a nursery, or does the intended use not matter for this search?",
+        "target_dimensions": [
+          "D"
+        ],
+        "times_asked_before": {
+          "D": 0
+        },
+        "answer": "I intend to create a spring section (sezione primavera), integrated into an existing kindergarten.",
+        "question_source": "llm_query_parser",
+        "status_after": "ASK",
+        "turn_after": 1,
+        "dimension_state_after": {
+          "I": {
+            "status": "SPECIFIED",
+            "value": "school building (existing)",
+            "evidence": "I am looking for an existing school building"
+          },
+          "D": {
+            "status": "SPECIFIED",
+            "value": "Spring section (sezione primavera) integrated into an existing kindergarten",
+            "evidence": "I intend to create a spring section (sezione primavera), integrated into an existing kindergarten."
+          },
+          "L": {
+            "status": "UNCONFIRMED_ABSENT",
+            "value": null,
+            "evidence": null
+          },
+          "Cb": {
+            "status": "SPECIFIED",
+            "value": {
+              "min_gross_floor_area_sqm": 180,
+              "occupancy_capacity_people": 14
+            },
+            "evidence": "at least 180 sqm of gross floor area and capacity for 14 people"
+          },
+          "Ce": {
+            "status": "UNCONFIRMED_ABSENT",
+            "value": null,
+            "evidence": null
+          },
+          "Cp": {
+            "status": "UNCONFIRMED_ABSENT",
+            "value": null,
+            "evidence": null
+          }
+        }
+      },
+      {
+        "question": "In which city or neighborhood would you like to look for this school building, or does location not matter for this search?",
+        "target_dimensions": [
+          "L"
+        ],
+        "times_asked_before": {
+          "L": 0
+        },
+        "answer": "The location is in Turin.",
+        "question_source": "llm_query_parser",
+        "status_after": "ASK",
+        "turn_after": 2,
+        "dimension_state_after": {
+          "I": {
+            "status": "SPECIFIED",
+            "value": "school building (existing)",
+            "evidence": "I am looking for an existing school building"
+          },
+          "D": {
+            "status": "SPECIFIED",
+            "value": "Spring section (sezione primavera) integrated into an existing kindergarten",
+            "evidence": "I intend to create a spring section (sezione primavera), integrated into an existing kindergarten."
+          },
+          "L": {
+            "status": "SPECIFIED",
+            "value": "Turin",
+            "evidence": "The location is in Turin."
+          },
+          "Cb": {
+            "status": "SPECIFIED",
+            "value": {
+              "min_gross_floor_area_sqm": 180,
+              "occupancy_capacity_people": 14
+            },
+            "evidence": "at least 180 sqm of gross floor area and capacity for 14 people"
+          },
+          "Ce": {
+            "status": "UNCONFIRMED_ABSENT",
+            "value": null,
+            "evidence": null
+          },
+          "Cp": {
+            "status": "UNCONFIRMED_ABSENT",
+            "value": null,
+            "evidence": null
+          }
+        }
+      },
+      {
+        "question": "Do you have a energy efficiency requirement for the building, such as a specific energy class, or does energy performance not matter for this search?",
+        "target_dimensions": [
+          "Ce"
+        ],
+        "times_asked_before": {
+          "Ce": 0
+        },
+        "answer": "I have no requirement on the energy class.",
+        "question_source": "llm_query_parser",
+        "status_after": "ASK",
+        "turn_after": 3,
+        "dimension_state_after": {
+          "I": {
+            "status": "SPECIFIED",
+            "value": "school building (existing)",
+            "evidence": "I am looking for an existing school building"
+          },
+          "D": {
+            "status": "SPECIFIED",
+            "value": "Spring section (sezione primavera) integrated into an existing kindergarten",
+            "evidence": "I intend to create a spring section (sezione primavera), integrated into an existing kindergarten."
+          },
+          "L": {
+            "status": "SPECIFIED",
+            "value": "Turin",
+            "evidence": "The location is in Turin."
+          },
+          "Cb": {
+            "status": "SPECIFIED",
+            "value": {
+              "min_gross_floor_area_sqm": 180,
+              "occupancy_capacity_people": 14
+            },
+            "evidence": "at least 180 sqm of gross floor area and capacity for 14 people"
+          },
+          "Ce": {
+            "status": "NOT_REQUESTED",
+            "value": null,
+            "evidence": "I have no requirement on the energy class."
+          },
+          "Cp": {
+            "status": "UNCONFIRMED_ABSENT",
+            "value": null,
+            "evidence": null
+          }
+        }
+      },
+      {
+        "question": "Which nearby services matter to you, such as healthcare, mobility, green spaces, sport, commercial, or education, or does proximity not matter for this search?",
+        "target_dimensions": [
+          "Cp"
+        ],
+        "times_asked_before": {
+          "Cp": 0
+        },
+        "answer": "I prefer properties near public transport.",
+        "question_source": "llm_query_parser",
+        "status_after": "READY",
+        "turn_after": 4,
+        "dimension_state_after": {
+          "I": {
+            "status": "SPECIFIED",
+            "value": "school building (existing)",
+            "evidence": "I am looking for an existing school building"
+          },
+          "D": {
+            "status": "SPECIFIED",
+            "value": "Spring section (sezione primavera) integrated into an existing kindergarten",
+            "evidence": "I intend to create a spring section (sezione primavera), integrated into an existing kindergarten."
+          },
+          "L": {
+            "status": "SPECIFIED",
+            "value": "Turin",
+            "evidence": "The location is in Turin."
+          },
+          "Cb": {
+            "status": "SPECIFIED",
+            "value": {
+              "min_gross_floor_area_sqm": 180,
+              "occupancy_capacity_people": 14
+            },
+            "evidence": "at least 180 sqm of gross floor area and capacity for 14 people"
+          },
+          "Ce": {
+            "status": "NOT_REQUESTED",
+            "value": null,
+            "evidence": "I have no requirement on the energy class."
+          },
+          "Cp": {
+            "status": "SPECIFIED",
+            "value": "near public transport (mobility)",
+            "evidence": "I prefer properties near public transport."
+          }
+        }
+      }
+    ],
+    "messages": [
+      {
+        "role": "user",
+        "content": "I am looking for an existing school building. I need a property with at least 180 sqm of gross floor area and capacity for 14 people."
+      },
+      {
+        "role": "assistant",
+        "content": "What do you plan to use the building for, such as a micro-nursery or a nursery, or does the intended use not matter for this search?"
+      },
+      {
+        "role": "user",
+        "content": "I intend to create a spring section (sezione primavera), integrated into an existing kindergarten."
+      },
+      {
+        "role": "assistant",
+        "content": "In which city or neighborhood would you like to look for this school building, or does location not matter for this search?"
+      },
+      {
+        "role": "user",
+        "content": "The location is in Turin."
+      },
+      {
+        "role": "assistant",
+        "content": "Do you have a energy efficiency requirement for the building, such as a specific energy class, or does energy performance not matter for this search?"
+      },
+      {
+        "role": "user",
+        "content": "I have no requirement on the energy class."
+      },
+      {
+        "role": "assistant",
+        "content": "Which nearby services matter to you, such as healthcare, mobility, green spaces, sport, commercial, or education, or does proximity not matter for this search?"
+      },
+      {
+        "role": "user",
+        "content": "I prefer properties near public transport."
+      },
+      {
+        "role": "assistant",
+        "content": "Query submitted for review: Find an existing school building in Turin with at least 180 sqm of gross floor area and capacity for 14 people, to be used as a spring section (sezione primavera) integrated into an existing kindergarten. Properties near public transport are preferred."
+      },
+      {
+        "role": "user",
+        "content": "Confirmed."
+      }
+    ],
+    "dimension_state": {
+      "I": {
+        "status": "SPECIFIED",
+        "value": "school building (existing)",
+        "evidence": "I am looking for an existing school building"
+      },
+      "D": {
+        "status": "SPECIFIED",
+        "value": "Spring section (sezione primavera) integrated into an existing kindergarten",
+        "evidence": "I intend to create a spring section (sezione primavera), integrated into an existing kindergarten."
+      },
+      "L": {
+        "status": "SPECIFIED",
+        "value": "Turin",
+        "evidence": "The location is in Turin."
+      },
+      "Cb": {
+        "status": "SPECIFIED",
+        "value": {
+          "min_gross_floor_area_sqm": 180,
+          "occupancy_capacity_people": 14
+        },
+        "evidence": "at least 180 sqm of gross floor area and capacity for 14 people"
+      },
+      "Ce": {
+        "status": "NOT_REQUESTED",
+        "value": null,
+        "evidence": "I have no requirement on the energy class."
+      },
+      "Cp": {
+        "status": "SPECIFIED",
+        "value": "near public transport (mobility)",
+        "evidence": "I prefer properties near public transport."
+      }
+    },
+    "mapping": {
+      "I": "SPECIFIED",
+      "D": "SPECIFIED",
+      "L": "SPECIFIED",
+      "Cb": "SPECIFIED",
+      "Ce": "NOT_REQUESTED",
+      "Cp": "SPECIFIED"
+    },
+    "expected_mapping": {
+      "I": "SPECIFIED",
+      "D": "SPECIFIED",
+      "L": "SPECIFIED",
+      "Cb": "SPECIFIED",
+      "Ce": "NOT_REQUESTED",
+      "Cp": "SPECIFIED"
+    },
+    "mapping_accuracy": 1.0,
+    "no_clarification": false,
+    "status": "READY",
+    "refined_query": "Find an existing school building in Turin with at least 180 sqm of gross floor area and capacity for 14 people, to be used as a spring section (sezione primavera) integrated into an existing kindergarten. Properties near public transport are preferred.",
+    "reviewed_query": "Find an existing school building in Turin with at least 180 sqm of gross floor area and capacity for 14 people, to be used as a spring section (sezione primavera) integrated into an existing kindergarten. Properties near public transport are preferred."
+  },
+  "submitted_query": "Find an existing school building in Turin with at least 180 sqm of gross floor area and capacity for 14 people, to be used as a spring section (sezione primavera) integrated into an existing kindergarten. Properties near public transport are preferred.",
+  "status": "completed",
+  "results_count": 22,
+  "top_ids": [
+    "5413",
+    "5414",
+    "M00749",
+    "45377",
+    "11404",
+    "28647",
+    "40418",
+    "37907",
+    "38067",
+    "52758"
+  ],
+  "quality": {
+    "expected_count": 0,
+    "matched_expected": null,
+    "precision_at_returned": null,
+    "recall": null
+  },
+  "final_sql": "SELECT * FROM ESTATES WHERE property_type = 'Attività scolastiche' AND surface_area >= 180 AND haversine_km(latitude, longitude, 45.0677551, 7.6824892) <= 3.0 AND mobility >= 71 ORDER BY haversine_km(latitude, longitude, 45.0677551, 7.6824892) ASC",
+  "duration_seconds": 98.012,
+  "scenario_definition": {
+    "id": "MS03_k4_optout",
+    "name": "4 omitted dimensions; intended use: Spring section (Sezione primavera); opt-out on Ce",
+    "tags": [
+      "edbt",
+      "controlled_missingness_v3",
+      "missing_4",
+      "UC03_spring_missing_use",
+      "imperfect_user",
+      "optout"
+    ],
+    "base_case_id": "UC03_spring_missing_use",
+    "missing_count": 4,
+    "initial_query": "I am looking for an existing school building. I need a property with at least 180 sqm of gross floor area and capacity for 14 people.",
+    "one_shot_query": "I am looking for an existing school building. I need a property with at least 180 sqm of gross floor area and capacity for 14 people.",
+    "oracle_query": "Find an existing school building to create a spring section (sezione primavera) for 14 children, integrated into an existing kindergarten in Turin with at least 180 sqm of gross floor area in energy class C or better near public transport.",
+    "expected_initial_missing": [
+      "Ce",
+      "Cp",
+      "L",
+      "D"
+    ],
+    "clarifications": {
+      "I": "I am looking for an existing school building.",
+      "D": "I intend to create a spring section (sezione primavera), integrated into an existing kindergarten.",
+      "L": "The location is in Turin.",
+      "Cb": "I need a property with at least 180 sqm of gross floor area and capacity for 14 people.",
+      "Ce": "I have no requirement on the energy class.",
+      "Cp": "I prefer properties near public transport."
+    },
+    "expected_mapping": {
+      "I": "SPECIFIED",
+      "D": "SPECIFIED",
+      "L": "SPECIFIED",
+      "Cb": "SPECIFIED",
+      "Ce": "NOT_REQUESTED",
+      "Cp": "SPECIFIED"
+    },
+    "repeats": 1,
+    "imperfect_user": {
+      "profile": "optout",
+      "dimension": "Ce"
+    }
+  },
+  "artifact_file": "runs/bench_b2c45b1c9aad.json",
+  "artifact_schema_version": 3,
+  "ranking_ids": [
+    "5413",
+    "5414",
+    "M00749",
+    "45377",
+    "11404",
+    "28647",
+    "40418",
+    "37907",
+    "38067",
+    "52758",
+    "53285",
+    "43780",
+    "43791",
+    "43792",
+    "M07820",
+    "44403",
+    "39609",
+    "48596",
+    "M05231",
+    "29716",
+    "29717",
+    "29718"
+  ],
+  "top": [
+    {
+      "id": "5413",
+      "score": 95.562,
+      "distance_km": 0.18
+    },
+    {
+      "id": "5414",
+      "score": 95.562,
+      "distance_km": 0.18
+    },
+    {
+      "id": "M00749",
+      "score": 95.562,
+      "distance_km": 0.18
+    },
+    {
+      "id": "45377",
+      "score": 95.116,
+      "distance_km": 0.61
+    },
+    {
+      "id": "11404",
+      "score": 94.736,
+      "distance_km": 0.18
+    },
+    {
+      "id": "28647",
+      "score": 94.736,
+      "distance_km": 0.18
+    },
+    {
+      "id": "40418",
+      "score": 94.736,
+      "distance_km": 0.18
+    },
+    {
+      "id": "37907",
+      "score": 93.542,
+      "distance_km": 0.96
+    },
+    {
+      "id": "38067",
+      "score": 93.366,
+      "distance_km": 0.98
+    },
+    {
+      "id": "52758",
+      "score": 92.294,
+      "distance_km": 0.81
+    }
+  ],
+  "api_response": {
+    "agent_trace": [
+      {
+        "agent_name": "location-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "places": [
+            {
+              "name": "Turin",
+              "city": "Turin",
+              "lat": 45.0677551,
+              "lon": 7.6824892,
+              "radius_km": 3.0
+            }
+          ],
+          "found": true
+        }
+      },
+      {
+        "agent_name": "energy-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "requirements": [],
+          "found": false
+        }
+      },
+      {
+        "agent_name": "regulatory-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "found": false,
+          "matched_use_cases": [
+            "Spring section (Sezione primavera)"
+          ],
+          "requirements": []
+        }
+      },
+      {
+        "agent_name": "ranking-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "ranking": [
+            {
+              "agent_name": "location",
+              "rank": 1
+            },
+            {
+              "agent_name": "building",
+              "rank": 1
+            },
+            {
+              "agent_name": "regulatory",
+              "rank": 2
+            },
+            {
+              "agent_name": "proximity",
+              "rank": 3
+            },
+            {
+              "agent_name": "energy",
+              "rank": 4
+            }
+          ],
+          "weights": {
+            "location": 0.33,
+            "regulatory": 0.16,
+            "energy": 0.08,
+            "building": 0.32,
+            "proximity": 0.11
+          }
+        }
+      },
+      {
+        "agent_name": "proximity-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "requirements": [
+            {
+              "target_column": "mobility",
+              "operator": ">=",
+              "value": 71,
+              "description": "The user prefers properties near public transport (metro, bus, stations). Value set to the 75th percentile (70.93, rounded to 71) of the mobility distribution, since 'preferred near transport' expresses a proximity need. The building typology (school, at least 180 sqm, capacity for 14 people) is the subject of the search and is not a proximity requirement."
+            }
+          ]
+        }
+      },
+      {
+        "agent_name": "building-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "typologies": [
+            "Attività scolastiche"
+          ],
+          "found": true,
+          "requirements": [
+            {
+              "target_column": "surface_area",
+              "operator": ">=",
+              "value": 180,
+              "description": "The user explicitly requires at least 180 sqm of gross floor area. The capacity of 14 people is not a surface requirement and was not converted into an area filter. Proximity to public transport is a location preference and is not a column in this dataset. Turin is a city name, so comune_code was not set."
+            }
+          ]
+        }
+      },
+      {
+        "agent_name": "sql-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "sql": "SELECT * FROM ESTATES WHERE property_type = 'Attività scolastiche' AND surface_area >= 180 AND haversine_km(latitude, longitude, 45.0677551, 7.6824892) <= 3.0 AND mobility >= 71 ORDER BY haversine_km(latitude, longitude, 45.0677551, 7.6824892) ASC",
+          "explanation": "Filters on the extracted requirements only: property_type 'Attività scolastiche', surface_area >= 180, a 3.0 km haversine radius around (45.0677551, 7.6824892), and mobility >= 71. The capacity requirement (14 people) was not among the extracted requirements, so it is not applied. Results are ordered by distance from the coordinate."
+        }
+      }
+    ],
+    "relaxation_applied": false,
+    "relaxation_count": 0,
+    "fallback_activated": false,
+    "agent_errors": []
+  }
+}

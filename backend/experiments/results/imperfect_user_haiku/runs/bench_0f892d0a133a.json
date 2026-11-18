@@ -1,0 +1,810 @@
+{
+  "run_id": "bench_0f892d0a133a",
+  "condition": "refined",
+  "unit_id": "MS04_k5_vague",
+  "scenario_id": "MS04_k5_vague",
+  "base_case_id": "UC04_baby_parking_missing_use",
+  "missing_count": 5,
+  "scenario_name": "5 omitted dimensions; intended use: Play space / Baby parking (Centro di custodia oraria); vague first answer on Cp",
+  "tags": [
+    "edbt",
+    "controlled_missingness_v3",
+    "missing_5",
+    "UC04_baby_parking_missing_use",
+    "imperfect_user",
+    "vague"
+  ],
+  "model": "claude-haiku-5-5",
+  "repeat": 1,
+  "attempt": 1,
+  "input_sha256": "352a44ee00367bf3b8ad12355773aa1dc0b47f86ed788f994f686965ddae9cc7",
+  "scenario_sha256": "352a44ee00367bf3b8ad12355773aa1dc0b47f86ed788f994f686965ddae9cc7",
+  "initial_query": "I am looking for an existing commercial unit.",
+  "options": {
+    "dataset_key": "full",
+    "map_limit": 1000,
+    "llm_limit": 10,
+    "analysis_mode": "agent",
+    "use_relaxation": true,
+    "use_data_knowledge": true,
+    "architecture": "multiagent",
+    "disabled_agents": null
+  },
+  "started_at": "2026-11-18T08:34:08.112618+00:00",
+  "clarification_seconds": 82.322,
+  "analysis_seconds": 89.998,
+  "conversation": {
+    "session_id": "4094398c-d4f2-4f30-a3cb-136614903b6e",
+    "initial_dimension_state": {
+      "I": {
+        "status": "SPECIFIED",
+        "value": "existing commercial unit",
+        "evidence": "\"I am looking for an existing commercial unit.\""
+      },
+      "D": {
+        "status": "UNCONFIRMED_ABSENT",
+        "value": null,
+        "evidence": null
+      },
+      "L": {
+        "status": "UNCONFIRMED_ABSENT",
+        "value": null,
+        "evidence": null
+      },
+      "Cb": {
+        "status": "UNCONFIRMED_ABSENT",
+        "value": null,
+        "evidence": null
+      },
+      "Ce": {
+        "status": "UNCONFIRMED_ABSENT",
+        "value": null,
+        "evidence": null
+      },
+      "Cp": {
+        "status": "UNCONFIRMED_ABSENT",
+        "value": null,
+        "evidence": null
+      }
+    },
+    "initial_missing": [
+      "Cb",
+      "Ce",
+      "Cp",
+      "D",
+      "L"
+    ],
+    "expected_initial_missing": [
+      "Cb",
+      "Ce",
+      "Cp",
+      "D",
+      "L"
+    ],
+    "missing_detection": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "turns": [
+      {
+        "question": "Which city or neighborhood are you interested in for this commercial unit?",
+        "target_dimensions": [
+          "L"
+        ],
+        "times_asked_before": {
+          "L": 0
+        },
+        "answer": "The location is in Turin.",
+        "question_source": "llm_query_parser",
+        "status_after": "ASK",
+        "turn_after": 1,
+        "dimension_state_after": {
+          "I": {
+            "status": "SPECIFIED",
+            "value": "existing commercial unit",
+            "evidence": "\"I am looking for an existing commercial unit.\""
+          },
+          "D": {
+            "status": "UNCONFIRMED_ABSENT",
+            "value": null,
+            "evidence": null
+          },
+          "L": {
+            "status": "SPECIFIED",
+            "value": "Turin",
+            "evidence": "The location is in Turin."
+          },
+          "Cb": {
+            "status": "UNCONFIRMED_ABSENT",
+            "value": null,
+            "evidence": null
+          },
+          "Ce": {
+            "status": "UNCONFIRMED_ABSENT",
+            "value": null,
+            "evidence": null
+          },
+          "Cp": {
+            "status": "UNCONFIRMED_ABSENT",
+            "value": null,
+            "evidence": null
+          }
+        }
+      },
+      {
+        "question": "What do you plan to use the commercial unit for, for example as a Micro-nursery or a Play space / Baby parking (Centro di custodia oraria), or something else? If the intended use doesn't matter yet, just say so.",
+        "target_dimensions": [
+          "D"
+        ],
+        "times_asked_before": {
+          "D": 0
+        },
+        "answer": "I intend to assess a conversion into a play space / baby parking (hourly childcare), subject to confirmation of the applicable authorization regime.",
+        "question_source": "llm_omission_question",
+        "status_after": "ASK",
+        "turn_after": 2,
+        "dimension_state_after": {
+          "I": {
+            "status": "SPECIFIED",
+            "value": "existing commercial unit",
+            "evidence": "\"I am looking for an existing commercial unit.\""
+          },
+          "D": {
+            "status": "SPECIFIED",
+            "value": "Play space / baby parking (hourly childcare); subject to confirmation of applicable authorization regime",
+            "evidence": "I intend to assess a conversion into a play space / baby parking (hourly childcare), subject to confirmation of the applicable authorization regime."
+          },
+          "L": {
+            "status": "SPECIFIED",
+            "value": "Turin",
+            "evidence": "The location is in Turin."
+          },
+          "Cb": {
+            "status": "UNCONFIRMED_ABSENT",
+            "value": null,
+            "evidence": null
+          },
+          "Ce": {
+            "status": "UNCONFIRMED_ABSENT",
+            "value": null,
+            "evidence": null
+          },
+          "Cp": {
+            "status": "UNCONFIRMED_ABSENT",
+            "value": null,
+            "evidence": null
+          }
+        }
+      },
+      {
+        "question": "Do you have a minimum floor area or a required occupancy capacity for the unit, or any structural features it must have? If none of these are relevant yet, that's fine too.",
+        "target_dimensions": [
+          "Cb"
+        ],
+        "times_asked_before": {
+          "Cb": 0
+        },
+        "answer": "I need a property with at least 115 sqm of gross floor area and capacity for 15 people.",
+        "question_source": "llm_omission_question",
+        "status_after": "ASK",
+        "turn_after": 3,
+        "dimension_state_after": {
+          "I": {
+            "status": "SPECIFIED",
+            "value": "existing commercial unit",
+            "evidence": "\"I am looking for an existing commercial unit.\""
+          },
+          "D": {
+            "status": "SPECIFIED",
+            "value": "Play space / baby parking (hourly childcare); subject to confirmation of applicable authorization regime",
+            "evidence": "I intend to assess a conversion into a play space / baby parking (hourly childcare), subject to confirmation of the applicable authorization regime."
+          },
+          "L": {
+            "status": "SPECIFIED",
+            "value": "Turin",
+            "evidence": "The location is in Turin."
+          },
+          "Cb": {
+            "status": "SPECIFIED",
+            "value": "minimum 115 sqm gross floor area; occupancy capacity for 15 people",
+            "evidence": "I need a property with at least 115 sqm of gross floor area and capacity for 15 people."
+          },
+          "Ce": {
+            "status": "UNCONFIRMED_ABSENT",
+            "value": null,
+            "evidence": null
+          },
+          "Cp": {
+            "status": "UNCONFIRMED_ABSENT",
+            "value": null,
+            "evidence": null
+          }
+        }
+      },
+      {
+        "question": "Is there an energy performance level you'd like the unit to meet, such as a specific energy class? If energy performance isn't a priority, you can skip this.",
+        "target_dimensions": [
+          "Ce"
+        ],
+        "times_asked_before": {
+          "Ce": 0
+        },
+        "answer": "I prefer a property in energy class D or better.",
+        "question_source": "llm_omission_question",
+        "status_after": "ASK",
+        "turn_after": 4,
+        "dimension_state_after": {
+          "I": {
+            "status": "SPECIFIED",
+            "value": "existing commercial unit",
+            "evidence": "\"I am looking for an existing commercial unit.\""
+          },
+          "D": {
+            "status": "SPECIFIED",
+            "value": "Play space / baby parking (hourly childcare); subject to confirmation of applicable authorization regime",
+            "evidence": "I intend to assess a conversion into a play space / baby parking (hourly childcare), subject to confirmation of the applicable authorization regime."
+          },
+          "L": {
+            "status": "SPECIFIED",
+            "value": "Turin",
+            "evidence": "The location is in Turin."
+          },
+          "Cb": {
+            "status": "SPECIFIED",
+            "value": "minimum 115 sqm gross floor area; occupancy capacity for 15 people",
+            "evidence": "I need a property with at least 115 sqm of gross floor area and capacity for 15 people."
+          },
+          "Ce": {
+            "status": "SPECIFIED",
+            "value": "energy class D or better",
+            "evidence": "I prefer a property in energy class D or better."
+          },
+          "Cp": {
+            "status": "UNCONFIRMED_ABSENT",
+            "value": null,
+            "evidence": null
+          }
+        }
+      },
+      {
+        "question": "Which nearby services matter most to you: healthcare, mobility, green spaces, sports, commercial services, or education? Let me know if none of them are important for this search.",
+        "target_dimensions": [
+          "Cp"
+        ],
+        "times_asked_before": {
+          "Cp": 0
+        },
+        "answer": "It depends; something suitable for the project, I guess.",
+        "question_source": "llm_omission_question",
+        "status_after": "ASK",
+        "turn_after": 5,
+        "dimension_state_after": {
+          "I": {
+            "status": "SPECIFIED",
+            "value": "existing commercial unit",
+            "evidence": "\"I am looking for an existing commercial unit.\""
+          },
+          "D": {
+            "status": "SPECIFIED",
+            "value": "Play space / baby parking (hourly childcare); subject to confirmation of applicable authorization regime",
+            "evidence": "I intend to assess a conversion into a play space / baby parking (hourly childcare), subject to confirmation of the applicable authorization regime."
+          },
+          "L": {
+            "status": "SPECIFIED",
+            "value": "Turin",
+            "evidence": "The location is in Turin."
+          },
+          "Cb": {
+            "status": "SPECIFIED",
+            "value": "minimum 115 sqm gross floor area; occupancy capacity for 15 people",
+            "evidence": "I need a property with at least 115 sqm of gross floor area and capacity for 15 people."
+          },
+          "Ce": {
+            "status": "SPECIFIED",
+            "value": "energy class D or better",
+            "evidence": "I prefer a property in energy class D or better."
+          },
+          "Cp": {
+            "status": "UNCONFIRMED_ABSENT",
+            "value": null,
+            "evidence": null
+          }
+        }
+      },
+      {
+        "question": "Since you're looking at a unit for a childcare play space, which nearby services would you like the search to consider: healthcare, mobility, green spaces, sports, commercial services, or education? If none of these matter for this project, just say so, or name a different service you care about.",
+        "target_dimensions": [
+          "Cp"
+        ],
+        "times_asked_before": {
+          "Cp": 1
+        },
+        "answer": "I prefer properties near parks.",
+        "question_source": "llm_omission_question",
+        "status_after": "READY",
+        "turn_after": 6,
+        "dimension_state_after": {
+          "I": {
+            "status": "SPECIFIED",
+            "value": "existing commercial unit",
+            "evidence": "\"I am looking for an existing commercial unit.\""
+          },
+          "D": {
+            "status": "SPECIFIED",
+            "value": "Play space / baby parking (hourly childcare); subject to confirmation of applicable authorization regime",
+            "evidence": "I intend to assess a conversion into a play space / baby parking (hourly childcare), subject to confirmation of the applicable authorization regime."
+          },
+          "L": {
+            "status": "SPECIFIED",
+            "value": "Turin",
+            "evidence": "The location is in Turin."
+          },
+          "Cb": {
+            "status": "SPECIFIED",
+            "value": "minimum 115 sqm gross floor area; occupancy capacity for 15 people",
+            "evidence": "I need a property with at least 115 sqm of gross floor area and capacity for 15 people."
+          },
+          "Ce": {
+            "status": "SPECIFIED",
+            "value": "energy class D or better",
+            "evidence": "I prefer a property in energy class D or better."
+          },
+          "Cp": {
+            "status": "SPECIFIED",
+            "value": "green spaces (parks)",
+            "evidence": "I prefer properties near parks."
+          }
+        }
+      }
+    ],
+    "messages": [
+      {
+        "role": "user",
+        "content": "I am looking for an existing commercial unit."
+      },
+      {
+        "role": "assistant",
+        "content": "Which city or neighborhood are you interested in for this commercial unit?"
+      },
+      {
+        "role": "user",
+        "content": "The location is in Turin."
+      },
+      {
+        "role": "assistant",
+        "content": "What do you plan to use the commercial unit for, for example as a Micro-nursery or a Play space / Baby parking (Centro di custodia oraria), or something else? If the intended use doesn't matter yet, just say so."
+      },
+      {
+        "role": "user",
+        "content": "I intend to assess a conversion into a play space / baby parking (hourly childcare), subject to confirmation of the applicable authorization regime."
+      },
+      {
+        "role": "assistant",
+        "content": "Do you have a minimum floor area or a required occupancy capacity for the unit, or any structural features it must have? If none of these are relevant yet, that's fine too."
+      },
+      {
+        "role": "user",
+        "content": "I need a property with at least 115 sqm of gross floor area and capacity for 15 people."
+      },
+      {
+        "role": "assistant",
+        "content": "Is there an energy performance level you'd like the unit to meet, such as a specific energy class? If energy performance isn't a priority, you can skip this."
+      },
+      {
+        "role": "user",
+        "content": "I prefer a property in energy class D or better."
+      },
+      {
+        "role": "assistant",
+        "content": "Which nearby services matter most to you: healthcare, mobility, green spaces, sports, commercial services, or education? Let me know if none of them are important for this search."
+      },
+      {
+        "role": "user",
+        "content": "It depends; something suitable for the project, I guess."
+      },
+      {
+        "role": "assistant",
+        "content": "Since you're looking at a unit for a childcare play space, which nearby services would you like the search to consider: healthcare, mobility, green spaces, sports, commercial services, or education? If none of these matter for this project, just say so, or name a different service you care about."
+      },
+      {
+        "role": "user",
+        "content": "I prefer properties near parks."
+      },
+      {
+        "role": "assistant",
+        "content": "Query submitted for review: I am looking for an existing commercial unit in Turin with a minimum gross floor area of 115 sqm and capacity for 15 people, to be assessed for conversion into a play space / baby parking (hourly childcare), subject to confirmation of the applicable authorization regime. I prefer an energy class D or better and a property near parks."
+      },
+      {
+        "role": "user",
+        "content": "Confirmed."
+      }
+    ],
+    "dimension_state": {
+      "I": {
+        "status": "SPECIFIED",
+        "value": "existing commercial unit",
+        "evidence": "\"I am looking for an existing commercial unit.\""
+      },
+      "D": {
+        "status": "SPECIFIED",
+        "value": "Play space / baby parking (hourly childcare); subject to confirmation of applicable authorization regime",
+        "evidence": "I intend to assess a conversion into a play space / baby parking (hourly childcare), subject to confirmation of the applicable authorization regime."
+      },
+      "L": {
+        "status": "SPECIFIED",
+        "value": "Turin",
+        "evidence": "The location is in Turin."
+      },
+      "Cb": {
+        "status": "SPECIFIED",
+        "value": "minimum 115 sqm gross floor area; occupancy capacity for 15 people",
+        "evidence": "I need a property with at least 115 sqm of gross floor area and capacity for 15 people."
+      },
+      "Ce": {
+        "status": "SPECIFIED",
+        "value": "energy class D or better",
+        "evidence": "I prefer a property in energy class D or better."
+      },
+      "Cp": {
+        "status": "SPECIFIED",
+        "value": "green spaces (parks)",
+        "evidence": "I prefer properties near parks."
+      }
+    },
+    "mapping": {
+      "I": "SPECIFIED",
+      "D": "SPECIFIED",
+      "L": "SPECIFIED",
+      "Cb": "SPECIFIED",
+      "Ce": "SPECIFIED",
+      "Cp": "SPECIFIED"
+    },
+    "expected_mapping": {
+      "I": "SPECIFIED",
+      "D": "SPECIFIED",
+      "L": "SPECIFIED",
+      "Cb": "SPECIFIED",
+      "Ce": "SPECIFIED",
+      "Cp": "SPECIFIED"
+    },
+    "mapping_accuracy": 1.0,
+    "no_clarification": false,
+    "status": "READY",
+    "refined_query": "I am looking for an existing commercial unit in Turin with a minimum gross floor area of 115 sqm and capacity for 15 people, to be assessed for conversion into a play space / baby parking (hourly childcare), subject to confirmation of the applicable authorization regime. I prefer an energy class D or better and a property near parks.",
+    "reviewed_query": "I am looking for an existing commercial unit in Turin with a minimum gross floor area of 115 sqm and capacity for 15 people, to be assessed for conversion into a play space / baby parking (hourly childcare), subject to confirmation of the applicable authorization regime. I prefer an energy class D or better and a property near parks."
+  },
+  "submitted_query": "I am looking for an existing commercial unit in Turin with a minimum gross floor area of 115 sqm and capacity for 15 people, to be assessed for conversion into a play space / baby parking (hourly childcare), subject to confirmation of the applicable authorization regime. I prefer an energy class D or better and a property near parks.",
+  "status": "completed",
+  "results_count": 73,
+  "top_ids": [
+    "39479",
+    "44377",
+    "M09486",
+    "43935",
+    "39409",
+    "M07840",
+    "39401",
+    "43778",
+    "43793",
+    "43782"
+  ],
+  "quality": {
+    "expected_count": 0,
+    "matched_expected": null,
+    "precision_at_returned": null,
+    "recall": null
+  },
+  "final_sql": "SELECT * FROM ESTATES WHERE property_type = 'Attività commerciali e assimilabili' AND surface_area >= 115 AND energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C', 'D') AND green >= 74 AND haversine_km(latitude, longitude, 45.0677551, 7.6824892) <= 3.0 ORDER BY haversine_km(latitude, longitude, 45.0677551, 7.6824892) ASC",
+  "duration_seconds": 172.395,
+  "scenario_definition": {
+    "id": "MS04_k5_vague",
+    "name": "5 omitted dimensions; intended use: Play space / Baby parking (Centro di custodia oraria); vague first answer on Cp",
+    "tags": [
+      "edbt",
+      "controlled_missingness_v3",
+      "missing_5",
+      "UC04_baby_parking_missing_use",
+      "imperfect_user",
+      "vague"
+    ],
+    "base_case_id": "UC04_baby_parking_missing_use",
+    "missing_count": 5,
+    "initial_query": "I am looking for an existing commercial unit.",
+    "one_shot_query": "I am looking for an existing commercial unit.",
+    "oracle_query": "Find an existing commercial unit to assess a conversion into a play space / baby parking (hourly childcare) for 15 children, subject to confirmation of the applicable authorization regime in Turin with at least 115 sqm of gross floor area in energy class D or better near parks.",
+    "expected_initial_missing": [
+      "Cp",
+      "L",
+      "D",
+      "Cb",
+      "Ce"
+    ],
+    "clarifications": {
+      "I": "I am looking for an existing commercial unit.",
+      "D": "I intend to assess a conversion into a play space / baby parking (hourly childcare), subject to confirmation of the applicable authorization regime.",
+      "L": "The location is in Turin.",
+      "Cb": "I need a property with at least 115 sqm of gross floor area and capacity for 15 people.",
+      "Ce": "I prefer a property in energy class D or better.",
+      "Cp": [
+        "It depends; something suitable for the project, I guess.",
+        "I prefer properties near parks."
+      ]
+    },
+    "expected_mapping": {
+      "I": "SPECIFIED",
+      "D": "SPECIFIED",
+      "L": "SPECIFIED",
+      "Cb": "SPECIFIED",
+      "Ce": "SPECIFIED",
+      "Cp": "SPECIFIED"
+    },
+    "repeats": 1,
+    "imperfect_user": {
+      "profile": "vague",
+      "dimension": "Cp"
+    }
+  },
+  "artifact_file": "runs/bench_0f892d0a133a.json",
+  "artifact_schema_version": 3,
+  "ranking_ids": [
+    "39479",
+    "44377",
+    "M09486",
+    "43935",
+    "39409",
+    "M07840",
+    "39401",
+    "43778",
+    "43793",
+    "43782",
+    "43786",
+    "39404",
+    "44191",
+    "39429",
+    "M07002",
+    "39928",
+    "M06910",
+    "M09506",
+    "55170",
+    "43790",
+    "43979",
+    "42667",
+    "44313",
+    "40197",
+    "54755",
+    "43788",
+    "44361",
+    "38887",
+    "25239",
+    "43784",
+    "43785",
+    "43624",
+    "58965",
+    "43647",
+    "43965",
+    "54752",
+    "53083",
+    "M04180",
+    "53745",
+    "53744",
+    "29274",
+    "54032",
+    "53738",
+    "29844",
+    "23711",
+    "49686",
+    "54181",
+    "59383",
+    "M10633",
+    "M04046",
+    "M04000",
+    "502",
+    "M00043",
+    "58042",
+    "M10393",
+    "59719",
+    "M10696",
+    "29214",
+    "58041",
+    "23924",
+    "60102",
+    "M10900",
+    "59747",
+    "23335",
+    "60944",
+    "30738",
+    "61362",
+    "M05469",
+    "30815",
+    "60754",
+    "60557",
+    "16131",
+    "40728"
+  ],
+  "top": [
+    {
+      "id": "39479",
+      "score": 91.384,
+      "distance_km": 0.28
+    },
+    {
+      "id": "44377",
+      "score": 90.333,
+      "distance_km": 0.47
+    },
+    {
+      "id": "M09486",
+      "score": 89.971,
+      "distance_km": 0.73
+    },
+    {
+      "id": "43935",
+      "score": 89.589,
+      "distance_km": 0.45
+    },
+    {
+      "id": "39409",
+      "score": 89.57000000000001,
+      "distance_km": 0.38
+    },
+    {
+      "id": "M07840",
+      "score": 89.563,
+      "distance_km": 0.44
+    },
+    {
+      "id": "39401",
+      "score": 89.359,
+      "distance_km": 0.32
+    },
+    {
+      "id": "43778",
+      "score": 88.98700000000001,
+      "distance_km": 1.01
+    },
+    {
+      "id": "43793",
+      "score": 88.98700000000001,
+      "distance_km": 1.01
+    },
+    {
+      "id": "43782",
+      "score": 87.99900000000001,
+      "distance_km": 1.01
+    }
+  ],
+  "api_response": {
+    "agent_trace": [
+      {
+        "agent_name": "regulatory-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "found": false,
+          "matched_use_cases": [
+            "Play space / Baby parking (Centro di custodia oraria)"
+          ],
+          "requirements": []
+        }
+      },
+      {
+        "agent_name": "location-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "places": [
+            {
+              "name": "Turin",
+              "city": "Turin",
+              "lat": 45.0677551,
+              "lon": 7.6824892,
+              "radius_km": 3.0
+            }
+          ],
+          "found": true
+        }
+      },
+      {
+        "agent_name": "proximity-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "requirements": [
+            {
+              "target_column": "green",
+              "operator": ">=",
+              "value": 74,
+              "description": "User wants the property near parks. 'Near' maps to the 75th percentile of the green distribution (74.26), rounded to 74. The commercial unit itself (115 sqm, 15-person capacity, energy class D or better, Turin) is a building requirement and is not covered here."
+            }
+          ]
+        }
+      },
+      {
+        "agent_name": "ranking-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "ranking": [
+            {
+              "agent_name": "location",
+              "rank": 1
+            },
+            {
+              "agent_name": "building",
+              "rank": 1
+            },
+            {
+              "agent_name": "regulatory",
+              "rank": 2
+            },
+            {
+              "agent_name": "energy",
+              "rank": 3
+            },
+            {
+              "agent_name": "proximity",
+              "rank": 3
+            }
+          ],
+          "weights": {
+            "location": 0.3,
+            "regulatory": 0.16,
+            "energy": 0.11,
+            "building": 0.32,
+            "proximity": 0.11
+          }
+        }
+      },
+      {
+        "agent_name": "building-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "typologies": [
+            "Attività commerciali e assimilabili"
+          ],
+          "found": true,
+          "requirements": [
+            {
+              "target_column": "surface_area",
+              "operator": ">=",
+              "value": 115,
+              "description": "The user explicitly specified a minimum gross floor area of 115 sqm."
+            }
+          ]
+        }
+      },
+      {
+        "agent_name": "energy-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "requirements": [
+            {
+              "target_column": "energy_class",
+              "operator": "IN",
+              "value": [
+                "A1",
+                "A2",
+                "A3",
+                "A4",
+                "B",
+                "C",
+                "D"
+              ],
+              "description": "User prefers energy class D or better, so the energy class must be D, C, B or any A class. Floor area, capacity, Turin location, childcare use and proximity to parks are not energy requirements and are excluded here."
+            }
+          ],
+          "found": true
+        }
+      },
+      {
+        "agent_name": "sql-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "sql": "SELECT * FROM ESTATES WHERE property_type = 'Attività commerciali e assimilabili' AND surface_area >= 115 AND energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C', 'D') AND green >= 74 AND haversine_km(latitude, longitude, 45.0677551, 7.6824892) <= 3.0 ORDER BY haversine_km(latitude, longitude, 45.0677551, 7.6824892) ASC",
+          "explanation": "Filters on the extracted requirements only: property type 'Attività commerciali e assimilabili', surface_area >= 115, energy_class in A1–D, green score >= 74, and a 3.0 km haversine radius around (45.0677551, 7.6824892). Results are ordered by distance from that point, nearest first."
+        }
+      }
+    ],
+    "relaxation_applied": false,
+    "relaxation_count": 0,
+    "fallback_activated": false,
+    "agent_errors": []
+  }
+}
