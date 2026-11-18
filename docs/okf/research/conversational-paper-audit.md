@@ -215,3 +215,14 @@ Punti emersi:
 - **Italiano.** La frase "in English or Italian" non è verificata sul sistema.
 - **Opzione `review` di acmart.** Mostra i numeri di riga; va lasciata o tolta secondo il template EDBT.
 - **Serie `imperfect_user_codex_vlast`.** Non è riportata e non è utilizzabile: 64/225 run refined completate, 0/40 oracle, tutti gli errori sono "Codex CLI LLM call failed".
+
+Interventi applicati nella PR `paper/edbt27-presubmission`:
+
+- **Abstract.** Tolto il riferimento interno a v4 e tolto il catalogo da 8.192 scenari. Aggiunto il confronto con l'auto-accordo dell'oracle (0,87) e la modalità offline.
+- **Introduzione.** Anticipa il risultato principale: J5 da 0,16 a 0,88, pari all'auto-accordo dell'oracle, e nessuna domanda quando non manca nulla.
+- **Scenari.** La sezione descrive per prima la suite annidata a 48 varianti effettivamente valutata. Il generatore da 8.192 scenari compare in una sola frase, "not evaluated here".
+- **Scope.** Tolta la frase su v4.
+- **Demo.** Nuovo paragrafo "Setup and fallback": portatile, rete verso il provider LLM, modalità offline come riserva, video allegato.
+- **Lingua.** Rimosso "or Italian". Il codice forza le domande e l'output in inglese (`sage_clarification/service.py:855`, `requests.py:31`) e nessuna run reale ha input in italiano.
+- **Opzione `review` (numeri di riga).** Mantenuta: il template ufficiale EDBT 2027 usa `\documentclass[sigconf,review]{acmart}` e la call vieta modifiche allo stile. `edbt-macros.tex` coincide con il template.
+- **PDF.** Rigenerato: 4 pagine, layout controllato.
