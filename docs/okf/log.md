@@ -2,6 +2,8 @@
 
 ## 2026-11-18
 
+* **Review pre-submission e deadline:** la call demo EDBT 2027 ha scadenza il 18-11-2026 alle 17:00 PT; il video MP4 è obbligatorio. Review in `research/conversational-paper-audit.md`. La serie `imperfect_user_codex_vlast` ha errori Codex CLI diffusi e non è riportata.
+
 * **Risultati Haiku ripristinati nel paper:** riattivate le serie `missingness_v3_haiku_r2` (304/304) e `imperfect_user_haiku` (265/265), mantenendole distinte. La tabella attiva contiene completion, Jaccard@5, RBO@10 e F1 dei filtri con IC; non include tempi, differenze, p-value o detection F1. Il campione v4 seed 13 e i relativi dettagli restano in un blocco LaTeX inattivo; la curva v4 è conservata in `paper/data/per_k_v4_seed13_archived.csv`. La figura torna ai dati Haiku. Il generatore v4 da 8.192 scenari è distinto dagli input delle serie Haiku. PDF non compilato su richiesta.
 
 * **Paper: autori, affiliazioni e ringraziamenti.**

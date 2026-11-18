@@ -201,3 +201,17 @@ Dettagli sulle serie dei colleghi:
 ## Ripristino dei risultati Haiku (2026-11-18)
 
 Su richiesta dell’utente, il manoscritto torna a riportare le serie `missingness_v3_haiku_r2` (304/304) e `imperfect_user_haiku` (265/265), separatamente. Il testo distingue la suite annidata eseguita per le serie Haiku dal catalogo v4 da 8.192 scenari, che resta descritto come generatore. La tabella attiva contiene completion, Jaccard@5, RBO@10 e filter F1 con IC; delta, p-value, detection F1 e tempi non sono riportati. I risultati e le metriche complete v4 restano nel sorgente LaTeX inattivo. `data/per_k.csv` usa la serie Haiku; la curva v4 è in `data/per_k_v4_seed13_archived.csv`. Il PDF non è stato compilato su richiesta.
+
+## Review pre-submission (2026-11-18, sera)
+
+Stato verificato su `37e0732`; il PDF compila in 4 pagine e il layout è corretto. La call EDBT 2027 per le demo (sorgente di `edbticdt2027.github.io`, `contents/call_for_demos.html`) fissa la submission al **18 novembre 2026 alle 17:00 PT** (02:00 del 19 in Italia). Requisiti: massimo 4 pagine incluse le referenze, submission non anonima, **video MP4 obbligatorio** (fino a 5 minuti, H.264/AAC), invio tramite CMT `EDBT2027`. La proposta deve descrivere cosa vede il pubblico, se può interagire, lo script e i requisiti oltre a un tavolo e al Wi-Fi.
+
+Punti emersi:
+
+- **Video.** Esiste solo una GIF muta; serve un MP4.
+- **Requisiti logistici.** Il paper non dice cosa serve oltre al tavolo (accesso al provider LLM, rete) né cosa succede se manca la rete. La modalità con scenari offline esiste ed è citata, ma non come piano di riserva esplicito.
+- **Riferimenti interni.** Abstract e Scope citano "v4 seed-13" e "not combined with v4": per un revisore sono nomi senza significato, e vanno tolti.
+- **Catalogo da 8.192 scenari.** Abstract ed Evaluation lo presentano, ma i risultati usano la suite annidata a 48 varianti: può sembrare un contributo non valutato.
+- **Italiano.** La frase "in English or Italian" non è verificata sul sistema.
+- **Opzione `review` di acmart.** Mostra i numeri di riga; va lasciata o tolta secondo il template EDBT.
+- **Serie `imperfect_user_codex_vlast`.** Non è riportata e non è utilizzabile: 64/225 run refined completate, 0/40 oracle, tutti gli errori sono "Codex CLI LLM call failed".
