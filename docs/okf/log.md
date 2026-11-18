@@ -2,6 +2,13 @@
 
 ## 2026-11-18
 
+* **Registrazione della demo** in `paper/video/murena_demo_nursery.gif`:
+  * Contenuto: GIF di 36 fotogrammi, 1400×841, senza audio.
+  * Esecuzione: app locale, backend con `claude_cli`/`claude-haiku-5-5` dal vivo, caso nido.
+  * Interazione: risposta vaga sui requisiti edilizi, poi domanda riformulata e requisito esatto (600 m², 45 bambini). Opt-out sulla classe energetica: non più chiesta, e la richiesta riscritta lo riporta. Conferma, analisi (22 immobili) e top 10 sulla mappa.
+  * Uso: traccia per il video della demo, non un risultato sperimentale. Il video con commento e il suo caricamento restano a carico degli autori.
+  * Il link nel paper è ancora da aggiungere. Dettagli in `research/conversational-paper-audit.md`.
+
 * **Serie "utente imperfetto" completata e paper aggiornato:**
   * La serie ha 265 run su 265 completate, codice `62630c0`, in `results/imperfect_user_haiku`.
     * Opt-out: 105/105 run con la dimensione registrata come `NOT_REQUESTED`, chiesta una sola volta.

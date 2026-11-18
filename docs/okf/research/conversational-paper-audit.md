@@ -84,3 +84,16 @@ PDF rigenerato con Tectonic e controllato visivamente: 4 pagine. Resta un overfu
   - Mancano ancora l'URL del portale APE e il link al video: da confermare con l'utente.
 - **Lavori correlati:** aggiunto Sphinteract (PVLDB 18(4):1145–1158, 2024, DOI 10.14778/3717755.3717772), con metadati verificati sul blocco "PVLDB Reference Format" del PDF.
 - **PDF:** rigenerato con Tectonic e controllato visivamente, 4 pagine; overfull verticale di 1,9 pt nella routine di output, dello stesso tipo del precedente. Non è committato: il collega lo aveva rimosso (`b820dc6`).
+
+## Registrazione della demo (2026-11-18)
+
+- **File:** `paper/video/murena_demo_nursery.gif`, registrato con il registratore GIF del browser sull'app locale (frontend Vite in modalità normale, backend `uvicorn` con `LLM_PROVIDER=claude_cli`, `LLM_MODEL=claude-haiku-5-5`, effort medium).
+- **Richiesta iniziale:** "I am looking for an existing school building in Turin to convert into a nursery, near green spaces."
+- **Interazione osservata:**
+  1. Domanda sui requisiti edilizi; risposta vaga ("It depends; something suitable for the project, I guess.").
+  2. Domanda sull'efficienza energetica; opt-out ("I have no requirement on the energy class.").
+  3. Domanda riformulata sui requisiti edilizi; risposta esatta ("At least 600 sqm of gross floor area and capacity for 45 children.").
+  4. Revisione della richiesta riscritta, che riporta "Energy performance is not a concern for this search".
+  5. Conferma, analisi (circa 50 s) e mappa con 22 immobili e top 10 giustificata.
+- **Valore:** è una singola esecuzione dimostrativa, coerente con il comportamento misurato nella serie "utente imperfetto". Non è un risultato e non va citata come tale.
+- **Da fare:** il paper non contiene ancora il link al video. La GIF non ha audio: il video finale, con commento, va prodotto e caricato dagli autori.
