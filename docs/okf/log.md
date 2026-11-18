@@ -2,6 +2,8 @@
 
 ## 2026-11-18
 
+* **Model council sul paper:** tre review indipendenti (claude-opus-5-5, gemini-4-hydrogen, grok-4.7) su `3dca8d4`, voti 3/3/2. Tutti i numeri sono riprodotti tranne il 144 della Fig. 2. Sintesi e piano di revisione in `docs/reviews/model-council/2026-11-18/` (`SYNTHESIS.md`, `REVISION_PLAN.md`), fuori dal bundle OKF.
+
 * **Paper, correzioni pre-submission (PR separata):** abstract e Scope senza riferimenti interni a v4; generatore da 8.192 scenari ridotto a una frase, "not evaluated here"; risultato principale anticipato nell'introduzione; nuovo paragrafo "Setup and fallback"; tolto "or Italian" (non supportato in output e non testato); opzione `review` mantenuta come nel template ufficiale. PDF: 4 pagine.
 
 * **Review pre-submission e deadline:** la call demo EDBT 2027 ha scadenza il 18-11-2026 alle 17:00 PT; il video MP4 è obbligatorio. Review in `research/conversational-paper-audit.md`. La serie `imperfect_user_codex_vlast` ha errori Codex CLI diffusi e non è riportata.
