@@ -53,6 +53,15 @@ Non occorrono Python, backend, dataset immobiliari o provider LLM. Il browser us
 
 Per una build statica: `npm run build:demo`, quindi `npm run preview` oppure servire `frontend/dist/` con fallback SPA. Il flag demo è incorporato nella build. Per il frontend con backend usare `npm run dev` / `npm run build`. Test del simulatore: `npm run test:demo`. Dettagli e limiti in [Percorsi e schermate](../frontend/ui-routes.md#modalità-demo-offline-con-scenari-pronti).
 
+### Demo pubblica
+
+La build statica corrente è pubblicata su [murena-conversational.vercel.app](https://murena-conversational.vercel.app), nel progetto Vercel `murena-conversational`. È distinta dalla demo storica [murena.vercel.app](https://murena.vercel.app). La distribuzione usa `frontend/vercel.json` per il fallback delle rotte React e non richiede backend, credenziali LLM o variabili runtime. Per aggiornare gli asset pubblici, autenticarsi con Vercel CLI ed eseguire dalla cartella `frontend/`:
+
+```bash
+npm run build:demo
+vercel deploy dist --project murena-conversational --prod --yes --local-config vercel.json
+```
+
 ## Comportamenti automatici importanti
 
 - `.env` deve esistere o il launcher si interrompe.

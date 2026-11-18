@@ -2,6 +2,8 @@
 
 ## 2026-11-18
 
+* **Demo statica su Vercel:** il progetto separato `murena-conversational` è pubblicato su https://murena-conversational.vercel.app; la demo storica `murena` / `murena.vercel.app` resta distinta. `frontend/vercel.json` abilita il fallback SPA e la protezione SSO è disattivata sul nuovo progetto. La modalità demo usa `imperfect_user_codex_vlast` come fonte benchmark: 225 run refined completate vengono ridotte a 75 scenari per il pannello; l’export contiene 148 immobili benchmark e tutti gli ID top dei 75 scenari hanno corrispondenza. Corretta la sorgente configurata dopo che la build precedente usava `imperfect_user_v4_comparison_seed13`, i cui ID non corrispondevano all’inventario locale. La build corretta è stata pubblicata e gli asset online verificano 75 scenari e 148 immobili associati. Nessun backend o segreto runtime è richiesto.
+
 * **Model council sul paper:** tre review indipendenti (claude-opus-5-5, gemini-4-hydrogen, grok-4.7) su `3dca8d4`, voti 3/3/2. Tutti i numeri sono riprodotti tranne il 144 della Fig. 2. Sintesi e piano di revisione in `docs/reviews/model-council/2026-11-18/` (`SYNTHESIS.md`, `REVISION_PLAN.md`), fuori dal bundle OKF.
 
 * **Paper, correzioni pre-submission (PR separata):** abstract e Scope senza riferimenti interni a v4; generatore da 8.192 scenari ridotto a una frase, "not evaluated here"; risultato principale anticipato nell'introduzione; nuovo paragrafo "Setup and fallback"; tolto "or Italian" (non supportato in output e non testato); opzione `review` mantenuta come nel template ufficiale. PDF: 4 pagine.
