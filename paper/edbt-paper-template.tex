@@ -71,14 +71,13 @@
 
 
 
-%% test
 
 \begin{abstract}
 % MURENA~\cite{deluca2026murena} is a framework that translates natural-language requests into structured requirements,
 % database searches, and explainable real-estate portfolio rankings, but assumes that the initial request is sufficiently specified. We present a conversational stage that clarifies unresolved requirements prior to running the original multi-agent pipeline. It tracks the state of MURENA's query dimensions, separates unconfirmed omissions from explicit non-preferences, asks one targeted question per turn in an order inspired by the EVPI criterion of SAGE-Agent, and requires the user to review and confirm a rewritten request. In a controlled-omission benchmark with Claude Haiku 5.5 (304 cooperative runs over eight intents), refined queries reach top-5 Jaccard agreement 0.88 and filter-atom $F_1$ 0.98 against an oracle query, on par with the oracle's own run-to-run agreement (0.87), compared with 0.16 and 0.61 for one-shot runs. In a separate series with simulated imperfect users, explicit declines were recorded as non-preferences in all 105 runs and vague answers triggered a follow-up in all 120 runs. Attendees drive the system with their own
 % requests, and an offline mode replays recorded benchmark scenarios.
 
-Real estate searches often begin with incomplete requests, leaving important preferences unresolved and affecting portfolio recommendations. We extend MURENA~\cite{deluca2026murena} with a conversational clarification stage that resolves missing requirements before executing its multi-agent search-and-ranking pipeline. The system tracks confirmed preferences, distinguishes omitted requirements from explicit non-preferences, and selects targeted questions using an ordering inspired by the Expected Value of Perfect Information (EVPI). Users then review and confirm the refined request. Across 304 simulated interactions covering eight search intents, clarification increased top-5 portfolio Jaccard agreement with an oracle query from 0.16 to 0.88, matching the oracle's run-to-run agreement of 0.87. Filter agreement also improved, with F1 rising from 0.61 to 0.98. Additional tests confirmed consistent handling of explicit declines and ambiguous answers across 225 simulated interactions. The live demo lets attendees explore MURENA using their own real estate requests or replay benchmark scenarios offline.\SIMONE{Chiudere con una frasetta del genere per la demo?}
+Real estate searches often begin with incomplete requests, leaving important preferences unresolved and affecting portfolio recommendations. We extend MURENA~\cite{deluca2026murena} with a conversational clarification stage that resolves missing requirements before executing its multi-agent search-and-ranking pipeline. The system tracks confirmed preferences, distinguishes omitted requirements from explicit non-preferences, and selects targeted questions using an ordering inspired by the Expected Value of Perfect Information (EVPI) criterion of SAGE-Agent. Users then review and confirm the refined request. Across 304 benchmark runs covering eight search intents, in which a simulated user supplies exactly the omitted requirement, clarification increased top-5 portfolio Jaccard agreement with an oracle query from 0.16 to 0.88, matching the oracle's run-to-run agreement of 0.87. Filter agreement also improved, with $F_1$ rising from 0.61 to 0.98. A separate series with another LLM (225 refined runs) handled every explicit decline and every vague answer as intended. The live demo lets attendees explore MURENA using their own real estate requests or replay benchmark scenarios offline.\SIMONE{Chiudere con una frasetta del genere per la demo?}
 \end{abstract}
 \keywords{conversational query clarification, requirement elicitation,
 real-estate decision support, multi-agent systems, text-to-SQL}
@@ -280,9 +279,9 @@ accepted without edits, and $\hat q$ (never $q^*$) is analysed, over the
 \emph{One-shot}: $q_0$ is analysed directly;
 40 scenarios with $k\ge1$, 3 repetitions. \emph{Oracle}: $q^*$ is
 analysed directly, 5 repetitions per intent. The plan comprises 304 runs,
-executed by condition (refined, one-shot, oracle), all with the same code version, pipeline
-options (including MURENA's result relaxation, whose activation is
-logged), and the 89,200-property MURENA dataset. Run-to-run variability
+executed by condition (refined, one-shot, oracle) in different time
+windows, all with the same code version, pipeline options (including
+result relaxation, whose activation is logged), and the 89,200-property MURENA dataset. Run-to-run variability
 is measured rather than assumed absent. The oracle ranking is a
 \emph{reference query output}, not ground truth on property relevance.
 
@@ -294,10 +293,8 @@ omitted) supplied the following actual inputs to the analysis pipeline:
 \emph{One-shot ($q_0$)}: ``I am looking for an existing school building. I intend to convert it into a nursery. The location is in Turin. I prefer properties near green spaces.''
 \emph{Refined ($\hat q$)}: ``I am looking for an existing school building in Turin to convert into a nursery. It must have at least 600 sqm of gross floor area and capacity for 45 people. I prefer a property in energy class D or better. I also prefer properties near green spaces.''
 \emph{Oracle ($q^*$)}: ``Find an existing school building to convert it into a nursery for 45 children in Turin with at least 600 sqm of gross floor area in energy class D or better near green spaces.''
-The refined text was generated after two clarification turns; the
-oracle was predefined. They express corresponding requirements with
-different wording, including ``capacity for 45 people'' versus ``for 45
-children''; the oracle text is never substituted for the refined output.
+The refined text came from two clarification turns; the predefined
+oracle is never substituted for it.
 
 \paragraph{Metrics.} \emph{Clarification}: precision, recall, and $F_1$
 of detecting the initially omitted dimensions; number of turns;
@@ -306,14 +303,12 @@ agreement with the oracle}: Jaccard similarity of the top-5 sets ($J_5$)
 and extrapolated rank-biased overlap (RBO)~\cite{webber2010rbo} ($p=0.8$) over
 the stored top-10, averaged over all condition-by-oracle repetition
 pairs. The same metrics between oracle repetitions give a \emph{noise
-ceiling}. Because scores are coarse, a tie-aware variant averages over
-1,000 random permutations within equal-score groups. Pairs with two
-empty results are excluded and reported; one empty side scores 0.
+ceiling}. Pairs with two empty results are excluded and reported; one
+empty side scores 0.
 \emph{Structured filter agreement}: per-dimension atoms extracted by the
 agents before relaxation (e.g., use, city and radius, minimum area,
 worst admitted energy class, proximity category) are compared with the
-atoms present in a strict majority of oracle repetitions ($F_1$,
-per-dimension recall, invented atoms). \emph{Cost}: latency split into
+atoms present in a strict majority of oracle repetitions ($F_1$). \emph{Cost}: latency split into
 clarification and analysis. Per-level means carry 95\% percentile
 intervals from a cluster bootstrap over the eight intents
 ($B=10{,}000$); the intent-level difference refined~$-$~one-shot is
@@ -326,8 +321,8 @@ the added information, not of dialogue over a static form. The level
 $k$ is coupled to the identity of the omitted dimensions, so results
 are stratified by $k$ and not read as a causal effect of the count. At
 $k=0$, $q_0$ and $q^*$ differ only in wording, which bounds
-wording-induced variation. The cooperative and imperfect-user series are
-reported separately and never pooled.
+wording-induced variation. The cooperative and imperfect-user series use
+different models and are reported separately, never pooled.
 
 \paragraph{Execution.} Clarification and all pipeline agents used
 Claude Haiku 5.5 (\texttt{claude-haiku-5-5}) through the non-interactive
@@ -336,17 +331,22 @@ default sampling. All 304 planned runs (144 refined, 120
 one-shot, 40 oracle) completed on 2026-11-18 with ten concurrent runs,
 in one execution paused once and resumed on the same code; no run or
 agent call failed, and every $(k,\text{condition})$ cell covers all 8
-intents. Relaxation fired in 52 runs (36 refined, 6 one-shot, 10 oracle),
-always for the same two intents, and is logged. Two earlier executions
+intents. Relaxation fired in 52 logged runs (36 refined, 6 one-shot,
+10 oracle), all for the spring-section and residential-care intents
+(one-shot: residential care only). Two earlier executions
 are documented separately and not pooled: a partial one with a
 different LLM backend, and a complete one that preceded a fix of the
 property-type metadata passed to the building agent.
 
 \paragraph{Results.} In the cooperative series, refined clarification
 followed the omitted dimensions and took exactly $k$ turns; no question was
-asked in the $k=0$ controls. Table~\ref{tab:results} summarizes agreement
-with the reference query. Refined ranking and filter agreement are high;
-one-shot agreement falls as omitted constraints accumulate. Oracle
+asked in the $k=0$ controls; detection was exact (360/360 omitted
+dimensions, no false positives). Table~\ref{tab:results} summarizes
+agreement with the reference query. Refined ranking and filter agreement
+are high; one-shot agreement falls as omitted constraints accumulate
+(Fig.~\ref{fig:perk}). Refined~$-$~one-shot is positive for all eight
+intents on $J_5$, RBO, and filter $F_1$ (sign-flip $p=0.008$, the minimum
+attainable with eight intents). Oracle
 self-agreement is shown as a noise ceiling, not as system performance.
 These scores measure agreement with a reference query, not independent
 property relevance.
@@ -392,10 +392,14 @@ were fixed before this series.
 \fi
 
 \paragraph{Imperfect users.} A separate Codex CLI run
-(\texttt{codex\_exec}, \texttt{gpt-6-luna}, low reasoning effort) on the full
-dataset (seed 13; three refined repetitions per variant, five oracle
-runs per intent) completed 265/265 runs (225 refined, 40 oracle). Values are
-means over eight intents with 95\% cluster-bootstrap intervals. For opt-out,
+(\texttt{codex\_exec}, \texttt{gpt-6-luna}, low reasoning effort) on a
+different snapshot of the property table (seed 13; three refined repetitions
+per variant, five oracle runs per intent) completed all 265 planned runs
+(225 refined, 40 oracle); 201 attempts that failed with CLI provider errors
+were re-run. Values are means over eight intents with 95\% cluster-bootstrap
+intervals. Opt-out answers the first omitted preference ($C_b$, $C_e$, or
+$C_p$) with the fixed phrase ``I have no requirement on \dots''; vague
+answers use one fixed non-committal reply. For opt-out,
 \texttt{NOT\_REQUESTED}, one question, and exactly $k$ turns occurred in all
 105 cases; the intent-mean rate with no filter atom on the declined dimension
 was 0.90 [0.71, 1.00], and filter-atom $F_1$ on other dimensions was
@@ -404,8 +408,10 @@ retains the declined constraint. For vague answers, follow-up, $k+1$ turns,
 and final state \texttt{SPECIFIED} occurred in all 120 cases; filter-atom
 $F_1$ was 1.00 [1.00, 1.00], top-5 Jaccard 0.74 [0.59, 0.88], and RBO@10
 0.82 [0.72, 0.91] against that series' oracle. Oracle self-agreement was
-0.70 [0.51, 0.89]. This run (code revision \texttt{37e0732}, dirty working
-tree) is separate from the cooperative Haiku series. Users are simulated;
+0.70 [0.51, 0.89], below the 0.87 of the Haiku series: ceilings differ
+between models and executions, so values are compared only within a
+series. This run (code revision \texttt{37e0732}, dirty working tree) is
+separate from the cooperative Haiku series. Users are simulated;
 agreement is with benchmark references, not independent relevance judgments.
 
 \iffalse % Archived v4 seed-13 experiment and results; not reported here.
