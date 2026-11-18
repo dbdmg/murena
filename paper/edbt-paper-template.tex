@@ -71,7 +71,9 @@
 %% test
 
 \begin{abstract}
-Real-estate searches often begin with incomplete requests, leaving important preferences unresolved. We extend MURENA~\cite{deluca2026murena} with a conversational clarification stage that distinguishes omitted requirements from explicit non-preferences, asks targeted questions, and lets users review the resulting request before analysis. We evaluate two mixed-response interaction types with simulated users: explicit declines and vague answers that require a follow-up. Across 75 scenario variants and eight search intents, both \texttt{claude-haiku-5-5} and \texttt{gpt-6-luna} recorded every completed explicit decline as a non-preference and followed up on every completed vague answer. Filter $F_1$ was 0.99--1.00; for vague-answer cases, top-5 ranking overlap with each model's own reference runs was 0.91 for \texttt{claude-haiku-5-5} and 0.74 for \texttt{gpt-6-luna}. A live demonstration lets attendees explore the interaction and inspect benchmark scenarios.
+Real-estate searches often begin with incomplete requests, leaving important preferences unresolved. We extend MURENA with a conversational clarification stage that distinguishes omitted requirements from explicit non-preferences, asks targeted questions, and lets users review the resulting request before analysis. We evaluate two mixed-response interaction types with simulated users: explicit declines and vague answers that require a follow-up. Across 75 scenario variants and eight search intents, both \texttt{claude-haiku-5-5} and \texttt{gpt-6-luna} recorded every completed explicit decline as a non-preference and followed up on every completed vague answer. 
+Filter \(F_1\) for retained preferences and clarified answers was 0.99–1.00. Declined preferences were excluded from downstream filters at mean rates across use cases of 0.88 for claude-haiku-5-5 and 0.90 for gpt-6-luna. 
+Attendees can submit requests, answer or decline clarification questions, and inspect the confirmed request, extracted filters, and ranked properties.
 \end{abstract}
 \keywords{conversational query clarification, requirement elicitation,
 real-estate decision support, multi-agent systems, text-to-SQL}
@@ -290,10 +292,7 @@ recorded examples of the two response paths and their refined queries.
 % ---------- Shared input ----------
 \node[input] (q) {
     \textbf{Shared input query}\\[2pt]
-    Commercial unit in Turin for potential conversion
-    into a play space / baby parking (hourly childcare);
-    at least 115 sqm, capacity for 15 people,
-    preferably energy class D or better.
+    ``I am looking for an existing commercial unit. I intend to assess a conversion into a play space / baby parking (hourly childcare), subject to confirmation of the applicable authorization regime. The location is in Turin. I need a property with at least 115 sqm of gross floor area and capacity for 15 people. I prefer a property in energy class D or better.''
 };
 
 % ---------- Path A ----------
@@ -304,8 +303,7 @@ recorded examples of the two response paths and their refined queries.
 \node[dialogue, anchor=north west] (a1)
     at ($(ha.south west)+(0,-4pt)$) {
     \textbf{System}\\
-    Which nearby services would matter to you
-    [...] or does proximity not matter?
+    Which nearby services would matter to you---healthcare, public transport, green spaces, sports facilities, shops, or education---or does proximity not matter?
 
     \smallskip
     \textbf{User}\\
@@ -316,9 +314,7 @@ recorded examples of the two response paths and their refined queries.
 \node[dialogue, anchor=north west] (a2)
     at ($(a1.south west)+(0,-8pt)$) {
     \textbf{System (follow-up)}\\
-    Which nearby service categories would support
-    the project [...]? You can also say that
-    proximity doesn't matter or name another priority.
+    Which nearby service categories would support the project---healthcare, mobility, green spaces, sport, commercial services, or education? You can also say that proximity doesn’t matter or name another priority.
 
     \smallskip
     \textbf{User}\\
@@ -329,9 +325,8 @@ recorded examples of the two response paths and their refined queries.
 
 \node[result, anchor=north west] (ar)
     at ($(a2.south west)+(0,-8pt)$) {
-    \textbf{Refined query (excerpt)}\\[2pt]
-    ``I prefer energy class D or better
-    \textcolor{accent}{and a location near parks}.''
+    \textbf{Refined query}\\[2pt]
+    ``I am looking for an existing commercial unit in Turin that I can assess for conversion into a play space or baby parking (hourly childcare), subject to confirmation of the applicable authorization regime. The property must have at least 115 sqm of gross floor area and capacity for 15 people. I prefer energy class D or better \textit{\textbf{and a location near parks}}.''
 };
 
 \draw[arrow] (a2.south) -- (ar.north);
@@ -344,8 +339,7 @@ recorded examples of the two response paths and their refined queries.
 \node[dialogue, anchor=north west] (b1)
     at ($(hb.south west)+(0,-4pt)$) {
     \textbf{System}\\
-    Which nearby services matter to you
-    [...] or does proximity not matter?
+    Which nearby services matter to you, such as healthcare, public transport, green spaces, sports facilities, shops, or education---or does proximity not matter?
 
     \smallskip
     \textbf{User}\\
@@ -354,10 +348,8 @@ recorded examples of the two response paths and their refined queries.
 
 \node[result, anchor=north west] (br)
     at ($(b1.south west)+(0,-8pt)$) {
-    \textbf{Refined query (excerpt)}\\[2pt]
-    ``I prefer energy class D or better.
-    \textcolor{accent}{
-    Nearby services are not a requirement}.''
+    \textbf{Refined query}\\[2pt]
+    ``I am looking for an existing commercial unit in Turin to assess for conversion into a play space or baby parking (hourly childcare), subject to confirmation of the applicable authorization regime. It must have at least 115 sqm of gross floor area and capacity for 15 people. I prefer energy class D or better. \textit{\textbf{Nearby services are not a requirement}}.''
 };
 
 \draw[arrow] (b1.south) -- (br.north);
@@ -369,9 +361,8 @@ Clarification trajectories from the same property-search
 scenario. (a) An ambiguous response triggers a follow-up,
 leading to a preference for nearby parks.
 (b) An explicit opt-out is recorded without further
-clarification. Violet highlights the resulting additions
-to the refined queries. Unchanged query content and
-parts of the questions are omitted for brevity.
+clarification. Violet highlights wording that differs
+between the two refined queries.
 }
 \Description{
 Two vertically arranged clarification examples
