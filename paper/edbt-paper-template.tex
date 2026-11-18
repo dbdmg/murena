@@ -75,7 +75,7 @@ Real-estate searches often begin with incomplete requests, leaving important pre
 Filter \(F_1\) for retained preferences and clarified answers was 0.99–1.00. Declined preferences were excluded from downstream filters at mean rates across use cases of 0.88 for claude-haiku-5-5 and 0.90 for gpt-6-luna. 
 Attendees can submit requests, answer or decline clarification questions, and inspect the confirmed request, extracted filters, and ranked properties.
 \end{abstract}
-\keywords{conversational query clarification, requirement elicitation,
+\keywords{conversational request clarification, requirement elicitation,
 real-estate decision support, multi-agent systems, text-to-SQL}
 \maketitle
 
@@ -86,22 +86,29 @@ MURENA~\cite{deluca2026murena} supports large-scale real-estate screening by tra
 
 Missing information does not necessarily indicate an incomplete request. MURENA's search dimensions are optional, and users may deliberately leave some unconstrained. The challenge is to distinguish unresolved requirements from explicit non-preferences and obtain a request that accurately reflects the user's intentions.
 
-We introduce \emph{Conversational MURENA}, an interactive clarification stage that extends the existing multi-agent architecture before database screening. The demonstration makes the following contributions:
-\begin{itemize}
-    \item A stateful requirement elicitation mechanism that tracks confirmed and unresolved constraints, records explicit non-preferences, and selects targeted questions using an ordering inspired by SAGE-Agent~\cite{suri2026sage}. A mandatory review step lets users confirm the refined request before execution.
+We introduce \emph{Conversational MURENA}, an interactive clarification stage that extends the existing multi-agent architecture before database screening. 
 
-    \item A mixed-response benchmark covering explicit non-preferences and vague answers that require a follow-up. We evaluate both response types with \texttt{claude-haiku-5-5} and \texttt{gpt-6-luna}, measuring whether the system captures user intent, preserves the other filters, and produces consistent rankings.
+The evaluation finds high agreement for specified constraints, but also cases in which a correctly recorded non-preference reappears in downstream filters.
+The demonstration makes the following contributions:
+\begin{itemize}
+    \item 
+    We extend MURENA with a stateful clarification stage that distinguishes unresolved requirements from explicit non-preferences, records answer evidence for deterministic state updates, and requires user confirmation before screening (Section~\ref{sec:system}). The demonstration exposes the dialogue, confirmed request, and downstream filters and rankings (Section~\ref{sec:demo}).
+    %\SIMONE{Suggerimento: non menzionare come contributo SAGE-Agent visto che non è parte delle cose che valutiamo relamente la logica di ordering risultate, condividi?} ok
+    % A stateful requirement elicitation mechanism that tracks confirmed and unresolved constraints, records explicit non-preferences, and selects targeted questions using an ordering inspired by SAGE-Agent~\cite{suri2026sage}. A mandatory review step lets users confirm the refined request before execution.
+
+    \item 
+    We provide a benchmark of 75 scripted variants across eight use cases that measures follow-up behavior, preservation of specified constraints, exclusion of declined preferences, and reference-ranking agreement after vague-answer clarification (Section~\ref{sec:eval}).
+    % A mixed-response benchmark covering explicit non-preferences and vague answers that require a follow-up. We evaluate both response types with \texttt{claude-haiku-5-5} and \texttt{gpt-6-luna}, measuring whether the system captures user intent, preserves the other filters, and produces consistent rankings.
 \end{itemize}
 
 End users can interact with the complete system, starting with their own real estate requests, answering clarification questions, and examining the resulting portfolio rankings and explanations. Recorded benchmark scenarios enable offline demonstrations of incomplete requests, ambiguous answers, and explicit non-preferences.
-\SIMONE{Ho rifrasato un po', ma non so se formalizzare meglio le contributions. @marco che dici? Chat dice sia meglio separare i contributi scientifici da quello della demo in sé}
 
 \section{Related Work}
 \label{sec:related}
 \emph{Clarification in LLMs.} CLAMBER~\cite{zhang2024clamber} shows that LLMs struggle to \emph{identify} ambiguous information needs, while QuestBench~\cite{li2025questbench} evaluates their ability to select necessary clarification questions in underspecified reasoning tasks. SAGE-Agent~\cite{suri2026sage} models uncertainty over tool parameters, ranks candidate questions by expected value of perfect information (EVPI), and penalizes redundant questions on the same aspect; our question ordering adapts this idea heuristically.
 
 \emph{Ambiguity and interaction for data access.}
-AmbiQT~\cite{bhaskar2023ambiqt}, AMBROSIA~\cite{saparina2024ambrosia}, and PRACTIQ~\cite{dong2025practiq} benchmark ambiguous or unanswerable text-to-SQL questions; AMBROSIA also reports that LLMs struggle to recognize ambiguity. Sphinteract~\cite{zhao2024sphinteract} asks targeted clarification questions to resolve NL2SQL ambiguity, AmbiSQL~\cite{ding2026ambisql} demonstrates multiple-choice clarification before SQL generation, FISQL~\cite{menon2025fisql} refines SQL through user feedback, and COOL~\cite{francia2021cool} disambiguates conversational OLAP sessions. These approaches primarily address ambiguity in database queries or their interpretation. We instead elicit \emph{domain requirements} across MURENA's predefined search dimensions, evaluating their recovery and impact on downstream portfolio rankings.
+AmbiQT~\cite{bhaskar2023ambiqt}, AMBROSIA~\cite{saparina2024ambrosia}, and PRACTIQ~\cite{dong2025practiq} benchmark ambiguous or unanswerable text-to-SQL questions; AMBROSIA also reports that LLMs struggle to recognize ambiguity. Sphinteract~\cite{zhao2024sphinteract} asks targeted clarification questions to resolve NL2SQL ambiguity, AmbiSQL~\cite{ding2026ambisql} demonstrates multiple-choice clarification before SQL generation, FISQL~\cite{menon2025fisql} refines SQL through user feedback, and COOL~\cite{francia2021cool} disambiguates conversational OLAP sessions. These approaches primarily address ambiguity in database queries or their interpretation. We elicit optional domain requirements across MURENA’s search dimensions and evaluate their preservation in filters and the agreement of resulting rankings with model-specific references.
 
 \section{System}
 \label{sec:system}
@@ -134,9 +141,23 @@ borders and grey fill; inherited ones have solid borders.}
 \paragraph{Dimension states.} An LLM parser assigns each dimension one
 of five states: \emph{specified}, \emph{ambiguous},
 \emph{unconfirmed absent}, \emph{not requested}, or \emph{missing
-critical}. A plain omission becomes \emph{unconfirmed absent}; only an
-explicit user statement makes it \emph{not requested}, so an omission is
-never silently read as a non-preference. Dimension boundaries follow
+critical}. A dimension is \emph{specified} when the request explicitly
+provides a value the system can interpret. It is \emph{ambiguous} when
+the request contains a value or reference, but multiple plausible
+interpretations could materially change the results. For example,
+``Porta Nuova'' names a place, but without a city it may refer to
+different locations; the parser preserves the reference and asks which
+city the user means. \emph{Missing critical} instead marks a required
+detail for which the parser has no usable, grounded value, so analysis
+must remain blocked until it is supplied or resolved. For example, if
+the parser labels a location as specified but cannot find that geographic
+value in the request, validation changes its state to \emph{missing
+critical}. A plain omission remains \emph{unconfirmed absent}; only an
+explicit statement that a dimension does not matter or has no preference
+makes it \emph{not requested}. Thus, an omission is never silently read
+as a non-preference. The parser grounds specified values and opt-outs in
+evidence from the request; unsupported labels are downgraded to an
+unresolved state. Dimension boundaries follow
 MURENA: $C_b$ is specified only by requirements that filter properties
 (floor area, capacity, explicit structural features); words that merely
 name the property or its status, such as ``existing building'', do not
@@ -171,7 +192,7 @@ user's safeguard, not a guarantee.
 intended uses (five early-childhood services, two care services for
 older adults, and a student residence tied to a specific public funding
 programme) supplies use examples and lets the regulatory agent match
-uses. It is supporting coverage, not a new query template: matching a
+uses. It is supporting coverage, not a new request template: matching a
 use is distinct from deciding whether a provision applies, neither is a
 compliance certification, and user-defined gross floor area is not
 confused with room-level legal measures.
@@ -291,7 +312,7 @@ recorded examples of the two response paths and their refined queries.
 
 % ---------- Shared input ----------
 \node[input] (q) {
-    \textbf{Shared input query}\\[2pt]
+    \textbf{Shared input request}\\[2pt]
     ``I am looking for an existing commercial unit. I intend to assess a conversion into a play space / baby parking (hourly childcare), subject to confirmation of the applicable authorization regime. The location is in Turin. I need a property with at least 115 sqm of gross floor area and capacity for 15 people. I prefer a property in energy class D or better.''
 };
 
@@ -325,7 +346,7 @@ recorded examples of the two response paths and their refined queries.
 
 \node[result, anchor=north west] (ar)
     at ($(a2.south west)+(0,-8pt)$) {
-    \textbf{Refined query}\\[2pt]
+    \textbf{Refined request}\\[2pt]
     ``I am looking for an existing commercial unit in Turin that I can assess for conversion into a play space or baby parking (hourly childcare), subject to confirmation of the applicable authorization regime. The property must have at least 115 sqm of gross floor area and capacity for 15 people. I prefer energy class D or better \textit{\textbf{and a location near parks}}.''
 };
 
@@ -348,7 +369,7 @@ recorded examples of the two response paths and their refined queries.
 
 \node[result, anchor=north west] (br)
     at ($(b1.south west)+(0,-8pt)$) {
-    \textbf{Refined query}\\[2pt]
+    \textbf{Refined request}\\[2pt]
     ``I am looking for an existing commercial unit in Turin to assess for conversion into a play space or baby parking (hourly childcare), subject to confirmation of the applicable authorization regime. It must have at least 115 sqm of gross floor area and capacity for 15 people. I prefer energy class D or better. \textit{\textbf{Nearby services are not a requirement}}.''
 };
 
@@ -361,8 +382,7 @@ Clarification trajectories from the same property-search
 scenario. (a) An ambiguous response triggers a follow-up,
 leading to a preference for nearby parks.
 (b) An explicit opt-out is recorded without further
-clarification. Violet highlights wording that differs
-between the two refined queries.
+clarification.
 }
 \Description{
 Two vertically arranged clarification examples
@@ -407,7 +427,7 @@ these cases because the complete reference includes a preference the user
 rejected. For vague answers, we check whether the system asks a follow-up,
 records the clarified requirement, and uses one additional turn. We also
 compare filters and resulting rankings with each model's own repeated
-reference-query runs. Filter $F_1$ measures agreement on structured search
+reference-request runs. Filter $F_1$ measures agreement on structured search
 constraints; top-5 Jaccard and rank-biased overlap (RBO) measure ranking
 agreement. Reference self-agreement describes run-to-run variation, not
 system performance. We report clarification time for vague-answer cases.
@@ -491,7 +511,7 @@ performance comparisons are not made.
 \paragraph{Results.} Refined scores exceed one-shot on all three primary
 agreement measures (Table~\ref{tab:results}). Oracle self-agreement is a
 noise ceiling, not system
-performance. These scores measure agreement with a reference query, not
+performance. These scores measure agreement with a reference request, not
 independent property relevance; opt-out cases can make oracle agreement an
 unsuitable target. Refined completion was 209/246 (85.0\%); 37 attempts
 failed after generated opt-out wording did not express a clear refusal
@@ -686,7 +706,7 @@ responses: explicit non-preferences and vague answers that require a
 follow-up. Across two model configurations, both paths were handled
 consistently in the scripted cases. The study remains limited by simulated
 users, the small set of intents and scripted response patterns, and the
-use of reference-query agreement rather than independent judgments of
+use of reference-request agreement rather than independent judgments of
 property relevance. Because the evaluation has no no-dialogue baseline,
 it does not establish the benefit of dialogue over direct analysis. A
 study with real users is a natural next step.
@@ -696,7 +716,7 @@ and the per-run records of the reported series are available at
 \url{https://github.com/dbdmg/murena}. The property data derive from
 energy performance certificates (EPC) that the Piedmont Region publishes
 in reduced form as open data under CC~BY~4.0
-(\url{https://www.dati.piemonte.it/\#/catalogo}). A live demo for visualizing MURENA interface and benchmark scenarios is available at \url{https://murena-conversational.vercel.app/}.
+(\url{https://www.dati.piemonte.it/\#/catalogo}). A live demo for visualizing MURENA interface and benchmark scenarios is accessible at \url{https://murena-conversational.vercel.app/}.
 
 \begin{acks}
 This study was partially supported by the ``WEBFARE'' (Nr. FISA2022-00908), funded by the Italian Ministry of University and Research under the FISA 2022 programme (D.D. No. 1405 of 13/09/2022, Fondo Italiano per le Scienze Applicate -- FISA). This manuscript reflects only the authors' views and opinions; the Ministry cannot be held responsible for them.
