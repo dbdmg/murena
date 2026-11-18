@@ -31,7 +31,9 @@ import yaml
 HERE = Path(__file__).resolve().parent
 PREFERENCE_DIMENSIONS = ("Cb", "Ce", "Cp")
 OPT_OUT_ANSWERS = {
-    "Cb": "I have no requirement on floor area or capacity.",
+    # Covers the whole Cb dimension (size, capacity and structural features);
+    # a narrower wording was read as a partial opt-out in the pre-fix run.
+    "Cb": "I have no requirement on building size, capacity or structural features.",
     "Ce": "I have no requirement on the energy class.",
     "Cp": "I have no requirement on nearby services.",
 }

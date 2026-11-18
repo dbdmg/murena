@@ -782,9 +782,20 @@ class SageClarifier:
             )
         if state["turn"] >= self.max_turns or unresolved is None:
             self._save(db, row, state, "blocked")
+            labels = DIMENSION_LABELS.get(state.get("language"), DIMENSION_LABELS["en"])
+            open_dimensions = [
+                labels[key] for key, dimension in state["dimensions"].items()
+                if dimension["status"] in {"UNCONFIRMED_ABSENT", "MISSING_CRITICAL", "AMBIGUOUS"}
+                and key in labels
+            ]
+            detail = f" Unresolved: {'; '.join(open_dimensions)}." if open_dimensions else ""
             return ClarificationResponse(
                 status="BLOCKED", session_id=session_id,
-                message="A necessary query detail remains unresolved; analysis was not started.",
+                message=(
+                    "A query detail remains unresolved; analysis was not started."
+                    + detail
+                    + " Start again and give the requirement, or say that it does not matter."
+                ),
                 turn=state["turn"],
             )
         self._save(db, row, state, "active")
@@ -887,6 +898,25 @@ class SageClarifier:
             db.commit()
             raise
 
+    def _replace_omission_questions(self, state: dict, dimensions: list[str], context: dict) -> None:
+        """Regenerate the omission questions of ``dimensions`` as follow-ups."""
+        replacements = self._generate_omission_questions(
+            state["original_query"], dimensions, state["language"], context=context,
+        )
+        replacement_by_dimension = {
+            question["target_dimensions"][0]: question
+            for question in replacements
+        }
+        for question in state.get("questions", []):
+            targets = question.get("target_dimensions", [])
+            if question.get("kind") == "omission_confirmation" and len(targets) == 1:
+                replacement = replacement_by_dimension.pop(targets[0], None)
+                if replacement:
+                    question.clear()
+                    question.update(replacement)
+        if replacement_by_dimension:
+            state.setdefault("questions", []).extend(replacement_by_dimension.values())
+
     def _rephrase_followup(self, state: dict, pending: dict, answer: str, *, intent: str) -> None:
         """Replace a pending question with an LLM follow-up that omits rejected options."""
         targets = pending.get("target_dimensions", [])
@@ -949,37 +979,41 @@ class SageClarifier:
             result = self._extract_omission_updates(state, pending, answer)
             intent = result["intent"]
             if intent in {"UNKNOWN", "REJECTED"}:
-                state.setdefault("unanswerable_aspects", []).extend(aspect_keys)
                 if intent == "REJECTED":
                     for dimension in aspect_keys:
                         state.setdefault("excluded_interpretations", {}).setdefault(dimension, []).extend(
                             pending.get("alternatives", [])
                         )
-            elif intent == "UNCLEAR":
-                replacements = self._generate_omission_questions(
-                    state["original_query"],
-                    aspect_keys,
-                    state["language"],
-                    context={
+                # The first unknown/rejected answer to an omission question gets
+                # one rephrased follow-up (which reminds the user that the
+                # dimension may be declined); only a repeated one makes the
+                # dimension unanswerable, which blocks the analysis.
+                attempts = state.setdefault("unresolved_answer_counts", {})
+                repeated = any(attempts.get(dimension, 0) >= 1 for dimension in aspect_keys)
+                for dimension in aspect_keys:
+                    attempts[dimension] = attempts.get(dimension, 0) + 1
+                if repeated:
+                    state.setdefault("unanswerable_aspects", []).extend(aspect_keys)
+                else:
+                    self._replace_omission_questions(state, aspect_keys, {
                         "previous_question": pending["question"],
                         "previous_user_answer": answer,
-                        "answer_was_unclear": True,
+                        "previous_answer_intent": intent,
+                        "answer_did_not_resolve_the_question": True,
+                        "remind_that_the_dimension_can_be_declined": True,
+                        "rejected_suggestions_do_not_offer_again": [
+                            option for dimension in aspect_keys
+                            for option in state.get("excluded_interpretations", {}).get(dimension, [])
+                        ],
                         "confirmed_clarifications": state.get("clarifications", []),
-                    },
-                )
-                replacement_by_dimension = {
-                    question["target_dimensions"][0]: question
-                    for question in replacements
-                }
-                for question in state.get("questions", []):
-                    targets = question.get("target_dimensions", [])
-                    if question.get("kind") == "omission_confirmation" and len(targets) == 1:
-                        replacement = replacement_by_dimension.pop(targets[0], None)
-                        if replacement:
-                            question.clear()
-                            question.update(replacement)
-                if replacement_by_dimension:
-                    state.setdefault("questions", []).extend(replacement_by_dimension.values())
+                    })
+            elif intent == "UNCLEAR":
+                self._replace_omission_questions(state, aspect_keys, {
+                    "previous_question": pending["question"],
+                    "previous_user_answer": answer,
+                    "answer_was_unclear": True,
+                    "confirmed_clarifications": state.get("clarifications", []),
+                })
             else:
                 specified = {}
                 not_requested = []

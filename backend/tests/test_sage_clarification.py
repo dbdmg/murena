@@ -527,6 +527,40 @@ def test_italian_not_interested_confirms_only_current_dimension():
     db.close()
 
 
+def test_unknown_omission_answer_gets_one_followup_then_blocks():
+    db = _db()
+    unknown = {"intent": "UNKNOWN", "evidence": "It depends", "updates": {}}
+    no_pref = {"intent": "NO_PREFERENCE", "evidence": "No preference", "updates": {}}
+    # The first question gets "unknown"; every other one "no preference"; the
+    # first dimension, asked again later, gets "unknown" a second time.
+    llm = FakeLLM(_payload(location_status="SPECIFIED"), omission_responses=[unknown])
+    clarifier = SageClarifier(llm=llm, max_turns=12)
+    response = clarifier.process(db=db, user_input="Find a property in Turin")
+    session_id = response.session_id
+    asked: list[str] = []
+    first_target = None
+    while response.status == "ASK":
+        row = db.query(ClarificationSession).filter_by(session_id=session_id).first()
+        target = clarifier._select_question(row.state)["target_dimensions"][0]
+        if first_target is None:
+            first_target = target
+        elif target == first_target:
+            assert row.state["unresolved_answer_counts"] == {first_target: 1}
+            assert first_target not in row.state.get("unanswerable_aspects", [])
+            llm.omission_responses.append(unknown)
+        else:
+            llm.omission_responses.append(no_pref)
+        asked.append(target)
+        response = clarifier.process(
+            db=db, user_input="Find a property in Turin", session_id=session_id,
+            clarification_response="It depends" if target == first_target else "No preference",
+        )
+    assert asked.count(first_target) == 2  # one follow-up, then blocked
+    assert response.status == "BLOCKED"
+    assert "Unresolved:" in response.message and "does not matter" in response.message
+    db.close()
+
+
 def test_ambiguous_and_missing_critical_are_asked():
     db = _db()
     for status in ("AMBIGUOUS", "MISSING_CRITICAL"):

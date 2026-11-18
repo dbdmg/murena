@@ -2,6 +2,12 @@
 
 ## 2026-11-18
 
+* **SAGE: follow-up dopo una risposta `UNKNOWN`/`REJECTED` su una dimensione omessa** (`service.py`, `_apply_answer`):
+  * Prima, la prima risposta di questo tipo rendeva la dimensione non più selezionabile, quindi l'analisi si bloccava. Ora la prima ottiene una domanda riformulata, che ricorda che la dimensione si può rifiutare; solo una seconda risposta dello stesso tipo blocca. Il contatore è `unresolved_answer_counts` nello stato della sessione.
+  * Il messaggio `BLOCKED` di fine turni elenca le dimensioni irrisolte e invita a ripartire dando il requisito o dicendo che non conta. Non parla più di dettaglio "necessario" anche per dimensioni opzionali.
+  * Il percorso dell'utente cooperativo non cambia. Nuovo test `test_unknown_omission_answer_gets_one_followup_then_blocks`. Nota: i test di `test_sage_clarification.py` sono funzioni di modulo, quindi vanno eseguiti con pytest (`uv run --with pytest python -m pytest tests/test_sage_clarification.py`); `unittest` non li raccoglie.
+  * Motivazione: una prima esecuzione della serie "utente imperfetto" (Claude Haiku 5.5, 159 run su 265, poi interrotta e non riportata) ha mostrato blocchi in 11 run vaghi su 35 e in 1 opt-out su 33. La risposta vaga su Cb o Ce veniva a volte classificata come *unknown* invece che *unclear*; l'opt-out su Cb, formulato come "no requirement on floor area or capacity", veniva letto come rifiuto parziale (restavano le caratteristiche strutturali). La formulazione dell'opt-out su Cb nel generatore copre ora l'intera dimensione.
+
 * **Pulizia degli artefatti locali**:
   * Su richiesta sono state cancellate le directory non versionate `backend/experiments/results/missingness_v3/runs` (6,7 GB, 123 file) e `missingness_v2/runs` (1,0 GB, 120 file). Rimosse anche le directory padre, rimaste vuote.
   * Le risposte API complete per run di quelle serie non sono più recuperabili. `runs.jsonl`, manifest e confronti restano in Git (`4a7c882`, `411b003`).
