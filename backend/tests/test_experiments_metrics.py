@@ -171,7 +171,7 @@ class CompactArtifactTests(unittest.TestCase):
         original = deepcopy(record)
         stored = bc.compact_artifact(record)
         self.assertEqual(record, original)
-        self.assertEqual(stored["artifact_schema_version"], 3)
+        self.assertEqual(stored["artifact_schema_version"], bc.ARTIFACT_SCHEMA_VERSION)
         self.assertEqual(stored["ranking_ids"], ["1", "3", "4"])
         self.assertEqual(bc.compact_row(record), bc.compact_row(stored))
         self.assertNotIn("private", json.dumps(stored))

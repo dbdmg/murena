@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { OFFLINE_DEMO } from '../demo/mode';
 import type { GeoJsonObject } from 'geojson';
 import { Map } from '../components/map/Map';
@@ -20,7 +21,7 @@ import { mapApi } from '../api/endpoints/map';
 import { layersApi } from '../api/endpoints/layers';
 import { buildingsApi } from '../api/endpoints/buildings';
 import type { ApiCoordinates, MapConfig, MapMarker, POI } from '../api/types';
-import { Loader2, Sparkles, Building2, List } from 'lucide-react';
+import { Loader2, Sparkles, Building2, Home, List } from 'lucide-react';
 
 import { useSettings } from '../contexts/SettingsContext';
 import { useMap } from '../contexts/MapContext';
@@ -74,6 +75,7 @@ const matchesConstructionPeriod = (value: string | number | undefined, periods: 
 };
 
 export const MapPage: React.FC = () => {
+    const navigate = useNavigate();
     const { markersLimit } = useSettings();
     const { setMarkersCount, setTotalCount } = useMap();
 
@@ -105,18 +107,29 @@ export const MapPage: React.FC = () => {
                 if (!response.ok) throw new Error(`Inventory request failed (${response.status})`);
                 return response.json() as Promise<Array<Record<string, unknown>>>;
             })
-            .then(rows => setLocalInventory(rows.flatMap(row => {
+            .then(rows => setLocalInventory(rows.slice(0, markersLimit).flatMap(row => {
                 const lat = Number(row.latitude);
                 const lng = Number(row.longitude);
                 if (!row.id || !Number.isFinite(lat) || !Number.isFinite(lng)) return [];
+                const street = typeof row.address === 'string' ? row.address.trim() : '';
+                const houseNumber = row.house_number == null ? '' : String(row.house_number).trim();
                 return [{
                     id: String(row.id), lat, lng, tier: 1 as const,
-                    address: typeof row.address === 'string' ? row.address : undefined,
+                    address: [street, houseNumber].filter(Boolean).join(' ') || undefined,
                     surface_area: typeof row.surface_area === 'number' ? row.surface_area : undefined,
                     construction_year: typeof row.construction_period === 'string' ? row.construction_period : undefined,
                     energy_class: typeof row.energy_class === 'string' ? row.energy_class : undefined,
                     property_type: typeof row.property_type === 'string' ? row.property_type : undefined,
+                    omi_zone: typeof row.omi_zone === 'string' ? row.omi_zone : undefined,
+                    cadastral_sheet: row.cadastral_sheet != null ? String(row.cadastral_sheet) : undefined,
+                    cadastral_parcel: row.cadastral_parcel != null ? String(row.cadastral_parcel) : undefined,
+                    cadastral_subaltern: row.cadastral_subaltern != null ? String(row.cadastral_subaltern) : undefined,
+                    cadastral_units_count: typeof row.cadastral_units_count === 'number' ? row.cadastral_units_count : undefined,
+                    id_list: typeof row.id_list === 'string' ? row.id_list : undefined,
+                    effective_date: typeof row.effective_date === 'string' ? row.effective_date : undefined,
+                    start_date: typeof row.effective_date === 'string' ? row.effective_date : undefined,
                     is_meta_building: row.is_meta_estate === true,
+                    meta_immobile: row.is_meta_estate === true,
                     energy_scores: row.energy_scores as MapMarker['energy_scores'],
                     proximity_scores: row.proximity_scores as MapMarker['proximity_scores'],
                     energy_files: Array.isArray(row.ape_file_list_filtered) ? row.ape_file_list_filtered.filter((item): item is string => typeof item === 'string') : undefined,
@@ -126,7 +139,7 @@ export const MapPage: React.FC = () => {
                 console.error('Failed to load local estate inventory:', err);
                 setError('Could not load the local estate inventory.');
             });
-    }, []);
+    }, [markersLimit]);
 
     const [config, setConfig] = useState<MapConfig | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -171,9 +184,14 @@ export const MapPage: React.FC = () => {
         });
         return mapping;
     }, [runFeedbacks]);
+    const displayedBuildingRatings = OFFLINE_DEMO ? {} : buildingRatings;
 
     // Fetch all feedback when activeRunId changes
     const fetchRunFeedback = useCallback(async () => {
+        if (OFFLINE_DEMO) {
+            setRunFeedbacks([]);
+            return;
+        }
         if (activeRunId) {
             try {
                 const feedbacks = await feedbackApi.getAllRunFeedback(activeRunId);
@@ -305,7 +323,7 @@ export const MapPage: React.FC = () => {
         if (!poiBounds) return;
 
         let cancelled = false;
-        layersApi.getPOIs(activeCategories, poiBounds, 10000)
+        layersApi.getPOIs(activeCategories, poiBounds, OFFLINE_DEMO ? 1000 : 10000)
             .then(data => {
                 if (!cancelled) setPois(data.pois);
             })
@@ -434,7 +452,11 @@ export const MapPage: React.FC = () => {
         );
     }
 
-    const carouselMarkers = OFFLINE_DEMO && activeRunId ? searchResults.slice(0, 10) : topPicks;
+    const carouselMarkers = OFFLINE_DEMO && activeRunId
+        ? [...topPicks, ...searchResults]
+            .sort((a, b) => (b.ranking_score ?? b.score ?? 0) - (a.ranking_score ?? a.score ?? 0))
+            .slice(0, 10)
+        : topPicks;
     const hasTopPicks = carouselMarkers.length > 0;
 
     return (
@@ -443,6 +465,16 @@ export const MapPage: React.FC = () => {
             <div className="absolute top-4 left-4 z-400 flex flex-col gap-2" style={{ marginLeft: isListSidebarOpen ? '320px' : '0', transition: 'margin-left 0.3s ease' }}>
                 {/* Row 1: Map controls */}
                 <div className="flex items-start gap-2">
+                    {OFFLINE_DEMO && (
+                        <button
+                            onClick={() => navigate('/', { replace: true })}
+                            className="flex h-12.5 w-12.5 items-center justify-center rounded-lg border border-white/10 bg-slate-900/80 text-gray-300 shadow-xl shadow-black/40 backdrop-blur-xl transition-colors hover:border-white/20 hover:bg-white/10 hover:text-white"
+                            aria-label="Return to home"
+                            title="Home"
+                        >
+                            <Home className="h-4 w-4" />
+                        </button>
+                    )}
                     {/* List Sidebar Toggle */}
                     <button
                         onClick={() => setIsListSidebarOpen(!isListSidebarOpen)}
@@ -530,7 +562,7 @@ export const MapPage: React.FC = () => {
                         )}
                     </div>
 
-                    {activeRunId && (
+                    {!OFFLINE_DEMO && activeRunId && (
                         <FeedbackPanel
                             runId={activeRunId}
                             align="right"
@@ -559,7 +591,7 @@ export const MapPage: React.FC = () => {
                     setCarouselSelectedId(marker.id);
                 }}
                 hasActiveRun={!!activeRunId}
-                buildingRatings={buildingRatings}
+                buildingRatings={displayedBuildingRatings}
             />
 
             <div className={`flex-1 relative rounded-xl overflow-hidden shadow-2xl border border-white/5 m-4 mt-1 ${hasTopPicks ? 'mb-36' : ''}`} style={{ marginLeft: isListSidebarOpen ? '320px' : '0', transition: 'margin-left 0.3s ease' }}>
@@ -573,7 +605,7 @@ export const MapPage: React.FC = () => {
                     focusMarkerId={focusMarkerId}
                     hoveredMarkerId={hoveredMarkerId}
                     searchLocation={searchLocation}
-                    buildingRatings={buildingRatings}
+                    buildingRatings={displayedBuildingRatings}
                     onMarkerClick={handleMarkerClick}
                     onClusterClick={handleClusterClick}
                     onBoundsChange={setPoiBounds}
@@ -594,7 +626,7 @@ export const MapPage: React.FC = () => {
                         onCardClick={handleCarouselCardClick}
                         onCardHover={handleCarouselHover}
                         sidebarOpen={isSidebarOpen}
-                        buildingRatings={buildingRatings}
+                        buildingRatings={displayedBuildingRatings}
                     />
                 </div>
             )}

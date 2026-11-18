@@ -44,4 +44,6 @@ Controllare [contratti API](../api/contracts.md) e [WebSocket](../api/progress-e
 
 Nella modalità scenari (`VITE_DEMO_MODE=true`) il contesto auth crea un utente locale e Axios usa `demoAdapter`; il proxy Vite è disattivato. Le richieste API sono simulate localmente e non raggiungono il backend. La sessione e la run sono in memoria; la run simulata non contiene immobili.
 
-Marker e dettagli essenziali in modalità scenari vengono caricati da `public/data/estates.json`; i top-10 refined precomputati sono esportati separatamente in `public/data/benchmark_runs.json`. Entrambi i file vengono letti localmente senza chiamate al backend. Gli artefatti sorgente non conservano output dell'EvaluationAgent.
+In modalità scenari, `public/data/estates.json` contiene un campione deterministico di massimo 5.000 immobili e la UI ne mostra al massimo il limite selezionato nelle impostazioni. I dettagli dei soli immobili nei top-10 benchmark sono caricati da `public/data/benchmark_estates.json`; scenari e tracce arrivano da `public/data/benchmark_runs.json`. I POI locali provengono da `public/data/pois_by_category.json`, filtrati per categorie e viewport e limitati a 1.000 per richiesta. Questi asset vengono letti localmente senza chiamate al backend. Gli artefatti benchmark di schema 4 conservano anche gli output dell'EvaluationAgent; gli artefatti precedenti non li contengono e non possono essere ricostruiti senza rieseguire le run.
+
+L'indirizzo mostrato nei marker e nei dettagli demo combina `address` e `house_number` del dataset, quando il civico è disponibile.

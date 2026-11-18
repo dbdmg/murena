@@ -67,6 +67,8 @@ filler. Il ramo senza corrispondenze restituisce una lista vuota.
 `OrchestratorResult.ranking_ids` viene propagato nel dizionario interno di
 AnalysisService, indipendentemente dai `buildings` limitati per la UI.
 Il runner sperimentale salva questa lista e i soli top-10 con score/distanza,
-non i record immobiliari completi; dettagli del formato in
+non i record immobiliari completi. Ogni top risultato deve avere uno score
+finito, derivato dal risultato classificato o dalla valutazione salvata; run
+con score mancante sono segnalate come errore. Dettagli del formato in
 [riproduzione](../research/reproduction.md). Nessuna modifica a query,
 filtri, ranking o chiarimento.

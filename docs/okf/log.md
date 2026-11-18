@@ -2,6 +2,22 @@
 
 ## 2026-11-18
 
+* **Punteggi top-10 nel benchmark:** il runner richiede un punteggio finito per ciascun risultato top e l'export demo completa il punteggio dalle valutazioni salvate quando necessario, fallendo con un errore esplicito se manca. Il carosello backend continua a richiedere il punteggio per classificare un risultato come top pick. Dettaglio in `frontend/ui-routes.md`.
+
+* **Risultati benchmark visibili in demo:** il carosello ora combina top picks valutati e risultati non valutati, limitandosi ai primi dieci; l'adapter locale espone la SQL finale con il contratto atteso dal pannello `SQL Query`.
+
+* **Dati catastali nei dettagli demo:** l'inventario esporta e associa foglio, particella, subalterno, numero unità, data e zona OMI a `Property Details`. Natura legale, destinazione e vincoli culturali non risultano colonne del Parquet attuale.
+
+* **Rating property disabilitato in demo:** nascosti il feedback per singola property e le stelle associate in mappa/carousel; il feedback della run resta disponibile.
+
+* **Performance e POI offline demo:** rimosso `Rate Search` dalla mappa demo; inventario mappa ridotto a campione deterministico di 5.000 immobili e ulteriormente limitato dalle impostazioni UI. I dettagli benchmark usano un asset con soli ID top-10. Il loader POI demo ora legge il catalogo OSM locale, filtra per viewport/categoria e limita ogni risposta a 1.000 punti. Build demo e test POI mirato superati.
+
+* **Numero civico nell'inventario demo:** esportato `house_number` e aggiunto all'indirizzo mostrato per marker e immobili benchmark.
+
+* **Ritorno alla home dalla mappa demo:** aggiunto il pulsante `Home` nella barra superiore, con navigazione alla schermata di selezione degli scenari.
+
+* **Property details per l'inventario demo:** i marker di sfondo trasferiscono ora al dettaglio i campi catastali e la zona OMI già presenti nell'asset mappa, oltre ai dati di base; non sono più riservati ai soli immobili benchmark.
+
 * **`SAGE_MAX_TURNS` alzato da 6 a 20:** valore predefinito in `backend/app/core/config.py` e `backend/.env.example`. Serve a coprire i dialoghi con ambiguità multiple della suite v4 (fino a 10 turni nei profili `all_vague` a $k=5$). Le serie pubblicate furono eseguite con 6 turni; il paper distingue esplicitamente il protocollo dei run riportati dal default corrente. Documentazione aggiornata in `architecture/query-clarification.md` e `research/edbt-conversational-benchmark.md`.
 
 * **Definizione della suite di scenari v4 (`scenarios_v4/`):**
@@ -285,4 +301,9 @@
 * Allineato il confronto con la bozza al manifest v2 corretto e alla validazione statica documentata nel benchmark.
 * **Chiarimento abilitato per default**: aggiornati valore predefinito applicativo ed esempio di configurazione; resta possibile disabilitarlo esplicitamente.
 * Registrata la provenienza della bozza ricostruita in `paper/` e confrontate staticamente le sue principali affermazioni con chiarimento, UI e runner. Distinti protocollo comparativo proposto, funzionalità implementate e risultati effettivamente osservati; nessun nuovo esperimento eseguito.
+
+## 2026-11-18 — Selettore scenari demo
+
+* La scelta degli scenari demo è stata organizzata in passaggi dipendenti: use case e stato (omesso, ambiguo o specificato) per ciascuna delle sei dimensioni. Le opzioni sono ricavate dalle run refined completate esportate e ogni menu mostra solo stati che lasciano almeno una run compatibile; se la selezione completa identifica più scenari, è disponibile una scelta finale della run.
+* **Output agenti negli artefatti**: schema 4 conserva le tracce degli agenti non di ranking, inclusi output dell'EvaluationAgent, senza duplicare gli input completi dei batch. L'export demo trasferisce valutazioni, pro e contro agli immobili corrispondenti. Gli artefatti storici non contengono questi output e richiedono il rerun per poterli ottenere.
 

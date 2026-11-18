@@ -132,6 +132,7 @@ class MapService:
                         "omi_zone": b.omi_zone,
                         "cadastral_sheet": b.cadastral_sheet,
                         "cadastral_parcel": b.cadastral_parcel,
+                        "cadastral_subaltern": b.cadastral_subaltern,
                         # Energy scores if available
                         "energy_scores": (
                             {

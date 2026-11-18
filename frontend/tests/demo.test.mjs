@@ -66,6 +66,35 @@ test('oracle skips scripted omissions, unknown endpoints fail without network fa
     await assert.rejects(client.post('/auth/login', { username: 'demo' }), /Unavailable in offline demo/);
 });
 
+test('offline demo POI endpoint loads categorized records and filters by viewport and limit', async () => {
+    const poiCatalog = JSON.parse(await readFile(new URL('../public/data/pois_by_category.json', import.meta.url), 'utf8'));
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = async (url) => {
+        assert.equal(url, '/data/pois_by_category.json');
+        return { ok: true, json: async () => poiCatalog };
+    };
+    try {
+        const { data } = await client.get('/layers/pois', {
+            params: {
+                categories: 'healthcare|green',
+                min_lat: 45.05, max_lat: 45.10,
+                min_lon: 7.60, max_lon: 7.72,
+                limit: 75,
+            },
+        });
+        assert.ok(data.count > 0);
+        assert.ok(data.count <= 75);
+        assert.deepEqual(data.categories, ['healthcare', 'green']);
+        assert.ok(data.pois.every(poi =>
+            poi.lat >= 45.05 && poi.lat <= 45.10 &&
+            poi.lon >= 7.60 && poi.lon <= 7.72 &&
+            ['healthcare', 'green'].includes(poi.category) && poi.icon && poi.color
+        ));
+    } finally {
+        globalThis.fetch = originalFetch;
+    }
+});
+
 test('scenario selection preloads every turn and a confirmable review for all 256 cases', async () => {
     for (const scenario of scenarios) {
         const loaded = loadDemoConversation(scenario);

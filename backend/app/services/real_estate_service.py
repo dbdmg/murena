@@ -784,6 +784,10 @@ class RealEstateService:
         # cadastral_parcel
         val = safe_get("cadastral_parcel", alternatives=["particella"])
         res_data["cadastral_parcel"] = str(val) if val is not None else None
+
+        # cadastral_subaltern
+        val = safe_get("cadastral_subaltern")
+        res_data["cadastral_subaltern"] = str(val) if val is not None else None
         
         # effective_date
         val = safe_get("effective_date", alternatives=["data_decorrenza"])

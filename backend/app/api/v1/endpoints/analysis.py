@@ -157,6 +157,18 @@ def _parse_float(value: object) -> Optional[float]:
         return None
 
 
+def _parse_text(value: object) -> Optional[str]:
+    if value is None:
+        return None
+    try:
+        if pd.isna(value):
+            return None
+    except (TypeError, ValueError):
+        pass
+    text = str(value).strip()
+    return text if text and text.lower() not in {"nan", "none"} else None
+
+
 def _parse_list_literal(value: object) -> Optional[list]:
     if value is None:
         return None
@@ -396,6 +408,13 @@ def _load_demo_artifacts(demo_id: str, limit: int = 50) -> dict:
                     sport=_parse_float(row.get("sport")),
                 )
 
+            subaltern_value = _parse_float(row.get("cadastral_subaltern"))
+            cadastral_subaltern = (
+                str(int(subaltern_value))
+                if subaltern_value is not None and subaltern_value.is_integer()
+                else str(subaltern_value) if subaltern_value is not None else None
+            )
+
             ape_files = _parse_list_literal(row.get("lista_file_ape"))
             if not ape_files:
                 ape_files = _parse_list_literal(row.get("list_file_ape_filtered"))
@@ -419,8 +438,15 @@ def _load_demo_artifacts(demo_id: str, limit: int = 50) -> dict:
                     ),
                     purpose=(row.get("finalita") or None),
                     omi_zone=(row.get("zona_omi") or None),
-                    cadastral_sheet=(row.get("foglio") or None),
-                    cadastral_parcel=(row.get("particella") or None),
+                    cadastral_sheet=(
+                        _parse_text(row.get("foglio"))
+                        or _parse_text(row.get("cadastral_sheet"))
+                    ),
+                    cadastral_parcel=(
+                        _parse_text(row.get("particella"))
+                        or _parse_text(row.get("cadastral_parcel"))
+                    ),
+                    cadastral_subaltern=cadastral_subaltern,
                     is_evaluated=bool(_parse_bool(row.get("is_evaluated")) or False),
                     meta_building=bool(_parse_bool(row.get("meta_immobile")) or False),
                     # New metadata fields

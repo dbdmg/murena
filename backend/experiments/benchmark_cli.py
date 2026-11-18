@@ -49,6 +49,7 @@ if str(BACKEND) not in sys.path:
 
 CONDITIONS = ("refined", "one_shot", "oracle")
 ROW_SCHEMA_VERSION = 2
+ARTIFACT_SCHEMA_VERSION = 4
 DIMENSIONS = {"I", "D", "L", "Cb", "Ce", "Cp"}
 EXTRACTION_AGENTS = {
     "building-agent": "building",
@@ -427,15 +428,38 @@ def detection_metrics(expected: list[str] | set[str], predicted: list[str] | set
     return {"precision": round(precision, 4), "recall": round(recall, 4), "f1": round(f1, 4)}
 
 
-def extract_top(buildings: list[dict[str, Any]], limit: int = 10) -> list[dict[str, Any]]:
-    """Top matching buildings in served rank order (non-matching filler excluded)."""
+def extract_top(
+    buildings: list[dict[str, Any]],
+    limit: int = 10,
+    evaluation_results: list[dict[str, Any]] | None = None,
+) -> list[dict[str, Any]]:
+    """Top matching buildings with their required ranking scores, in served order."""
+    evaluation_scores = {
+        str(item.get("id")): (
+            item.get("final_ranking_score")
+            if item.get("final_ranking_score") is not None
+            else item.get("score")
+        )
+        for item in evaluation_results or []
+        if isinstance(item, dict) and item.get("id") is not None
+    }
     top = []
     for item in buildings or []:
         if not isinstance(item, dict) or not item.get("is_match"):
             continue
+        raw_score = next((item.get(key) for key in ("score", "ranking_score", "final_ranking_score")
+                          if item.get(key) is not None), None)
+        if raw_score is None:
+            raw_score = evaluation_scores.get(str(item.get("id")))
+        try:
+            score = float(raw_score)
+        except (TypeError, ValueError):
+            score = math.nan
+        if not math.isfinite(score):
+            raise ValueError(f"Top result {item.get('id')} is missing a finite ranking score.")
         top.append({
             "id": str(item.get("id")),
-            "score": item.get("score"),
+            "score": score,
             "distance_km": item.get("distance_km"),
         })
         if len(top) >= limit:
@@ -483,19 +507,54 @@ def agent_extractions(api_response: dict[str, Any]) -> dict[str, Any]:
 
 
 def compact_artifact(record: dict[str, Any]) -> dict[str, Any]:
-    """Schema 3 storage: complete matching-ID order, top-10 scores, extraction evidence.
+    """Compact storage: ranking IDs, top-10 scores and non-ranking agent outputs.
 
-    Keep only extraction outputs from the API. Ranking traces, context, HTML and
-    full property records duplicate the dataset and are deliberately not stored.
-    The source record is not mutated; legacy records can still build compact rows.
+    Keep structured extraction outputs plus other agent outputs such as the
+    EvaluationAgent's per-property results. Omit ranking-mode traces, context,
+    HTML and full property records. The source record is not mutated; legacy
+    records can still build compact rows.
     """
     api = record.get("api_response") or {}
     extractions = agent_extractions(api)
     row = compact_row(record)
     names = {value: key for key, value in EXTRACTION_AGENTS.items()}
+    compact_trace = [
+        {"agent_name": names[name], "agent_mode": "extraction", "output": output}
+        for name, output in extractions.items() if name in names
+    ]
+    for step in api.get("agent_trace") or []:
+        if not isinstance(step, dict):
+            continue
+        agent_name = step.get("agent_name")
+        agent_mode = step.get("agent_mode")
+        if agent_mode == "ranking" or (agent_mode == "extraction" and agent_name in EXTRACTION_AGENTS):
+            continue
+        # Inputs can repeat large candidate batches; the artifact is intended
+        # to preserve each agent's result, with enough metadata to identify it.
+        compact_step = {key: step[key] for key in (
+            "agent_name", "agent_mode", "output", "batch_id", "timestamp", "execution_time_ms"
+        ) if key in step}
+        if "output" in compact_step:
+            compact_trace.append(compact_step)
+
+    evaluation = (api.get("gemini_responses") or {}).get("evaluation")
+    evaluation_results = (
+        evaluation.get("results") if isinstance(evaluation, dict)
+        else api.get("evaluation_results")
+    ) or []
+    if not evaluation_results:
+        evaluation_results = []
+        for step in compact_trace:
+            if step.get("agent_name") != "evaluation-agent":
+                continue
+            output = _as_obj(step.get("output"))
+            if isinstance(output, dict):
+                output = output.get("evaluations") or output.get("results") or [output]
+            if isinstance(output, list):
+                evaluation_results.extend(item for item in output if isinstance(item, dict))
     compact_api = {
-        "agent_trace": [{"agent_name": names[name], "agent_mode": "extraction", "output": output}
-                        for name, output in extractions.items() if name in names],
+        "agent_trace": compact_trace,
+        "evaluation_results": evaluation_results,
         "relaxation_applied": row["relaxation_applied"],
         "relaxation_count": row["relaxation_count"],
         "fallback_activated": row["fallback_activated"],
@@ -503,7 +562,7 @@ def compact_artifact(record: dict[str, Any]) -> dict[str, Any]:
     }
     return {
         **{key: value for key, value in record.items() if key != "api_response"},
-        "artifact_schema_version": 3,
+        "artifact_schema_version": ARTIFACT_SCHEMA_VERSION,
         "ranking_ids": list(record.get("ranking_ids", api.get("ranking_ids")) or []),
         "top": row["top"],
         "api_response": compact_api,
@@ -1156,7 +1215,7 @@ async def run(args: argparse.Namespace) -> int:
         "resume_actions": [],
         "python": platform.python_version(),
         "run_artifacts_directory": "runs",
-        "run_artifact_schema_version": 3,
+        "run_artifact_schema_version": ARTIFACT_SCHEMA_VERSION,
         "runs_jsonl_schema_version": ROW_SCHEMA_VERSION,
         "options": {
             "map_limit": args.map_limit,
@@ -1263,7 +1322,9 @@ async def run(args: argparse.Namespace) -> int:
             record["analysis_seconds"] = round(time.perf_counter() - analysis_started, 3)
             api_response = make_json_safe(result)
             buildings = api_response.get("buildings", [])
-            top = extract_top(buildings)
+            evaluation = (api_response.get("gemini_responses") or {}).get("evaluation") or {}
+            evaluation_results = evaluation.get("results", []) if isinstance(evaluation, dict) else []
+            top = extract_top(buildings, evaluation_results=evaluation_results)
             record.update({
                 "status": "completed",
                 "api_response": api_response,

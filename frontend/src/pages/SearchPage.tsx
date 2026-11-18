@@ -344,20 +344,20 @@ export const SearchPage: React.FC = () => {
                     : 'max-w-3xl'
             }`}>
 
-                {OFFLINE_DEMO && <DemoPanel
-                    enabled={demoMode}
-                    busy={busy}
-                    onSelectScenario={openDemoScenario}
-                />}
-
                 {/* Logo Murena */}
-                {clarificationMessages.length === 0 && (isLoadingSuggestions || suggestions.length > 0) && <motion.div
+                {clarificationMessages.length === 0 && (demoMode || isLoadingSuggestions || suggestions.length > 0) && <motion.div
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
                     className="flex justify-center mb-10"
                 >
                     <img src={murenaLogo217} alt="Murena" className="w-[300px] h-auto" />
                 </motion.div>}
+
+                {OFFLINE_DEMO && <DemoPanel
+                    enabled={demoMode}
+                    busy={busy}
+                    onSelectScenario={openDemoScenario}
+                />}
 
                 {/* Initial search composer */}
                 {clarificationMessages.length === 0 && (

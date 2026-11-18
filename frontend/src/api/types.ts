@@ -94,6 +94,7 @@ export interface MapMarker {
     omi_zone?: string;
     cadastral_sheet?: string;
     cadastral_parcel?: string;
+    cadastral_subaltern?: string;
     energy_scores?: {
         total?: number;
         class_score?: number;
@@ -216,6 +217,7 @@ export interface BuildingResponse {
     omi_zone?: string;
     cadastral_sheet?: string;
     cadastral_parcel?: string;
+    cadastral_subaltern?: string;
     sub_properties?: {
         id: string;
         surface_area?: number;

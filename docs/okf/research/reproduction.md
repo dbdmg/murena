@@ -103,7 +103,7 @@ Una prova end-to-end di `MS01_k1` con `gpt-6-luna` e dataset `full` è stata com
 
 La cartella di output contiene `manifest.json`, `runs.jsonl`, la directory
 `runs/` e `summary.csv`. Ogni nuovo `runs/<run_id>.json` usa
-`artifact_schema_version=3` e JSON formattato con indentazione di due spazi. Conserva definizione
+`artifact_schema_version=4` e JSON formattato con indentazione di due spazi. Conserva definizione
 dello scenario, query, dialogo e stati conversazionali, tempi, errori e metriche.
 `ranking_ids` contiene tutti gli ID corrispondenti, nell'ordine deterministico
 finale prima del taglio `map_limit`, escludendo gli immobili di riempimento
@@ -111,14 +111,19 @@ non corrispondenti. L'orchestratore acquisisce la lista prima del taglio e
 AnalysisService la rende disponibile al runner; filtri e ordinamento restano
 quelli della pipeline esistente. `top` conserva solo ID, score e distanza dei
 primi 10 matching restituiti, per le metriche esistenti e i pari merito.
-`api_response` conserva solo output delle estrazioni e indicatori di
-rilassamento/fallback/errori. Non vengono salvati `buildings`, contesto,
-HTML, tracce con tutti gli immobili o dettagli dei ranking intermedi.
+`api_response` conserva output strutturati delle estrazioni, le tracce degli
+agenti che non sono in modalità ranking (inclusi output `evaluation-agent` per
+immobile, senza ripetere i grandi input dei batch) e i risultati strutturati
+dell'EvaluationAgent, oltre agli indicatori di rilassamento/fallback/errori.
+Non vengono salvati `buildings`, contesto, HTML, input dei prompt, tracce dei
+ranking intermedi o l'intero inventario.
 Questi nuovi artefatti non bastano a riprodurre le schede immobiliari nel
 frontend: per i dettagli serve il dataset originale. I vecchi artefatti
 (schema 2, con risposta API completa) restano leggibili e non sono riscritti.
-Il manifest dichiara `run_artifact_schema_version=3` per le nuove scritture;
-un batch ripreso può contenere entrambi i formati. L'indice resta schema 2,
+Il manifest dichiara `run_artifact_schema_version=4` per le nuove scritture;
+un batch ripreso può contenere artefatti schema 2, 3 e 4. Gli output agenti
+assenti dagli artefatti precedenti non sono ricostruibili retroattivamente:
+per ottenerli occorre rieseguire quelle run. L'indice resta schema 2,
 autonomo per le metriche comparative, con gli stessi valori e campi.
 
 `runs.jsonl` è l'indice append-only: una riga per run con ID, scenario, modello, ripetizione, stato, durata ed eventuale percorso dell'artefatto. `summary.csv` è ricalcolato leggendo gli artefatti disponibili e riporta per modello/scenario successi, errori, durata media, risultati medi, recall degli ID attesi, turni medi, accuratezza della mappatura e F1 medio delle dimensioni inizialmente mancanti. `manifest.json` registra scenario e checksum, modello, dataset, ripetizioni, versione Python e opzioni, inclusa la concorrenza. La lingua d'output non compare nei metadati. Scrittura atomica dei JSON e aggiornamento serializzato dell'indice riducono il rischio di artefatti parziali quando più run terminano insieme.

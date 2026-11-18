@@ -2,6 +2,7 @@ import React, { useRef, useEffect, useCallback, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MapPin, Star, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
 import type { MapMarker } from '../../api/types';
+import { OFFLINE_DEMO } from '../../demo/mode';
 
 interface ResultsCarouselProps {
     topPicks: MapMarker[];
@@ -268,7 +269,7 @@ export const ResultsCarousel: React.FC<ResultsCarouselProps> = ({
                                             </div>
                                             <div className="flex flex-col">
                                                 <span className="text-[10px] text-slate-500 uppercase font-black tracking-tighter">Rank</span>
-                                                <div className="flex items-center gap-0.5">
+                                                {!OFFLINE_DEMO && <div className="flex items-center gap-0.5">
                                                     {[1, 2, 3, 4, 5].map((s) => {
                                                         const rating = buildingRatings[marker.id] || 0;
                                                         return (
@@ -280,7 +281,7 @@ export const ResultsCarousel: React.FC<ResultsCarouselProps> = ({
                                                             />
                                                         );
                                                     })}
-                                                </div>
+                                                </div>}
                                             </div>
                                         </div>
 

@@ -10,6 +10,7 @@ import type { MarkerTier, AgentFeedbackResponse } from '../../api/types';
 import { FeedbackPanel } from '../agent/FeedbackPanel';
 import { feedbackApi } from '../../api/endpoints/feedback';
 import { getEnergyCertificateLabel, getEnergyFileName } from '../../utils/energyFiles';
+import { OFFLINE_DEMO } from '../../demo/mode';
 
 // Interface matching the data structure from MapMarker/Backend
 interface BuildingData {
@@ -35,6 +36,7 @@ interface BuildingData {
     omi_zone?: string;
     cadastral_sheet?: string;
     cadastral_parcel?: string;
+    cadastral_subaltern?: string;
     // Energy info
     energy_scores?: {
         total?: number;
@@ -234,7 +236,7 @@ export const BuildingDetail: React.FC<BuildingDetailProps> = ({ data, runId, onF
 
     // Fetch existing feedback when building or run changes
     useEffect(() => {
-        if (!feedbackTargetKey || !runId || !details.id) return;
+        if (OFFLINE_DEMO || !feedbackTargetKey || !runId || !details.id) return;
 
         let isCancelled = false;
 
@@ -329,7 +331,8 @@ export const BuildingDetail: React.FC<BuildingDetailProps> = ({ data, runId, onF
 
     const hasProximityData = proximityRadarData.some(d => d.A > 0);
     const hasEnergyRadarData = energyRadarData.length > 0 && energyRadarData.some(d => d.A > 0);
-    const finalScore = details.score ?? details.ranking_score;
+    const rawFinalScore = details.ranking_score ?? details.score;
+    const finalScore = rawFinalScore != null ? Math.round(rawFinalScore) : undefined;
     const hasAIEvaluation = details.is_evaluated && ((finalScore != null && finalScore > 0) || details.evaluation_text);
 
     // Get tier badge info
@@ -422,7 +425,7 @@ export const BuildingDetail: React.FC<BuildingDetailProps> = ({ data, runId, onF
             )}
 
             {/* User Feedback/Rating */}
-            {runId && (
+            {!OFFLINE_DEMO && runId && (
                 <div className="flex justify-end">
                     <FeedbackPanel
                         runId={runId}
@@ -500,7 +503,7 @@ export const BuildingDetail: React.FC<BuildingDetailProps> = ({ data, runId, onF
             <div className="grid grid-cols-2 gap-2 text-xs">
                 <div className="bg-white/5 p-2 rounded-lg border border-white/5">
                     <p className="text-[9px] text-gray-500 uppercase">Surface</p>
-                    <p className="font-semibold text-white">{details.surface_area ? `${details.surface_area} m²` : 'N/A'}</p>
+                    <p className="font-semibold text-white">{details.surface_area != null ? `${Math.round(details.surface_area)} m²` : 'N/A'}</p>
                 </div>
                 <div className="bg-white/5 p-2 rounded-lg border border-white/5">
                     <p className="text-[9px] text-gray-500 uppercase">Period</p>
@@ -527,6 +530,12 @@ export const BuildingDetail: React.FC<BuildingDetailProps> = ({ data, runId, onF
                             <span className="text-gray-300">{details.cadastral_parcel}</span>
                         </div>
                     )}
+                    {details.cadastral_subaltern && details.cadastral_subaltern !== 'None' && (
+                        <div className="flex justify-between">
+                            <span className="text-gray-500">Subaltern</span>
+                            <span className="text-gray-300">{details.cadastral_subaltern}</span>
+                        </div>
+                    )}
                     {details.legal_nature && (
                         <div className="flex justify-between col-span-2">
                             <span className="text-gray-500">Legal Nature</span>
@@ -551,7 +560,7 @@ export const BuildingDetail: React.FC<BuildingDetailProps> = ({ data, runId, onF
                             <span className="text-gray-300">{details.start_date}</span>
                         </div>
                     )}
-                    {details.cadastral_units_count && (
+                    {details.cadastral_units_count != null && (
                         <div className="flex justify-between col-span-2">
                             <span className="text-gray-500">Cadastral Units</span>
                             <span className="text-gray-300">{details.cadastral_units_count}</span>

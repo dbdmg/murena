@@ -123,6 +123,7 @@ class BuildingResponse(BaseModel):
     omi_zone: Optional[str] = None
     cadastral_sheet: Optional[str] = None
     cadastral_parcel: Optional[str] = None
+    cadastral_subaltern: Optional[str] = None
     is_evaluated: bool = False
     is_match: bool = True
     meta_building: bool = False
