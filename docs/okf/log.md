@@ -344,6 +344,8 @@
 
 ## 2026-11-18 — Selettore scenari demo
 
+* **Avvio frontend senza artefatti benchmark**: `vite.config.ts` usa manifest e runs vuoti se la cartella benchmark opzionale non è disponibile; la UI normale e la pagina `/benchmark` possono avviarsi mostrando lo stato vuoto. La modalità demo continua a richiedere gli artefatti usati dall'exporter.
+* **Selezione demo semplificata**: il pannello usa solo use case e `k`, mostra un'anteprima della richiesta iniziale e avvia la conversazione registrata. Se più profili corrispondono, sceglie il primo `case_id` lessicografico; dettaglio documentato nella guida UI.
 * La scelta degli scenari demo è stata organizzata in passaggi dipendenti: use case e stato (omesso, ambiguo o specificato) per ciascuna delle sei dimensioni. Le opzioni sono ricavate dalle run refined completate esportate e ogni menu mostra solo stati che lasciano almeno una run compatibile; se la selezione completa identifica più scenari, è disponibile una scelta finale della run.
 * **Output agenti negli artefatti**: schema 4 conserva le tracce degli agenti non di ranking, inclusi output dell'EvaluationAgent, senza duplicare gli input completi dei batch. L'export demo trasferisce valutazioni, pro e contro agli immobili corrispondenti. Gli artefatti storici non contengono questi output e richiedono il rerun per poterli ottenere.
 

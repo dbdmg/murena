@@ -1,6 +1,6 @@
 import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -9,8 +9,12 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
   const frontendDir = fileURLToPath(new URL('.', import.meta.url));
   const benchmarkDir = resolve(frontendDir, process.env.VITE_BENCHMARK_RESULTS_DIR || env.VITE_BENCHMARK_RESULTS_DIR || '../backend/experiments/results/imperfect_user_v4_multiseed_seed13');
-  const benchmarkManifest = readFileSync(resolve(benchmarkDir, 'manifest.json'), 'utf8');
-  const benchmarkRuns = readFileSync(resolve(benchmarkDir, 'runs.jsonl'), 'utf8');
+  const manifestPath = resolve(benchmarkDir, 'manifest.json');
+  const runsPath = resolve(benchmarkDir, 'runs.jsonl');
+  // Benchmark artifacts are optional for the normal frontend; the benchmark page
+  // can render its empty state when no results directory has been configured.
+  const benchmarkManifest = existsSync(manifestPath) ? readFileSync(manifestPath, 'utf8') : '{}';
+  const benchmarkRuns = existsSync(runsPath) ? readFileSync(runsPath, 'utf8') : '';
   const backendPort = process.env.VITE_BACKEND_PORT || process.env.PORT || env.VITE_BACKEND_PORT || env.PORT || '8000';
   
   return {
