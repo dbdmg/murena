@@ -81,16 +81,15 @@ a conversational stage that clarifies unresolved requirements
 of MURENA's six query dimensions, separates unconfirmed omissions from
 explicit non-preferences, asks one targeted question per turn in an order
 inspired by the EVPI criterion of SAGE-Agent, and requires the user to
-review and confirm a rewritten request. We describe a deterministic catalogue of 8,192 controlled-omission
-scenarios, and report two separate Claude Haiku 5.5 evaluations on the
-earlier nested benchmark: 304 cooperative runs and 265 imperfect-user
-runs. Across eight intents, refined cooperative queries reach top-5
-Jaccard agreement 0.88 and filter-atom $F_1$ 0.98 against the oracle,
-compared with 0.16 and 0.61 for one-shot. In the separate imperfect-user
-series, explicit declines were recorded as non-preferences in all 105 runs
-and vague answers triggered a follow-up in all 120 runs. The v4 seed-13
-sample is not pooled with these Haiku results. Attendees drive the system with
-their own requests and with controlled benchmark scenarios.
+review and confirm a rewritten request. In a controlled-omission
+benchmark with Claude Haiku 5.5 (304 cooperative runs over eight
+intents), refined queries reach top-5 Jaccard agreement 0.88 and
+filter-atom $F_1$ 0.98 against an oracle query, on par with the oracle's
+own run-to-run agreement (0.87), compared with 0.16 and 0.61 for one-shot.
+In a separate series with simulated imperfect users, explicit declines were
+recorded as non-preferences in all 105 runs and vague answers triggered a
+follow-up in all 120 runs. Attendees drive the system with their own
+requests, and an offline mode replays recorded benchmark scenarios.
 \end{abstract}
 \keywords{conversational query clarification, requirement elicitation,
 real-estate decision support, multi-agent systems, text-to-SQL}
@@ -119,8 +118,10 @@ existing dimensions with explicit recording of non-preferences,
 method~\cite{suri2026sage} and a mandatory review step, (iii)~a three-condition benchmark protocol that
 separates the cost of missing information from the effectiveness and
 cost of recovering it, complemented by simulated users who decline or
-answer vaguely. Attendees drive the full interaction, from their own
-request to portfolio screening.
+answer vaguely. With clarification, top-5 agreement with the oracle rises
+from 0.16 to 0.88, matching the oracle's own run-to-run agreement, and
+no question is asked when nothing is missing. Attendees drive the full
+interaction, from their own request to portfolio screening.
 
 \section{Related Work}
 \label{sec:related}
@@ -231,7 +232,7 @@ the presenter uses the state diagram of Fig.~\ref{fig:arch} to explain
 why each question is asked.
 
 \paragraph{Live clarification.} Attendees type their own screening
-request in English or Italian and can:
+request in English and can:
 (a)~\emph{omit and observe}: leave requirements out and see which
 dimensions are asked, one per turn, and which are left alone because
 they are already specified;
@@ -256,6 +257,14 @@ three-behaviour design of Sec.~\ref{sec:eval} tangible and keeps the
 demonstration available offline. A results page lists the
 recorded runs of a benchmark series, so the one-shot, refined, and
 oracle outputs of the same case can be compared side by side.
+
+\paragraph{Setup and fallback.} The demonstration needs a laptop, a
+larger screen if available, and Internet access to the LLM provider for
+live requests; the database and map run on the laptop. If the network
+is unavailable or slow, the controlled-scenario mode and the results page
+run fully offline, so attendees still step through recorded dialogues,
+rewritten requests, and rankings, and only typing new requests is lost.
+A video of the demonstration accompanies this submission.
 \begin{figure*}[t]\centering
 \begin{minipage}[b]{0.43\textwidth}\centering
 \includegraphics[width=\linewidth]{figures/screen-dialogue.png}\\[2pt]
@@ -290,25 +299,20 @@ scenario $k=2$ of Sec.~\ref{sec:eval}.
 
 \section{Evaluation}
 \label{sec:eval}
-\paragraph{Scenarios.} The controlled-omission catalogue is generated
-deterministically from eight fully specified reference intents $q^*$, one
-per catalogue use. For each intent, the five optional dimensions
-$D,L,C_b,C_e,C_p$ yield all 32 omission masks ($I$ is always kept), 256
-masks in total. For a mask with $k$ omissions, each omitted dimension
-independently takes one of three behaviours: \emph{specified} (the exact
-requirement on the first turn), \emph{vague} (a domain-tailored
-qualitative answer, followed by the exact requirement when asked again),
-or \emph{opt-out} (an explicit statement of no requirement, recorded as a
-non-preference). Enumerating all $3^k$ assignments gives
-$8\sum_{k=0}^{5}\binom{5}{k}3^k = 8{,}192$ scenarios: 8 controls at
-$k=0$, and 120, 720, 2{,}160, 3{,}240, and 1{,}944 at $k=1,\dots,5$,
-with 248 all-specified, 248 all-vague, 248 all-opt-out, and 7{,}440
-mixed profiles. Capacity is stated inside the $C_b$ fragment with a
-use-neutral noun, so omitting $C_b$ removes it from $q_0$. The cooperative
-Haiku results below use the earlier nested 48-variant design (one mask per
-intent and omission level), not a sample of this expanded catalogue. The
-separate imperfect-user Haiku series varies one response in 75 cases derived
-from that earlier design; the two series are reported independently.
+\paragraph{Scenarios.} Each of eight fully specified reference intents
+$q^*$, one per catalogue use, is turned into an initial request $q_0$ by
+omitting $k$ of the five optional dimensions $D,L,C_b,C_e,C_p$ ($I$ is
+always kept), with one nested omission mask per level $k=0,\dots,5$: 48
+variants, including 8 controls at $k=0$. Capacity is stated inside the
+$C_b$ fragment with a use-neutral noun, so omitting $C_b$ removes it from
+$q_0$. The cooperative simulated user answers each question with the
+exact omitted fragment. The imperfect-user series derives 75 cases from
+these variants by turning one answer into an explicit opt-out or into a
+vague reply followed by the exact fragment when asked again. The same
+templates also feed a deterministic generator that enumerates all 32
+masks per intent and the three behaviours (specified, vague, opt-out) per
+omitted dimension, 8{,}192 scenarios in total; it is statically
+validated and released for larger studies, but not evaluated here.
 
 \paragraph{Conditions.} \emph{Refined}: $q_0$ goes through
 clarification with the simulated user, the rewritten $\hat q$ is
@@ -363,10 +367,8 @@ the added information, not of dialogue over a static form. The level
 $k$ is coupled to the identity of the omitted dimensions, so results
 are stratified by $k$ and not read as a causal effect of the count. At
 $k=0$, $q_0$ and $q^*$ differ only in wording, which bounds
-wording-induced variation. The full ternary catalogue is generated and
-statically validated, but the reported Haiku evidence uses the earlier
-nested benchmark. The cooperative and imperfect-user series are reported
-separately and are not combined with v4.
+wording-induced variation. The cooperative and imperfect-user series are
+reported separately and never pooled.
 
 \paragraph{Execution.} Clarification and all pipeline agents used
 Claude Haiku 5.5 (\texttt{claude-haiku-5-5}) through the non-interactive
