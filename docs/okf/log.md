@@ -2,6 +2,11 @@
 
 ## 2026-11-18
 
+* **Nuovo titolo del paper:** "Ask, Don't Guess: Conversational Clarification for Real-Estate Portfolio Screening with MURENA". Il titolo breve per l'intestazione è "Ask, Don't Guess: Conversational Clarification with MURENA".
+  * Il titolo precedente era "Conversational MURENA: Clarifying Underspecified Requests for Real-Estate Portfolio Screening".
+  * Scelto dall'utente. Il contributo principale resta il chiarimento conversazionale; pipeline e catalogo sono ereditati.
+  * PDF rigenerato in locale: 4 pagine, intestazione verificata.
+
 * **Paper, paragrafo Availability:** aggiunti portale e licenza dei dati APE.
   * Fonte: catalogo `https://www.dati.piemonte.it/#/catalogo`, verificato il 2026-11-18.
   * Dataset: "Dettaglio attestato di prestazione/certificazione energetica (APE)" di Regione Piemonte, pubblicato da CSI-Piemonte (Yucca SDP).
