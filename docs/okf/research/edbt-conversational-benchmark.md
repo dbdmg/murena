@@ -244,7 +244,7 @@ Questo è solo un controllo di funzionamento.
 - Prima esecuzione (13:59–15:20): **sospesa su richiesta dell'utente** dopo 113 run completati (54 refined, 43 one_shot, 16 oracle), nessun fallimento.
 - Ripresa con `--resume` e concorrenza 6 (15:32–15:58), **fermata su richiesta dell'utente**. Ha aggiunto 10 run: un one_shot e un oracle completati, 8 refined falliti con `Codex CLI LLM call timed out` durante il chiarimento (durate 255–742 s; `MS05_k3`, `MS06_k2`, `MS01_k1`, `MS03_k4`, `MS03_k2`, `MS04_k1`, `MS08_k4`, `MS02_k2`).
 - Totale: 123 run eseguiti, 115 completati (54 refined, 44 one_shot, 17 oracle) e 8 falliti. I fallimenti sono contati e non imputati. Le metriche sotto usano i 115 completati; rispetto ai primi 113 cambiano solo il tetto RBO, il Δ di J5 a k=5 e il Δ dei filtri.
-- Nessun run è stato rieseguito o selezionato. Dati in `backend/experiments/results/missingness_v3/`: `runs.jsonl`, `manifest.json`, `comparison.json`, `comparison_per_k.csv`, `comparison_operational.csv`. Gli artefatti completi `runs/` restano locali.
+- Nessun run è stato rieseguito o selezionato. Dati in `backend/experiments/results/missingness_v3/`: `runs.jsonl`, `manifest.json`, `comparison.json`, `comparison_per_k.csv`, `comparison_operational.csv`. Gli artefatti completi `runs/` erano solo locali e sono stati cancellati su richiesta il 2026-11-18; restano i file versionati.
 
 **Copertura risultante.**
 

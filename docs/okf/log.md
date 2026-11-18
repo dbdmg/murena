@@ -1,5 +1,12 @@
 # MURENA OKF Update Log
 
+## 2026-11-18
+
+* **Pulizia degli artefatti locali**:
+  * Su richiesta sono state cancellate le directory non versionate `backend/experiments/results/missingness_v3/runs` (6,7 GB, 123 file) e `missingness_v2/runs` (1,0 GB, 120 file). Rimosse anche le directory padre, rimaste vuote.
+  * Le risposte API complete per run di quelle serie non sono più recuperabili. `runs.jsonl`, manifest e confronti restano in Git (`4a7c882`, `411b003`).
+  * Aggiornati `research/reproduction.md` e `research/edbt-conversational-benchmark.md`.
+
 ## 2026-11-17
 
 * **Artefatti per-run della serie Haiku in Git**: su richiesta, `results/missingness_v3_haiku/runs/` (304 JSON compatti, 19 MB) non è più escluso da `.gitignore` ed è versionato. Controllati assenza di dati sensibili e dimensione massima per file (704 KB). Le altre directory `runs/` restano locali.
