@@ -180,3 +180,20 @@ Dettagli sulle serie dei colleghi:
 - È stato aggiunto al testo che l'oracle include vincoli anche nei profili opt-out: l'accordo con l'oracle non è un obiettivo appropriato per quei casi e non costituisce una misura indipendente di rilevanza.
 - Integrata la review upstream: la serie v4 usa un dataset con hash diverso da Haiku e la formulazione generata per opt-out su $D$ è ambigua. Sono dichiarati i blocchi: 33/51 sessioni $D$-opt-out e 4/195 opt-out di altre dimensioni; le metriche complete-case non includono questi tentativi.
 - Su richiesta dell'utente, il PDF non è stato compilato dopo questa modifica; il PDF preesistente è rimasto intatto e non corrisponde ai sorgenti aggiornati. Conteggio pagine e layout dei nuovi sorgenti restano non verificati.
+
+## Regole della call e autori (2026-11-18)
+
+- **Call EDBT 2026, demo track** (`https://edbticdt2026.github.io/?contents=call_for_demos.html`, letta il 2026-11-18):
+  - "EDBT uses non-anonymous submissions": i revisori restano anonimi.
+  - Al massimo 4 pagine, referenze incluse, nel formato ACM Proceedings senza modifiche.
+  - Video facoltativo fino a 5 minuti, che secondo la call aumenta molto le probabilità di accettazione.
+  - Criteri di valutazione: esperienza del pubblico e novità del sistema.
+  - La call 2027 non è ancora pubblicata; le regole vanno ricontrollate quando uscirà.
+- **Autori nel paper:**
+  - Marco De Luca, Simone Monaco (DAUIN, Politecnico di Torino);
+  - Giovanna De Luca, Alice Gorrino (Edilclima S.r.l., Borgomanero);
+  - Daniele Apiletti, Tania Cerquitelli (DAUIN, Politecnico di Torino).
+  - Intestazione: "De Luca et al.". Rispetto al paper MURENA manca Claudiu Tcaciuc, per scelta dell'utente.
+  - Non sono indicate le email.
+- **Ringraziamenti:** il testo WEBFARE è identico a quello del manoscritto MURENA, nell'ambiente `acks` di acmart.
+- **Fonte delle affiliazioni:** il manoscritto fornito dall'utente. Su internet non ho trovato una pagina con le affiliazioni.

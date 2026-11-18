@@ -3,6 +3,12 @@
 ## 2026-11-18
 
 * **Tabella risultati del paper condensata:** su richiesta dell’utente, i risultati v4 sono ora sintetizzati in una sola tabella (completion, Jaccard@5, RBO@10, filter F1 e auto-accordo oracle). Gli IC principali e detection F1 restano nel testo; il dettaglio delle metriche precedenti è conservato nel sorgente LaTeX sotto `\iffalse`, non viene composto. README e record OKF aggiornati. PDF non compilato su richiesta; pagine e layout restano da verificare.
+* **Paper: autori, affiliazioni e ringraziamenti.**
+  * La call EDBT 2026 per le demo usa submission non anonime (gli autori indicano nomi e affiliazioni). Prevede al massimo 4 pagine incluse le referenze e consiglia un video fino a 5 minuti. La call 2027 non è ancora pubblicata.
+  * Autori, nell'ordine indicato dall'utente: Marco De Luca, Simone Monaco, Giovanna De Luca, Alice Gorrino, Daniele Apiletti, Tania Cerquitelli.
+  * Affiliazioni copiate dal manoscritto MURENA (`references/paper/metadata.tex`): DAUIN, Politecnico di Torino, Torino; Edilclima S.r.l., Borgomanero, per Giovanna De Luca e Alice Gorrino.
+  * Ringraziamento WEBFARE (FISA2022-00908) copiato da `references/paper/paper.tex`.
+  * PDF rigenerato in locale: 4 pagine.
 
 * **Review del paper sullo stato corrente** (sorgente al commit `32c1d1b`, tutte le serie dopo il pull delle 16:10), in `research/conversational-paper-audit.md`.
   * Tre incoerenze nel testo:
