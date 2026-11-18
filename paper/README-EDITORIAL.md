@@ -61,12 +61,13 @@ offline scripted mode, which contains no property results.
    the multi-turn dialogue and the final map/ranking interface.
 3. Confirm the actual audience deployment and the dataset it will use.
 4. Check the final EDBT demo-track formatting and page limits.
-5. The reported results are the complete 304-run cooperative series
-   (`missingness_v3_haiku_r2`). Do not pool them with the earlier partial run
-   (115 of 123, other backend) or with the v4 runs. The paper describes the
-   v4 exhaustive catalogue as the scenario-generation framework; reported
-   evidence remains the cooperative series. Before updating the table or
-   figure, verify the benchmark outputs and document their provenance in OKF.
+5. The cooperative results are the complete 304-run Haiku series
+   (`missingness_v3_haiku_r2`); imperfect-user results are the separate
+   complete 265-run Codex series (`imperfect_user_codex_vlast`). Do not pool
+   model runs, the earlier partial cooperative run (115 of 123), or the v4
+   sample. The earlier Haiku imperfect-user findings remain commented in the
+   LaTeX source. Verify benchmark outputs and record provenance in OKF before
+   changing reported results.
 
 ## Build
 

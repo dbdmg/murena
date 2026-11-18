@@ -1,7 +1,8 @@
 %% Conversational MURENA -- EDBT 2027 demo paper, editable LaTeX source.
-%% Active results: Claude Haiku 5.5, cooperative nested-48 series
-%% (304/304 complete, code a5c1b09) and separate imperfect-user series
-%% (265/265 complete, code 62630c0). These are not v4 seed-13 results.
+%% Active results: Claude Haiku 5.5 cooperative nested-48 series
+%% (304/304 complete, code a5c1b09) and Codex/gpt-6-luna imperfect-user
+%% series (265/265 complete, code 37e0732). Prior Haiku imperfect-user and
+%% v4 seed-13 results are retained in disabled LaTeX blocks.
 %% The v4 seed-13 experiment and full metrics are retained below in a
 %% disabled LaTeX block. Figure data: data/per_k.csv (Haiku); the v4 curve
 %% is preserved in data/per_k_v4_seed13_archived.csv.
@@ -86,9 +87,10 @@ benchmark with Claude Haiku 5.5 (304 cooperative runs over eight
 intents), refined queries reach top-5 Jaccard agreement 0.88 and
 filter-atom $F_1$ 0.98 against an oracle query, on par with the oracle's
 own run-to-run agreement (0.87), compared with 0.16 and 0.61 for one-shot.
-In a separate series with simulated imperfect users, explicit declines were
-recorded as non-preferences in all 105 runs and vague answers triggered a
-follow-up in all 120 runs. Attendees drive the system with their own
+In a separate Codex series with simulated imperfect users, explicit declines
+were recorded as non-preferences in all 105 runs and vague answers triggered
+a follow-up in all 120; refined filters had $F_1$ 1.00 and top-5 agreement
+0.74 against that series' oracle. Attendees drive the system with their own
 requests, and an offline mode replays recorded benchmark scenarios.
 \end{abstract}
 \keywords{conversational query clarification, requirement elicitation,
@@ -411,7 +413,8 @@ Filter-atom $F_1$ & 0.98 [0.96, 1.00] & 0.61 [0.57, 0.65] & 0.99 [0.98, 1.00]\\
 \end{tabular}
 \end{table}
 
-\paragraph{Imperfect users.} A second series exercises the two behaviours
+\iffalse % Archived imperfect-user results with Claude Haiku 5.5; not active.
+\paragraph{Imperfect users (archived Haiku series).} A second series exercises the two behaviours
 a cooperative user never triggers: declining a dimension and first
 answering vaguely. In the opt-out runs, the declined dimension is answered
 ``I have no requirement on \dots'', and it was recorded as not requested
@@ -428,6 +431,25 @@ oracle runs completed with the same model and pipeline. A preliminary
 execution exposed two blocking cases (an ``unknown'' reading of a vague
 answer, and a stopping rule that skipped a required question), which
 were fixed before this series.
+
+\fi
+
+\paragraph{Imperfect users.} A separate Codex CLI run
+(\texttt{codex\_exec}, \texttt{gpt-6-luna}, low reasoning effort) on the full
+dataset (seed 13; three refined repetitions per variant, five oracle
+runs per intent) completed 265/265 runs (225 refined, 40 oracle). Values are
+means over eight intents with 95\% cluster-bootstrap intervals. For opt-out,
+\texttt{NOT\_REQUESTED}, one question, and exactly $k$ turns occurred in all
+105 cases; the intent-mean rate with no filter atom on the declined dimension
+was 0.90 [0.71, 1.00], and filter-atom $F_1$ on other dimensions was
+0.99 [0.98, 1.00]. We omit opt-out ranking agreement because the oracle
+retains the declined constraint. For vague answers, follow-up, $k+1$ turns,
+and final state \texttt{SPECIFIED} occurred in all 120 cases; filter-atom
+$F_1$ was 1.00 [1.00, 1.00], top-5 Jaccard 0.74 [0.59, 0.88], and RBO@10
+0.82 [0.72, 0.91] against that series' oracle. Oracle self-agreement was
+0.70 [0.51, 0.89]. This run (code revision \texttt{37e0732}, dirty working
+tree) is separate from the cooperative Haiku series. Users are simulated;
+agreement is with benchmark references, not independent relevance judgments.
 
 \iffalse % Archived v4 seed-13 experiment and results; not reported here.
 \paragraph{Execution.} Clarification and all pipeline agents used

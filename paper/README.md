@@ -4,18 +4,18 @@ Demo-paper draft for EDBT 2027 (acmart `sigconf`). The paper keeps MURENA's six-
 
 ## Evaluation status
 
-- Section 5 reports two separate Claude Haiku 5.5 series on the earlier nested benchmark: the cooperative comparison (`missingness_v3_haiku_r2`, 304/304 completed; code `a5c1b09`) and the imperfect-user series (`imperfect_user_haiku`, 265/265 completed; code `62630c0`). The paper's single table summarizes completion, Jaccard@5, RBO@10, and filter-atom $F_1$ for the cooperative series, with 95% confidence intervals and oracle self-agreement. The imperfect-user results are described separately and compared only with their own oracle. `data/per_k.csv` supplies the Haiku figure.
-- The v4 seed-13 results are retained as a disabled LaTeX source block, not reported or compared with Haiku: the v4 dataset hash differs, and its generated $D$ opt-out wording blocked 37 refined attempts. Their detailed metrics remain in the source block and in `backend/experiments/results/imperfect_user_v4_comparison_seed13/`; the previous v4 curve is preserved in `data/per_k_v4_seed13_archived.csv`. The expanded v4 catalogue (8,192 generated scenarios) is described as a generator; it is not the source of the reported Haiku results. Provenance and limitations are recorded in `docs/okf/research/edbt-conversational-benchmark.md`.
+- Section 5 reports two separate model runs on the nested benchmark. The cooperative comparison uses Claude Haiku 5.5 (`missingness_v3_haiku_r2`, 304/304 completed; code `a5c1b09`); the imperfect-user results use Codex/gpt-6-luna (`imperfect_user_codex_vlast`, 265/265 completed; code `37e0732`). The earlier Haiku imperfect-user results (`imperfect_user_haiku`, code `62630c0`) remain in a disabled LaTeX block for provenance. Results are not pooled across model runs. The cooperative table summarizes completion, Jaccard@5, RBO@10, and filter-atom $F_1$ with 95% confidence intervals and oracle self-agreement. `data/per_k.csv` supplies the cooperative Haiku figure.
+- The v4 seed-13 results are retained as a disabled LaTeX source block and are not compared with either reported series: the v4 dataset hash differs, and its generated $D$ opt-out wording blocked 37 refined attempts. Their detailed metrics remain in the source block and in `backend/experiments/results/imperfect_user_v4_comparison_seed13/`; the previous v4 curve is preserved in `data/per_k_v4_seed13_archived.csv`. The expanded v4 catalogue (8,192 generated scenarios) is described as a generator; neither reported series uses it. Provenance and limitations are recorded in `docs/okf/research/edbt-conversational-benchmark.md`.
 - The **Availability** paragraph cites the public repository `dbdmg/murena` and the reduced-format APE data published by the Piedmont Region as open data under CC BY 4.0 (portal `https://www.dati.piemonte.it/#/catalogo`, verified 2026-11-18); the demo-video link is still to be added (prepared by Marco De Luca).
 - `video/murena_demo_nursery.gif` is a silent screen recording of the live nursery walkthrough (vague answer → follow-up, opt-out → not requested, review, map). It is source material for the demo video, not a reported result.
 - Section 4 is audience-driven: attendees type their own requests in the live system (activities a–d: omit and observe, decline or hedge, review, inspect), use the offline scenario panel to browse completed v4 runs by use case and per-dimension state (specified, omitted, ambiguous), and the benchmark results page; an opening walkthrough uses the nursery case (`MS02_k2`). One-shot comparison is shown through recorded runs, not by toggling clarification live. The screenshots of the recorded backend session are included as `figures/screen-dialogue.png`, `figures/screen-review.png`, and `figures/screen-results.jpg`; these property results are not produced by the offline frontend simulator.
 
 The v4 generator derives every ternary balance of specified, vague, and
 opt-out answers over the full omission catalogue (8,192 scenarios) and is
-validated statically. The paper reports detailed seed-13 sample metrics as
-preliminary descriptive evidence; it does not claim independent relevance
-ground truth or generalize beyond this sample. The user requested no PDF
-build after the latest source edits; page count and layout are unverified.
+validated statically. Its seed-13 sample results remain in a disabled LaTeX
+block. The active imperfect-user metrics are descriptive for the recorded
+Codex run; neither series establishes independent property-relevance ground
+truth or supports generalization beyond its benchmark setup.
 
 ## Build
 

@@ -22,16 +22,19 @@ sources:
 
 # Fonti e livelli di evidenza
 
-**Risultati riportati nel paper (2026-11-18):** il manoscritto riporta le
-serie Claude Haiku 5.5 sul benchmark annidato precedente: 304/304 run nella
-serie cooperativa (`missingness_v3_haiku_r2`) e 265/265 nella serie utente
-imperfetto (`imperfect_user_haiku`). Nella serie cooperativa, Jaccard@5 è
+**Risultati riportati nel paper (2026-11-18):** il manoscritto riporta la
+serie cooperativa Claude Haiku 5.5 (304/304 run, `missingness_v3_haiku_r2`)
+e la serie utente imperfetto Codex/gpt-6-luna (265/265 run,
+`imperfect_user_codex_vlast`), mantenendole separate. Nella serie cooperativa,
+Jaccard@5 è
 0,88 refined e 0,16 one-shot; F1 dei filtri è 0,98 e 0,61. La serie con
-utenti imperfetti resta separata e usa i propri oracle. I risultati v4 seed 13
-non sono combinati con Haiku: restano archiviati nel sorgente LaTeX, con
+utenti imperfetti usa i propri oracle. I precedenti risultati Haiku per utenti
+imperfetti e quelli v4 seed 13 restano archiviati in blocchi LaTeX inattivi;
+le serie v4 non sono combinate con gli altri risultati. I risultati v4
+restano archiviati nel sorgente LaTeX, con
 l'aggregato in `backend/experiments/results/imperfect_user_v4_comparison_seed13/`.
 La suite v4 da 8.192 scenari è descritta come generatore, non come origine dei
-risultati Haiku riportati. Vedere il
+serie riportate. Vedere il
 [benchmark](../research/edbt-conversational-benchmark.md).
 
 **Aggiornamento del 2026-11-18:** la serie Haiku del 2026-11-17 è superata
@@ -40,18 +43,19 @@ corrente è il rerun `missingness_v3_haiku_r2` (304/304 run, codice `a5c1b09`),
 descritto nella
 [sezione 2026-11-18](../research/edbt-conversational-benchmark.md#risultati-osservati-serie-v3-haiku-rieseguita-sul-codice-corrente-2026-11-18);
 le due serie non vanno combinate. Il manoscritto aveva riportato il rerun; la versione attuale ripristina i risultati Haiku in modo esplicito.
-Si aggiunge la serie "utente imperfetto" (`imperfect_user_haiku`, 265/265 run,
-codice `62630c0`), con varianti opt-out e risposte vaghe; è descritta nella
-[sezione dedicata](../research/edbt-conversational-benchmark.md#risultati-osservati-serie-utente-imperfetto-con-claude-haiku-55-2026-11-18).
-È evidenza su utenti simulati con formulazioni fisse, non su utenti reali.
+La serie Haiku per utenti imperfetti (`imperfect_user_haiku`, codice
+`62630c0`) resta evidenza storica e non è combinata con il nuovo run Codex.
+La serie Codex è descritta nella
+[sezione dedicata](../research/edbt-conversational-benchmark.md#analisi-successiva-serie-imperfetta-codex--gpt-6-luna-2026-11-18).
+Entrambe riguardano utenti simulati con formulazioni fisse, non utenti reali.
 
-**Aggiornamento del paper (2026-11-18):** il manoscritto aveva riportato
-il campione v4 seed 13 e ne conserva i risultati dettagliati in un blocco
-LaTeX inattivo. La versione attuale ripristina come risultati attivi le serie
-Haiku `missingness_v3_haiku_r2` e `imperfect_user_haiku`, mantenendole
-separate. Il generatore v4 da 8.192 scenari resta descritto come risorsa
-metodologica, ma non è l'origine dei risultati Haiku. Il PDF non è stato
-compilato su richiesta dell'utente.
+**Aggiornamento del paper (2026-11-18):** la serie utente imperfetto Codex
+`imperfect_user_codex_vlast` è ora riportata nel testo attivo; i risultati
+precedenti Haiku `imperfect_user_haiku` sono commentati in un blocco LaTeX
+inattivo. La serie cooperativa Haiku `missingness_v3_haiku_r2` resta attiva.
+Le tre serie non vengono aggregate. Il generatore v4 da 8.192 scenari resta
+una risorsa metodologica, non l'origine dei risultati riportati. PDF
+rigenerato dopo la modifica: 4 pagine.
 
 **Aggiornamento locale del 2026-11-17:** i risultati preliminari v3 citati sotto
 restano evidenza storica (Git `4a7c882`), usata nel paper fino alla serie Haiku. Su richiesta sono
@@ -66,7 +70,8 @@ L'estensione combinatoria successiva ha preparato otto scenari S01–S08 con
 32 varianti ciascuno (256 totali); il generatore v4 le ha poi generalizzate in
 8.192 scenari ternari. Entrambe le strutture sono state verificate senza
 chiamate LLM; il catalogo v4 è documentato come generatore, mentre il paper
-riporta le due serie Haiku sul benchmark annidato precedente. I risultati v4
+riporta una serie Haiku cooperativa e una serie Codex per utenti imperfetti
+sul benchmark annidato precedente. I risultati v4
 seed 13 restano separati e archiviati. Vedere il
 [benchmark](../research/edbt-conversational-benchmark.md#revisione-combinatoria-del-catalogo-2026-11-17)
 e la [sezione v4](../research/edbt-conversational-benchmark.md#suite-a-omissione-controllata-v4-2026-11-18).

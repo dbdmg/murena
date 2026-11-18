@@ -537,6 +537,33 @@ Query iniziali, one-shot e oracle restano identiche al disegno annidato.
   - Entrambi i difetti sono stati corretti (`c7b9f7a`, `a5c1b09`) prima della serie riportata.
 - **Limiti:** utente simulato con un'unica formulazione per l'opt-out e per la risposta vaga; non è uno studio con utenti reali.
 
+## Analisi successiva: serie imperfetta Codex / gpt-6-luna (2026-11-18)
+
+La directory `backend/experiments/results/imperfect_user_codex_vlast/` contiene
+75 varianti, 225 run refined (3 repliche) e 40 oracle (5 per intento), tutte
+completate: 265/265. Il manifest registra `codex_exec`, `gpt-6-luna`, dataset
+`full` con SHA-256 `d3956041…d4f6da`, seed 13, concorrenza 20 e codice
+`37e0732` con working tree dirty. L'analisi è stata rigenerata con
+`analyze_imperfect_user.py`; intervalli al 95% ottenuti con bootstrap cluster
+sugli otto intenti.
+
+| Profilo | Misura | Valore |
+|---|---|---|
+| opt-out (105 run) | stato `NOT_REQUESTED`; chiesta una volta; turni = k | 105/105 per ciascuna |
+| | nessun atomo sulla dimensione rifiutata | 0,898 [0,710; 1,000] |
+| | F1 filtri sulle altre dimensioni vs oracle a maggioranza | 0,992 [0,982; 1,000] |
+| vague (120 run) | follow-up; turni = k+1; stato `SPECIFIED` | 120/120 per ciascuna |
+| | F1 filtri vs oracle a maggioranza | 0,999 [0,997; 1,000] |
+| | Jaccard@5 e RBO@10 vs oracle della stessa serie | 0,735 [0,587; 0,881]; 0,818 [0,722; 0,911] |
+| | tempo di chiarimento medio per run | 74,4 s [71,5; 76,7] |
+| oracle | Jaccard@5 oracle-vs-oracle | 0,703 [0,513; 0,893] |
+
+Questa serie è distinta da Haiku e non sostituisce i risultati attivi nel
+paper. Per l'opt-out non si calcola accordo di ranking con l'oracle, che
+conserva il vincolo rifiutato. I valori misurano accordo con riferimenti
+costruiti nel benchmark, non rilevanza immobiliare indipendente; restano inoltre
+risultati su utenti simulati.
+
 ## Limiti
 
 Gli scenari sono sintetici e costruiti per coprire dimensioni, omissioni, ambiguità e casi normativi selezionati. Non costituiscono una user study e non rappresentano la distribuzione di richieste reali. Le risposte simulate e gli oracle riflettono scelte di costruzione del benchmark. Le run conversational documentate sopra sono risultati osservati su questo setup, ma non stimano il beneficio del chiarimento senza condizioni one-shot e oracle appaiate. La copertura normativa segue il catalogo fornito e non certifica autorizzazioni o aggiornamento giuridico. Il protocollo EDBT va mantenuto distinto dai risultati riportati nel paper originale.
