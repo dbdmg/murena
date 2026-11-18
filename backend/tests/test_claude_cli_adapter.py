@@ -129,6 +129,48 @@ class SageJsonParsingTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             _parse_llm_json('Here it is: {"a": 1}')
 
+    def test_leading_think_block_is_dropped(self):
+        from app.services.sage_clarification.service import _parse_llm_json
+
+        self.assertEqual(_parse_llm_json('<think>reasoning {x}</think>\n{"a": 1}'), {"a": 1})
+        self.assertEqual(_parse_llm_json('<think>r</think>\n```json\n{"a": 1}\n```'), {"a": 1})
+        with self.assertRaises(ValueError):
+            _parse_llm_json('{"a": 1} <think>late</think>')
+
+
+class OpenWeightConfigTest(unittest.TestCase):
+    def test_thinking_flag_override_and_heuristic(self):
+        from app.core.config import settings
+        from app.services.llm.providers import disable_thinking
+
+        with patch.object(settings, "LLM_DISABLE_THINKING", None):
+            self.assertTrue(disable_thinking("http://localhost:8000/v1"))
+            self.assertFalse(disable_thinking("http://130.192.0.1:8000/v1"))
+        with patch.object(settings, "LLM_DISABLE_THINKING", True):
+            self.assertTrue(disable_thinking("http://130.192.0.1:8000/v1"))
+        with patch.object(settings, "LLM_DISABLE_THINKING", False):
+            self.assertFalse(disable_thinking("http://localhost:8000/v1"))
+
+    def test_provenance_records_endpoint_without_credentials(self):
+        import sys
+        from pathlib import Path
+        from types import SimpleNamespace
+
+        sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "experiments"))
+        from benchmark_cli import llm_provenance
+
+        fake = SimpleNamespace(
+            LLM_MODEL="qwen-test", LLM_PROVIDER="openai-compatible",
+            LLM_BASE_URL="http://user:secret@10.0.0.5:8000/v1?key=abc", OPENAI_API_BASE=None,
+            CODEX_REASONING_EFFORT="low", CLAUDE_CLI_EFFORT="medium", AGENT_TEMPERATURE=0.0,
+        )
+        with patch("app.services.llm.providers.resolve_provider", return_value="openai-compatible"):
+            prov = llm_provenance(fake)
+        self.assertEqual(prov["endpoint"], "http://10.0.0.5:8000")
+        self.assertNotIn("secret", json.dumps(prov))
+        self.assertTrue(prov["temperature_applied"])
+        self.assertIn(prov["thinking_disabled"], (True, False))
+
 
 if __name__ == "__main__":
     unittest.main()

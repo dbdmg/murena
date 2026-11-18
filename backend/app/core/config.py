@@ -91,6 +91,9 @@ class Settings(BaseSettings):
     LLM_BASE_URL: Optional[str] = None
     OPENAI_API_BASE: Optional[str] = None
     OLLAMA_BASE_URL: Optional[str] = None
+    # openai-compatible only: true/false forces the vLLM chat-template flag
+    # enable_thinking=false; unset applies it to local/institutional hosts.
+    LLM_DISABLE_THINKING: Optional[bool] = None
 
     LLMODEL_CONCURRENCY_LIMITS: Dict[str, int] = {
         "gpt-5.4": 2,

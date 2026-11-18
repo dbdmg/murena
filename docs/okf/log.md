@@ -2,6 +2,14 @@
 
 ## 2026-11-18
 
+* **Istruzioni per nuove serie con Codex o modelli open-weight** in `research/reproduction.md`: procedura comune (dry-run, smoke test su `MS02_k2`, serie cooperativa e serie imperfetta, analisi, ripresa con `--resume` e stesse variabili d'ambiente), variante `codex_exec` e variante vLLM/Ollama, regole per riportare i risultati senza combinare le serie.
+  * **Codice di supporto:**
+    * `LLM_DISABLE_THINKING` (true/false/vuoto) forza il flag vLLM `enable_thinking=false` su qualunque host. Prima il flag andava solo agli host locali, ed è la probabile causa del fallimento JSON della prova Qwen del 17-11 su IP pubblico.
+    * Il parser JSON di SAGE scarta un blocco `<think>…</think>` iniziale.
+    * La provenienza `llm` del manifest registra `endpoint` (solo schema, host e porta), `thinking_disabled` e `temperature_applied` (false per `codex_exec` e `claude_cli`, che non hanno un'opzione per la temperatura).
+    * Test in `test_claude_cli_adapter.py`.
+  * **Effetto sulle serie Haiku in corso:** nessuno funzionale. Il processo della serie cooperativa ha già caricato il codice `a5c1b09`. La serie imperfetta, avviata dopo, carica questo commit: per `claude_cli` cambiano solo i campi di provenienza aggiunti al manifest.
+
 * **Rerun delle serie Haiku sul codice corrente (`a5c1b09`), in corso dalle 04:10 circa:**
   * Motivo: la serie principale `missingness_v3_haiku` (codice `7fd238d`) precede la correzione della colonna tipologia `0e29b52`. Senza quella correzione il filtro tipologia era presente solo in 24 run oracle su 40, e J5 oracle-oracle valeva 0,53 contro 0,94 dopo la correzione. Dettagli in `research/edbt-conversational-benchmark.md`.
   * Serie cooperativa: 304 run in `results/missingness_v3_haiku_r2` (stesso scenario `nested48_from_4a7c882.yaml`, condizioni refined, one_shot e oracle, 3/5 ripetizioni, concorrenza 10).

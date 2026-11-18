@@ -70,6 +70,9 @@ def _llm_text(result: Any) -> str:
 def _parse_llm_json(result: Any) -> Any:
     """Parse the JSON-only response requested by a structured SAGE prompt."""
     content = _llm_text(result).strip()
+    # Reasoning models served locally (e.g. Qwen) may prepend a
+    # <think>...</think> block; drop leading reasoning blocks only.
+    content = re.sub(r"^(?:\s*<think>.*?</think>)+", "", content, flags=re.DOTALL).strip()
     # Some models wrap a JSON-only reply in a single Markdown code fence;
     # unwrap exactly that case and keep rejecting any other non-JSON text.
     fenced = re.fullmatch(r"```(?:json)?\s*\n(.*)\n?```", content, flags=re.DOTALL | re.IGNORECASE)

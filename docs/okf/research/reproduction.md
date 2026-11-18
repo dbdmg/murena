@@ -283,6 +283,103 @@ Problemi riscontrati con molte istanze CLI concorrenti su Windows, e correzioni:
 
 Per compilare il paper si usa Tectonic 0.17.0 (binario dalla release GitHub; su Windows non è disponibile via winget). I font Libertinus richiesti da `acmart` vanno resi disponibili localmente se il bundle di Tectonic non li trova.
 
+### Eseguire una nuova serie con un altro LLM (Codex o open-weight)
+
+Istruzioni per chi vuole aggiungere al paper una serie con un modello diverso da Claude Haiku 5.5, per esempio un modello Codex (`gpt-6-luna`) o un modello open-weight come Gemma o Qwen. Valgono dal commit che introduce questa sezione (2026-11-18). Le serie di riferimento per il confronto sono `missingness_v3_haiku_r2` (cooperativa) e `imperfect_user_haiku` (utente imperfetto), entrambe sul codice `a5c1b09`.
+
+**Regole che rendono la serie confrontabile.**
+
+- **Un modello per serie, in una directory di output nuova** (per esempio `results/missingness_v3_<modello>`). Non si mescolano modelli o versioni del codice nella stessa directory, né nel confronto.
+- **Stesso modello per tutto:** il chiarimento SAGE e tutti gli agenti della pipeline usano il modello selezionato da `LLM_PROVIDER` / `LLM_MODEL`.
+- **Stessi input:**
+  - scenari `scenarios_v3/nested48_from_4a7c882.yaml` e `scenarios_v3/imperfect_user.yaml`, non modificati;
+  - stesse condizioni e ripetizioni (`--repeat 3 --oracle-repeat 5`);
+  - stesso dataset: `estates.parquet` non è nel repository e va ottenuto a parte. Il manifest ne registra lo SHA-256, che deve valere `bc6732c8ff55725619e0a0e163297792de049de35a210ab4ebe30f14a1f5dbc7`.
+- **Codice pulito:** lanciare da un checkout senza modifiche e annotare il commit. Il manifest registra `code.commit` e `dirty`.
+- **Configurazione solo tramite variabili d'ambiente del processo**, senza modificare `backend/.env`.
+- **Niente sospensione del computer:** con la macchina sospesa la serie si ferma. Disattivare la sospensione automatica per la durata della serie.
+
+**Procedura comune** (dalla radice del repository; in PowerShell impostare le variabili con `$env:NOME = "valore"`):
+
+```bash
+# 0. Codice aggiornato e test
+git pull
+cd backend && uv run python -m unittest tests.test_claude_cli_adapter tests.test_experiments_metrics && cd ..
+
+# 1. Variabili del modello (vedi sotto) + piano senza chiamate LLM
+export LLM_PROVIDER=...  LLM_MODEL=...   # più le variabili specifiche
+uv run --project backend python backend/experiments/benchmark_cli.py \
+  --scenarios backend/experiments/data/scenarios_v3/nested48_from_4a7c882.yaml \
+  --output backend/experiments/results/missingness_v3_<modello> \
+  --condition refined --condition one_shot --condition oracle \
+  --repeat 3 --oracle-repeat 5 --concurrency <N> --dry-run
+
+# 2. Smoke test: solo MS02_k2 (caso nido), in file e directory a parte, poi controllo manuale
+uv run --project backend python -c "import yaml; s=yaml.safe_load(open('backend/experiments/data/scenarios_v3/nested48_from_4a7c882.yaml', encoding='utf-8')); yaml.safe_dump([x for x in s if x['id']=='MS02_k2'], open('smoke_MS02_k2.yaml', 'w', encoding='utf-8'), allow_unicode=True, sort_keys=False)"
+uv run --project backend python backend/experiments/benchmark_cli.py \
+  --scenarios smoke_MS02_k2.yaml --output backend/experiments/results/smoke_<modello> \
+  --condition refined --condition one_shot --condition oracle --repeat 1 --oracle-repeat 1 --concurrency 3
+
+# 3. Serie cooperativa completa (304 run), poi serie utente imperfetto (265 run)
+uv run --project backend python backend/experiments/benchmark_cli.py \
+  --scenarios backend/experiments/data/scenarios_v3/nested48_from_4a7c882.yaml \
+  --output backend/experiments/results/missingness_v3_<modello> \
+  --condition refined --condition one_shot --condition oracle \
+  --repeat 3 --oracle-repeat 5 --concurrency <N>
+uv run --project backend python backend/experiments/benchmark_cli.py \
+  --scenarios backend/experiments/data/scenarios_v3/imperfect_user.yaml \
+  --output backend/experiments/results/imperfect_user_<modello> \
+  --condition refined --condition oracle --repeat 3 --oracle-repeat 5 --concurrency <N>
+
+# 4. Analisi (nessuna chiamata LLM)
+uv run --project backend python backend/experiments/compare_conditions.py \
+  --results backend/experiments/results/missingness_v3_<modello>
+uv run --project backend python backend/experiments/analyze_imperfect_user.py \
+  --results backend/experiments/results/imperfect_user_<modello>
+```
+
+- Il runner non ha un filtro per singolo scenario: lo smoke test usa un YAML con il solo `MS02_k2`, fuori dal repository o da non committare.
+- **Cosa controllare nello smoke test.** Le run devono risultare `completed`. Nel refined di `MS02_k2` devono esserci esattamente 2 turni, su Cb e Ce. In `runs.jsonl`, `extractions` e `requirements` devono contenere gli atomi attesi: uso nido, Torino, superficie e capienza, classe energetica, verde. `results_count` deve essere dello stesso ordine della serie Haiku (oracle circa 50–120).
+- **Ripresa dopo un'interruzione.** Rilanciare lo stesso comando aggiungendo `--resume`, **con le stesse variabili d'ambiente**: il modello fa parte della chiave della run, e con un modello diverso il runner non riconosce le run già fatte. Un `--dry-run --resume` deve mostrare `skipped` uguale al numero di run completate. `--retry-failed` riesegue solo le run in errore.
+- **Concorrenza.** Il valore 10 è adatto alle CLI. Per un server locale va dimensionata sulla GPU: con vLLM è ragionevole partire da 4–8, con Ollama da 1–2. Durante i primi minuti controllare le latenze.
+- **Tempi di riferimento** (Haiku, concorrenza 10): circa 5 run al minuto, chiarimento 16–49 s, analisi 88–124 s per run.
+
+**Variante A: modello Codex** (provider `codex_exec`, Codex CLI autenticato con login ChatGPT):
+
+```bash
+export LLM_PROVIDER=codex_exec LLM_MODEL=gpt-6-luna CODEX_REASONING_EFFORT=low CODEX_TIMEOUT_SECONDS=300
+```
+
+- La CLI gira in una directory temporanea in sola lettura, senza strumenti, e non riceve la API key applicativa. Il manifest registra provider, modello ed effort.
+- Esperienza del 17-11: con il servizio rallentato le chiamate minime sono passate da 12 s a 63–167 s, e 8 run su 123 sono fallite per timeout a 180 s. Conviene alzare `CODEX_TIMEOUT_SECONDS`, tenere la concorrenza intorno a 4–6 e riprendere con `--resume --retry-failed`.
+- A differenza di `claude_cli`, l'adattatore `codex_exec` non ritenta le chiamate fallite.
+- La temperatura non è applicabile: il manifest registra `temperature_applied: false`. Lo stesso vale per `claude_cli`.
+
+**Variante B: modello open-weight.** Servire il modello con un server compatibile OpenAI; vLLM è consigliato.
+
+```bash
+# esempio vLLM (macchina con GPU): servire il modello con un nome stabile
+vllm serve <repo-hf-del-modello> --served-model-name <nome> --max-model-len 32768
+# lato MURENA
+export LLM_PROVIDER=openai-compatible LLM_MODEL=<nome> LLM_BASE_URL=http://<host>:8000/v1 \
+       LLM_DISABLE_THINKING=true
+```
+
+- **Nome del modello.** `LLM_MODEL` deve coincidere con il nome servito, cioè `--served-model-name` oppure l'output di `GET /v1/models`. Nomi di prodotto come "Gemma 4" o "Qwen 3.8 27B" vanno tradotti nel repository Hugging Face esatto. Registrare in OKF repository, revisione e quantizzazione, perché il manifest registra solo nome servito ed endpoint.
+- **Thinking.** Per i modelli con ragionamento esplicito (Qwen e simili) impostare `LLM_DISABLE_THINKING=true`. Il provider passa allora `chat_template_kwargs.enable_thinking=false` per qualunque host. Senza questa variabile il flag viene inviato solo a `localhost`, `127.0.0.1` o host `institutional`. Per i modelli senza questo template (Gemma), se il server rifiuta il parametro, impostare `LLM_DISABLE_THINKING=false`.
+  - Il parser SAGE scarta comunque un blocco `<think>…</think>` iniziale e un singolo blocco di codice JSON.
+  - Lo smoke test Qwen del 17-11 era fallito proprio con "Clarification model returned invalid JSON" su un IP pubblico, dove il flag non veniva inviato.
+- **Output strutturato.** I provider open-weight non usano function calling: gli agenti chiedono JSON in testo e lo estraggono con `safe_extract_json`. Un modello che non segue bene il formato JSON produce errori di chiarimento o estrazioni vuote. Lo smoke test serve a scoprirlo prima della serie.
+- **Contesto.** I prompt degli agenti includono metadati del dataset e cataloghi; la lunghezza non è stata misurata. Usare una finestra di almeno 32k token.
+  - **Ollama** (`LLM_PROVIDER=ollama`, `LLM_MODEL=<tag>`, `OLLAMA_BASE_URL`): `ChatOllama` non imposta `num_ctx`, quindi vale il default del server, spesso 2048–8192 token. Ollama tronca i prompt lunghi **senza errore**. Impostare `OLLAMA_CONTEXT_LENGTH=32768` (o più) sul server prima di avviarlo, oppure usare un Modelfile con `PARAMETER num_ctx`. Per questo vLLM resta preferibile.
+- **Temperatura.** Con questo provider la temperatura 0 di `AGENT_TEMPERATURE` viene applicata davvero (`temperature_applied: true`). Il manifest registra anche `endpoint` (solo schema, host e porta) e `thinking_disabled`.
+
+**Riportare i risultati.**
+
+- Aggiungere in `research/edbt-conversational-benchmark.md` una sezione per la nuova serie con: modello e revisione esatti, provider, endpoint o hardware, commit, date, run completate ed errori, risultati di `compare_conditions.py` e di `analyze_imperfect_user.py`.
+- Nel paper la nuova serie va accanto a quella Haiku, mai combinata: per esempio con una colonna o una riga per modello nella tabella, ciascuna col proprio tetto oracle-oracle. Gli errori non si imputano: si riportano.
+- Committare `runs.jsonl`, `manifest.json`, i file di confronto e, se le dimensioni lo consentono, `runs/` (circa 20 MB per 300 run).
+
 ## Controlli per confronti attendibili
 
 Registrare versione del dataset, query, modello/endpoint, prompt, condizioni di geocoding, mapping OSM, hardware e numero di prove. Se una tabella viene rigenerata **da log**, distinguere report derivato da una esecuzione effettiva.

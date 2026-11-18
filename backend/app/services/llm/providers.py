@@ -270,10 +270,22 @@ def build_chat_model(
     )
     # Some local runtimes (vLLM serving Qwen etc.) accept this extra flag to
     # disable "thinking" blocks; official endpoints would reject it.
-    lower_base = base_url.lower()
-    if any(tok in lower_base for tok in ("localhost", "127.0.0.1", "institutional")):
+    # LLM_DISABLE_THINKING=true/false forces the choice; unset keeps the
+    # host heuristic (local or institutional endpoints only).
+    if disable_thinking(base_url):
         kwargs["extra_body"] = {"chat_template_kwargs": {"enable_thinking": False}}
     return ChatOpenAI(**kwargs)
+
+
+def disable_thinking(base_url: Optional[str]) -> bool:
+    """Whether an openai-compatible request asks the server to disable thinking."""
+    from app.core.config import settings
+
+    forced = getattr(settings, "LLM_DISABLE_THINKING", None)
+    if forced is not None:
+        return bool(forced)
+    lower_base = (base_url or "").lower()
+    return any(tok in lower_base for tok in ("localhost", "127.0.0.1", "institutional"))
 
 
 def supports_structured_output(provider: str) -> bool:

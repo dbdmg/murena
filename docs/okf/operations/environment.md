@@ -40,7 +40,7 @@ sources:
 | Server | `HOST`, `PORT`, `DEBUG`, `LOG_LEVEL`, `CORS_ORIGINS` |
 | SQLite | `DATABASE_URL`, `DATABASE_PATH` |
 | JWT | `SECRET_KEY`, `JWT_ALGORITHM`, `ACCESS_TOKEN_EXPIRE_MINUTES`, `REFRESH_TOKEN_EXPIRE_DAYS` |
-| Modello/provider | `LLM_MODEL`, `LLM_PROVIDER`, `LLM_BASE_URL`, `OPENAI_API_BASE`, `OLLAMA_BASE_URL` |
+| Modello/provider | `LLM_MODEL`, `LLM_PROVIDER`, `LLM_BASE_URL`, `OPENAI_API_BASE`, `OLLAMA_BASE_URL`, `LLM_DISABLE_THINKING` |
 | Codex CLI | `CODEX_EXECUTABLE`, `CODEX_REASONING_EFFORT`, `CODEX_TIMEOUT_SECONDS` |
 | Claude Code CLI | `CLAUDE_CLI_EXECUTABLE`, `CLAUDE_CLI_EFFORT`, `CLAUDE_CLI_TIMEOUT_SECONDS` |
 | Chiavi provider | `OPENAI_API_KEY`, `GEMINI_API_KEY`, `ANTHROPIC_API_KEY`, `INSTITUTIONAL_LLM_API_KEY` e altre supportate |
@@ -49,6 +49,8 @@ sources:
 Le impostazioni hanno altri campi specifici in `app/core/config.py`; usare il codice e `.env.example` come autorità per il set completo.
 
 `LLM_PROVIDER=codex_exec` seleziona Codex dalla factory condivisa `get_llm` per SAGE e per tutti gli agenti MURENA; `LLM_MODEL=gpt-6-luna` e `CODEX_REASONING_EFFORT=low` configurano il modello. Richiede il CLI installato e autenticato con ChatGPT. Per tornare a vLLM, impostare `LLM_PROVIDER=openai-compatible`, `LLM_BASE_URL` e `LLM_MODEL` secondo il servizio. Riavviare il backend dopo aver cambiato provider.
+
+Per i server open-weight compatibili OpenAI (`openai-compatible`, per esempio vLLM), `LLM_DISABLE_THINKING=true` invia `chat_template_kwargs.enable_thinking=false` a qualunque host, `false` non lo invia mai. Se la variabile è vuota, il flag va solo a `localhost`, `127.0.0.1` o host `institutional`. Con Ollama la finestra di contesto è quella del server, perché `ChatOllama` non imposta `num_ctx`: va alzata con `OLLAMA_CONTEXT_LENGTH`. Le istruzioni per una serie benchmark con Codex o con un modello open-weight sono in [riproduzione](../research/reproduction.md#eseguire-una-nuova-serie-con-un-altro-llm-codex-o-open-weight).
 
 `LLM_PROVIDER=claude_cli` (alias `claude-cli`) usa il Claude Code CLI autenticato (`claude -p`), per esempio con `LLM_MODEL=claude-haiku-5-5` e `CLAUDE_CLI_EFFORT=medium`. Ogni chiamata gira in una directory temporanea vuota, con questi parametri:
 

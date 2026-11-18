@@ -781,13 +781,33 @@ def llm_provenance(settings: Any) -> dict[str, Any]:
         effort = getattr(settings, "CODEX_REASONING_EFFORT", None)
     elif provider == "claude_cli":
         effort = getattr(settings, "CLAUDE_CLI_EFFORT", None)
+    endpoint = None
+    if base_url:
+        # Scheme, host and port only: never record paths, queries or credentials.
+        from urllib.parse import urlsplit
+
+        parts = urlsplit(base_url)
+        endpoint = f"{parts.scheme}://{parts.hostname}" + (f":{parts.port}" if parts.port else "")
+    thinking_disabled = None
+    if provider == "openai-compatible":
+        try:
+            from app.services.llm.providers import disable_thinking
+
+            thinking_disabled = disable_thinking(base_url)
+        except Exception:
+            thinking_disabled = None
     return {
         "provider": provider,
         "model": model,
+        "endpoint": endpoint,
+        "thinking_disabled": thinking_disabled,
         "reasoning_effort": effort,
         "codex_reasoning_effort_setting": getattr(settings, "CODEX_REASONING_EFFORT", None),
         "claude_cli_effort_setting": getattr(settings, "CLAUDE_CLI_EFFORT", None),
         "temperature": getattr(settings, "AGENT_TEMPERATURE", None),
+        # The Codex and Claude Code CLIs expose no temperature option: the
+        # configured value is recorded but not sent to the model.
+        "temperature_applied": provider not in {"codex_exec", "claude_cli"},
     }
 
 
