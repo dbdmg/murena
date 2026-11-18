@@ -197,3 +197,7 @@ Dettagli sulle serie dei colleghi:
   - Non sono indicate le email.
 - **Ringraziamenti:** il testo WEBFARE è identico a quello del manoscritto MURENA, nell'ambiente `acks` di acmart.
 - **Fonte delle affiliazioni:** il manoscritto fornito dall'utente. Su internet non ho trovato una pagina con le affiliazioni.
+
+## Ripristino dei risultati Haiku (2026-11-18)
+
+Su richiesta dell’utente, il manoscritto torna a riportare le serie `missingness_v3_haiku_r2` (304/304) e `imperfect_user_haiku` (265/265), separatamente. Il testo distingue la suite annidata eseguita per le serie Haiku dal catalogo v4 da 8.192 scenari, che resta descritto come generatore. La tabella attiva contiene completion, Jaccard@5, RBO@10 e filter F1 con IC; delta, p-value, detection F1 e tempi non sono riportati. I risultati e le metriche complete v4 restano nel sorgente LaTeX inattivo. `data/per_k.csv` usa la serie Haiku; la curva v4 è in `data/per_k_v4_seed13_archived.csv`. Il PDF non è stato compilato su richiesta.

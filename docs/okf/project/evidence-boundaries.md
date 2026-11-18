@@ -22,38 +22,36 @@ sources:
 
 # Fonti e livelli di evidenza
 
-**Risultati riportati nel paper (2026-11-18):** il manoscritto riporta ora
-il campione v4 seed 13 con `gpt-6-luna`: 246/246 one-shot, 209/246 refined
-e 24/24 oracle completate. Jaccard@5 medio refined è 0,249 contro 0,000
-one-shot; F1 dei vincoli atomici è 0,815 contro 0,320. È evidenza osservata
-specifica del campione, non un giudizio di rilevanza; i 37 errori refined
-sono esplicitati: 33/51 run con opt-out su $D$ e 4/195 con opt-out su altre
-dimensioni si sono bloccate perché le frasi generate non esprimevano una
-rinuncia chiara. I punteggi di accordo escludono queste run fallite. Il
-dataset v4 ha hash diverso dalla serie Haiku, che resta evidenza storica,
-conservata come commento nel sorgente LaTeX e non combinata con il campione
-v4. Vedere il [benchmark](../research/edbt-conversational-benchmark.md#risultati-osservati-serie-utente-imperfetto-v4-seed-13-2026-11-18).
+**Risultati riportati nel paper (2026-11-18):** il manoscritto riporta le
+serie Claude Haiku 5.5 sul benchmark annidato precedente: 304/304 run nella
+serie cooperativa (`missingness_v3_haiku_r2`) e 265/265 nella serie utente
+imperfetto (`imperfect_user_haiku`). Nella serie cooperativa, Jaccard@5 è
+0,88 refined e 0,16 one-shot; F1 dei filtri è 0,98 e 0,61. La serie con
+utenti imperfetti resta separata e usa i propri oracle. I risultati v4 seed 13
+non sono combinati con Haiku: restano archiviati nel sorgente LaTeX, con
+l'aggregato in `backend/experiments/results/imperfect_user_v4_comparison_seed13/`.
+La suite v4 da 8.192 scenari è descritta come generatore, non come origine dei
+risultati Haiku riportati. Vedere il
+[benchmark](../research/edbt-conversational-benchmark.md).
 
 **Aggiornamento del 2026-11-18:** la serie Haiku del 2026-11-17 è superata
 (codice precedente la correzione della colonna tipologia `0e29b52`). L'evidenza
 corrente è il rerun `missingness_v3_haiku_r2` (304/304 run, codice `a5c1b09`),
 descritto nella
 [sezione 2026-11-18](../research/edbt-conversational-benchmark.md#risultati-osservati-serie-v3-haiku-rieseguita-sul-codice-corrente-2026-11-18);
-le due serie non vanno combinate. Dal commit `cd0e18b` il paper riporta il rerun.
+le due serie non vanno combinate. Il manoscritto aveva riportato il rerun; la versione attuale ripristina i risultati Haiku in modo esplicito.
 Si aggiunge la serie "utente imperfetto" (`imperfect_user_haiku`, 265/265 run,
 codice `62630c0`), con varianti opt-out e risposte vaghe; è descritta nella
 [sezione dedicata](../research/edbt-conversational-benchmark.md#risultati-osservati-serie-utente-imperfetto-con-claude-haiku-55-2026-11-18).
 È evidenza su utenti simulati con formulazioni fisse, non su utenti reali.
 
-**Aggiornamento del 2026-11-18 (paper e generazione v4):** il manoscritto
-descrive il paradigma v4 e riporta ora il campione imperfetto seed 13.
-L'aggregato è in `backend/experiments/results/imperfect_user_v4_comparison_seed13/`;
-i 37 errori refined sono riportati e le metriche usano i run completati. Il
-confronto con l'oracle misura accordo con query/ranking di riferimento, non
-la rilevanza immobiliare; nei profili opt-out l'oracle continua a contenere
-vincoli che l'utente ha rifiutato. I risultati Haiku v3 e della serie Haiku
-imperfetta restano in OKF e nel sorgente LaTeX commentato, non sono combinati
-con v4. Il PDF del paper va rigenerato dopo ogni sua modifica.
+**Aggiornamento del paper (2026-11-18):** il manoscritto aveva riportato
+il campione v4 seed 13 e ne conserva i risultati dettagliati in un blocco
+LaTeX inattivo. La versione attuale ripristina come risultati attivi le serie
+Haiku `missingness_v3_haiku_r2` e `imperfect_user_haiku`, mantenendole
+separate. Il generatore v4 da 8.192 scenari resta descritto come risorsa
+metodologica, ma non è l'origine dei risultati Haiku. Il PDF non è stato
+compilato su richiesta dell'utente.
 
 **Aggiornamento locale del 2026-11-17:** i risultati preliminari v3 citati sotto
 restano evidenza storica (Git `4a7c882`), usata nel paper fino alla serie Haiku. Su richiesta sono
@@ -67,9 +65,9 @@ verifica tecnica minima, non un risultato del benchmark. Vedere
 L'estensione combinatoria successiva ha preparato otto scenari S01–S08 con
 32 varianti ciascuno (256 totali); il generatore v4 le ha poi generalizzate in
 8.192 scenari ternari. Entrambe le strutture sono state verificate senza
-chiamate LLM e non forniscono nuovi risultati sperimentali; il paper usa v4
-come framework di generazione e mantiene la serie cooperativa come evidenza
-riportata. Vedere il
+chiamate LLM; il catalogo v4 è documentato come generatore, mentre il paper
+riporta le due serie Haiku sul benchmark annidato precedente. I risultati v4
+seed 13 restano separati e archiviati. Vedere il
 [benchmark](../research/edbt-conversational-benchmark.md#revisione-combinatoria-del-catalogo-2026-11-17)
 e la [sezione v4](../research/edbt-conversational-benchmark.md#suite-a-omissione-controllata-v4-2026-11-18).
 
