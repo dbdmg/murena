@@ -17,6 +17,8 @@
   * PDF rigenerato in locale: 4 pagine, intestazione verificata.
 
 * **Paper, paragrafo Availability:** aggiunti portale e licenza dei dati APE.
+* **Confronto v4 seed 13:** aggregati i `runs.jsonl` delle condizioni one-shot, refined e oracle in una directory dedicata; calcolate metriche di accordo del ranking e dei filtri, incertezza per cluster e metriche operative. Refined ha 37 errori su 246 run; risultati documentati come evidenza descrittiva circoscritta in `research/edbt-conversational-benchmark.md`, senza modificare il paper.
+* **Paper, risultati v4 seed 13:** sostituiti i risultati cooperativi Haiku attivi nel manoscritto con il dettaglio delle metriche del campione utente imperfetto: ranking servito/tie-aware aggregato e per k, F1 dei filtri per k, richiamo per dimensione, atomi inventati, mapping, tempi, risultati e diagnostiche operative. La review upstream ha inoltre evidenziato che le frasi v4 per l'opt-out su $D$ sono ambigue: 33/51 sessioni con quel profilo e 4/195 con altri opt-out si sono bloccate; i punteggi complete-case escludono i fallimenti. Il dataset ha hash diverso da Haiku, quindi non si confrontano le serie. I risultati precedenti sono conservati in LaTeX disattivato e la curva precedente in un CSV archivio. Aggiornati tabelle, figura e dataset della figura, abstract, protocollo, README e audit OKF. Su richiesta dell'utente il PDF non è stato compilato e il PDF preesistente è rimasto intatto.
   * Fonte: catalogo `https://www.dati.piemonte.it/#/catalogo`, verificato il 2026-11-18.
   * Dataset: "Dettaglio attestato di prestazione/certificazione energetica (APE)" di Regione Piemonte, pubblicato da CSI-Piemonte (Yucca SDP).
   * Licenza: Creative Commons Attribuzione 4.0 Internazionale.

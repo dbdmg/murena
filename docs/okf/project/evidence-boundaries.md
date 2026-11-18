@@ -22,16 +22,17 @@ sources:
 
 # Fonti e livelli di evidenza
 
-**Risultati del paper (2026-11-17, sera):** il paper riporta ora la serie
-**completa** del disegno annidato a 48 varianti eseguita con Claude Haiku 5.5
-(provider `claude_cli`): 304/304 run completati, tutti gli 8 intenti in ogni
-cella, artefatti in `backend/experiments/results/missingness_v3_haiku/`. È un
-**risultato osservato verificato** su questo setup, non un giudizio di
-rilevanza. La serie parziale `gpt-6-luna` (115 di 123 run, Git `4a7c882`)
-resta evidenza storica, non combinata. I due set di risultati non vanno
-confrontati come prova di superiorità di un modello: la variabilità
-oracle-vs-oracle differisce (0,53 contro 0,74). Vedere il
-[benchmark](../research/edbt-conversational-benchmark.md#risultati-osservati-serie-completa-v3-con-claude-haiku-55-2026-11-17).
+**Risultati riportati nel paper (2026-11-18):** il manoscritto riporta ora
+il campione v4 seed 13 con `gpt-6-luna`: 246/246 one-shot, 209/246 refined
+e 24/24 oracle completate. Jaccard@5 medio refined è 0,249 contro 0,000
+one-shot; F1 dei vincoli atomici è 0,815 contro 0,320. È evidenza osservata
+specifica del campione, non un giudizio di rilevanza; i 37 errori refined
+sono esplicitati: 33/51 run con opt-out su $D$ e 4/195 con opt-out su altre
+dimensioni si sono bloccate perché le frasi generate non esprimevano una
+rinuncia chiara. I punteggi di accordo escludono queste run fallite. Il
+dataset v4 ha hash diverso dalla serie Haiku, che resta evidenza storica,
+conservata come commento nel sorgente LaTeX e non combinata con il campione
+v4. Vedere il [benchmark](../research/edbt-conversational-benchmark.md#risultati-osservati-serie-utente-imperfetto-v4-seed-13-2026-11-18).
 
 **Aggiornamento del 2026-11-18:** la serie Haiku del 2026-11-17 è superata
 (codice precedente la correzione della colonna tipologia `0e29b52`). L'evidenza
@@ -45,15 +46,14 @@ codice `62630c0`), con varianti opt-out e risposte vaghe; è descritta nella
 È evidenza su utenti simulati con formulazioni fisse, non su utenti reali.
 
 **Aggiornamento del 2026-11-18 (paper e generazione v4):** il manoscritto
-descrive ora il paradigma **v4** di generazione deterministica ed esaustiva
-degli scenari (tutte le 32 maschere di omissione per intento e tutte le $3^k$
-assegnazioni ternarie tra specificato, vago e opt-out, per 8.192 scenari) come
-framework del benchmark. L'evidenza riportata resta la serie **cooperativa**
-`missingness_v3_haiku_r2` (304/304 run, codice `a5c1b09`); il paper non riporta
-parametri di campionamento, seed né risultati v4. I run v4 parziali (seed 13,
-`gpt-6-luna`) sono descrittivi e non vanno presentati come risultati del
-manoscritto. La sezione dimostrativa descrive il pannello che filtra le run v4
-completate per caso d'uso e stato delle dimensioni.
+descrive il paradigma v4 e riporta ora il campione imperfetto seed 13.
+L'aggregato è in `backend/experiments/results/imperfect_user_v4_comparison_seed13/`;
+i 37 errori refined sono riportati e le metriche usano i run completati. Il
+confronto con l'oracle misura accordo con query/ranking di riferimento, non
+la rilevanza immobiliare; nei profili opt-out l'oracle continua a contenere
+vincoli che l'utente ha rifiutato. I risultati Haiku v3 e della serie Haiku
+imperfetta restano in OKF e nel sorgente LaTeX commentato, non sono combinati
+con v4. Il PDF del paper va rigenerato dopo ogni sua modifica.
 
 **Aggiornamento locale del 2026-11-17:** i risultati preliminari v3 citati sotto
 restano evidenza storica (Git `4a7c882`), usata nel paper fino alla serie Haiku. Su richiesta sono

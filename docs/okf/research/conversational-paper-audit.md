@@ -25,7 +25,7 @@ sources:
 
 # Bozza Conversational MURENA e confronto con il codice
 
-Il sorgente [EDBT](../../../paper/edbt-paper-template.tex) è una **bozza ricostruita**, distinta dal [manoscritto MURENA originale](../references/paper/guide.md): autori e affiliazioni sono da confermare e il testo riporta ora risultati preliminari del benchmark a tre condizioni (115 run completati su 123 eseguiti e 304 pianificati). Il suo contributo proposto è il chiarimento conversazionale prima dell'analisi; la valutazione comparativa distingue il protocollo pianificato dai risultati osservati, senza attribuire rilevanza indipendentemente verificata al ranking oracle. I dettagli delle esecuzioni effettive e dei limiti degli scenari sono nel [benchmark conversazionale](edbt-conversational-benchmark.md).
+Il sorgente [EDBT](../../../paper/edbt-paper-template.tex) è una **bozza ricostruita**, distinta dal [manoscritto MURENA originale](../references/paper/guide.md): autori e affiliazioni sono da confermare. Il paper riporta ora il benchmark a tre condizioni v4 seed 13 (246 one-shot, 209/246 refined e 24 oracle completate), con 37 errori refined dichiarati. Il confronto misura accordo con query/ranking oracle, senza attribuire rilevanza indipendentemente verificata agli immobili. I dettagli delle esecuzioni effettive e dei limiti degli scenari sono nel [benchmark conversazionale](edbt-conversational-benchmark.md).
 
 ## Confronto statico, 2026-11-17
 
@@ -171,3 +171,12 @@ Dettagli sulle serie dei colleghi:
   - Anche alcune frasi di opt-out su $C_b$ rivelano l'uso ("toddler capacity for the spring section").
 - **Dataset diversi:** i tre hash non coincidono con quello delle serie Haiku. Vanno allineati prima di confrontare i modelli.
 - **Codex:** il 60% di fallimenti in one-shot rende `all_scenarios_codex` inutilizzabile per il confronto one-shot senza un'esecuzione di ripresa.
+
+## Sostituzione dei risultati con il campione v4 seed 13 (2026-11-18)
+
+- Abstract, Conditions, Execution, Results e tabella ora descrivono la serie `imperfect_user_v4_comparison_seed13` (`gpt-6-luna`, 1%, seed 13). Il confronto include 246 one-shot, 209 refined completate su 246 e 24 oracle; i 37 errori refined sono dichiarati.
+- Le tabelle riportano Jaccard@5 e RBO@10 (serviti e tie-aware), F1 aggregato e per k, richiamo per dimensione, atomi inventati, auto-accordo oracle, consistenza SQL, accuratezza della mappatura, tempi, completamento e conteggi operativi, con intervalli cluster-bootstrap e test sign-flip dove calcolati. La figura per k usa `paper/data/per_k.csv`, esportato dagli output aggregati correnti; la curva precedente è conservata in `paper/data/per_k_cooperative_haiku_archived.csv`.
+- I precedenti risultati Haiku cooperativi e imperfect-user sono conservati in un blocco LaTeX `\iffalse ... \fi` disattivato; non sono risultati attivi né vengono combinati con v4.
+- È stato aggiunto al testo che l'oracle include vincoli anche nei profili opt-out: l'accordo con l'oracle non è un obiettivo appropriato per quei casi e non costituisce una misura indipendente di rilevanza.
+- Integrata la review upstream: la serie v4 usa un dataset con hash diverso da Haiku e la formulazione generata per opt-out su $D$ è ambigua. Sono dichiarati i blocchi: 33/51 sessioni $D$-opt-out e 4/195 opt-out di altre dimensioni; le metriche complete-case non includono questi tentativi.
+- Su richiesta dell'utente, il PDF non è stato compilato dopo questa modifica; il PDF preesistente è rimasto intatto e non corrisponde ai sorgenti aggiornati. Conteggio pagine e layout dei nuovi sorgenti restano non verificati.

@@ -1,14 +1,13 @@
 %% Conversational MURENA -- EDBT 2027 demo paper, editable LaTeX source.
-%% Evaluation reports the three-condition benchmark (refined / one_shot /
-%% oracle) on the cooperative series of the deterministic v4 scenario
-%% catalogue: all 304 planned runs completed on 2026-11-18
-%% (results/missingness_v3_haiku_r2, code a5c1b09). The catalogue is generated
+%% Evaluation reports a sampled three-condition benchmark (refined / one_shot /
+%% oracle) on imperfect-user v4 scenarios: 82 variants, seed 13,
+%% gpt-6-luna, with 246 one-shot, 246 refined (209 completed), and 24 oracle
+%% runs. Comparison artifacts: results/imperfect_user_v4_comparison_seed13.
+%% The catalogue is generated
 %% exhaustively (32 omission masks x 3^k behaviours per intent, 8,192
-%% scenarios). Superseded and never pooled: the 2026-11-17 Haiku series
-%% (results/missingness_v3_haiku, before the typology-column fix 0e29b52) and
-%% an earlier partial execution with another LLM backend (115 of 123 executed
-%% runs, Git 4a7c882).
-%% Provenance: docs/okf/research/edbt-conversational-benchmark.md. Figure data: data/per_k.csv.
+%% scenarios). Earlier Haiku results remain archived below and are not pooled
+%% with this sample. Provenance: docs/okf/research/edbt-conversational-benchmark.md.
+%% Figure data: data/per_k.csv.
 \documentclass[sigconf,review]{acmart}
 \geometry{twoside=true, head=13pt, a4paper, includeheadfoot,
  columnsep=2pc, top=57pt, bottom=73pt, inner=54pt, outer=54pt,
@@ -82,15 +81,20 @@ controlled-omission benchmark generated deterministically from eight
 intents, all 32 omission masks of the five optional dimensions, and
 three behaviours for each omitted dimension (specified, vague, declined),
 for 8,192 scenarios; it compares refined, one-shot, and complete (oracle)
-queries under the same pipeline. Over 304 completed cooperative runs,
-clarification
-detected every omission without unnecessary questions, and refined
-queries reached top-5 agreement with the oracle of 0.88, at the level of
-the oracle's own run-to-run agreement (0.87), against 0.16 for one-shot
-queries. With simulated users who decline a dimension or first answer
-vaguely, declines were always recorded as non-preferences and vague
-answers always led to one follow-up. Attendees drive the system with
-their own requests and with controlled benchmark scenarios.
+queries under the same pipeline. In a 1\% seed-13 sample of imperfect-user
+scenarios, 209 of 246 refined runs completed. Across eight intents, refined
+runs had top-5 Jaccard agreement 0.25 with the oracle (0.00 for one-shot)
+and structured-filter $F_1$ 0.81 (0.32 for one-shot). These descriptive
+results use an oracle query as a reference, not independent ground truth
+for property relevance; sampled profiles include opt-out cases, although
+some generated refusals on use are ambiguous. Attendees drive
+the system with their own requests and with controlled benchmark scenarios.
+% Archived abstract results (cooperative Haiku series, superseded here):
+% Over 304 completed cooperative runs, clarification detected every omission
+% without unnecessary questions, and refined queries reached top-5 agreement
+% 0.88 (oracle-vs-oracle 0.87), against 0.16 for one-shot queries. In the
+% imperfect-user series, declines were always recorded as non-preferences and
+% vague answers always led to one follow-up.
 \end{abstract}
 \keywords{conversational query clarification, requirement elicitation,
 real-estate decision support, multi-agent systems, text-to-SQL}
@@ -304,35 +308,21 @@ $8\sum_{k=0}^{5}\binom{5}{k}3^k = 8{,}192$ scenarios: 8 controls at
 $k=0$, and 120, 720, 2{,}160, 3{,}240, and 1{,}944 at $k=1,\dots,5$,
 with 248 all-specified, 248 all-vague, 248 all-opt-out, and 7{,}440
 mixed profiles. Capacity is stated inside the $C_b$ fragment with a
-use-neutral noun, so omitting $C_b$ removes it from $q_0$. In the
-reported cooperative series, the simulated user answers each question
-with the exact omitted fragment for the targeted dimension.
+use-neutral noun, so omitting $C_b$ removes it from $q_0$. The evaluated
+sample contains specified, vague, and opt-out profiles.
 
 \paragraph{Conditions.} \emph{Refined}: $q_0$ goes through
-clarification with the simulated user, the rewritten $\hat q$ is
-accepted without edits, and $\hat q$ (never $q^*$) is analysed, over the
-48 cooperative scenarios (one mask per intent and level), 3 repetitions.
-\emph{One-shot}: $q_0$ is analysed directly;
-40 scenarios with $k\ge1$, 3 repetitions. \emph{Oracle}: $q^*$ is
-analysed directly, 5 repetitions per intent. The plan comprises 304 runs,
-executed by condition (refined, one-shot, oracle), all with the same code version, pipeline
-options (including MURENA's result relaxation, whose activation is
-logged), and the 89,200-property MURENA dataset. Run-to-run variability
-is measured rather than assumed absent. The oracle ranking is a
-\emph{reference query output}, not ground truth on property relevance.
+clarification with the simulated imperfect user, and the resulting
+reviewed $\hat q$ is analysed; $q^*$ is never substituted for it.
+\emph{One-shot}: $q_0$ is analysed directly. \emph{Oracle}: $q^*$ is
+analysed directly, with three repetitions per intent. The sampled 82
+variants each have three one-shot and three refined repetitions (246 runs
+per condition). The same pipeline options, including MURENA's result
+relaxation, and the 89,200-property dataset are used. The oracle ranking
+is a \emph{reference query output}, not ground truth on property relevance.
 
-% Verbatim submitted_query values from missingness_v3_haiku_r2/runs.jsonl:
-% one_shot bench_dc898ec9a30c; refined bench_24b7eb94f445;
-% oracle bench_d3c744f2613b. See OKF for provenance.
-For example, the recorded nursery case ($k=2$, $C_b$ and $C_e$
-omitted) supplied the following actual inputs to the analysis pipeline:
-\emph{One-shot ($q_0$)}: ``I am looking for an existing school building. I intend to convert it into a nursery. The location is in Turin. I prefer properties near green spaces.''
-\emph{Refined ($\hat q$)}: ``I am looking for an existing school building in Turin to convert into a nursery. It must have at least 600 sqm of gross floor area and capacity for 45 people. I prefer a property in energy class D or better. I also prefer properties near green spaces.''
-\emph{Oracle ($q^*$)}: ``Find an existing school building to convert it into a nursery for 45 children in Turin with at least 600 sqm of gross floor area in energy class D or better near green spaces.''
-The refined text was generated after two clarification turns; the
-oracle was predefined. They express corresponding requirements with
-different wording, including ``capacity for 45 people'' versus ``for 45
-children''; the oracle text is never substituted for the refined output.
+The oracle query is retained as a reference and is never supplied to the
+refined condition.
 
 \paragraph{Metrics.} \emph{Clarification}: precision, recall, and $F_1$
 of detecting the initially omitted dimensions; number of turns;
@@ -354,38 +344,227 @@ intervals from a cluster bootstrap over the eight intents
 ($B=10{,}000$); the intent-level difference refined~$-$~one-shot is
 tested with an exact sign-flip test.
 
-\paragraph{Scope.} In the main series the simulated user reveals exactly
-what was omitted, so refined-versus-oracle agreement is an upper bound on
-recovery rather than evidence about real users; the comparison measures the value of
-the added information, not of dialogue over a static form. The level
-$k$ is coupled to the identity of the omitted dimensions, so results
-are stratified by $k$ and not read as a causal effect of the count. At
-$k=0$, $q_0$ and $q^*$ differ only in wording, which bounds
-wording-induced variation. The full ternary catalogue is generated and
-statically validated; the reported evidence covers its cooperative
-series, while the series below exercises declined and vague answers.
+\paragraph{Scope.} Users are simulated from fixed profiles, not recruited;
+the sample includes vague answers and profiles intended to opt out, but
+does not establish how real users would respond. Some generated opt-out
+wording for use ($D$) does not clearly state a lack of preference and
+instead alludes to the intended use; these cases can block clarification.
+The oracle also preserves intended constraints in opt-out profiles, so
+refined-versus-oracle agreement is not a valid target for those cases. The
+level $k$ is coupled to which dimensions are omitted; results are
+stratified by $k$ and do not establish a causal effect of omission count.
+The sample covers $k=2$--$5$, not the $k=0,1$ catalogue cells. The full
+ternary catalogue is generated and statically validated; this result is a
+1\% sample from it. The earlier 256-variant catalogue was executed only
+partially with another backend and is not reported or pooled here.
 
 \paragraph{Execution.} Clarification and all pipeline agents used
-Claude Haiku 5.5 (\texttt{claude-haiku-5-5}) through the non-interactive
-Claude Code CLI, with medium reasoning effort, no tools, and the CLI's
-default sampling. All 304 planned runs (144 refined, 120
-one-shot, 40 oracle) completed on 2026-11-18 with ten concurrent runs,
-in one execution paused once and resumed on the same code; no run or
-agent call failed, and every $(k,\text{condition})$ cell covers all 8
-intents. Relaxation fired in 52 runs (36 refined, 6 one-shot, 10 oracle),
-always for the same two intents, and is logged. Two earlier executions
-are documented separately and not pooled: a partial one with a
-different LLM backend, and a complete one that preceded a fix of the
-property-type metadata passed to the building agent.
+\texttt{gpt-6-luna} through the Codex CLI provider (\texttt{codex\_exec}),
+with low reasoning effort; temperature was not applied. The evaluation
+sampled 1\% (82/8,192) of the v4 imperfect-user catalogue with seed 13,
+covering $k=2,3,4,5$ and all eight intents. Three runs were planned per
+variant for refined and one-shot, and three oracle runs per intent. Of 516
+records, 246/246 one-shot and 24/24 oracle runs completed; 209/246 refined
+runs completed and 37 failed. Refined completion by $k=2,3,4,5$ was
+33/33, 63/72, 63/72, and 50/69. This sample contains vague and opt-out
+profiles; unlike the cooperative series, the simulated user does not always
+accept the oracle's constraints. Ranking and filter metrics use completed
+runs, while completion rates use every attempt. The v4 sample uses a
+different dataset hash from the earlier Haiku series, so cross-series
+performance comparisons are not made.
 
-\paragraph{Results.} Clarification was exact in all 144 refined runs:
+\paragraph{Results.} Tables~\ref{tab:results}--\ref{tab:ops} and
+Fig.~\ref{fig:perk} show the full set of comparison and operational
+metrics. Missing-dimension detection $F_1$ was 1.00 among completed
+refined runs at each sampled $k$; mean clarification turns were 2.00,
+3.13, 4.03, and 5.12 for $k=2,3,4,5$. Across eight intents, the aggregate
+scores and all per-level values are reported with 95\% cluster-bootstrap
+intervals where available. The one-shot ranking scores are zero at every
+$k$: the stored top-five and top-ten lists share no IDs with the oracle
+lists in these runs. Oracle-vs-oracle agreement was Jaccard@5 0.580
+(0.359--0.777) and RBO@10 0.695 (0.470--0.878); oracle filter-atom
+self-agreement was $F_1=0.997$ (0.992--1.000). SQL consistency was 100\%
+for every condition (559/559 refined, 267/267 one-shot, 96/96 oracle
+checked filter-column occurrences). There were no empty result sets or
+both-empty ranking pairs excluded. Mean mapping accuracy among completed
+refined runs was 0.959 overall (0.970, 0.976, 0.958, and 0.930 for
+$k=2,3,4,5$).
+These are descriptive agreements with a reference. The oracle includes
+constraints even in opt-out profiles, so agreement is not a success target
+for those cases and does not establish property relevance. Of the 246
+refined attempts, 37 did not complete: 33 of 51 sessions with a $D$
+opt-out profile and 4 of 195 sessions with another opt-out profile were
+blocked after the generated response failed to express a clear refusal.
+The $D$ wording defect belongs to this scenario sample; all agreement
+scores use completed runs only and therefore do not include these blocked
+sessions.
+
+\begin{table*}[t]
+\caption{Aggregate metrics over eight intents ($k=2$--$5$ intent means).
+Values are means [95\% cluster-bootstrap CI]. Ranking compares with the
+oracle; filter $F_1$ uses strict-majority oracle atoms. Differences are
+refined minus one-shot; $p$ is the exact sign-flip test.}
+\label{tab:results}
+\centering\scriptsize\setlength{\tabcolsep}{5pt}
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+Metric & Refined & One-shot & Difference & $p$\\
+\midrule
+Jaccard@5, served & 0.249 [0.175, 0.319] & 0.000 [0, 0] & 0.249 [0.175, 0.319] & 0.008\\
+Jaccard@5, tie-aware & 0.249 [0.174, 0.319] & 0.000 [0, 0] & 0.249 [0.174, 0.319] & 0.008\\
+RBO@10, served & 0.322 [0.233, 0.404] & 0.000 [0, 0] & 0.322 [0.233, 0.404] & 0.008\\
+RBO@10, tie-aware & 0.322 [0.233, 0.404] & 0.000 [0, 0] & 0.322 [0.233, 0.404] & 0.008\\
+Filter $F_1$ & 0.815 [0.782, 0.846] & 0.320 [0.272, 0.374] & 0.495 [0.421, 0.559] & 0.008\\
+\bottomrule
+\end{tabular}
+\\[2pt]
+All tests use eight paired intents; $p=0.008$ is the smallest attainable
+two-sided exact sign-flip value with eight clusters.
+\end{table*}
+
+\begin{table*}[t]
+\caption{Ranking agreement by omission level. Entries are means
+[95\% cluster-bootstrap CI] over the available intents per $k$;
+$n$ is the number of intents with both conditions. One-shot is
+0.000 [0, 0] for all four metrics at each level. $p$ columns test the
+refined--one-shot difference per level.}
+\label{tab:ranking-k}
+\centering\scriptsize\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}r r c c c c c c@{}}
+\toprule
+$k$ & $n$ & $J_5$ served & $J_5$ tie-aware & RBO served & RBO tie-aware & $p_{J_5}$ & $p_{RBO}$\\
+\midrule
+2 & 5 & 0.494 [0.286, 0.701] & 0.494 [0.286, 0.701] & 0.596 [0.395, 0.797] & 0.596 [0.395, 0.797] & 0.063 & 0.063\\
+3 & 7 & 0.220 [0.152, 0.296] & 0.220 [0.152, 0.296] & 0.287 [0.203, 0.376] & 0.287 [0.203, 0.376] & 0.016 & 0.016\\
+4 & 7 & 0.208 [0.117, 0.319] & 0.208 [0.117, 0.319] & 0.276 [0.156, 0.425] & 0.276 [0.156, 0.426] & 0.016 & 0.016\\
+5 & 6 & 0.149 [0.045, 0.281] & 0.148 [0.045, 0.281] & 0.242 [0.086, 0.405] & 0.241 [0.086, 0.405] & 0.063 & 0.031\\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\begin{table}[t]
+\caption{Structured-filter $F_1$ against majority-oracle atoms by $k$;
+means [95\% cluster-bootstrap CI].}
+\label{tab:filter-k}
+\centering\scriptsize\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}r c c c c@{}}
+\toprule
+$k$ ($n$ intents) & Refined & One-shot & Difference & $p$\\
+\midrule
+2 (5) & 0.910 [0.871, 0.958] & 0.589 [0.536, 0.637] & 0.321 [0.253, 0.399] & 0.063\\
+3 (7) & 0.825 [0.748, 0.878] & 0.474 [0.454, 0.491] & 0.351 [0.264, 0.415] & 0.016\\
+4 (7) & 0.772 [0.680, 0.854] & 0.265 [0.231, 0.315] & 0.507 [0.420, 0.602] & 0.016\\
+5 (6) & 0.758 [0.708, 0.816] & 0.000 [0, 0] & 0.758 [0.708, 0.816] & 0.031\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table*}[t]
+\caption{Per-dimension recall of structured-filter atoms against the
+majority-oracle reference. Dimensions: $I$ typology, $D$ use, $L$
+location, $C_b$ building, $C_e$ energy, $C_p$ proximity.}
+\label{tab:dimension-recall}
+\centering\scriptsize\setlength{\tabcolsep}{5pt}
+\begin{tabular}{@{}llcccc@{}}
+\toprule
+Condition & Dimension & $k=2$ & $k=3$ & $k=4$ & $k=5$\\
+\midrule
+Refined & $I$ & 1.00 & 1.00 & 1.00 & 1.00\\
+ & $D$ & 1.00 & 0.91 & 0.93 & 0.95\\
+ & $L$ & 0.86 & 0.74 & 0.69 & 0.77\\
+ & $C_b$ & 0.67 & 0.49 & 0.48 & 0.18\\
+ & $C_e$ & 0.80 & 0.77 & 0.32 & 0.43\\
+ & $C_p$ & 0.85 & 0.75 & 0.61 & 0.65\\
+\midrule
+One-shot & $I$ & 0.00 & 0.00 & 0.00 & 0.00\\
+ & $D$ & 0.38 & 0.24 & 0.21 & 0.00\\
+ & $L$ & 0.55 & 0.60 & 0.27 & 0.00\\
+ & $C_b$ & 0.67 & 0.35 & 0.21 & 0.00\\
+ & $C_e$ & 0.70 & 0.49 & 0.09 & 0.00\\
+ & $C_p$ & 0.70 & 0.32 & 0.24 & 0.00\\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\begin{table}[t]
+\caption{Mean number of invented filter atoms per completed run.}
+\label{tab:invented-atoms}
+\centering\scriptsize
+\begin{tabular}{@{}rcc@{}}
+\toprule
+$k$ & Refined & One-shot\\
+\midrule
+2 & 0.17 & 1.47\\
+3 & 0.74 & 1.32\\
+4 & 0.35 & 1.32\\
+5 & 0.61 & 1.00\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table*}[t]
+\caption{Clarification and latency by condition. Completion is
+completed/planned; turn, detection, and mapping metrics use completed
+refined runs. Times are mean / median seconds (clarification / analysis /
+total). One-shot and oracle do not clarify.}
+\label{tab:clarification-ops}
+\centering\scriptsize\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}llcccccccc@{}}
+\toprule
+Condition & $k$ & Done/plan & Done & Turns & Det. $F_1$ & Map acc. & Clar. mean/med. & Analysis mean/med. & Total mean/med. (s)\\
+\midrule
+Refined & 2 & 33/33 & 100\% & 2.00 & 1.00 & 0.97 & 54.7 / 51.9 & 123.1 / 123.4 & 177.8 / 175.9\\
+ & 3 & 63/72 & 87.5\% & 3.13 & 1.00 & 0.98 & 69.2 / 65.4 & 122.5 / 124.7 & 191.7 / 191.3\\
+ & 4 & 63/72 & 87.5\% & 4.03 & 1.00 & 0.96 & 86.2 / 77.3 & 118.5 / 118.3 & 204.7 / 196.1\\
+ & 5 & 50/69 & 72.5\% & 5.12 & 1.00 & 0.93 & 88.4 / 88.4 & 123.9 / 122.5 & 212.3 / 212.3\\
+One-shot & 2 & 33/33 & 100\% & -- & -- & -- & -- & 101.7 / 96.7 & 101.7 / 96.7\\
+ & 3 & 72/72 & 100\% & -- & -- & -- & -- & 96.4 / 93.8 & 96.5 / 93.9\\
+ & 4 & 72/72 & 100\% & -- & -- & -- & -- & 98.0 / 94.1 & 98.1 / 94.1\\
+ & 5 & 69/69 & 100\% & -- & -- & -- & -- & 90.0 / 91.9 & 90.0 / 91.9\\
+Oracle & all & 24/24 & 100\% & -- & -- & -- & -- & 122.8 / 128.9 & 122.9 / 128.9\\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\begin{table*}[t]
+\caption{Pipeline outcomes per condition among completed runs. Result
+count is the median per run; relaxation, fallback, and agent-error entries
+count runs. Failed refined attempts are reported separately in Execution.}
+\label{tab:ops}
+\centering\scriptsize\setlength{\tabcolsep}{6pt}
+\begin{tabular}{@{}llccccc@{}}
+\toprule
+Condition & $k$ & Median results & Empty results & Relaxation & Fallback & Agent-error runs\\
+\midrule
+Refined & 2 & 16 & 0 & 21 & 0 & 1\\
+ & 3 & 17 & 0 & 44 & 0 & 0\\
+ & 4 & 22 & 0 & 23 & 0 & 0\\
+ & 5 & 13.5 & 0 & 30 & 1 & 2\\
+One-shot & 2 & 43 & 0 & 3 & 0 & 0\\
+ & 3 & 90.5 & 0 & 6 & 0 & 2\\
+ & 4 & 918 & 0 & 3 & 0 & 0\\
+ & 5 & 57 & 0 & 0 & 0 & 0\\
+Oracle & all & 16 & 0 & 18 & 0 & 2\\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+Invented-atom counts average 0.17, 0.74, 0.35, and 0.61 for refined
+versus 1.47, 1.32, 1.32, and 1.00 for one-shot at $k=2,3,4,5$
+(Table~\ref{tab:invented-atoms}). The unnecessary-turn rate at $k=0$ is
+not estimable because this sample contains no $k=0$ scenarios. The
+per-dimension recalls and SQL consistency rates are diagnostic measures;
+they do not validate the underlying oracle constraints.
+
+\iffalse % Archived: prior cooperative and imperfect-user Claude Haiku results.
+\paragraph{Results (archived cooperative series).} Clarification was exact in all 144 refined runs:
 the detected missing dimensions equalled the omitted ones (micro
 P/R/$F_1$ = 1.00), the dialogue took exactly $k$ turns, no question was
 asked at $k=0$ (0/24 runs), and the intended regulatory use was among
 the matched uses in every run (with a related nursery type also matched
-in 9). Table~\ref{tab:results} and Fig.~\ref{fig:perk} show the
-consequence for the analysis. One-shot queries lose filters as $k$
-grows (median result set 54 at $k=1$ up to 2,429 at $k=5$, against
+in 9). Table~\ref{tab:results-archived} and Fig.~\ref{fig:perk-archived}
+show the consequence for the analysis. One-shot queries lose filters as
+$k$ grows (median result set 54 at $k=1$ up to 2,429 at $k=5$, against
 52 for the oracle) and their top-5 overlap with the oracle falls from
 0.50 to 0.01. Refined queries recover the oracle's filters (filter
 $F_1$ 0.98--0.99 at every $k$, against 0.99 between oracle runs) and
@@ -396,32 +575,26 @@ dialogue (median, growing with $k$), on top of an analysis of
 72--83\,s.
 
 \begin{table}[t]
-\caption{Benchmark, 304 completed cooperative runs, $k\ge1$ unless noted:
-mean over the 8 intents (per intent, levels are averaged) [95\%
-cluster-bootstrap CI]. $J_5$: top-5 Jaccard; RBO: extrapolated,
-$p=0.8$, over the top-10; both against the oracle.}
-\label{tab:results}
-\centering\scriptsize\setlength{\tabcolsep}{3pt}
+\caption{Archived benchmark, 304 completed cooperative runs.}
+\label{tab:results-archived}
+\centering\scriptsize
 \begin{tabular}{@{}lccc@{}}
-\toprule
-Condition & $J_5$ & RBO & Tie-aware $J_5$\\
+\toprule Condition & $J_5$ & RBO & Tie-aware $J_5$\\
 \midrule
 One-shot & 0.16 [0.07, 0.25] & 0.20 [0.10, 0.30] & 0.15 [0.07, 0.24]\\
 Refined & 0.88 [0.81, 0.96] & 0.94 [0.90, 0.97] & 0.87 [0.79, 0.95]\\
 Refined, $k=0$ & 0.87 [0.77, 0.95] & 0.94 [0.89, 0.97] & 0.86 [0.76, 0.95]\\
-Oracle vs.\ oracle & 0.87 [0.79, 0.95] & 0.94 [0.89, 0.98] & 0.85 [0.76, 0.94]\\
-\midrule
+Oracle vs. oracle & 0.87 [0.79, 0.95] & 0.94 [0.89, 0.98] & 0.85 [0.76, 0.94]\\
 $\Delta$ refined$-$one-shot & 0.72 [0.63, 0.82] & 0.74 [0.65, 0.82] & 0.72 [0.63, 0.82]\\
 Sign-flip $p$ (8 intents) & 0.008 & 0.008 & 0.008\\
 \bottomrule
 \end{tabular}
 \\[2pt]
-Filter $F_1$ vs.\ majority oracle: refined 0.98 [0.96, 1.00], one-shot
-0.61 [0.57, 0.65] (0.88 at $k=1$ to 0.27 at $k=5$); $\Delta$ 0.37
-[0.33, 0.41]. $p=0.008$ is the smallest attainable with 8 intents.
+Filter $F_1$: refined 0.98 [0.96, 1.00], one-shot 0.61 [0.57, 0.65],
+$\Delta$ 0.37 [0.33, 0.41].
 \end{table}
 
-\paragraph{Imperfect users.} A second series exercises the two behaviours
+\paragraph{Imperfect users (archived Haiku series).} A second series exercises the two behaviours
 a cooperative user never triggers: declining a dimension and first
 answering vaguely. In the opt-out runs, the declined dimension is answered
 ``I have no requirement on \dots'', and it was recorded as not requested
@@ -439,13 +612,14 @@ and pipeline. A preliminary
 execution exposed two blocking cases (an ``unknown'' reading of a vague
 answer, and a stopping rule that skipped a required question), which
 were fixed before this series.
+\fi
 
 \begin{figure}[t]
 \centering
 \begin{tikzpicture}
 \begin{axis}[width=\columnwidth, height=40mm, xlabel={omitted dimensions $k$},
-  ylabel={$J_5$ vs.\ oracle}, xmin=-0.3, xmax=5.3, ymin=0, ymax=1,
-  xtick={0,...,5}, legend columns=3,
+  ylabel={$J_5$ vs.\ oracle}, xmin=1.7, xmax=5.3, ymin=0, ymax=0.8,
+  xtick={2,...,5}, legend columns=3,
   legend style={font=\scriptsize, at={(0.5,1.02)}, anchor=south, draw=none},
   tick label style={font=\scriptsize}, label style={font=\scriptsize}]
 \addplot+[mark=square*, error bars/.cd, y dir=both, y explicit]
@@ -458,15 +632,17 @@ were fixed before this series.
   y error plus expr=\thisrow{j5_hi}-\thisrow{j5},
   y error minus expr=\thisrow{j5}-\thisrow{j5_lo}] {data/per_k.csv};
 \addlegendentry{one-shot}
-\addplot+[dashed, mark=none, black] coordinates {(-0.3,0.870) (5.3,0.870)};
+\addplot+[dashed, mark=none, black] coordinates {(1.7,0.580) (5.3,0.580)};
 \addlegendentry{oracle vs.\ oracle}
 \end{axis}
 \end{tikzpicture}
-\caption{Top-5 agreement with the oracle per omission level (mean and
-95\% cluster-bootstrap CI over the 8 intents).}
+\caption{Top-5 agreement with the oracle per omission level in the seed-13
+sample (mean and 95\% cluster-bootstrap CI over sampled intents per level).
+The dashed line is aggregate oracle-vs.\ oracle agreement.}
 \Description{Line chart of top-5 Jaccard agreement with the oracle
-against the number of omitted dimensions, for refined and one-shot
-queries, with the oracle-vs-oracle noise ceiling as a dashed line.}
+against the number of omitted dimensions ($k=2$--$5$), for refined and
+one-shot queries, with aggregate oracle-vs-oracle agreement as a dashed
+line.}
 \label{fig:perk}
 \end{figure}
 
