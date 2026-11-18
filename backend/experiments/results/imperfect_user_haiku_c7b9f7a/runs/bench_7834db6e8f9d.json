@@ -1,0 +1,759 @@
+{
+  "run_id": "bench_7834db6e8f9d",
+  "condition": "refined",
+  "unit_id": "MS06_k4_optout",
+  "scenario_id": "MS06_k4_optout",
+  "base_case_id": "UC06_senior_day_missing_use",
+  "missing_count": 4,
+  "scenario_name": "4 omitted dimensions; intended use: Senior Day Center (CDI / CDIA / CDAA / CDAI); opt-out on Ce",
+  "tags": [
+    "edbt",
+    "controlled_missingness_v3",
+    "missing_4",
+    "UC06_senior_day_missing_use",
+    "imperfect_user",
+    "optout"
+  ],
+  "model": "claude-haiku-5-5",
+  "repeat": 2,
+  "attempt": 1,
+  "input_sha256": "5252d50ad28b2ce678cc912518c01ee35b1ec559ab3f394d6f843a3efbfe9d75",
+  "scenario_sha256": "5252d50ad28b2ce678cc912518c01ee35b1ec559ab3f394d6f843a3efbfe9d75",
+  "initial_query": "I am looking for an office building. I need a property with at least 360 sqm of gross floor area and capacity for 18 people.",
+  "options": {
+    "dataset_key": "full",
+    "map_limit": 1000,
+    "llm_limit": 10,
+    "analysis_mode": "agent",
+    "use_relaxation": true,
+    "use_data_knowledge": true,
+    "architecture": "multiagent",
+    "disabled_agents": null
+  },
+  "started_at": "2026-11-18T02:19:03.296019+00:00",
+  "clarification_seconds": 64.101,
+  "analysis_seconds": 127.121,
+  "conversation": {
+    "session_id": "644e8109-d62f-482d-8f67-8e34d4ff3591",
+    "initial_dimension_state": {
+      "I": {
+        "status": "SPECIFIED",
+        "value": "offices",
+        "evidence": "office building"
+      },
+      "D": {
+        "status": "UNCONFIRMED_ABSENT",
+        "value": null,
+        "evidence": null
+      },
+      "L": {
+        "status": "UNCONFIRMED_ABSENT",
+        "value": null,
+        "evidence": null
+      },
+      "Cb": {
+        "status": "SPECIFIED",
+        "value": {
+          "min_gross_floor_area_sqm": 360,
+          "occupancy_capacity_people": 18
+        },
+        "evidence": "at least 360 sqm of gross floor area and capacity for 18 people"
+      },
+      "Ce": {
+        "status": "UNCONFIRMED_ABSENT",
+        "value": null,
+        "evidence": null
+      },
+      "Cp": {
+        "status": "UNCONFIRMED_ABSENT",
+        "value": null,
+        "evidence": null
+      }
+    },
+    "initial_missing": [
+      "Ce",
+      "Cp",
+      "D",
+      "L"
+    ],
+    "expected_initial_missing": [
+      "Ce",
+      "Cp",
+      "D",
+      "L"
+    ],
+    "missing_detection": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "turns": [
+      {
+        "question": "Which nearby services matter to you: healthcare, mobility, green spaces, sport, commercial, or education? Or does proximity to services not matter for your search?",
+        "target_dimensions": [
+          "Cp"
+        ],
+        "times_asked_before": {
+          "Cp": 0
+        },
+        "answer": "I prefer properties near healthcare services.",
+        "question_source": "llm_query_parser",
+        "status_after": "ASK",
+        "turn_after": 1,
+        "dimension_state_after": {
+          "I": {
+            "status": "SPECIFIED",
+            "value": "offices",
+            "evidence": "office building"
+          },
+          "D": {
+            "status": "UNCONFIRMED_ABSENT",
+            "value": null,
+            "evidence": null
+          },
+          "L": {
+            "status": "UNCONFIRMED_ABSENT",
+            "value": null,
+            "evidence": null
+          },
+          "Cb": {
+            "status": "SPECIFIED",
+            "value": {
+              "min_gross_floor_area_sqm": 360,
+              "occupancy_capacity_people": 18
+            },
+            "evidence": "at least 360 sqm of gross floor area and capacity for 18 people"
+          },
+          "Ce": {
+            "status": "UNCONFIRMED_ABSENT",
+            "value": null,
+            "evidence": null
+          },
+          "Cp": {
+            "status": "SPECIFIED",
+            "value": "healthcare",
+            "evidence": "I prefer properties near healthcare services."
+          }
+        }
+      },
+      {
+        "question": "Which city or neighborhood should the office building be in, or does location not matter for your search?",
+        "target_dimensions": [
+          "L"
+        ],
+        "times_asked_before": {
+          "L": 0
+        },
+        "answer": "The location is in Turin.",
+        "question_source": "llm_query_parser",
+        "status_after": "ASK",
+        "turn_after": 2,
+        "dimension_state_after": {
+          "I": {
+            "status": "SPECIFIED",
+            "value": "offices",
+            "evidence": "office building"
+          },
+          "D": {
+            "status": "UNCONFIRMED_ABSENT",
+            "value": null,
+            "evidence": null
+          },
+          "L": {
+            "status": "SPECIFIED",
+            "value": "Turin",
+            "evidence": "The location is in Turin."
+          },
+          "Cb": {
+            "status": "SPECIFIED",
+            "value": {
+              "min_gross_floor_area_sqm": 360,
+              "occupancy_capacity_people": 18
+            },
+            "evidence": "at least 360 sqm of gross floor area and capacity for 18 people"
+          },
+          "Ce": {
+            "status": "UNCONFIRMED_ABSENT",
+            "value": null,
+            "evidence": null
+          },
+          "Cp": {
+            "status": "SPECIFIED",
+            "value": "healthcare",
+            "evidence": "I prefer properties near healthcare services."
+          }
+        }
+      },
+      {
+        "question": "Do you have a specific use in mind for the office building, or does the intended use not matter for your search?",
+        "target_dimensions": [
+          "D"
+        ],
+        "times_asked_before": {
+          "D": 0
+        },
+        "answer": "I intend to convert it into an autonomous senior day center (CDIA).",
+        "question_source": "llm_query_parser",
+        "status_after": "ASK",
+        "turn_after": 3,
+        "dimension_state_after": {
+          "I": {
+            "status": "SPECIFIED",
+            "value": "offices",
+            "evidence": "office building"
+          },
+          "D": {
+            "status": "SPECIFIED",
+            "value": "Convert to autonomous senior day center (CDIA)",
+            "evidence": "I intend to convert it into an autonomous senior day center (CDIA)."
+          },
+          "L": {
+            "status": "SPECIFIED",
+            "value": "Turin",
+            "evidence": "The location is in Turin."
+          },
+          "Cb": {
+            "status": "SPECIFIED",
+            "value": {
+              "min_gross_floor_area_sqm": 360,
+              "occupancy_capacity_people": 18
+            },
+            "evidence": "at least 360 sqm of gross floor area and capacity for 18 people"
+          },
+          "Ce": {
+            "status": "UNCONFIRMED_ABSENT",
+            "value": null,
+            "evidence": null
+          },
+          "Cp": {
+            "status": "SPECIFIED",
+            "value": "healthcare",
+            "evidence": "I prefer properties near healthcare services."
+          }
+        }
+      },
+      {
+        "question": "Do you have an energy efficiency requirement for the building, or does energy performance not matter for your search?",
+        "target_dimensions": [
+          "Ce"
+        ],
+        "times_asked_before": {
+          "Ce": 0
+        },
+        "answer": "I have no requirement on the energy class.",
+        "question_source": "llm_query_parser",
+        "status_after": "READY",
+        "turn_after": 4,
+        "dimension_state_after": {
+          "I": {
+            "status": "SPECIFIED",
+            "value": "offices",
+            "evidence": "office building"
+          },
+          "D": {
+            "status": "SPECIFIED",
+            "value": "Convert to autonomous senior day center (CDIA)",
+            "evidence": "I intend to convert it into an autonomous senior day center (CDIA)."
+          },
+          "L": {
+            "status": "SPECIFIED",
+            "value": "Turin",
+            "evidence": "The location is in Turin."
+          },
+          "Cb": {
+            "status": "SPECIFIED",
+            "value": {
+              "min_gross_floor_area_sqm": 360,
+              "occupancy_capacity_people": 18
+            },
+            "evidence": "at least 360 sqm of gross floor area and capacity for 18 people"
+          },
+          "Ce": {
+            "status": "NOT_REQUESTED",
+            "value": null,
+            "evidence": "I have no requirement on the energy class."
+          },
+          "Cp": {
+            "status": "SPECIFIED",
+            "value": "healthcare",
+            "evidence": "I prefer properties near healthcare services."
+          }
+        }
+      }
+    ],
+    "messages": [
+      {
+        "role": "user",
+        "content": "I am looking for an office building. I need a property with at least 360 sqm of gross floor area and capacity for 18 people."
+      },
+      {
+        "role": "assistant",
+        "content": "Which nearby services matter to you: healthcare, mobility, green spaces, sport, commercial, or education? Or does proximity to services not matter for your search?"
+      },
+      {
+        "role": "user",
+        "content": "I prefer properties near healthcare services."
+      },
+      {
+        "role": "assistant",
+        "content": "Which city or neighborhood should the office building be in, or does location not matter for your search?"
+      },
+      {
+        "role": "user",
+        "content": "The location is in Turin."
+      },
+      {
+        "role": "assistant",
+        "content": "Do you have a specific use in mind for the office building, or does the intended use not matter for your search?"
+      },
+      {
+        "role": "user",
+        "content": "I intend to convert it into an autonomous senior day center (CDIA)."
+      },
+      {
+        "role": "assistant",
+        "content": "Do you have an energy efficiency requirement for the building, or does energy performance not matter for your search?"
+      },
+      {
+        "role": "user",
+        "content": "I have no requirement on the energy class."
+      },
+      {
+        "role": "assistant",
+        "content": "Query submitted for review: I am looking for an office building in Turin with at least 360 sqm of gross floor area and capacity for 18 people. It should be near healthcare services. I intend to convert it into an autonomous senior day center (CDIA). I have no requirement on energy class."
+      },
+      {
+        "role": "user",
+        "content": "Confirmed."
+      }
+    ],
+    "dimension_state": {
+      "I": {
+        "status": "SPECIFIED",
+        "value": "offices",
+        "evidence": "office building"
+      },
+      "D": {
+        "status": "SPECIFIED",
+        "value": "Convert to autonomous senior day center (CDIA)",
+        "evidence": "I intend to convert it into an autonomous senior day center (CDIA)."
+      },
+      "L": {
+        "status": "SPECIFIED",
+        "value": "Turin",
+        "evidence": "The location is in Turin."
+      },
+      "Cb": {
+        "status": "SPECIFIED",
+        "value": {
+          "min_gross_floor_area_sqm": 360,
+          "occupancy_capacity_people": 18
+        },
+        "evidence": "at least 360 sqm of gross floor area and capacity for 18 people"
+      },
+      "Ce": {
+        "status": "NOT_REQUESTED",
+        "value": null,
+        "evidence": "I have no requirement on the energy class."
+      },
+      "Cp": {
+        "status": "SPECIFIED",
+        "value": "healthcare",
+        "evidence": "I prefer properties near healthcare services."
+      }
+    },
+    "mapping": {
+      "I": "SPECIFIED",
+      "D": "SPECIFIED",
+      "L": "SPECIFIED",
+      "Cb": "SPECIFIED",
+      "Ce": "NOT_REQUESTED",
+      "Cp": "SPECIFIED"
+    },
+    "expected_mapping": {
+      "I": "SPECIFIED",
+      "D": "SPECIFIED",
+      "L": "SPECIFIED",
+      "Cb": "SPECIFIED",
+      "Ce": "NOT_REQUESTED",
+      "Cp": "SPECIFIED"
+    },
+    "mapping_accuracy": 1.0,
+    "no_clarification": false,
+    "status": "READY",
+    "refined_query": "I am looking for an office building in Turin with at least 360 sqm of gross floor area and capacity for 18 people. It should be near healthcare services. I intend to convert it into an autonomous senior day center (CDIA). I have no requirement on energy class.",
+    "reviewed_query": "I am looking for an office building in Turin with at least 360 sqm of gross floor area and capacity for 18 people. It should be near healthcare services. I intend to convert it into an autonomous senior day center (CDIA). I have no requirement on energy class."
+  },
+  "submitted_query": "I am looking for an office building in Turin with at least 360 sqm of gross floor area and capacity for 18 people. It should be near healthcare services. I intend to convert it into an autonomous senior day center (CDIA). I have no requirement on energy class.",
+  "status": "completed",
+  "results_count": 131,
+  "top_ids": [
+    "44708",
+    "44713",
+    "44717",
+    "M07968",
+    "44733",
+    "44734",
+    "44735",
+    "M07972",
+    "44266",
+    "44724"
+  ],
+  "quality": {
+    "expected_count": 0,
+    "matched_expected": null,
+    "precision_at_returned": null,
+    "recall": null
+  },
+  "final_sql": "SELECT * FROM ESTATES WHERE property_type = 'Uffici e assimilabili' AND surface_area >= 360 AND healthcare >= 75 AND haversine_km(latitude, longitude, 45.0677551, 7.6824892) <= 3.0 ORDER BY haversine_km(latitude, longitude, 45.0677551, 7.6824892) ASC",
+  "duration_seconds": 191.391,
+  "scenario_definition": {
+    "id": "MS06_k4_optout",
+    "name": "4 omitted dimensions; intended use: Senior Day Center (CDI / CDIA / CDAA / CDAI); opt-out on Ce",
+    "tags": [
+      "edbt",
+      "controlled_missingness_v3",
+      "missing_4",
+      "UC06_senior_day_missing_use",
+      "imperfect_user",
+      "optout"
+    ],
+    "base_case_id": "UC06_senior_day_missing_use",
+    "missing_count": 4,
+    "initial_query": "I am looking for an office building. I need a property with at least 360 sqm of gross floor area and capacity for 18 people.",
+    "one_shot_query": "I am looking for an office building. I need a property with at least 360 sqm of gross floor area and capacity for 18 people.",
+    "oracle_query": "Find an office building to convert it into an autonomous senior day center (CDIA) for 18 guests in Turin with at least 360 sqm of gross floor area in energy class D or better near healthcare services.",
+    "expected_initial_missing": [
+      "D",
+      "Ce",
+      "L",
+      "Cp"
+    ],
+    "clarifications": {
+      "I": "I am looking for an office building.",
+      "D": "I intend to convert it into an autonomous senior day center (CDIA).",
+      "L": "The location is in Turin.",
+      "Cb": "I need a property with at least 360 sqm of gross floor area and capacity for 18 people.",
+      "Ce": "I have no requirement on the energy class.",
+      "Cp": "I prefer properties near healthcare services."
+    },
+    "expected_mapping": {
+      "I": "SPECIFIED",
+      "D": "SPECIFIED",
+      "L": "SPECIFIED",
+      "Cb": "SPECIFIED",
+      "Ce": "NOT_REQUESTED",
+      "Cp": "SPECIFIED"
+    },
+    "repeats": 1,
+    "imperfect_user": {
+      "profile": "optout",
+      "dimension": "Ce"
+    }
+  },
+  "artifact_file": "runs/bench_7834db6e8f9d.json",
+  "artifact_schema_version": 3,
+  "ranking_ids": [
+    "44708",
+    "44713",
+    "44717",
+    "M07968",
+    "44733",
+    "44734",
+    "44735",
+    "M07972",
+    "44266",
+    "44724",
+    "39408",
+    "M07000",
+    "38464",
+    "44782",
+    "44783",
+    "M06849",
+    "M07852",
+    "M08049",
+    "1847",
+    "29715",
+    "38580",
+    "38598",
+    "38599",
+    "38600",
+    "42384",
+    "46201",
+    "46331",
+    "46334",
+    "47484",
+    "54763",
+    "54764",
+    "54767",
+    "54770",
+    "54778",
+    "54781",
+    "54783",
+    "55850",
+    "5925",
+    "60761",
+    "60762",
+    "67508",
+    "M02775",
+    "M03878",
+    "M04010",
+    "M06805",
+    "M06806",
+    "M07090",
+    "M07928",
+    "M08209",
+    "M09355",
+    "M09839",
+    "M10640",
+    "M10902",
+    "M11926",
+    "M08058",
+    "53227",
+    "51480",
+    "54765",
+    "46009",
+    "38683",
+    "M06859",
+    "M07912",
+    "M07913",
+    "M09242",
+    "M06967",
+    "M07979",
+    "M08023",
+    "M04239",
+    "53231",
+    "38898",
+    "53230",
+    "M09533",
+    "51482",
+    "M08206",
+    "54780",
+    "44342",
+    "44343",
+    "M06996",
+    "M06997",
+    "M07827",
+    "44350",
+    "31846",
+    "44365",
+    "58062",
+    "54772",
+    "42569",
+    "M06838",
+    "44315",
+    "39324",
+    "54785",
+    "M00200",
+    "52778",
+    "M06858",
+    "44341",
+    "44767",
+    "45238",
+    "M09624",
+    "52937",
+    "51468",
+    "39380",
+    "53197",
+    "39913",
+    "51479",
+    "M07999",
+    "38147",
+    "38146",
+    "M08105",
+    "44581",
+    "38657",
+    "5922",
+    "44771",
+    "44946",
+    "44955",
+    "M09089",
+    "M08142",
+    "44352",
+    "M10409",
+    "50977",
+    "46028",
+    "50660",
+    "54769",
+    "58145",
+    "50604",
+    "58198",
+    "58184",
+    "M10407",
+    "59510",
+    "M10436",
+    "59514",
+    "49402",
+    "M00169"
+  ],
+  "top": [
+    {
+      "id": "44708",
+      "score": 94.834,
+      "distance_km": 0.1
+    },
+    {
+      "id": "44713",
+      "score": 94.834,
+      "distance_km": 0.1
+    },
+    {
+      "id": "44717",
+      "score": 94.834,
+      "distance_km": 0.1
+    },
+    {
+      "id": "M07968",
+      "score": 94.834,
+      "distance_km": 0.12
+    },
+    {
+      "id": "44733",
+      "score": 94.82,
+      "distance_km": 0.06
+    },
+    {
+      "id": "44734",
+      "score": 94.806,
+      "distance_km": 0.06
+    },
+    {
+      "id": "44735",
+      "score": 94.792,
+      "distance_km": 0.06
+    },
+    {
+      "id": "M07972",
+      "score": 94.792,
+      "distance_km": 0.06
+    },
+    {
+      "id": "44266",
+      "score": 94.792,
+      "distance_km": 0.15
+    },
+    {
+      "id": "44724",
+      "score": 94.778,
+      "distance_km": 0.19
+    }
+  ],
+  "api_response": {
+    "agent_trace": [
+      {
+        "agent_name": "location-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "places": [
+            {
+              "name": "Turin",
+              "city": "Turin",
+              "lat": 45.0677551,
+              "lon": 7.6824892,
+              "radius_km": 3.0
+            }
+          ],
+          "found": true
+        }
+      },
+      {
+        "agent_name": "ranking-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "ranking": [
+            {
+              "agent_name": "location",
+              "rank": 1
+            },
+            {
+              "agent_name": "building",
+              "rank": 1
+            },
+            {
+              "agent_name": "regulatory",
+              "rank": 2
+            },
+            {
+              "agent_name": "proximity",
+              "rank": 3
+            },
+            {
+              "agent_name": "energy",
+              "rank": 4
+            }
+          ],
+          "weights": {
+            "location": 0.33,
+            "regulatory": 0.16,
+            "energy": 0.08,
+            "building": 0.32,
+            "proximity": 0.11
+          }
+        }
+      },
+      {
+        "agent_name": "regulatory-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "found": false,
+          "matched_use_cases": [
+            "Senior Day Center (CDI / CDIA / CDAA / CDAI)"
+          ],
+          "requirements": []
+        }
+      },
+      {
+        "agent_name": "building-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "typologies": [
+            "Uffici e assimilabili"
+          ],
+          "found": true,
+          "requirements": [
+            {
+              "target_column": "surface_area",
+              "operator": ">=",
+              "value": 360,
+              "description": "The user explicitly requires at least 360 sqm of gross floor area."
+            }
+          ]
+        }
+      },
+      {
+        "agent_name": "energy-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "requirements": [],
+          "found": false
+        }
+      },
+      {
+        "agent_name": "proximity-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "requirements": [
+            {
+              "target_column": "healthcare",
+              "operator": ">=",
+              "value": 75,
+              "description": "The user wants the building near healthcare services, which is needed for a senior day center (CDIA). The 75th percentile of the healthcare distribution is 75.06, so the threshold is set to 75 (rounded to the nearest integer)."
+            }
+          ]
+        }
+      },
+      {
+        "agent_name": "sql-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "sql": "SELECT * FROM ESTATES WHERE property_type = 'Uffici e assimilabili' AND surface_area >= 360 AND healthcare >= 75 AND haversine_km(latitude, longitude, 45.0677551, 7.6824892) <= 3.0 ORDER BY haversine_km(latitude, longitude, 45.0677551, 7.6824892) ASC",
+          "explanation": "Filters office-type properties (Uffici e assimilabili) with surface_area >= 360 sqm and healthcare proximity score >= 75, within 3.0 km of the supplied coordinates (45.0677551, 7.6824892). Results are ordered by distance from that point. Energy class and the 18-person capacity were not in the extracted requirements, so they are not filtered."
+        }
+      }
+    ],
+    "relaxation_applied": false,
+    "relaxation_count": 0,
+    "fallback_activated": false,
+    "agent_errors": []
+  }
+}
