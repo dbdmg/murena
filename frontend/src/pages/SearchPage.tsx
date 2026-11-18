@@ -360,7 +360,7 @@ export const SearchPage: React.FC = () => {
                 />}
 
                 {/* Initial search composer */}
-                {clarificationMessages.length === 0 && (
+                {!OFFLINE_DEMO && clarificationMessages.length === 0 && (
                 <motion.form
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -613,7 +613,7 @@ export const SearchPage: React.FC = () => {
                 )}
 
                 {/* Suggestions */}
-                {clarificationMessages.length === 0 && <motion.div
+                {!OFFLINE_DEMO && clarificationMessages.length === 0 && <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.4 }}
@@ -633,7 +633,7 @@ export const SearchPage: React.FC = () => {
                 </motion.div>}
 
                 {/* Recent History */}
-                {clarificationMessages.length === 0 && <motion.div
+                {!OFFLINE_DEMO && clarificationMessages.length === 0 && <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.5 }}

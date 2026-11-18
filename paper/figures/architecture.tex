@@ -1,12 +1,12 @@
 %% Architecture of Conversational MURENA (TikZ, one column).
-%% New components: dashed border, grey fill. Inherited MURENA components:
+%% New components: solid border, grey fill. Inherited MURENA components:
 %% solid border, white fill. The state row shows the MS02_k2 example
 %% (nursery request with C_b and C_e omitted).
 \begin{tikzpicture}[
   font=\scriptsize,
   box/.style={draw, rounded corners=1.5pt, align=center, inner sep=2pt,
     minimum height=7.5mm},
-  new/.style={box, dashed, fill=black!7},
+  new/.style={box, fill=black!7},
   old/.style={box, fill=white, minimum width=17.5mm},
   arr/.style={-{Latex[length=1.5mm]}, semithick},
   lbl/.style={font=\tiny, inner sep=1pt, fill=white},
@@ -23,7 +23,7 @@
    S & S & S & \textbf{U} & \textbf{U} & S\\\hline
    \end{tabular}};
 \node[new, text width=30mm] (select) at (5.55,-1.6)
-  {Select next question\\(EVPI-inspired order,\\redundancy penalty)};
+  {Select next question};
 \node[new, text width=22mm] (answer) at (2.15,-1.6)
   {User answer $a_t$: value\\or ``no requirement''};
 \node[new, text width=30mm] (review) at (5.55,-2.85)
@@ -37,14 +37,14 @@
 \draw[arr] (select) -- node[lbl, right] {none open} (review);
 
 % --- inherited MURENA pipeline ---
-\node[old] (agents) at (0.75,-4.55) {Six dimension\\agents};
-\node[old] (sql) at (2.8,-4.55) {SQL and\\spatial filters};
+\node[old] (agents) at (0.75,-4.55) {Technical\\agents};
+\node[old] (sql) at (2.8,-4.55) {SQL agent};
 \node[old] (rank) at (4.85,-4.55) {Multi-criteria\\scoring, ranking};
 \node[old] (map) at (6.9,-4.55) {Map, ranked list,\\explanations};
 \draw[arr] (agents) -- (sql);
 \draw[arr] (sql) -- (rank);
 \draw[arr] (rank) -- (map);
-\draw[arr] (review.west) -| node[lbl, pos=0.25, above] {confirmed $\hat q$ (text only)}
+\draw[arr] (review.west) -| node[lbl, pos=0.25, above] {confirmed $\hat q$}
   (agents.north);
 
 \begin{scope}[on background layer]

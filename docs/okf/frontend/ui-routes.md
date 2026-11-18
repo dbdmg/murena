@@ -77,6 +77,8 @@ Nella modalità backend, i top picks sono i risultati valutati che corrispondono
 
 Il pannello scenari nella pagina `/` legge le definizioni e le conversazioni associate alle run `refined` completate, tramite l'indice derivato dalla stessa cartella di risultati di `/benchmark`. Il flusso UI contiene due selezioni (use case e `k`), un'anteprima della richiesta iniziale con le dimensioni omesse, e il pulsante `Start demo`. `k` viene letto dall'identificativo della variante; se più profili registrati condividono use case e `k`, l'anteprima usa il primo `case_id` in ordine lessicografico. L'avvio riproduce conversazione e risultati precomputati della run selezionata. Non esegue un nuovo parsing SAGE o una nuova analisi LLM:
 
+- Nella schermata iniziale demo sono nascosti il composer `Describe what you want`, i suggerimenti di ricerca e la sezione `Recent Insights`; resta visibile il selettore degli scenari.
+
 - La selezione demo avviene per scenario con run completata; `Start demo` carica il transcript della run e il query review. Il caricamento sostituisce il thread e la sessione precedenti.
 - Quando è aperta la conversazione demo, il selettore resta a sinistra e `Let’s refine your search` appare a destra su schermi medi e ampi; su schermi stretti i pannelli si dispongono in colonna.
 - L'indicatore `DEMO MODE` compare una sola volta nell'angolo superiore; il titolo del selettore è `Select scenario`.
