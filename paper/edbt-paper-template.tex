@@ -10,7 +10,7 @@
  marginparwidth=2pc, heightrounded}
 \AtBeginMaketitle{\input{edbt-macros}}
 \usepackage{tikz}
-\usetikzlibrary{arrows.meta,positioning,fit,backgrounds}
+\usetikzlibrary{arrows.meta,positioning,fit,backgrounds,calc}
 \usepackage{pgfplots}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -71,7 +71,7 @@
 %% test
 
 \begin{abstract}
-Real-estate searches often begin with incomplete requests, leaving important preferences unresolved. We extend MURENA~\cite{deluca2026murena} with a conversational clarification stage that distinguishes omitted requirements from explicit non-preferences, asks targeted questions, and lets users review the resulting request before analysis. We evaluate two mixed-response interaction types with simulated users: explicit declines and vague answers that require a follow-up. Across 75 scenarios and eight search intents, both \texttt{claude-haiku-5-5} and \texttt{gpt-6-luna} recorded every completed explicit decline as a non-preference and followed up on every completed vague answer. Filter $F_1$ was 0.99--1.00; for vague-answer cases, top-5 ranking overlap with each model's own reference runs was 0.91 for \texttt{claude-haiku-5-5} and 0.74 for \texttt{gpt-6-luna}. A live demonstration lets attendees explore the interaction and inspect benchmark scenarios.
+Real-estate searches often begin with incomplete requests, leaving important preferences unresolved. We extend MURENA~\cite{deluca2026murena} with a conversational clarification stage that distinguishes omitted requirements from explicit non-preferences, asks targeted questions, and lets users review the resulting request before analysis. We evaluate two mixed-response interaction types with simulated users: explicit declines and vague answers that require a follow-up. Across 75 scenario variants and eight search intents, both \texttt{claude-haiku-5-5} and \texttt{gpt-6-luna} recorded every completed explicit decline as a non-preference and followed up on every completed vague answer. Filter $F_1$ was 0.99--1.00; for vague-answer cases, top-5 ranking overlap with each model's own reference runs was 0.91 for \texttt{claude-haiku-5-5} and 0.74 for \texttt{gpt-6-luna}. A live demonstration lets attendees explore the interaction and inspect benchmark scenarios.
 \end{abstract}
 \keywords{conversational query clarification, requirement elicitation,
 real-estate decision support, multi-agent systems, text-to-SQL}
@@ -88,7 +88,7 @@ We introduce \emph{Conversational MURENA}, an interactive clarification stage th
 \begin{itemize}
     \item A stateful requirement elicitation mechanism that tracks confirmed and unresolved constraints, records explicit non-preferences, and selects targeted questions using an ordering inspired by SAGE-Agent~\cite{suri2026sage}. A mandatory review step lets users confirm the refined request before execution.
 
-    \item A mixed-response benchmark covering explicit non-preferences and vague answers that require a follow-up. The 75 scripted scenarios are evaluated with \texttt{claude-haiku-5-5} and \texttt{gpt-6-luna}. Both models consistently record explicit declines and clarify vague answers; the evaluation also measures filter agreement, ranking overlap for clarified preferences, and interaction time.
+    \item A mixed-response benchmark covering explicit non-preferences and vague answers that require a follow-up. We evaluate both response types with \texttt{claude-haiku-5-5} and \texttt{gpt-6-luna}, measuring whether the system captures user intent, preserves the other filters, and produces consistent rankings.
 \end{itemize}
 
 End users can interact with the complete system, starting with their own real estate requests, answering clarification questions, and examining the resulting portfolio rankings and explanations. Recorded benchmark scenarios enable offline demonstrations of incomplete requests, ambiguous answers, and explicit non-preferences.
@@ -246,19 +246,145 @@ explicit non-preferences.
 \label{sec:eval}
 \paragraph{Benchmark design.} We evaluate two mixed-response paths over
 eight search intents, one for each catalogue use. Each scenario begins
-with one or more omitted optional dimensions. For every omitted dimension
-other than the one under test, the simulated user supplies the exact
-requirement. In 35 cases, the user explicitly declines the tested
-preference; in 40 cases, the user first gives a vague answer and supplies
-the exact requirement only after a follow-up. Each of the 75 cases is run
-three times, yielding 225 dialogue runs per model. We also run the complete
+with one or more omitted optional dimensions. The 75 cases are variants
+of 40 base omission scenarios: each changes the simulated response for
+one omitted dimension, while the user supplies the exact requirement for
+any other omitted dimensions. In 35 variants, the user explicitly
+declines the tested preference (17 building/capacity, 9 energy, and 9
+proximity cases); in 40, the user gives a vague answer first and supplies
+the exact requirement only after a follow-up (10 each for use, location,
+and building/capacity, and 5 each for energy and proximity). Each variant
+is run three times, yielding 225 dialogue runs per model. We also run the complete
 reference request five times for each intent (40 reference runs per
 model). We ran this protocol separately with \texttt{claude-haiku-5-5}
-and \texttt{gpt-6-luna}.
+and \texttt{gpt-6-luna}. Figure~\ref{fig:example-exchanges} shows
+recorded examples of the two response paths and their refined queries.
+
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}[
+    font=\scriptsize,
+    box/.style={
+        draw=black!35,
+        rounded corners=1.5pt,
+        text width=\dimexpr\columnwidth-12pt\relax,
+        align=left,
+        inner sep=4pt,
+        outer sep=0pt
+    },
+    input/.style={box, fill=black!5},
+    dialogue/.style={box, fill=white},
+    result/.style={box, fill=black!5},
+    heading/.style={
+        anchor=north west,
+        font=\scriptsize\bfseries,
+        inner sep=0pt
+    },
+    arrow/.style={
+        -{Stealth[length=1.4mm]},
+        black!60,
+        line width=.5pt
+    }
+]
+
+% ---------- Shared input ----------
+\node[input] (q) {
+    \textbf{Shared input query}\\[2pt]
+    Commercial unit in Turin for potential conversion
+    into a play space / baby parking (hourly childcare);
+    at least 115 sqm, capacity for 15 people,
+    preferably energy class D or better.
+};
+
+% ---------- Path A ----------
+\node[heading] (ha)
+    at ($(q.south west)+(0,-7pt)$)
+    {(a) Vague answer};
+
+\node[dialogue, anchor=north west] (a1)
+    at ($(ha.south west)+(0,-4pt)$) {
+    \textbf{System}\\
+    Which nearby services would matter to you
+    [...] or does proximity not matter?
+
+    \smallskip
+    \textbf{User}\\
+    ``It depends; something suitable for the
+    project, I guess.''
+};
+
+\node[dialogue, anchor=north west] (a2)
+    at ($(a1.south west)+(0,-8pt)$) {
+    \textbf{System (follow-up)}\\
+    Which nearby service categories would support
+    the project [...]? You can also say that
+    proximity doesn't matter or name another priority.
+
+    \smallskip
+    \textbf{User}\\
+    ``I prefer properties near parks.''
+};
+
+\draw[arrow] (a1.south) -- (a2.north);
+
+\node[result, anchor=north west] (ar)
+    at ($(a2.south west)+(0,-8pt)$) {
+    \textbf{Refined query (excerpt)}\\[2pt]
+    ``I prefer energy class D or better
+    \textcolor{accent}{and a location near parks}.''
+};
+
+\draw[arrow] (a2.south) -- (ar.north);
+
+% ---------- Path B ----------
+\node[heading] (hb)
+    at ($(ar.south west)+(0,-11pt)$)
+    {(b) Explicit opt-out};
+
+\node[dialogue, anchor=north west] (b1)
+    at ($(hb.south west)+(0,-4pt)$) {
+    \textbf{System}\\
+    Which nearby services matter to you
+    [...] or does proximity not matter?
+
+    \smallskip
+    \textbf{User}\\
+    ``I have no requirement on nearby services.''
+};
+
+\node[result, anchor=north west] (br)
+    at ($(b1.south west)+(0,-8pt)$) {
+    \textbf{Refined query (excerpt)}\\[2pt]
+    ``I prefer energy class D or better.
+    \textcolor{accent}{
+    Nearby services are not a requirement}.''
+};
+
+\draw[arrow] (b1.south) -- (br.north);
+
+\end{tikzpicture}
+
+\caption{
+Clarification trajectories from the same property-search
+scenario. (a) An ambiguous response triggers a follow-up,
+leading to a preference for nearby parks.
+(b) An explicit opt-out is recorded without further
+clarification. Violet highlights the resulting additions
+to the refined queries. Unchanged query content and
+parts of the questions are omitted for brevity.
+}
+\Description{
+Two vertically arranged clarification examples
+sharing the same initial property-search request.
+The first requires a follow-up and records a preference
+for parks; the second records an explicit opt-out.
+}
+\label{fig:example-exchanges}
+\end{figure}
 
 \paragraph{Search intents.} The eight intents instantiate distinct uses
 from the regional catalogue (Table~\ref{tab:intents}). The table describes
-the domain context of the benchmark inputs; the 75 scenarios vary the
+the domain context of the benchmark inputs; scenarios vary the
 omitted dimensions and simulated response type across these intents. We
 report aggregate results over intents, not per-intent performance.
 
@@ -338,15 +464,20 @@ Mean clarification time (s) & 63.6 [50.7, 75.7] & 74.4 [71.5, 76.7]\\
 \end{tabular*}
 \end{table}
 
-Both models recorded the explicit non-preference in all 105 completed
-opt-out runs and preserved the other specified filters with near-perfect
-$F_1$. For vague answers, \texttt{claude-haiku-5-5} followed up in all 119
-completed runs and
-\texttt{gpt-6-luna} in all 120; filter $F_1$ was 0.99 and 1.00,
-respectively. Ranking overlap was higher for \texttt{claude-haiku-5-5}
-than \texttt{gpt-6-luna}, whose reference rankings also showed greater
-run-to-run variation (self-agreement 0.70 versus 0.94). These scores describe consistency with each model's own reference
-runs, not independent relevance or a direct comparison of model quality.
+Both models recorded every completed explicit decline as a non-preference,
+but omitted the declined constraint from the filters in 88\% of
+\texttt{claude-haiku-5-5} cases and 90\% of \texttt{gpt-6-luna} cases.
+Thus, recognizing an opt-out did not always prevent its constraint from
+appearing in the filters. For the remaining specified preferences,
+filter $F_1$ was near-perfect (1.00 and 0.99, respectively). For vague
+answers, both models followed up in every completed run and recovered the
+clarified requirement with filter $F_1$ of 0.99 and 1.00, respectively.
+Top-5 overlap with the model's own reference runs was higher for
+\texttt{claude-haiku-5-5} (0.91) than for \texttt{gpt-6-luna} (0.74).
+GPT's reference rankings also varied more across repeated runs
+(self-agreement 0.70 versus 0.94), which contextualizes this difference.
+These scores measure consistency with each model's own reference runs,
+not independent relevance or comparative model quality.
 
 \iffalse % Archived v4 seed-13 experiment and results; not reported here.
 \paragraph{Execution.} Clarification and all pipeline agents used
@@ -572,7 +703,7 @@ study with real users is a natural next step.
 \paragraph{Availability.} Code, benchmark scenarios, analysis scripts,
 and the per-run records of the reported series are available at
 \url{https://github.com/dbdmg/murena}. The property data derive from
-energy performance certificates (APE) that the Piedmont Region publishes
+energy performance certificates (EPC) that the Piedmont Region publishes
 in reduced form as open data under CC~BY~4.0
 (\url{https://www.dati.piemonte.it/\#/catalogo}). A live demo for visualizing MURENA interface and benchmark scenarios is available at \url{https://murena-conversational.vercel.app/}.
 
