@@ -1,0 +1,586 @@
+{
+  "run_id": "bench_7172f135f94e",
+  "condition": "refined",
+  "unit_id": "MS07_k3",
+  "scenario_id": "MS07_k3",
+  "base_case_id": "UC07_RSA_missing_use",
+  "missing_count": 3,
+  "scenario_name": "3 omitted dimensions; intended use: Senior Residential Care (RSA)",
+  "tags": [
+    "edbt",
+    "controlled_missingness_v3",
+    "missing_3",
+    "UC07_RSA_missing_use"
+  ],
+  "model": "claude-haiku-5-5",
+  "repeat": 1,
+  "attempt": 1,
+  "input_sha256": "db89bf90a4ed75c505a2a31f54e726b7289b35d49783104cbc43881ba3bc0f7a",
+  "scenario_sha256": "db89bf90a4ed75c505a2a31f54e726b7289b35d49783104cbc43881ba3bc0f7a",
+  "initial_query": "I am looking for a hotel building. I intend to convert it into a residential senior care facility (RSA). I prefer properties near healthcare services.",
+  "options": {
+    "dataset_key": "full",
+    "map_limit": 1000,
+    "llm_limit": 10,
+    "analysis_mode": "agent",
+    "use_relaxation": true,
+    "use_data_knowledge": true,
+    "architecture": "multiagent",
+    "disabled_agents": null
+  },
+  "started_at": "2026-11-18T07:45:11.077421+00:00",
+  "clarification_seconds": 29.038,
+  "analysis_seconds": 87.429,
+  "conversation": {
+    "session_id": "53ef0df2-a47a-4ae6-81c1-7806eda39683",
+    "initial_dimension_state": {
+      "I": {
+        "status": "SPECIFIED",
+        "value": "hotel building",
+        "evidence": "I am looking for a hotel building"
+      },
+      "D": {
+        "status": "SPECIFIED",
+        "value": "Senior Residential Care (RSA)",
+        "evidence": "I intend to convert it into a residential senior care facility (RSA)"
+      },
+      "L": {
+        "status": "UNCONFIRMED_ABSENT",
+        "value": null,
+        "evidence": null
+      },
+      "Cb": {
+        "status": "UNCONFIRMED_ABSENT",
+        "value": null,
+        "evidence": null
+      },
+      "Ce": {
+        "status": "UNCONFIRMED_ABSENT",
+        "value": null,
+        "evidence": null
+      },
+      "Cp": {
+        "status": "SPECIFIED",
+        "value": [
+          "healthcare"
+        ],
+        "evidence": "I prefer properties near healthcare services"
+      }
+    },
+    "initial_missing": [
+      "Cb",
+      "Ce",
+      "L"
+    ],
+    "expected_initial_missing": [
+      "Cb",
+      "Ce",
+      "L"
+    ],
+    "missing_detection": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "turns": [
+      {
+        "question": "In which city or area would you like to search for the hotel building?",
+        "target_dimensions": [
+          "L"
+        ],
+        "times_asked_before": {
+          "L": 0
+        },
+        "answer": "The location is in Turin.",
+        "question_source": "llm_query_parser",
+        "status_after": "ASK",
+        "turn_after": 1,
+        "dimension_state_after": {
+          "I": {
+            "status": "SPECIFIED",
+            "value": "hotel building",
+            "evidence": "I am looking for a hotel building"
+          },
+          "D": {
+            "status": "SPECIFIED",
+            "value": "Senior Residential Care (RSA)",
+            "evidence": "I intend to convert it into a residential senior care facility (RSA)"
+          },
+          "L": {
+            "status": "SPECIFIED",
+            "value": "Turin",
+            "evidence": "The location is in Turin."
+          },
+          "Cb": {
+            "status": "UNCONFIRMED_ABSENT",
+            "value": null,
+            "evidence": null
+          },
+          "Ce": {
+            "status": "UNCONFIRMED_ABSENT",
+            "value": null,
+            "evidence": null
+          },
+          "Cp": {
+            "status": "SPECIFIED",
+            "value": [
+              "healthcare"
+            ],
+            "evidence": "I prefer properties near healthcare services"
+          }
+        }
+      },
+      {
+        "question": "For the senior care facility, do you have a minimum floor area or bed/occupant capacity the building must meet, or any required structural features, or do these not matter for this search?",
+        "target_dimensions": [
+          "Cb"
+        ],
+        "times_asked_before": {
+          "Cb": 0
+        },
+        "answer": "I need a property with at least 1600 sqm of gross floor area and capacity for 30 people.",
+        "question_source": "llm_query_parser",
+        "status_after": "ASK",
+        "turn_after": 2,
+        "dimension_state_after": {
+          "I": {
+            "status": "SPECIFIED",
+            "value": "hotel building",
+            "evidence": "I am looking for a hotel building"
+          },
+          "D": {
+            "status": "SPECIFIED",
+            "value": "Senior Residential Care (RSA)",
+            "evidence": "I intend to convert it into a residential senior care facility (RSA)"
+          },
+          "L": {
+            "status": "SPECIFIED",
+            "value": "Turin",
+            "evidence": "The location is in Turin."
+          },
+          "Cb": {
+            "status": "SPECIFIED",
+            "value": "minimum 1600 sqm gross floor area; capacity for 30 people",
+            "evidence": "I need a property with at least 1600 sqm of gross floor area and capacity for 30 people."
+          },
+          "Ce": {
+            "status": "UNCONFIRMED_ABSENT",
+            "value": null,
+            "evidence": null
+          },
+          "Cp": {
+            "status": "SPECIFIED",
+            "value": [
+              "healthcare"
+            ],
+            "evidence": "I prefer properties near healthcare services"
+          }
+        }
+      },
+      {
+        "question": "Do you have an energy efficiency requirement for the building, such as a minimum energy class, or does energy performance not matter for this search?",
+        "target_dimensions": [
+          "Ce"
+        ],
+        "times_asked_before": {
+          "Ce": 0
+        },
+        "answer": "I prefer a property in energy class D or better.",
+        "question_source": "llm_query_parser",
+        "status_after": "READY",
+        "turn_after": 3,
+        "dimension_state_after": {
+          "I": {
+            "status": "SPECIFIED",
+            "value": "hotel building",
+            "evidence": "I am looking for a hotel building"
+          },
+          "D": {
+            "status": "SPECIFIED",
+            "value": "Senior Residential Care (RSA)",
+            "evidence": "I intend to convert it into a residential senior care facility (RSA)"
+          },
+          "L": {
+            "status": "SPECIFIED",
+            "value": "Turin",
+            "evidence": "The location is in Turin."
+          },
+          "Cb": {
+            "status": "SPECIFIED",
+            "value": "minimum 1600 sqm gross floor area; capacity for 30 people",
+            "evidence": "I need a property with at least 1600 sqm of gross floor area and capacity for 30 people."
+          },
+          "Ce": {
+            "status": "SPECIFIED",
+            "value": "energy class D or better",
+            "evidence": "I prefer a property in energy class D or better."
+          },
+          "Cp": {
+            "status": "SPECIFIED",
+            "value": [
+              "healthcare"
+            ],
+            "evidence": "I prefer properties near healthcare services"
+          }
+        }
+      }
+    ],
+    "messages": [
+      {
+        "role": "user",
+        "content": "I am looking for a hotel building. I intend to convert it into a residential senior care facility (RSA). I prefer properties near healthcare services."
+      },
+      {
+        "role": "assistant",
+        "content": "In which city or area would you like to search for the hotel building?"
+      },
+      {
+        "role": "user",
+        "content": "The location is in Turin."
+      },
+      {
+        "role": "assistant",
+        "content": "For the senior care facility, do you have a minimum floor area or bed/occupant capacity the building must meet, or any required structural features, or do these not matter for this search?"
+      },
+      {
+        "role": "user",
+        "content": "I need a property with at least 1600 sqm of gross floor area and capacity for 30 people."
+      },
+      {
+        "role": "assistant",
+        "content": "Do you have an energy efficiency requirement for the building, such as a minimum energy class, or does energy performance not matter for this search?"
+      },
+      {
+        "role": "user",
+        "content": "I prefer a property in energy class D or better."
+      },
+      {
+        "role": "assistant",
+        "content": "Query submitted for review: I am looking for a hotel building in Turin to convert into a residential senior care facility (RSA). It must have at least 1,600 sqm of gross floor area and capacity for 30 people, with an energy class of D or better. I prefer a property near healthcare services."
+      },
+      {
+        "role": "user",
+        "content": "Confirmed."
+      }
+    ],
+    "dimension_state": {
+      "I": {
+        "status": "SPECIFIED",
+        "value": "hotel building",
+        "evidence": "I am looking for a hotel building"
+      },
+      "D": {
+        "status": "SPECIFIED",
+        "value": "Senior Residential Care (RSA)",
+        "evidence": "I intend to convert it into a residential senior care facility (RSA)"
+      },
+      "L": {
+        "status": "SPECIFIED",
+        "value": "Turin",
+        "evidence": "The location is in Turin."
+      },
+      "Cb": {
+        "status": "SPECIFIED",
+        "value": "minimum 1600 sqm gross floor area; capacity for 30 people",
+        "evidence": "I need a property with at least 1600 sqm of gross floor area and capacity for 30 people."
+      },
+      "Ce": {
+        "status": "SPECIFIED",
+        "value": "energy class D or better",
+        "evidence": "I prefer a property in energy class D or better."
+      },
+      "Cp": {
+        "status": "SPECIFIED",
+        "value": [
+          "healthcare"
+        ],
+        "evidence": "I prefer properties near healthcare services"
+      }
+    },
+    "mapping": {
+      "I": "SPECIFIED",
+      "D": "SPECIFIED",
+      "L": "SPECIFIED",
+      "Cb": "SPECIFIED",
+      "Ce": "SPECIFIED",
+      "Cp": "SPECIFIED"
+    },
+    "expected_mapping": {
+      "I": "SPECIFIED",
+      "D": "SPECIFIED",
+      "L": "SPECIFIED",
+      "Cb": "SPECIFIED",
+      "Ce": "SPECIFIED",
+      "Cp": "SPECIFIED"
+    },
+    "mapping_accuracy": 1.0,
+    "no_clarification": false,
+    "status": "READY",
+    "refined_query": "I am looking for a hotel building in Turin to convert into a residential senior care facility (RSA). It must have at least 1,600 sqm of gross floor area and capacity for 30 people, with an energy class of D or better. I prefer a property near healthcare services.",
+    "reviewed_query": "I am looking for a hotel building in Turin to convert into a residential senior care facility (RSA). It must have at least 1,600 sqm of gross floor area and capacity for 30 people, with an energy class of D or better. I prefer a property near healthcare services."
+  },
+  "submitted_query": "I am looking for a hotel building in Turin to convert into a residential senior care facility (RSA). It must have at least 1,600 sqm of gross floor area and capacity for 30 people, with an energy class of D or better. I prefer a property near healthcare services.",
+  "status": "completed",
+  "results_count": 15,
+  "top_ids": [
+    "3529",
+    "44986",
+    "54931",
+    "16499",
+    "73845",
+    "41049",
+    "M06467",
+    "36423",
+    "M00739",
+    "1525"
+  ],
+  "quality": {
+    "expected_count": 0,
+    "matched_expected": null,
+    "precision_at_returned": null,
+    "recall": null
+  },
+  "final_sql": "SELECT\n  *\nFROM ESTATES\nWHERE\n  property_type IN (\n    'Edifici adibiti ad albergo, pensione ed attività similari',\n    'Collegi, luoghi di ricovero, case di pena, caserme, conventi',\n    'Ospedali, cliniche, case di cura e assimilabili'\n  )\n  AND surface_area >= 1000\n  AND HAVERSINE_KM(latitude, longitude, 45.0677551, 7.6824892) <= 3.0\n  AND energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C', 'D')\n  AND healthcare >= 75\nORDER BY\n  HAVERSINE_KM(latitude, longitude, 45.0677551, 7.6824892) ASC",
+  "duration_seconds": 116.51,
+  "scenario_definition": {
+    "id": "MS07_k3",
+    "name": "3 omitted dimensions; intended use: Senior Residential Care (RSA)",
+    "tags": [
+      "edbt",
+      "controlled_missingness_v3",
+      "missing_3",
+      "UC07_RSA_missing_use"
+    ],
+    "base_case_id": "UC07_RSA_missing_use",
+    "missing_count": 3,
+    "initial_query": "I am looking for a hotel building. I intend to convert it into a residential senior care facility (RSA). I prefer properties near healthcare services.",
+    "one_shot_query": "I am looking for a hotel building. I intend to convert it into a residential senior care facility (RSA). I prefer properties near healthcare services.",
+    "oracle_query": "Find a hotel building to convert it into a residential senior care facility (RSA) for 30 residents in Turin with at least 1600 sqm of gross floor area in energy class D or better near healthcare services.",
+    "expected_initial_missing": [
+      "Cb",
+      "L",
+      "Ce"
+    ],
+    "clarifications": {
+      "I": "I am looking for a hotel building.",
+      "D": "I intend to convert it into a residential senior care facility (RSA).",
+      "L": "The location is in Turin.",
+      "Cb": "I need a property with at least 1600 sqm of gross floor area and capacity for 30 people.",
+      "Ce": "I prefer a property in energy class D or better.",
+      "Cp": "I prefer properties near healthcare services."
+    },
+    "expected_mapping": {
+      "I": "SPECIFIED",
+      "D": "SPECIFIED",
+      "L": "SPECIFIED",
+      "Cb": "SPECIFIED",
+      "Ce": "SPECIFIED",
+      "Cp": "SPECIFIED"
+    },
+    "repeats": 1
+  },
+  "artifact_file": "runs/bench_7172f135f94e.json",
+  "artifact_schema_version": 3,
+  "ranking_ids": [
+    "3529",
+    "44986",
+    "54931",
+    "16499",
+    "73845",
+    "41049",
+    "M06467",
+    "36423",
+    "M00739",
+    "1525",
+    "50157",
+    "46358",
+    "60100",
+    "59726",
+    "49257"
+  ],
+  "top": [
+    {
+      "id": "3529",
+      "score": 93.49900000000001,
+      "distance_km": 0.18
+    },
+    {
+      "id": "44986",
+      "score": 90.675,
+      "distance_km": 0.31
+    },
+    {
+      "id": "54931",
+      "score": 86.323,
+      "distance_km": 1.4
+    },
+    {
+      "id": "16499",
+      "score": 84.45100000000001,
+      "distance_km": 0.18
+    },
+    {
+      "id": "73845",
+      "score": 75.67,
+      "distance_km": 1.99
+    },
+    {
+      "id": "41049",
+      "score": 73.99900000000001,
+      "distance_km": 0.18
+    },
+    {
+      "id": "M06467",
+      "score": 72.92,
+      "distance_km": 0.18
+    },
+    {
+      "id": "36423",
+      "score": 70.892,
+      "distance_km": 0.18
+    },
+    {
+      "id": "M00739",
+      "score": 70.74900000000001,
+      "distance_km": 0.18
+    },
+    {
+      "id": "1525",
+      "score": 55.437,
+      "distance_km": 2.11
+    }
+  ],
+  "api_response": {
+    "agent_trace": [
+      {
+        "agent_name": "regulatory-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "found": false,
+          "matched_use_cases": [
+            "Senior Residential Care (RSA)"
+          ],
+          "requirements": []
+        }
+      },
+      {
+        "agent_name": "location-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "places": [
+            {
+              "name": "Turin",
+              "city": "Turin",
+              "lat": 45.0677551,
+              "lon": 7.6824892,
+              "radius_km": 3.0
+            }
+          ],
+          "found": true
+        }
+      },
+      {
+        "agent_name": "proximity-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "requirements": [
+            {
+              "target_column": "healthcare",
+              "operator": ">=",
+              "value": 75,
+              "description": "User wants the property near healthcare services for a residential senior care facility. Set at the 75th percentile of the healthcare distribution (75.06, rounded to 75)."
+            }
+          ]
+        }
+      },
+      {
+        "agent_name": "building-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "typologies": [
+            "Edifici adibiti ad albergo, pensione ed attività similari"
+          ],
+          "found": true,
+          "requirements": [
+            {
+              "target_column": "surface_area",
+              "operator": ">=",
+              "value": 1600,
+              "description": "The user explicitly requires at least 1,600 sqm of gross floor area."
+            }
+          ]
+        }
+      },
+      {
+        "agent_name": "energy-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "requirements": [
+            {
+              "target_column": "energy_class",
+              "operator": "IN",
+              "value": [
+                "A1",
+                "A2",
+                "A3",
+                "A4",
+                "B",
+                "C",
+                "D"
+              ],
+              "description": "Energy class D or better, as explicitly requested by the user. Includes all classes from A1 to D."
+            }
+          ],
+          "found": true
+        }
+      },
+      {
+        "agent_name": "ranking-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "ranking": [
+            {
+              "agent_name": "building",
+              "rank": 1
+            },
+            {
+              "agent_name": "location",
+              "rank": 1
+            },
+            {
+              "agent_name": "regulatory",
+              "rank": 2
+            },
+            {
+              "agent_name": "energy",
+              "rank": 3
+            },
+            {
+              "agent_name": "proximity",
+              "rank": 4
+            }
+          ],
+          "weights": {
+            "location": 0.32,
+            "regulatory": 0.16,
+            "energy": 0.11,
+            "building": 0.33,
+            "proximity": 0.08
+          }
+        }
+      },
+      {
+        "agent_name": "sql-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "sql": "SELECT * FROM ESTATES WHERE property_type = 'Edifici adibiti ad albergo, pensione ed attività similari' AND surface_area >= 1600 AND haversine_km(latitude, longitude, 45.0677551, 7.6824892) <= 3.0 AND energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C', 'D') AND healthcare >= 75 ORDER BY haversine_km(latitude, longitude, 45.0677551, 7.6824892) ASC",
+          "explanation": "Filters on the hotel-type property_type, surface_area >= 1600, a 3.0 km haversine radius around the supplied coordinates, energy_class limited to A1-D as specified, and healthcare score >= 75. Results are ordered by distance from the supplied coordinates. No LIMIT and no comune_code predicate, per the requirements."
+        }
+      }
+    ],
+    "relaxation_applied": true,
+    "relaxation_count": 1,
+    "fallback_activated": false,
+    "agent_errors": []
+  }
+}

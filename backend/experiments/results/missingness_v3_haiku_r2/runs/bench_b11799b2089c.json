@@ -1,0 +1,265 @@
+{
+  "run_id": "bench_b11799b2089c",
+  "condition": "one_shot",
+  "unit_id": "MS07_k3",
+  "scenario_id": "MS07_k3",
+  "base_case_id": "UC07_RSA_missing_use",
+  "missing_count": 3,
+  "scenario_name": "3 omitted dimensions; intended use: Senior Residential Care (RSA)",
+  "tags": [
+    "edbt",
+    "controlled_missingness_v3",
+    "missing_3",
+    "UC07_RSA_missing_use"
+  ],
+  "model": "claude-haiku-5-5",
+  "repeat": 1,
+  "attempt": 1,
+  "input_sha256": "32e2d6b3a68d109d49c5698859471dd1404ae37bacbe81273adba6de3430f98a",
+  "scenario_sha256": "db89bf90a4ed75c505a2a31f54e726b7289b35d49783104cbc43881ba3bc0f7a",
+  "initial_query": "I am looking for a hotel building. I intend to convert it into a residential senior care facility (RSA). I prefer properties near healthcare services.",
+  "options": {
+    "dataset_key": "full",
+    "map_limit": 1000,
+    "llm_limit": 10,
+    "analysis_mode": "agent",
+    "use_relaxation": true,
+    "use_data_knowledge": true,
+    "architecture": "multiagent",
+    "disabled_agents": null
+  },
+  "started_at": "2026-11-18T08:05:09.625185+00:00",
+  "clarification_seconds": null,
+  "analysis_seconds": 84.847,
+  "submitted_query": "I am looking for a hotel building. I intend to convert it into a residential senior care facility (RSA). I prefer properties near healthcare services.",
+  "status": "completed",
+  "results_count": 12,
+  "top_ids": [
+    "50157",
+    "73845",
+    "54931",
+    "13760",
+    "16499",
+    "27723",
+    "3529",
+    "5300",
+    "55475",
+    "M00739"
+  ],
+  "quality": {
+    "expected_count": 0,
+    "matched_expected": null,
+    "precision_at_returned": null,
+    "recall": null
+  },
+  "final_sql": "SELECT * FROM ESTATES WHERE property_type = 'Edifici adibiti ad albergo, pensione ed attività similari' AND healthcare >= 75 ORDER BY id ASC",
+  "duration_seconds": 84.958,
+  "scenario_definition": {
+    "id": "MS07_k3",
+    "name": "3 omitted dimensions; intended use: Senior Residential Care (RSA)",
+    "tags": [
+      "edbt",
+      "controlled_missingness_v3",
+      "missing_3",
+      "UC07_RSA_missing_use"
+    ],
+    "base_case_id": "UC07_RSA_missing_use",
+    "missing_count": 3,
+    "initial_query": "I am looking for a hotel building. I intend to convert it into a residential senior care facility (RSA). I prefer properties near healthcare services.",
+    "one_shot_query": "I am looking for a hotel building. I intend to convert it into a residential senior care facility (RSA). I prefer properties near healthcare services.",
+    "oracle_query": "Find a hotel building to convert it into a residential senior care facility (RSA) for 30 residents in Turin with at least 1600 sqm of gross floor area in energy class D or better near healthcare services.",
+    "expected_initial_missing": [
+      "Cb",
+      "L",
+      "Ce"
+    ],
+    "clarifications": {
+      "I": "I am looking for a hotel building.",
+      "D": "I intend to convert it into a residential senior care facility (RSA).",
+      "L": "The location is in Turin.",
+      "Cb": "I need a property with at least 1600 sqm of gross floor area and capacity for 30 people.",
+      "Ce": "I prefer a property in energy class D or better.",
+      "Cp": "I prefer properties near healthcare services."
+    },
+    "expected_mapping": {
+      "I": "SPECIFIED",
+      "D": "SPECIFIED",
+      "L": "SPECIFIED",
+      "Cb": "SPECIFIED",
+      "Ce": "SPECIFIED",
+      "Cp": "SPECIFIED"
+    },
+    "repeats": 1
+  },
+  "artifact_file": "runs/bench_b11799b2089c.json",
+  "artifact_schema_version": 3,
+  "ranking_ids": [
+    "50157",
+    "73845",
+    "54931",
+    "13760",
+    "16499",
+    "27723",
+    "3529",
+    "5300",
+    "55475",
+    "M00739",
+    "44986",
+    "44439"
+  ],
+  "top": [
+    {
+      "id": "50157",
+      "score": 91.134,
+      "distance_km": null
+    },
+    {
+      "id": "73845",
+      "score": 90.69200000000001,
+      "distance_km": null
+    },
+    {
+      "id": "54931",
+      "score": 90.614,
+      "distance_km": null
+    },
+    {
+      "id": "13760",
+      "score": 88.742,
+      "distance_km": null
+    },
+    {
+      "id": "16499",
+      "score": 88.742,
+      "distance_km": null
+    },
+    {
+      "id": "27723",
+      "score": 88.742,
+      "distance_km": null
+    },
+    {
+      "id": "3529",
+      "score": 88.742,
+      "distance_km": null
+    },
+    {
+      "id": "5300",
+      "score": 88.742,
+      "distance_km": null
+    },
+    {
+      "id": "55475",
+      "score": 88.742,
+      "distance_km": null
+    },
+    {
+      "id": "M00739",
+      "score": 88.742,
+      "distance_km": null
+    }
+  ],
+  "api_response": {
+    "agent_trace": [
+      {
+        "agent_name": "regulatory-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "found": false,
+          "matched_use_cases": [
+            "Senior Residential Care (RSA)"
+          ],
+          "requirements": []
+        }
+      },
+      {
+        "agent_name": "ranking-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "ranking": [
+            {
+              "agent_name": "building",
+              "rank": 1
+            },
+            {
+              "agent_name": "regulatory",
+              "rank": 2
+            },
+            {
+              "agent_name": "proximity",
+              "rank": 3
+            },
+            {
+              "agent_name": "location",
+              "rank": 4
+            },
+            {
+              "agent_name": "energy",
+              "rank": 5
+            }
+          ],
+          "weights": {
+            "location": 0.11,
+            "regulatory": 0.22,
+            "energy": 0.09,
+            "building": 0.43,
+            "proximity": 0.15
+          }
+        }
+      },
+      {
+        "agent_name": "proximity-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "requirements": [
+            {
+              "target_column": "healthcare",
+              "operator": ">=",
+              "value": 75,
+              "description": "User prefers properties near healthcare services for a residential senior care facility (RSA). Value set to the 75th percentile (75.06, rounded to 75) of the healthcare distribution."
+            }
+          ]
+        }
+      },
+      {
+        "agent_name": "building-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "typologies": [
+            "Edifici adibiti ad albergo, pensione ed attività similari"
+          ],
+          "found": true,
+          "requirements": []
+        }
+      },
+      {
+        "agent_name": "energy-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "requirements": [],
+          "found": false
+        }
+      },
+      {
+        "agent_name": "location-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "places": [],
+          "found": false
+        }
+      },
+      {
+        "agent_name": "sql-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "sql": "SELECT * FROM ESTATES WHERE property_type = 'Edifici adibiti ad albergo, pensione ed attività similari' AND healthcare >= 75 ORDER BY id ASC",
+          "explanation": "Filters on the hotel-type property_type from the extracted requirements and on the healthcare proximity score >= 75. No coordinates or radius were supplied, so no distance predicate is used and results are ordered by id ascending."
+        }
+      }
+    ],
+    "relaxation_applied": false,
+    "relaxation_count": 0,
+    "fallback_activated": false,
+    "agent_errors": []
+  }
+}

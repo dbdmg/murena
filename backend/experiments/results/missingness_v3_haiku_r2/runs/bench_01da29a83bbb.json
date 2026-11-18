@@ -1,0 +1,291 @@
+{
+  "run_id": "bench_01da29a83bbb",
+  "condition": "oracle",
+  "unit_id": "UC02_nursery_missing_use",
+  "scenario_id": null,
+  "base_case_id": "UC02_nursery_missing_use",
+  "missing_count": null,
+  "scenario_name": null,
+  "tags": [],
+  "model": "claude-haiku-5-5",
+  "repeat": 3,
+  "attempt": 1,
+  "input_sha256": "2eb4a412d368df79c71a06fc6bf3f03a2b11f719b5a73c85023c7907f95b3146",
+  "scenario_sha256": null,
+  "initial_query": "Find an existing school building to convert it into a nursery for 45 children in Turin with at least 600 sqm of gross floor area in energy class D or better near green spaces.",
+  "options": {
+    "dataset_key": "full",
+    "map_limit": 1000,
+    "llm_limit": 10,
+    "analysis_mode": "agent",
+    "use_relaxation": true,
+    "use_data_knowledge": true,
+    "architecture": "multiagent",
+    "disabled_agents": null
+  },
+  "started_at": "2026-11-18T08:09:08.487220+00:00",
+  "clarification_seconds": null,
+  "analysis_seconds": 77.981,
+  "submitted_query": "Find an existing school building to convert it into a nursery for 45 children in Turin with at least 600 sqm of gross floor area in energy class D or better near green spaces.",
+  "status": "completed",
+  "results_count": 16,
+  "top_ids": [
+    "43780",
+    "M07820",
+    "53285",
+    "53274",
+    "43792",
+    "37472",
+    "46462",
+    "M08240",
+    "50876",
+    "29718"
+  ],
+  "quality": {
+    "expected_count": 0,
+    "matched_expected": null,
+    "precision_at_returned": null,
+    "recall": null
+  },
+  "final_sql": "SELECT * FROM ESTATES WHERE property_type = 'Attività scolastiche' AND surface_area >= 600 AND energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C', 'D') AND green >= 74 AND haversine_km(latitude, longitude, 45.0677551, 7.6824892) <= 3.0 ORDER BY haversine_km(latitude, longitude, 45.0677551, 7.6824892) ASC",
+  "duration_seconds": 78.059,
+  "scenario_definition": {
+    "id": "MS02_k0",
+    "name": "Full-input control (k=0); intended use: Nursery",
+    "tags": [
+      "edbt",
+      "controlled_missingness_v3",
+      "missing_0",
+      "UC02_nursery_missing_use"
+    ],
+    "base_case_id": "UC02_nursery_missing_use",
+    "missing_count": 0,
+    "initial_query": "I am looking for an existing school building. I intend to convert it into a nursery. The location is in Turin. I need a property with at least 600 sqm of gross floor area and capacity for 45 people. I prefer a property in energy class D or better. I prefer properties near green spaces.",
+    "one_shot_query": "I am looking for an existing school building. I intend to convert it into a nursery. The location is in Turin. I need a property with at least 600 sqm of gross floor area and capacity for 45 people. I prefer a property in energy class D or better. I prefer properties near green spaces.",
+    "oracle_query": "Find an existing school building to convert it into a nursery for 45 children in Turin with at least 600 sqm of gross floor area in energy class D or better near green spaces.",
+    "expected_initial_missing": [],
+    "clarifications": {
+      "I": "I am looking for an existing school building.",
+      "D": "I intend to convert it into a nursery.",
+      "L": "The location is in Turin.",
+      "Cb": "I need a property with at least 600 sqm of gross floor area and capacity for 45 people.",
+      "Ce": "I prefer a property in energy class D or better.",
+      "Cp": "I prefer properties near green spaces."
+    },
+    "expected_mapping": {
+      "I": "SPECIFIED",
+      "D": "SPECIFIED",
+      "L": "SPECIFIED",
+      "Cb": "SPECIFIED",
+      "Ce": "SPECIFIED",
+      "Cp": "SPECIFIED"
+    },
+    "repeats": 1
+  },
+  "artifact_file": "runs/bench_01da29a83bbb.json",
+  "artifact_schema_version": 3,
+  "ranking_ids": [
+    "43780",
+    "M07820",
+    "53285",
+    "53274",
+    "43792",
+    "37472",
+    "46462",
+    "M08240",
+    "50876",
+    "29718",
+    "22441",
+    "59581",
+    "60101",
+    "M10776",
+    "22734",
+    "27099"
+  ],
+  "top": [
+    {
+      "id": "43780",
+      "score": 90.16,
+      "distance_km": 1.01
+    },
+    {
+      "id": "M07820",
+      "score": 90.16,
+      "distance_km": 1.01
+    },
+    {
+      "id": "53285",
+      "score": 88.61500000000001,
+      "distance_km": 0.87
+    },
+    {
+      "id": "53274",
+      "score": 86.912,
+      "distance_km": 0.96
+    },
+    {
+      "id": "43792",
+      "score": 83.699,
+      "distance_km": 1.01
+    },
+    {
+      "id": "37472",
+      "score": 82.52199999999999,
+      "distance_km": 1.97
+    },
+    {
+      "id": "46462",
+      "score": 80.201,
+      "distance_km": 1.84
+    },
+    {
+      "id": "M08240",
+      "score": 80.00099999999999,
+      "distance_km": 1.84
+    },
+    {
+      "id": "50876",
+      "score": 73.724,
+      "distance_km": 2.05
+    },
+    {
+      "id": "29718",
+      "score": 71.434,
+      "distance_km": 2.16
+    }
+  ],
+  "api_response": {
+    "agent_trace": [
+      {
+        "agent_name": "location-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "places": [
+            {
+              "name": "Turin",
+              "city": "Turin",
+              "lat": 45.0677551,
+              "lon": 7.6824892,
+              "radius_km": 3.0
+            }
+          ],
+          "found": true
+        }
+      },
+      {
+        "agent_name": "proximity-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "requirements": [
+            {
+              "target_column": "green",
+              "operator": ">=",
+              "value": 74,
+              "description": "User asks for buildings near green spaces. Per the 75th percentile of the green distribution (74.26), rounded to 74, the property should be in a high-green-access area."
+            }
+          ]
+        }
+      },
+      {
+        "agent_name": "energy-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "requirements": [
+            {
+              "target_column": "energy_class",
+              "operator": "IN",
+              "value": [
+                "A1",
+                "A2",
+                "A3",
+                "A4",
+                "B",
+                "C",
+                "D"
+              ],
+              "description": "The user requires energy class D or better, so the building must be in class A1 through D."
+            }
+          ],
+          "found": true
+        }
+      },
+      {
+        "agent_name": "building-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "typologies": [
+            "Attività scolastiche"
+          ],
+          "found": true,
+          "requirements": [
+            {
+              "target_column": "surface_area",
+              "operator": ">=",
+              "value": 600,
+              "description": "The user explicitly requires at least 600 sqm of gross floor area. The 45-child capacity is not converted into an area filter, and the Turin location, energy class, and green-space proximity are handled by other agents or are not reference columns."
+            }
+          ]
+        }
+      },
+      {
+        "agent_name": "ranking-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "ranking": [
+            {
+              "agent_name": "building",
+              "rank": 1
+            },
+            {
+              "agent_name": "location",
+              "rank": 1
+            },
+            {
+              "agent_name": "regulatory",
+              "rank": 2
+            },
+            {
+              "agent_name": "energy",
+              "rank": 3
+            },
+            {
+              "agent_name": "proximity",
+              "rank": 4
+            }
+          ],
+          "weights": {
+            "location": 0.32,
+            "regulatory": 0.16,
+            "energy": 0.11,
+            "building": 0.33,
+            "proximity": 0.08
+          }
+        }
+      },
+      {
+        "agent_name": "regulatory-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "found": false,
+          "matched_use_cases": [
+            "Nursery",
+            "Micro-nursery"
+          ],
+          "requirements": []
+        }
+      },
+      {
+        "agent_name": "sql-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "sql": "SELECT * FROM ESTATES WHERE property_type = 'Attività scolastiche' AND surface_area >= 600 AND energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C', 'D') AND green >= 74 AND haversine_km(latitude, longitude, 45.0677551, 7.6824892) <= 3.0 ORDER BY haversine_km(latitude, longitude, 45.0677551, 7.6824892) ASC",
+          "explanation": "Filters school-type properties (property_type 'Attività scolastiche') with surface_area >= 600 sqm, energy_class A1–D, and green score >= 74, restricted to a 3.0 km radius around 45.0677551, 7.6824892 using haversine distance. Results are ordered by distance from that point, nearest first. Conditions are ordered from strictest to softest."
+        }
+      }
+    ],
+    "relaxation_applied": false,
+    "relaxation_count": 0,
+    "fallback_activated": false,
+    "agent_errors": []
+  }
+}

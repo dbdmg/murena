@@ -1,0 +1,288 @@
+{
+  "run_id": "bench_d76fec5c94be",
+  "condition": "one_shot",
+  "unit_id": "MS07_k1",
+  "scenario_id": "MS07_k1",
+  "base_case_id": "UC07_RSA_missing_use",
+  "missing_count": 1,
+  "scenario_name": "1 omitted dimensions; intended use: Senior Residential Care (RSA)",
+  "tags": [
+    "edbt",
+    "controlled_missingness_v3",
+    "missing_1",
+    "UC07_RSA_missing_use"
+  ],
+  "model": "claude-haiku-5-5",
+  "repeat": 3,
+  "attempt": 1,
+  "input_sha256": "533c9699b2e0437651ae86d4657092140de79a8579c04ce27719027ee60b2020",
+  "scenario_sha256": "a86163431fe8797ab9a9f01bb57ed549fcf4c9c3d430a8214b2d44edffb8b007",
+  "initial_query": "I am looking for a hotel building. I intend to convert it into a residential senior care facility (RSA). The location is in Turin. I prefer a property in energy class D or better. I prefer properties near healthcare services.",
+  "options": {
+    "dataset_key": "full",
+    "map_limit": 1000,
+    "llm_limit": 10,
+    "analysis_mode": "agent",
+    "use_relaxation": true,
+    "use_data_knowledge": true,
+    "architecture": "multiagent",
+    "disabled_agents": null
+  },
+  "started_at": "2026-11-18T08:03:53.421714+00:00",
+  "clarification_seconds": null,
+  "analysis_seconds": 105.037,
+  "submitted_query": "I am looking for a hotel building. I intend to convert it into a residential senior care facility (RSA). The location is in Turin. I prefer a property in energy class D or better. I prefer properties near healthcare services.",
+  "status": "completed",
+  "results_count": 14,
+  "top_ids": [
+    "3529",
+    "44986",
+    "5300",
+    "M00739",
+    "16499",
+    "27723",
+    "54931",
+    "28153",
+    "M05030",
+    "28491"
+  ],
+  "quality": {
+    "expected_count": 0,
+    "matched_expected": null,
+    "precision_at_returned": null,
+    "recall": null
+  },
+  "final_sql": "SELECT\n  *\nFROM ESTATES\nWHERE\n  property_type = 'Edifici adibiti ad albergo, pensione ed attività similari'\n  AND energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C', 'D')\n  AND healthcare >= 50.53\n  AND HAVERSINE_KM(latitude, longitude, 45.0677551, 7.6824892) <= 3.0\nORDER BY\n  HAVERSINE_KM(latitude, longitude, 45.0677551, 7.6824892) ASC",
+  "duration_seconds": 105.081,
+  "scenario_definition": {
+    "id": "MS07_k1",
+    "name": "1 omitted dimensions; intended use: Senior Residential Care (RSA)",
+    "tags": [
+      "edbt",
+      "controlled_missingness_v3",
+      "missing_1",
+      "UC07_RSA_missing_use"
+    ],
+    "base_case_id": "UC07_RSA_missing_use",
+    "missing_count": 1,
+    "initial_query": "I am looking for a hotel building. I intend to convert it into a residential senior care facility (RSA). The location is in Turin. I prefer a property in energy class D or better. I prefer properties near healthcare services.",
+    "one_shot_query": "I am looking for a hotel building. I intend to convert it into a residential senior care facility (RSA). The location is in Turin. I prefer a property in energy class D or better. I prefer properties near healthcare services.",
+    "oracle_query": "Find a hotel building to convert it into a residential senior care facility (RSA) for 30 residents in Turin with at least 1600 sqm of gross floor area in energy class D or better near healthcare services.",
+    "expected_initial_missing": [
+      "Cb"
+    ],
+    "clarifications": {
+      "I": "I am looking for a hotel building.",
+      "D": "I intend to convert it into a residential senior care facility (RSA).",
+      "L": "The location is in Turin.",
+      "Cb": "I need a property with at least 1600 sqm of gross floor area and capacity for 30 people.",
+      "Ce": "I prefer a property in energy class D or better.",
+      "Cp": "I prefer properties near healthcare services."
+    },
+    "expected_mapping": {
+      "I": "SPECIFIED",
+      "D": "SPECIFIED",
+      "L": "SPECIFIED",
+      "Cb": "SPECIFIED",
+      "Ce": "SPECIFIED",
+      "Cp": "SPECIFIED"
+    },
+    "repeats": 1
+  },
+  "artifact_file": "runs/bench_d76fec5c94be.json",
+  "artifact_schema_version": 3,
+  "ranking_ids": [
+    "3529",
+    "44986",
+    "5300",
+    "M00739",
+    "16499",
+    "27723",
+    "54931",
+    "28153",
+    "M05030",
+    "28491",
+    "73845",
+    "55094",
+    "50157",
+    "46840"
+  ],
+  "top": [
+    {
+      "id": "3529",
+      "score": 93.066,
+      "distance_km": 0.18
+    },
+    {
+      "id": "44986",
+      "score": 90.207,
+      "distance_km": 0.31
+    },
+    {
+      "id": "5300",
+      "score": 89.816,
+      "distance_km": 0.18
+    },
+    {
+      "id": "M00739",
+      "score": 89.816,
+      "distance_km": 0.18
+    },
+    {
+      "id": "16499",
+      "score": 88.737,
+      "distance_km": 0.18
+    },
+    {
+      "id": "27723",
+      "score": 88.737,
+      "distance_km": 0.18
+    },
+    {
+      "id": "54931",
+      "score": 87.774,
+      "distance_km": 1.4
+    },
+    {
+      "id": "28153",
+      "score": 86.465,
+      "distance_km": 0.99
+    },
+    {
+      "id": "M05030",
+      "score": 81.31700000000001,
+      "distance_km": 1.15
+    },
+    {
+      "id": "28491",
+      "score": 81.161,
+      "distance_km": 1.18
+    }
+  ],
+  "api_response": {
+    "agent_trace": [
+      {
+        "agent_name": "regulatory-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "found": false,
+          "matched_use_cases": [
+            "Senior Residential Care (RSA)"
+          ],
+          "requirements": []
+        }
+      },
+      {
+        "agent_name": "proximity-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "requirements": [
+            {
+              "target_column": "healthcare",
+              "operator": ">=",
+              "value": 75,
+              "description": "User wants the property near healthcare services (hospitals, pharmacies, clinics), which is essential for a residential senior care facility. The user's 'near' wording maps to the 75th percentile of the healthcare distribution (75.06, rounded to 75)."
+            }
+          ]
+        }
+      },
+      {
+        "agent_name": "location-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "places": [
+            {
+              "name": "Turin",
+              "city": "Turin",
+              "lat": 45.0677551,
+              "lon": 7.6824892,
+              "radius_km": 3.0
+            }
+          ],
+          "found": true
+        }
+      },
+      {
+        "agent_name": "ranking-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "ranking": [
+            {
+              "agent_name": "building",
+              "rank": 1
+            },
+            {
+              "agent_name": "location",
+              "rank": 2
+            },
+            {
+              "agent_name": "regulatory",
+              "rank": 3
+            },
+            {
+              "agent_name": "energy",
+              "rank": 4
+            },
+            {
+              "agent_name": "proximity",
+              "rank": 5
+            }
+          ],
+          "weights": {
+            "location": 0.22,
+            "regulatory": 0.15,
+            "energy": 0.11,
+            "building": 0.43,
+            "proximity": 0.09
+          }
+        }
+      },
+      {
+        "agent_name": "energy-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "requirements": [
+            {
+              "target_column": "energy_class",
+              "operator": "IN",
+              "value": [
+                "A1",
+                "A2",
+                "A3",
+                "A4",
+                "B",
+                "C",
+                "D"
+              ],
+              "description": "User prefers energy class D or better, so all classes from A1 to D are included. Location (Turin), RSA conversion, and proximity to healthcare are not energy requirements and are excluded from this output."
+            }
+          ],
+          "found": true
+        }
+      },
+      {
+        "agent_name": "building-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "typologies": [
+            "Edifici adibiti ad albergo, pensione ed attività similari"
+          ],
+          "found": true,
+          "requirements": []
+        }
+      },
+      {
+        "agent_name": "sql-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "sql": "SELECT * FROM ESTATES WHERE property_type = 'Edifici adibiti ad albergo, pensione ed attività similari' AND energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C', 'D') AND healthcare >= 75 AND haversine_km(latitude, longitude, 45.0677551, 7.6824892) <= 3.0 ORDER BY haversine_km(latitude, longitude, 45.0677551, 7.6824892) ASC",
+          "explanation": "Filters hotel-type buildings (property_type), energy classes A1 through D, healthcare proximity score >= 75, and a 3.0 km haversine radius around (45.0677551, 7.6824892). Results are ordered by distance from that point, nearest first. No LIMIT and no comune_code predicate, since the location is given only as coordinates."
+        }
+      }
+    ],
+    "relaxation_applied": true,
+    "relaxation_count": 1,
+    "fallback_activated": false,
+    "agent_errors": []
+  }
+}

@@ -1,0 +1,287 @@
+{
+  "run_id": "bench_ac76fcda1d90",
+  "condition": "one_shot",
+  "unit_id": "MS02_k2",
+  "scenario_id": "MS02_k2",
+  "base_case_id": "UC02_nursery_missing_use",
+  "missing_count": 2,
+  "scenario_name": "2 omitted dimensions; intended use: Nursery",
+  "tags": [
+    "edbt",
+    "controlled_missingness_v3",
+    "missing_2",
+    "UC02_nursery_missing_use"
+  ],
+  "model": "claude-haiku-5-5",
+  "repeat": 2,
+  "attempt": 1,
+  "input_sha256": "e480601a026eeee7c827387beba5d7a77d6d14d95e5b51bc8193e01775291f01",
+  "scenario_sha256": "52944fc754b86b6f5deeb768a5b525383c554511bacde23fae081e3662ae3e1b",
+  "initial_query": "I am looking for an existing school building. I intend to convert it into a nursery. The location is in Turin. I prefer properties near green spaces.",
+  "options": {
+    "dataset_key": "full",
+    "map_limit": 1000,
+    "llm_limit": 10,
+    "analysis_mode": "agent",
+    "use_relaxation": true,
+    "use_data_knowledge": true,
+    "architecture": "multiagent",
+    "disabled_agents": null
+  },
+  "started_at": "2026-11-18T07:52:53.714484+00:00",
+  "clarification_seconds": null,
+  "analysis_seconds": 128.373,
+  "submitted_query": "I am looking for an existing school building. I intend to convert it into a nursery. The location is in Turin. I prefer properties near green spaces.",
+  "status": "completed",
+  "results_count": 26,
+  "top_ids": [
+    "44403",
+    "52758",
+    "53285",
+    "43780",
+    "43791",
+    "43792",
+    "M07820",
+    "53274",
+    "39609",
+    "43062"
+  ],
+  "quality": {
+    "expected_count": 0,
+    "matched_expected": null,
+    "precision_at_returned": null,
+    "recall": null
+  },
+  "final_sql": "SELECT * FROM ESTATES WHERE property_type = 'Attività scolastiche' AND haversine_km(latitude, longitude, 45.0677551, 7.6824892) <= 3.0 AND green >= 74 ORDER BY haversine_km(latitude, longitude, 45.0677551, 7.6824892) ASC",
+  "duration_seconds": 128.486,
+  "scenario_definition": {
+    "id": "MS02_k2",
+    "name": "2 omitted dimensions; intended use: Nursery",
+    "tags": [
+      "edbt",
+      "controlled_missingness_v3",
+      "missing_2",
+      "UC02_nursery_missing_use"
+    ],
+    "base_case_id": "UC02_nursery_missing_use",
+    "missing_count": 2,
+    "initial_query": "I am looking for an existing school building. I intend to convert it into a nursery. The location is in Turin. I prefer properties near green spaces.",
+    "one_shot_query": "I am looking for an existing school building. I intend to convert it into a nursery. The location is in Turin. I prefer properties near green spaces.",
+    "oracle_query": "Find an existing school building to convert it into a nursery for 45 children in Turin with at least 600 sqm of gross floor area in energy class D or better near green spaces.",
+    "expected_initial_missing": [
+      "Cb",
+      "Ce"
+    ],
+    "clarifications": {
+      "I": "I am looking for an existing school building.",
+      "D": "I intend to convert it into a nursery.",
+      "L": "The location is in Turin.",
+      "Cb": "I need a property with at least 600 sqm of gross floor area and capacity for 45 people.",
+      "Ce": "I prefer a property in energy class D or better.",
+      "Cp": "I prefer properties near green spaces."
+    },
+    "expected_mapping": {
+      "I": "SPECIFIED",
+      "D": "SPECIFIED",
+      "L": "SPECIFIED",
+      "Cb": "SPECIFIED",
+      "Ce": "SPECIFIED",
+      "Cp": "SPECIFIED"
+    },
+    "repeats": 1
+  },
+  "artifact_file": "runs/bench_ac76fcda1d90.json",
+  "artifact_schema_version": 3,
+  "ranking_ids": [
+    "44403",
+    "52758",
+    "53285",
+    "43780",
+    "43791",
+    "43792",
+    "M07820",
+    "53274",
+    "39609",
+    "43062",
+    "46462",
+    "M08240",
+    "37472",
+    "50876",
+    "50511",
+    "29716",
+    "29717",
+    "29718",
+    "22441",
+    "22734",
+    "471",
+    "59581",
+    "60101",
+    "M10776",
+    "460",
+    "27099"
+  ],
+  "top": [
+    {
+      "id": "44403",
+      "score": 92.72,
+      "distance_km": 0.72
+    },
+    {
+      "id": "52758",
+      "score": 92.412,
+      "distance_km": 0.81
+    },
+    {
+      "id": "53285",
+      "score": 92.076,
+      "distance_km": 0.87
+    },
+    {
+      "id": "43780",
+      "score": 91.44599999999998,
+      "distance_km": 1.01
+    },
+    {
+      "id": "43791",
+      "score": 91.44599999999998,
+      "distance_km": 1.01
+    },
+    {
+      "id": "43792",
+      "score": 91.44599999999998,
+      "distance_km": 1.01
+    },
+    {
+      "id": "M07820",
+      "score": 91.44599999999998,
+      "distance_km": 1.01
+    },
+    {
+      "id": "53274",
+      "score": 91.348,
+      "distance_km": 0.96
+    },
+    {
+      "id": "39609",
+      "score": 91.23599999999999,
+      "distance_km": 1.04
+    },
+    {
+      "id": "43062",
+      "score": 87.98799999999999,
+      "distance_km": 1.46
+    }
+  ],
+  "api_response": {
+    "agent_trace": [
+      {
+        "agent_name": "location-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "places": [
+            {
+              "name": "Turin",
+              "city": "Turin",
+              "lat": 45.0677551,
+              "lon": 7.6824892,
+              "radius_km": 3.0
+            }
+          ],
+          "found": true
+        }
+      },
+      {
+        "agent_name": "building-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "typologies": [
+            "Attività scolastiche"
+          ],
+          "found": true,
+          "requirements": []
+        }
+      },
+      {
+        "agent_name": "energy-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "requirements": [],
+          "found": false
+        }
+      },
+      {
+        "agent_name": "proximity-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "requirements": [
+            {
+              "target_column": "green",
+              "operator": ">=",
+              "value": 74,
+              "description": "User prefers properties near green spaces. 'Near' maps to the 75th percentile of the green distribution (74.26), rounded to 74."
+            }
+          ]
+        }
+      },
+      {
+        "agent_name": "regulatory-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "found": false,
+          "matched_use_cases": [
+            "Nursery",
+            "Micro-nursery"
+          ],
+          "requirements": []
+        }
+      },
+      {
+        "agent_name": "ranking-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "ranking": [
+            {
+              "agent_name": "building",
+              "rank": 1
+            },
+            {
+              "agent_name": "location",
+              "rank": 1
+            },
+            {
+              "agent_name": "regulatory",
+              "rank": 2
+            },
+            {
+              "agent_name": "proximity",
+              "rank": 3
+            },
+            {
+              "agent_name": "energy",
+              "rank": 4
+            }
+          ],
+          "weights": {
+            "location": 0.32,
+            "regulatory": 0.16,
+            "energy": 0.08,
+            "building": 0.33,
+            "proximity": 0.11
+          }
+        }
+      },
+      {
+        "agent_name": "sql-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "sql": "SELECT * FROM ESTATES WHERE property_type = 'Attività scolastiche' AND haversine_km(latitude, longitude, 45.0677551, 7.6824892) <= 3.0 AND green >= 74 ORDER BY haversine_km(latitude, longitude, 45.0677551, 7.6824892) ASC",
+          "explanation": "Filters on the school property type, a 3.0 km radius around the supplied coordinates, and green score >= 74. Results are ordered by distance from the coordinates, nearest first. No comune_code predicate is applied, since the place name is not a comune identifier."
+        }
+      }
+    ],
+    "relaxation_applied": false,
+    "relaxation_count": 0,
+    "fallback_activated": false,
+    "agent_errors": []
+  }
+}
