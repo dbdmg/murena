@@ -14,6 +14,41 @@
 \usepackage{tikz}
 \usetikzlibrary{arrows.meta,positioning,fit,backgrounds}
 \usepackage{pgfplots}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% \usepackage{amssymb}
+\usepackage{ifthen}
+\usepackage{xcolor}
+
+\newboolean{showcomments}
+\setboolean{showcomments}{true}
+
+\ifthenelse{\boolean{showcomments}}
+  {
+   % \usepackage{todonotes}
+   \newcommand{\nb}[3]{
+        {\color{#1}\fbox{\bfseries\sffamily\scriptsize#2}
+            {\sf\small$\blacktriangleright$\textit{#3}$\blacktriangleleft$}
+        }
+   }  
+   \newcommand\intupdate[1]{{\color{blue}{#1}}}
+   \newcommand\update[1]{\texorpdfstring{\intupdate{#1}}{#1}}
+   
+   \newcommand\intremove[1]{{{\color{red}{\sout{#1}}}}}
+   \newcommand\remove[1]{\texorpdfstring{\intremove{#1}}{#1}}
+  }
+  {
+   % \usepackage[disable]{todonotes}
+   \newcommand{\nb}[3]{}
+   \newcommand\update[1]{{#1}}
+   \newcommand\remove[1]{}
+  }
+
+\newcommand\DANIELE[1]{\nb{red}{DANIELE}{#1}}
+\newcommand\MARCO[1]{\nb{magenta}{MARCO}{#1}}
+\newcommand\SIMONE[1]{\nb{teal}{SIMONE}{#1}}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 \pgfplotsset{compat=1.18}
 %% Keep only rows whose column #1 equals #2 (used by the per-k figure).
 \pgfplotsset{discard if not/.style 2 args={x filter/.append code={%
@@ -26,10 +61,12 @@
 \affiliation{\institution{Affiliations to be confirmed}\city{Turin}\country{Italy}}
 \renewcommand{\shortauthors}{Authors to be confirmed}
 
+
+
 %% test
 
 \begin{abstract}
-MURENA translates natural-language requests into structured requirements,
+MURENA~\cite{deluca2026murena} is a framework that translates natural-language requests into structured requirements,
 database searches, and explainable real-estate portfolio rankings, but
 assumes that the initial request is sufficiently specified. We demonstrate
 a conversational stage that clarifies unresolved requirements
@@ -37,8 +74,7 @@ a conversational stage that clarifies unresolved requirements
 of MURENA's six query dimensions, separates unconfirmed omissions from
 explicit non-preferences, asks one targeted question per turn in an order
 inspired by the EVPI criterion of SAGE-Agent, and requires the user to
-review and confirm a rewritten request. Query template, agents, SQL
-construction, and ranking are inherited unchanged. We describe a
+review and confirm a rewritten request. We describe a
 controlled-omission benchmark (8 intents, 0--5 omitted dimensions, 48
 scenarios) that compares refined, one-shot, and complete (oracle) queries
 under the same pipeline. Over 304 completed runs, clarification
@@ -71,8 +107,7 @@ therefore not to fill every field, but to tell which information is
 still unresolved and to obtain a request the user has confirmed.
 
 We present \emph{Conversational MURENA}, a pre-analysis clarification
-stage that neither adds query dimensions nor changes retrieval and
-ranking. The demonstration contributes (i)~stateful elicitation over the
+stage. The demonstration contributes (i)~stateful elicitation over the
 existing dimensions with explicit recording of non-preferences,
 (ii)~a question order adapted from the SAGE-Agent
 method~\cite{suri2026sage} and a mandatory review step, (iii)~a three-condition benchmark protocol that
