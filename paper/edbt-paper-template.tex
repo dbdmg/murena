@@ -1,10 +1,13 @@
 %% Conversational MURENA -- EDBT 2027 demo paper, editable LaTeX source.
 %% Evaluation reports the three-condition benchmark (refined / one_shot /
-%% oracle) on the nested 48-variant design: all 304 planned runs completed on
-%% 2026-11-18 (results/missingness_v3_haiku_r2, code a5c1b09). Superseded and
-%% never pooled: the 2026-11-17 Haiku series (results/missingness_v3_haiku,
-%% before the typology-column fix 0e29b52) and an earlier partial execution with
-%% another LLM backend (115 of 123 executed runs, Git 4a7c882).
+%% oracle) on the cooperative series of the deterministic v4 scenario
+%% catalogue: all 304 planned runs completed on 2026-11-18
+%% (results/missingness_v3_haiku_r2, code a5c1b09). The catalogue is generated
+%% exhaustively (32 omission masks x 3^k behaviours per intent, 8,192
+%% scenarios). Superseded and never pooled: the 2026-11-17 Haiku series
+%% (results/missingness_v3_haiku, before the typology-column fix 0e29b52) and
+%% an earlier partial execution with another LLM backend (115 of 123 executed
+%% runs, Git 4a7c882).
 %% Provenance: docs/okf/research/edbt-conversational-benchmark.md. Figure data: data/per_k.csv.
 \documentclass[sigconf,review]{acmart}
 \geometry{twoside=true, head=13pt, a4paper, includeheadfoot,
@@ -75,9 +78,12 @@ of MURENA's six query dimensions, separates unconfirmed omissions from
 explicit non-preferences, asks one targeted question per turn in an order
 inspired by the EVPI criterion of SAGE-Agent, and requires the user to
 review and confirm a rewritten request. We describe a
-controlled-omission benchmark (8 intents, 0--5 omitted dimensions, 48
-scenarios) that compares refined, one-shot, and complete (oracle) queries
-under the same pipeline. Over 304 completed runs, clarification
+controlled-omission benchmark generated deterministically from eight
+intents, all 32 omission masks of the five optional dimensions, and
+three behaviours for each omitted dimension (specified, vague, declined),
+for 8,192 scenarios; it compares refined, one-shot, and complete (oracle)
+queries under the same pipeline. Over 304 completed cooperative runs,
+clarification
 detected every omission without unnecessary questions, and refined
 queries reached top-5 agreement with the oracle of 0.88, at the level of
 the oracle's own run-to-run agreement (0.87), against 0.16 for one-shot
@@ -241,12 +247,13 @@ benchmark configuration (Sec.~\ref{sec:eval}) a dialogue takes
 live use.
 
 \paragraph{Controlled scenarios.} A separate start mode offers a
-scenario panel: attendees pick one of the eight benchmark intents and
-any subset of omitted dimensions (256 variants), and the interface loads
-the variant's initial request and prepared answers and, where a recorded
-benchmark run exists, its top-10 on the map, without network or model
-access. This makes the omission design of Sec.~\ref{sec:eval} tangible
-and keeps the demonstration available offline. A results page lists the
+scenario panel: attendees pick one of the eight benchmark use cases and
+narrow the available completed runs by the state of each dimension
+(specified, omitted, or ambiguous), and the interface loads a completed
+run with its initial request, prepared answers, rewritten query, and
+top-10 on the map, without network or model access. This makes the
+three-behaviour design of Sec.~\ref{sec:eval} tangible and keeps the
+demonstration available offline. A results page lists the
 recorded runs of a benchmark series, so the one-shot, refined, and
 oracle outputs of the same case can be compared side by side.
 \begin{figure*}[t]\centering
@@ -283,20 +290,29 @@ scenario $k=2$ of Sec.~\ref{sec:eval}.
 
 \section{Evaluation}
 \label{sec:eval}
-\paragraph{Scenarios.} The reported controlled-omission benchmark starts
-from eight fully specified reference intents $q^*$, one per catalogue
-use. For each intent, nested initial queries $q_0$ omit
-$k\in\{1,\dots,5\}$ of the dimensions $D,L,C_b,C_e,C_p$ ($I$ is always
-kept), in an omission order that differs across intents; $k=0$ controls
-contain all six. This gives 48 scenarios, eight per level. Capacity is
-stated inside the $C_b$ fragment with a use-neutral noun, so omitting
-$C_b$ removes it from $q_0$. The simulated user answers each question with
-the omitted fragment for the targeted dimension.
+\paragraph{Scenarios.} The controlled-omission catalogue is generated
+deterministically from eight fully specified reference intents $q^*$, one
+per catalogue use. For each intent, the five optional dimensions
+$D,L,C_b,C_e,C_p$ yield all 32 omission masks ($I$ is always kept), 256
+masks in total. For a mask with $k$ omissions, each omitted dimension
+independently takes one of three behaviours: \emph{specified} (the exact
+requirement on the first turn), \emph{vague} (a domain-tailored
+qualitative answer, followed by the exact requirement when asked again),
+or \emph{opt-out} (an explicit statement of no requirement, recorded as a
+non-preference). Enumerating all $3^k$ assignments gives
+$8\sum_{k=0}^{5}\binom{5}{k}3^k = 8{,}192$ scenarios: 8 controls at
+$k=0$, and 120, 720, 2{,}160, 3{,}240, and 1{,}944 at $k=1,\dots,5$,
+with 248 all-specified, 248 all-vague, 248 all-opt-out, and 7{,}440
+mixed profiles. Capacity is stated inside the $C_b$ fragment with a
+use-neutral noun, so omitting $C_b$ removes it from $q_0$. In the
+reported cooperative series, the simulated user answers each question
+with the exact omitted fragment for the targeted dimension.
 
 \paragraph{Conditions.} \emph{Refined}: $q_0$ goes through
 clarification with the simulated user, the rewritten $\hat q$ is
-accepted without edits, and $\hat q$ (never $q^*$) is analysed; all 48
-scenarios, 3 repetitions. \emph{One-shot}: $q_0$ is analysed directly;
+accepted without edits, and $\hat q$ (never $q^*$) is analysed, over the
+48 cooperative scenarios (one mask per intent and level), 3 repetitions.
+\emph{One-shot}: $q_0$ is analysed directly;
 40 scenarios with $k\ge1$, 3 repetitions. \emph{Oracle}: $q^*$ is
 analysed directly, 5 repetitions per intent. The plan comprises 304 runs,
 executed by condition (refined, one-shot, oracle), all with the same code version, pipeline
@@ -345,10 +361,9 @@ the added information, not of dialogue over a static form. The level
 $k$ is coupled to the identity of the omitted dimensions, so results
 are stratified by $k$ and not read as a causal effect of the count. At
 $k=0$, $q_0$ and $q^*$ differ only in wording, which bounds
-wording-induced variation. An unexecuted catalogue extension enumerates all
-32 omission subsets per intent (256 variants), grouped as S01--S08 with
-one enable flag per base intent and fixed job order. Reported results use
-only the original 48-variant nested design.
+wording-induced variation. The full ternary catalogue is generated and
+statically validated; the reported evidence covers its cooperative
+series, while the series below exercises declined and vague answers.
 
 \paragraph{Execution.} Clarification and all pipeline agents used
 Claude Haiku 5.5 (\texttt{claude-haiku-5-5}) through the non-interactive
@@ -381,8 +396,8 @@ dialogue (median, growing with $k$), on top of an analysis of
 72--83\,s.
 
 \begin{table}[t]
-\caption{Benchmark, 304 completed runs, $k\ge1$ unless noted: mean
-over the 8 intents (per intent, levels are averaged) [95\%
+\caption{Benchmark, 304 completed cooperative runs, $k\ge1$ unless noted:
+mean over the 8 intents (per intent, levels are averaged) [95\%
 cluster-bootstrap CI]. $J_5$: top-5 Jaccard; RBO: extrapolated,
 $p=0.8$, over the top-10; both against the oracle.}
 \label{tab:results}
@@ -406,23 +421,21 @@ Filter $F_1$ vs.\ majority oracle: refined 0.98 [0.96, 1.00], one-shot
 [0.33, 0.41]. $p=0.008$ is the smallest attainable with 8 intents.
 \end{table}
 
-\paragraph{Imperfect users.} A second series exercises the behaviour a
-cooperative user never triggers. From the 40 scenarios with $k\ge1$, a
-deterministic generator changes exactly one simulated answer: in 35
-\emph{opt-out} variants the first omitted preference ($C_b$, $C_e$, or
-$C_p$) is answered ``I have no requirement on \dots''; in 40 \emph{vague}
-variants the first omitted dimension first receives ``It depends;
-something suitable for the project, I guess'' and the exact fragment
-only if asked again. All 225 refined (3 repetitions) and 40 oracle runs
-completed with the same model and pipeline. Opt-out: the dimension was
-recorded as not requested and not asked again in 105/105 runs ($k$
-turns); a filter on it appeared only in 10 student-residence runs,
-where the inherited proximity agent derives a university filter from
-the use; filter $F_1$ on the other dimensions was 0.98. Vague: each
-vague answer led to one rephrased follow-up and the exact requirement
-was then recorded (120/120, $k+1$ turns, filter $F_1$ 0.99), with top-5
-agreement 0.93 against the series' own oracle runs, equal to their
-mutual agreement (0.93); median clarification took 36\,s. A preliminary
+\paragraph{Imperfect users.} A second series exercises the two behaviours
+a cooperative user never triggers: declining a dimension and first
+answering vaguely. In the opt-out runs, the declined dimension is answered
+``I have no requirement on \dots'', and it was recorded as not requested
+and not asked again in 105/105 runs ($k$ turns); a filter on it appeared
+only in 10 student-residence runs, where the inherited proximity agent
+derives a university filter from the use; filter $F_1$ on the other
+dimensions was 0.98. In the vague runs, the first omitted dimension first
+receives a non-committal answer and the exact fragment only if asked
+again: each vague answer led to one rephrased follow-up and the exact
+requirement was then recorded (120/120, $k+1$ turns, filter $F_1$ 0.99),
+with top-5 agreement 0.93 against the series' own oracle runs, equal to
+their mutual agreement (0.93); median clarification took 36\,s. All 225
+refined (3 repetitions) and 40 oracle runs completed with the same model
+and pipeline. A preliminary
 execution exposed two blocking cases (an ``unknown'' reading of a vague
 answer, and a stopping rule that skipped a required question), which
 were fixed before this series.

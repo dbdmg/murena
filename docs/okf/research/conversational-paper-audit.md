@@ -85,6 +85,14 @@ PDF rigenerato con Tectonic e controllato visivamente: 4 pagine. Resta un overfu
 - **Lavori correlati:** aggiunto Sphinteract (PVLDB 18(4):1145–1158, 2024, DOI 10.14778/3717755.3717772), con metadati verificati sul blocco "PVLDB Reference Format" del PDF.
 - **PDF:** rigenerato con Tectonic e controllato visivamente, 4 pagine; overfull verticale di 1,9 pt nella routine di output, dello stesso tipo del precedente. Non è committato: il collega lo aveva rimosso (`b820dc6`).
 
+## Paradigma di generazione v4 nel paper (2026-11-18)
+
+- **Scenari e abstract:** il manoscritto descrive ora il catalogo v4 come framework di generazione: 8 intenti, tutte le 32 maschere di omissione, tre comportamenti per dimensione omessa (specificato, vago, opt-out) e $8 \times \sum_k \binom{5}{k}3^k = 8.192$ scenari. Rimossi il linguaggio del disegno annidato a 48 varianti e la vecchia estensione non eseguita a 256 varianti.
+- **Evidenza riportata:** restano le 304 run della serie cooperativa `missingness_v3_haiku_r2`, ora etichettate come tali nell'abstract, nelle Conditions, nella didascalia della Tabella 1 e nello Scope. Nessun parametro di campionamento, seed o risultato v4 è riportato nel paper.
+- **Sezione 4:** il pannello demo è descritto come selezione di run v4 completate per caso d'uso e stato delle dimensioni (specificato, omesso, ambiguo), con richiesta iniziale, risposte preparate, query riscritta e top-10.
+- **Sezione 5, Imperfect users:** rimossa la meccanica del generatore storico (una sola risposta alterata, frase vaga fissa); restano i risultati osservati su opt-out e risposte vaghe.
+- **Verifica:** validatore v4 rieseguito (`8.192` scenari, distribuzione per $k$ e 256 maschere). PDF rigenerato con Tectonic in copia temporanea: 4 pagine, nessuna regressione maggiore. Il PDF è presente in `paper/` come artefatto non tracciato, coerente con la scelta di non versionarlo.
+
 ## Registrazione della demo (2026-11-18)
 
 - **File:** `paper/video/murena_demo_nursery.gif`, registrato con il registratore GIF del browser sull'app locale (frontend Vite in modalità normale, backend `uvicorn` con `LLM_PROVIDER=claude_cli`, `LLM_MODEL=claude-haiku-5-5`, effort medium).

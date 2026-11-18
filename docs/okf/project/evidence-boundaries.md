@@ -44,6 +44,17 @@ codice `62630c0`), con varianti opt-out e risposte vaghe; è descritta nella
 [sezione dedicata](../research/edbt-conversational-benchmark.md#risultati-osservati-serie-utente-imperfetto-con-claude-haiku-55-2026-11-18).
 È evidenza su utenti simulati con formulazioni fisse, non su utenti reali.
 
+**Aggiornamento del 2026-11-18 (paper e generazione v4):** il manoscritto
+descrive ora il paradigma **v4** di generazione deterministica ed esaustiva
+degli scenari (tutte le 32 maschere di omissione per intento e tutte le $3^k$
+assegnazioni ternarie tra specificato, vago e opt-out, per 8.192 scenari) come
+framework del benchmark. L'evidenza riportata resta la serie **cooperativa**
+`missingness_v3_haiku_r2` (304/304 run, codice `a5c1b09`); il paper non riporta
+parametri di campionamento, seed né risultati v4. I run v4 parziali (seed 13,
+`gpt-6-luna`) sono descrittivi e non vanno presentati come risultati del
+manoscritto. La sezione dimostrativa descrive il pannello che filtra le run v4
+completate per caso d'uso e stato delle dimensioni.
+
 **Aggiornamento locale del 2026-11-17:** i risultati preliminari v3 citati sotto
 restano evidenza storica (Git `4a7c882`), usata nel paper fino alla serie Haiku. Su richiesta sono
 stati cancellati gli artefatti locali e avviata una rigenerazione con
@@ -53,12 +64,14 @@ non consente di combinare i tentativi. La diagnosi HTTPS del provider è una
 verifica tecnica minima, non un risultato del benchmark. Vedere
 [riproduzione](../research/reproduction.md).
 
-L'estensione combinatoria successiva prepara otto scenari S01–S08 con
-32 varianti ciascuno (256 totali); `enabled` esiste solo sullo scenario base,
-inizialmente tutte le otto basi sono abilitate. È stata verificata senza chiamate LLM e non fornisce
-nuovi risultati sperimentali; il paper distingue questa estensione non
-eseguita dal disegno annidato storico. Vedere il
-[benchmark](../research/edbt-conversational-benchmark.md#revisione-combinatoria-del-catalogo-2026-11-17).
+L'estensione combinatoria successiva ha preparato otto scenari S01–S08 con
+32 varianti ciascuno (256 totali); il generatore v4 le ha poi generalizzate in
+8.192 scenari ternari. Entrambe le strutture sono state verificate senza
+chiamate LLM e non forniscono nuovi risultati sperimentali; il paper usa v4
+come framework di generazione e mantiene la serie cooperativa come evidenza
+riportata. Vedere il
+[benchmark](../research/edbt-conversational-benchmark.md#revisione-combinatoria-del-catalogo-2026-11-17)
+e la [sezione v4](../research/edbt-conversational-benchmark.md#suite-a-omissione-controllata-v4-2026-11-18).
 
 ## Origine delle informazioni
 
