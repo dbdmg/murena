@@ -2,6 +2,12 @@
 
 ## 2026-11-18
 
+* **Serie cooperativa Haiku rieseguita sul codice `a5c1b09`, analisi completata** (`results/missingness_v3_haiku_r2`):
+  * 304/304 run completati (144 refined, 120 one_shot, 40 oracle), nessun errore né fallback. Esecuzione 07:05–07:25 e, dopo `--resume`, 08:45–09:14. Ordine dei job fisso, non interleaved.
+  * L'atomo `I:typology` è presente in tutti i 304 run (prima 24/40 oracle, 83/144 refined).
+  * J5 k≥1 appaiato: refined 0,88 [0,81; 0,96], one_shot 0,16 [0,07; 0,25], Δ 0,72 [0,63; 0,82], p=0,0078; tetto oracle-oracle 0,87 [0,79; 0,95] (prima 0,53). Rilevamento esatto 144/144, turni = `k`, nessuna domanda a k=0.
+  * File di confronto aggiunti (`comparison*.{json,csv}`). Nuova sezione in `research/edbt-conversational-benchmark.md`, banner della serie superata e `project/evidence-boundaries.md` aggiornati. Il paper riporta ancora la serie superata.
+
 * **Istruzioni per nuove serie con Codex o modelli open-weight** in `research/reproduction.md`: procedura comune (dry-run, smoke test su `MS02_k2`, serie cooperativa e serie imperfetta, analisi, ripresa con `--resume` e stesse variabili d'ambiente), variante `codex_exec` e variante vLLM/Ollama, regole per riportare i risultati senza combinare le serie.
   * **Codice di supporto:**
     * `LLM_DISABLE_THINKING` (true/false/vuoto) forza il flag vLLM `enable_thinking=false` su qualunque host. Prima il flag andava solo agli host locali, ed è la probabile causa del fallimento JSON della prova Qwen del 17-11 su IP pubblico.

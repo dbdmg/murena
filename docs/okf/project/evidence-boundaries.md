@@ -33,6 +33,13 @@ confrontati come prova di superiorità di un modello: la variabilità
 oracle-vs-oracle differisce (0,53 contro 0,74). Vedere il
 [benchmark](../research/edbt-conversational-benchmark.md#risultati-osservati-serie-completa-v3-con-claude-haiku-55-2026-11-17).
 
+**Aggiornamento del 2026-11-18:** la serie Haiku del 2026-11-17 è superata
+(codice precedente la correzione della colonna tipologia `0e29b52`). L'evidenza
+corrente è il rerun `missingness_v3_haiku_r2` (304/304 run, codice `a5c1b09`),
+descritto nella
+[sezione 2026-11-18](../research/edbt-conversational-benchmark.md#risultati-osservati-serie-v3-haiku-rieseguita-sul-codice-corrente-2026-11-18);
+le due serie non vanno combinate. Il paper riporta ancora la serie superata.
+
 **Aggiornamento locale del 2026-11-17:** i risultati preliminari v3 citati sotto
 restano evidenza storica (Git `4a7c882`), usata nel paper fino alla serie Haiku. Su richiesta sono
 stati cancellati gli artefatti locali e avviata una rigenerazione con

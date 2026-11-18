@@ -322,6 +322,8 @@ Il test di sign-flip esatto su 7 intenti dà p=0,016 per tutti e tre gli indici.
 >
 > I confronti interni della serie restano coerenti, perché tutte le condizioni condividono lo stesso codice. Il tetto di rumore e i valori assoluti riflettono però il difetto. Su decisione dell'utente, la serie viene rieseguita sul codice corrente in `missingness_v3_haiku_r2`. I numeri sotto sono conservati come evidenza storica.
 >
+> Rerun completato (304/304, codice `a5c1b09`): vedere [la sezione 2026-11-18](#risultati-osservati-serie-v3-haiku-rieseguita-sul-codice-corrente-2026-11-18).
+>
 > Nota sulla temperatura: il valore 0 registrato nel manifest non viene applicato, perché l'adattatore `claude_cli` non lo passa alla CLI, che non ha un'opzione per la temperatura. Il campionamento è quello predefinito della CLI.
 
 **Esecuzione.**
@@ -400,6 +402,98 @@ Ciascun problema è stato corretto nel codice (`fc8496d`, `7fd238d`) prima del l
 - `k` è accoppiato all'identità delle dimensioni omesse.
 
 Refined supera di poco il tetto oracle-vs-oracle (0,57 contro 0,53), con intervalli sovrapposti; non va letto come "migliore dell'oracle". Il riferimento confronta coppie refined-oracle, il tetto coppie oracle-oracle: entrambi misurano la stessa variabilità della pipeline.
+
+## Risultati osservati: serie v3 Haiku rieseguita sul codice corrente (2026-11-18)
+
+Riesecuzione della serie precedente sul codice successivo alla correzione della colonna tipologia (`0e29b52`). Sostituisce come evidenza corrente la serie `missingness_v3_haiku` del 2026-11-17, che resta evidenza storica e **non va combinata** con questa.
+
+**Configurazione.**
+
+- Modello `claude-haiku-5-5` tramite il provider `claude_cli` (Claude Code CLI, effort `medium`). La temperatura 0 registrata nel manifest non è applicata, come nella serie precedente.
+- Dataset `full` (89.200 immobili, SHA-256 `bc6732c8…`, invariato), rilassamento attivo, concorrenza 10.
+- Ripetizioni: refined ×3, one_shot ×3 (k≥1), oracle ×5 per intento.
+- Input: lo stesso `nested48_from_4a7c882.yaml` della serie precedente (SHA-256 `be783d82…`).
+- Codice: `a5c1b09`. Il manifest registra `659f97f` per il primo segmento e `4071a3a` per la ripresa, entrambi `dirty=true`. Nessuno dei due differisce da `a5c1b09` sotto `backend/`, esclusi i risultati (verificato con `git diff`). Il manifest non contiene i campi di provenienza introdotti da `62630c0` (per esempio `temperature_applied`), coerentemente con il codice `a5c1b09`.
+- Ordine dei job fisso, non interleaved: il runner corrente non ha `--seed`. Ordinati per avvio, i run sono 144 refined, poi 120 one_shot, poi 40 oracle. Le condizioni sono quindi eseguite in finestre temporali diverse, a differenza della serie precedente.
+
+**Esecuzione** (ora locale, UTC+1).
+
+- Lanciata verso le 04:10; il computer è andato in sospensione e il primo run registrato è partito alle 07:05.
+- Sospesa alle 07:25 per lo spegnimento, con 117 run registrati.
+- Ripresa con `--resume` alle 08:45, stessa configurazione; fine alle 09:14 (`completed_at` del manifest).
+- **304/304 run completati**: 144 refined, 120 one_shot, 40 oracle. Nessun run fallito, nessun `agent_errors`, nessun fallback, nessun run con zero risultati.
+- Dati versionati in `backend/experiments/results/missingness_v3_haiku_r2/`: `runs.jsonl`, `manifest.json`, `summary.csv`, `comparison.json`, `comparison_per_k.csv`, `comparison_operational.csv` e gli artefatti compatti `runs/` (304 file, 16 MB, il più grande 1,1 MB).
+- Analisi: `compare_conditions.py` con le impostazioni predefinite (1000 permutazioni, B=10.000, seed 13, p=0,8, maggioranza stretta delle ripetizioni oracle). Nessun run escluso.
+
+**Atomi di tipologia.** Un atomo `I:typology` (da `filter_atoms`) compare in 144/144 run refined, 120/120 one_shot e 40/40 oracle. Nella serie precedente: 83/144, 100/120 e 24/40.
+
+**Chiarimento (refined, 144 run).**
+
+- Rilevamento delle dimensioni omesse esatto in 144/144 (360 VP, 0 FP, 0 FN; P/R/F1 micro = 1,00).
+- Numero di turni uguale a `k` in 144/144; stato finale `READY` e `mapping_accuracy` 1,0 in tutti i run.
+- Nessuna domanda nei controlli `k=0` (0/24).
+- L'uso normativo atteso è sempre tra quelli riconosciuti (144/144). In 9 run, tutti di `MS02` (nido), è riconosciuto anche il micronido; in uno di questi anche la sezione primavera.
+
+**Accordo con l'oracle.** Valori: media appaiata sugli 8 intenti (`row_type=intent_mean_paired`), [IC 95% bootstrap a cluster, B=10.000], k≥1 aggregato. Tutti gli 8 intenti sono presenti in ogni cella.
+
+| Condizione | J5 | RBO (p=0,8, top-10) | J5 tie-aware |
+|---|---|---|---|
+| one_shot | 0,16 [0,07; 0,25] | 0,20 [0,10; 0,30] | 0,15 [0,07; 0,24] |
+| refined | 0,88 [0,81; 0,96] | 0,94 [0,90; 0,97] | 0,87 [0,79; 0,95] |
+| refined, k=0 | 0,87 [0,77; 0,95] | 0,94 [0,89; 0,97] | 0,86 [0,76; 0,95] |
+| oracle vs oracle (n=8) | 0,87 [0,79; 0,95] | 0,94 [0,89; 0,98] | 0,85 [0,76; 0,94] |
+| Δ refined − one_shot | 0,72 [0,63; 0,82] | 0,74 [0,65; 0,82] | 0,72 [0,63; 0,82] |
+
+- Sign-flip esatto su 8 intenti: p=0,0078 per tutti gli indici aggregati, il minimo ottenibile con 8 intenti (tutti con Δ>0).
+- Per singolo `k`: p=0,0078 da k=2 a k=5; a k=1 p=0,0625 per J5 e J5 tie-aware, p=0,023 per RBO.
+- J5 refined per `k` (da 1 a 5): 0,88; 0,85; 0,87; 0,90; 0,90. J5 one_shot: 0,50; 0,15; 0,08; 0,05; 0,01.
+- L'RBO tie-aware (non nella tabella) vale 0,86 [0,81; 0,91] per refined, 0,18 [0,08; 0,27] per one_shot e 0,86 [0,81; 0,91] oracle-oracle.
+
+**Concordanza dei filtri** rispetto al riferimento a maggioranza stretta delle ripetizioni oracle:
+
+- refined: F1 tra 0,98 e 0,99 a ogni `k` (0,98 anche a k=0); media appaiata 0,98 [0,96; 1,00].
+- one_shot: 0,88 (k=1), 0,77, 0,63, 0,49, 0,27 (k=5); media appaiata 0,61 [0,57; 0,65].
+- Δ aggregato 0,37 [0,33; 0,41], p=0,0078.
+- Auto-concordanza dell'oracle: F1 0,99 [0,98; 1,00]. Coerenza SQL-atomi 1,00 in tutte le condizioni.
+- Richiamo per dimensione nel refined: 1,00 per `L`, `Cb`, `Ce`, `Cp`; 0,98–1,00 per `I`; 0,94–0,98 per `D`. Atomi inventati: 0,08–0,33 per run.
+- Il richiamo di `D` sotto 1 viene da `MS02`: il riferimento di `UC02` contiene sia `D:use=nursery` sia `D:use=micro-nursery`, perché 4 run oracle su 5 riconoscono anche il micronido. I run refined che riconoscono solo il nido hanno quindi richiamo `D` 0,5.
+
+**Rilassamento** (sempre di un solo passo): 52 run, cioè 36 refined, 6 one_shot e 10 oracle. È legato agli intenti: tutti i run refined e oracle di `UC03` (sezione primavera) e `UC07` (RSA), più i 6 one_shot di `UC07` a k=1 e k=2. Serie precedente: 28 run (19, 3, 6).
+
+**Dimensione dei risultati (mediane).**
+
+- oracle: 51,5 immobili.
+- refined: 49–51,5 a ogni `k` (51 a k=0).
+- one_shot: 53,5 (k=1), 103, 148, 500,5, 2.429 (k=5).
+
+**Latenza (mediane).**
+
+- Chiarimento: 11,1 s a k=0, poi 17,2; 23,3; 26,4; 30,8; 38,4 s da k=1 a k=5.
+- Analisi: 73,8–75,7 s per refined, 75,5–82,6 s per one_shot, 72,3 s per oracle.
+
+**Confronto con la serie superata** (solo provenienza, da non combinare):
+
+- Invariati: rilevamento esatto, turni uguali a `k`, nessuna domanda a k=0, Δ ampio con p minimo.
+- Il tetto oracle-vs-oracle passa da 0,53 a 0,87 (J5), J5 refined da 0,57 a 0,88, Δ da 0,46 a 0,72.
+- I risultati sono molto più piccoli: oracle da 121 a 51,5 immobili; one_shot a k=5 da 80.447 a 2.429.
+- Auto-concordanza dei filtri oracle da 0,94 a 0,99; F1 refined da 0,96 a 0,98.
+- Queste differenze sono coerenti con la presenza del filtro tipologia in tutti i run. Cambiano però anche l'ordine dei job e la fascia oraria, e non si possono separare i contributi.
+- Il tetto J5 oracle-oracle (0,87 [0,79; 0,95]) resta sotto quello della serie "utente imperfetto" su codice `c7b9f7a` (0,94 [0,88; 0,98]), con intervalli sovrapposti; sono serie diverse, non confrontate formalmente.
+
+**Esempio `MS02_k2`** (nido; omesse `Cb` e `Ce`), campi `submitted_query` verbatim da `runs.jsonl`:
+
+- `one_shot` **bench_dc898ec9a30c** (repeat 1, 26 risultati): "I am looking for an existing school building. I intend to convert it into a nursery. The location is in Turin. I prefer properties near green spaces."
+- `refined` **bench_24b7eb94f445** (repeat 1, due turni, 16 risultati): "I am looking for an existing school building in Turin to convert into a nursery. It must have at least 600 sqm of gross floor area and capacity for 45 people. I prefer a property in energy class D or better. I also prefer properties near green spaces."
+- `oracle` **bench_d3c744f2613b** (`UC02_nursery_missing_use`, repeat 1, 16 risultati): "Find an existing school building to convert it into a nursery for 45 children in Turin with at least 600 sqm of gross floor area in energy class D or better near green spaces."
+
+Le query one_shot e oracle sono input predefiniti, identici alla serie precedente; la riscrittura refined è quella osservata in questa serie.
+
+**Interpretazione e cautele.**
+
+- Con il filtro tipologia corretto, refined raggiunge il tetto oracle-vs-oracle a ogni `k` (0,85–0,90 contro 0,87), e anche il controllo k=0 è al tetto. Il divario residuo dall'unità riflette la variabilità della pipeline tra run identici.
+- Senza chiarimento, l'accordo crolla già a k=2 e la mediana dei risultati cresce di circa 45 volte da k=1 a k=5.
+- Valgono le cautele delle serie precedenti: l'oracle è un riferimento di query, non un giudizio di rilevanza; l'utente simulato è cooperativo ed esatto, quindi l'accordo refined-oracle è un limite superiore; `k` è accoppiato all'identità delle dimensioni omesse.
+- Il paper riporta ancora la serie superata; l'aggiornamento del manoscritto è un passo separato.
 
 ## Limiti
 
