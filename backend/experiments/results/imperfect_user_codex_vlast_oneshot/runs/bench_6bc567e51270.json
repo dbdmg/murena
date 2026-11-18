@@ -1,0 +1,808 @@
+{
+  "run_id": "bench_6bc567e51270",
+  "condition": "one_shot",
+  "unit_id": "MS01_k1_vague",
+  "scenario_id": "MS01_k1_vague",
+  "base_case_id": "UC01_micro_nursery_missing_use",
+  "missing_count": 1,
+  "scenario_name": "1 omitted dimensions; intended use: Micro-nursery; vague first answer on D",
+  "tags": [
+    "edbt",
+    "controlled_missingness_v3",
+    "missing_1",
+    "UC01_micro_nursery_missing_use",
+    "imperfect_user",
+    "vague"
+  ],
+  "model": "gpt-6-luna",
+  "repeat": 3,
+  "attempt": 1,
+  "input_sha256": "1f45df00b6125691bcb259fa8e08667969a05c2e217894c350edbbc50de2573b",
+  "scenario_sha256": "98d2cf24bd4d4f238b7a53c93ef502a0f0bc77d5dd0029f4b6bfa4548c4c536d",
+  "initial_query": "I am looking for an existing residential dwelling. The location is in Turin. I need a property with at least 140 sqm of gross floor area and capacity for 18 people. I prefer a property in energy class C or better. I prefer properties near public transport.",
+  "options": {
+    "dataset_key": "full",
+    "map_limit": 1000,
+    "llm_limit": 10,
+    "analysis_mode": "agent",
+    "use_relaxation": true,
+    "use_data_knowledge": true,
+    "architecture": "multiagent",
+    "disabled_agents": null
+  },
+  "started_at": "2026-11-18T21:17:30.716798+00:00",
+  "clarification_seconds": null,
+  "analysis_seconds": 94.282,
+  "submitted_query": "I am looking for an existing residential dwelling. The location is in Turin. I need a property with at least 140 sqm of gross floor area and capacity for 18 people. I prefer a property in energy class C or better. I prefer properties near public transport.",
+  "status": "completed",
+  "results_count": 147,
+  "top_ids": [
+    "16419",
+    "16429",
+    "M03079",
+    "16425",
+    "M02885",
+    "M05127",
+    "16428",
+    "18978",
+    "M03593",
+    "16465"
+  ],
+  "quality": {
+    "expected_count": 0,
+    "matched_expected": null,
+    "precision_at_returned": null,
+    "recall": null
+  },
+  "final_sql": "SELECT * FROM ESTATES WHERE property_type = 'Residential (Continuous)' AND surface_area >= 140 AND haversine_km(latitude, longitude, 45.0677551, 7.6824892) <= 3.0 AND energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C') AND mobility >= 88 ORDER BY haversine_km(latitude, longitude, 45.0677551, 7.6824892) ASC",
+  "duration_seconds": 94.298,
+  "scenario_definition": {
+    "id": "MS01_k1_vague",
+    "name": "1 omitted dimensions; intended use: Micro-nursery; vague first answer on D",
+    "tags": [
+      "edbt",
+      "controlled_missingness_v3",
+      "missing_1",
+      "UC01_micro_nursery_missing_use",
+      "imperfect_user",
+      "vague"
+    ],
+    "base_case_id": "UC01_micro_nursery_missing_use",
+    "missing_count": 1,
+    "initial_query": "I am looking for an existing residential dwelling. The location is in Turin. I need a property with at least 140 sqm of gross floor area and capacity for 18 people. I prefer a property in energy class C or better. I prefer properties near public transport.",
+    "one_shot_query": "I am looking for an existing residential dwelling. The location is in Turin. I need a property with at least 140 sqm of gross floor area and capacity for 18 people. I prefer a property in energy class C or better. I prefer properties near public transport.",
+    "oracle_query": "Find an existing residential dwelling to convert it into a micro-nursery for 18 children in Turin with at least 140 sqm of gross floor area in energy class C or better near public transport.",
+    "expected_initial_missing": [
+      "D"
+    ],
+    "clarifications": {
+      "I": "I am looking for an existing residential dwelling.",
+      "D": [
+        "It depends; something suitable for the project, I guess.",
+        "I intend to convert it into a micro-nursery."
+      ],
+      "L": "The location is in Turin.",
+      "Cb": "I need a property with at least 140 sqm of gross floor area and capacity for 18 people.",
+      "Ce": "I prefer a property in energy class C or better.",
+      "Cp": "I prefer properties near public transport."
+    },
+    "expected_mapping": {
+      "I": "SPECIFIED",
+      "D": "SPECIFIED",
+      "L": "SPECIFIED",
+      "Cb": "SPECIFIED",
+      "Ce": "SPECIFIED",
+      "Cp": "SPECIFIED"
+    },
+    "repeats": 1,
+    "imperfect_user": {
+      "profile": "vague",
+      "dimension": "D"
+    }
+  },
+  "artifact_file": "runs/bench_6bc567e51270.json",
+  "artifact_schema_version": 4,
+  "ranking_ids": [
+    "16419",
+    "16429",
+    "M03079",
+    "16425",
+    "M02885",
+    "M05127",
+    "16428",
+    "18978",
+    "M03593",
+    "16465",
+    "M03088",
+    "M02221",
+    "M04547",
+    "16427",
+    "18988",
+    "M03582",
+    "M03071",
+    "M03624",
+    "M00035",
+    "16423",
+    "M03611",
+    "M03577",
+    "22192",
+    "M01555",
+    "M02977",
+    "M03126",
+    "M03185",
+    "M03547",
+    "18982",
+    "M04443",
+    "M00802",
+    "24973",
+    "M00232",
+    "M00233",
+    "M00296",
+    "M00297",
+    "M02015",
+    "M02200",
+    "M03027",
+    "M03256",
+    "M03544",
+    "M04366",
+    "16735",
+    "M05693",
+    "16426",
+    "18971",
+    "16745",
+    "M03581",
+    "M04781",
+    "16421",
+    "18979",
+    "15899",
+    "18715",
+    "M00234",
+    "M01361",
+    "M02459",
+    "M02697",
+    "M04633",
+    "M01320",
+    "16083",
+    "23757",
+    "M03529",
+    "19440",
+    "16041",
+    "M03018",
+    "M02465",
+    "M03623",
+    "16466",
+    "M03645",
+    "18838",
+    "18976",
+    "15796",
+    "15887",
+    "M02440",
+    "12698",
+    "19116",
+    "24917",
+    "16194",
+    "M03147",
+    "10533",
+    "16260",
+    "16314",
+    "15794",
+    "M01349",
+    "18881",
+    "15791",
+    "15806",
+    "19104",
+    "M02995",
+    "M02489",
+    "15227",
+    "M03840",
+    "16278",
+    "5026",
+    "M04296",
+    "M00728",
+    "M03587",
+    "16275",
+    "M01846",
+    "M03745",
+    "15793",
+    "18591",
+    "M01504",
+    "22783",
+    "16462",
+    "15790",
+    "15805",
+    "15237",
+    "5568",
+    "8963",
+    "18771",
+    "M04055",
+    "M05487",
+    "17109",
+    "M05192",
+    "18650",
+    "19612",
+    "18840",
+    "29838",
+    "M03077",
+    "24043",
+    "M02016",
+    "22405",
+    "M00275",
+    "15238",
+    "M03467",
+    "26703",
+    "19070",
+    "27743",
+    "21277",
+    "23312",
+    "19085",
+    "16442",
+    "15976",
+    "19297",
+    "M00017",
+    "18909",
+    "M02768",
+    "16066",
+    "M03488",
+    "M04199",
+    "13279",
+    "M04219",
+    "13280",
+    "M02410",
+    "12754",
+    "M01956"
+  ],
+  "top": [
+    {
+      "id": "16419",
+      "score": 92.951,
+      "distance_km": 0.35
+    },
+    {
+      "id": "16429",
+      "score": 92.951,
+      "distance_km": 0.35
+    },
+    {
+      "id": "M03079",
+      "score": 92.951,
+      "distance_km": 0.35
+    },
+    {
+      "id": "16425",
+      "score": 92.819,
+      "distance_km": 0.35
+    },
+    {
+      "id": "M02885",
+      "score": 92.656,
+      "distance_km": 0.18
+    },
+    {
+      "id": "M05127",
+      "score": 92.656,
+      "distance_km": 0.18
+    },
+    {
+      "id": "16428",
+      "score": 92.027,
+      "distance_km": 0.35
+    },
+    {
+      "id": "18978",
+      "score": 91.37299999999999,
+      "distance_km": 0.26
+    },
+    {
+      "id": "M03593",
+      "score": 91.37299999999999,
+      "distance_km": 0.26
+    },
+    {
+      "id": "16465",
+      "score": 91.109,
+      "distance_km": 0.53
+    }
+  ],
+  "api_response": {
+    "agent_trace": [
+      {
+        "agent_name": "energy-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "requirements": [
+            {
+              "target_column": "energy_class",
+              "operator": "IN",
+              "value": [
+                "A1",
+                "A2",
+                "A3",
+                "A4",
+                "B",
+                "C"
+              ],
+              "description": "Preferred energy class C or better."
+            }
+          ],
+          "found": true
+        }
+      },
+      {
+        "agent_name": "regulatory-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "found": false,
+          "matched_use_cases": [],
+          "requirements": []
+        }
+      },
+      {
+        "agent_name": "location-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "places": [
+            {
+              "name": "Turin",
+              "city": "Turin",
+              "lat": 45.0677551,
+              "lon": 7.6824892,
+              "radius_km": 3.0
+            }
+          ],
+          "found": true
+        }
+      },
+      {
+        "agent_name": "building-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "typologies": [
+            "Residential (Continuous)"
+          ],
+          "found": true,
+          "requirements": [
+            {
+              "target_column": "surface_area",
+              "operator": ">=",
+              "value": 140,
+              "description": "The request explicitly requires at least 140 sqm of gross floor area."
+            }
+          ]
+        }
+      },
+      {
+        "agent_name": "proximity-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "requirements": [
+            {
+              "target_column": "mobility",
+              "operator": ">=",
+              "value": 88,
+              "description": "Prefers proximity to public transport; threshold rounded to the mobility 75th percentile (87.77)."
+            }
+          ]
+        }
+      },
+      {
+        "agent_name": "ranking-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "ranking": [
+            {
+              "agent_name": "location",
+              "rank": 1
+            },
+            {
+              "agent_name": "regulatory",
+              "rank": 1
+            },
+            {
+              "agent_name": "building",
+              "rank": 1
+            },
+            {
+              "agent_name": "energy",
+              "rank": 2
+            },
+            {
+              "agent_name": "proximity",
+              "rank": 2
+            }
+          ],
+          "weights": {
+            "location": 0.26,
+            "regulatory": 0.25,
+            "energy": 0.12,
+            "building": 0.25,
+            "proximity": 0.12
+          }
+        }
+      },
+      {
+        "agent_name": "sql-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "sql": "SELECT * FROM ESTATES WHERE property_type = 'Residential (Continuous)' AND surface_area >= 140 AND haversine_km(latitude, longitude, 45.0677551, 7.6824892) <= 3.0 AND energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C') AND mobility >= 88 ORDER BY haversine_km(latitude, longitude, 45.0677551, 7.6824892) ASC",
+          "explanation": "Filters by residential property type, minimum area, supplied location radius, preferred energy classes, and mobility score, then sorts by distance."
+        }
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "16425",
+          "evaluation_text": "This 277.91 sqm continuous residential property in Turin is a strong match for the stated search: its recorded area exceeds the 140 sqm target, it is an existing dwelling, and its A4 energy class is better than the preferred C threshold. Its mobility percentile of 99.54 also supports the preference for public transport access. The supplied data do not establish whether the property can accommodate 18 people, its internal layout, or planning and technical suitability for that occupancy; these require verification. No regulatory requirements or matched use cases were returned, so no regulatory compatibility conclusion can be drawn from this context.",
+          "final_ranking_score": 93,
+          "pros": [
+            "Recorded surface area of 277.91 sqm exceeds the requested 140 sqm gross-area target.",
+            "A4 energy class exceeds the preferred C-or-better standard; energy score total is 16.",
+            "Mobility percentile of 99.54 indicates very strong proximity to public transport."
+          ],
+          "cons": [
+            "Capacity for 18 people is not established by the supplied data and needs verification.",
+            "Internal layout and room distribution are unspecified, so suitability for the intended occupancy cannot be confirmed.",
+            "Regulatory context returned no requirements or matched use cases; planning and occupancy compatibility need verification."
+          ]
+        },
+        "batch_id": 1,
+        "timestamp": "2026-11-18T22:18:04.558647",
+        "execution_time_ms": 15164.562940597534
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "M03079",
+          "evaluation_text": "This existing residential property in Turin is a strong strategic match: its recorded surface area of 4,164.09 sqm substantially exceeds the requested 140 sqm, and its A4 energy class exceeds the preferred C threshold. Mobility access is exceptionally strong (99.54), supporting the preference for public transport. However, the data do not establish whether the dwelling can accommodate 18 people, its internal layout, or planning and technical suitability for that occupancy; these require verification. No regulatory requirements were returned in the supplied context.",
+          "final_ranking_score": 93,
+          "pros": [
+            "Recorded surface area of 4,164.09 sqm is well above the 140 sqm target.",
+            "Energy class A4 exceeds the preferred C-or-better threshold; the energy total is 16/20.",
+            "Mobility score of 99.54 indicates excellent proximity to public transport."
+          ],
+          "cons": [
+            "Capacity for 18 people is not established by the supplied data and needs verification.",
+            "Internal layout and technical suitability for the intended occupancy are unspecified.",
+            "Planning compatibility and any required authorization for the proposed occupancy need verification; no applicable regulatory entries were supplied."
+          ]
+        },
+        "batch_id": 2,
+        "timestamp": "2026-11-18T22:18:05.143792",
+        "execution_time_ms": 15751.941442489624
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "16429",
+          "evaluation_text": "This existing residential dwelling in Turin is a strong match for the stated objective. Its 329.42 sqm recorded surface area is well above the requested 140 sqm threshold, although the data do not establish its layout or whether it can accommodate 18 people. Energy class A4 exceeds the preferred C-or-better level, and the mobility percentile of 99.54 indicates excellent relative access to public transport. Suitability for the intended occupancy, room configuration, planning compatibility, and accessibility require verification; no applicable regulatory requirements were identified in the supplied context.",
+          "final_ranking_score": 93,
+          "pros": [
+            "Existing residential property in Turin with 329.42 sqm recorded surface area, exceeding the requested 140 sqm threshold.",
+            "Energy class A4 meets and exceeds the stated preference for class C or better.",
+            "Very high public transport proximity percentile of 99.54."
+          ],
+          "cons": [
+            "Capacity for 18 people is not established by the supplied property data.",
+            "The property's room layout and accessibility for the intended occupancy require verification.",
+            "Planning compatibility and any use-specific authorizations require verification; the supplied regulatory context identifies no applicable requirements."
+          ]
+        },
+        "batch_id": 3,
+        "timestamp": "2026-11-18T22:18:05.348567",
+        "execution_time_ms": 15964.729070663452
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "16419",
+          "evaluation_text": "This 1955 continuous residential property in Turin is a strong strategic match on the supplied indicators: its 2,195.13 sqm surface area substantially exceeds the requested 140 sqm gross area, its A4 energy class is better than the preferred C threshold, and mobility proximity is exceptionally high at 99.54. However, the data do not establish capacity for 18 people, internal layout, or planning and technical suitability; these require verification. The regulatory context contains no matched requirements or normative entries, so it does not establish authorization for the intended occupancy or use.",
+          "final_ranking_score": 93,
+          "pros": [
+            "Reported surface area of 2,195.13 sqm is well above the 140 sqm gross-area requirement, subject to confirming the area metric and usable configuration.",
+            "A4 energy class exceeds the preferred C-or-better threshold; energy sub-scores are strong for class, plant, and envelope.",
+            "Very high public transport proximity indicator (mobility 99.54), with healthcare, commercial, and education indicators also above 90."
+          ],
+          "cons": [
+            "The data do not confirm that the dwelling can accommodate 18 people; occupancy capacity and room configuration need assessment.",
+            "Planning compatibility, accessibility, and technical feasibility for the intended occupancy are not established by the supplied records.",
+            "The regulatory search found no matched use cases or normative entries, leaving applicable requirements to be checked."
+          ]
+        },
+        "batch_id": 4,
+        "timestamp": "2026-11-18T22:18:06.679124",
+        "execution_time_ms": 17295.881748199463
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "M02885",
+          "evaluation_text": "This 2019 residential property in Turin is a strong match for the stated search: its 512.84 sqm recorded area is well above the requested 140 sqm, and its A4 energy class exceeds the preferred C threshold. The mobility percentile of 95.26 also supports the preference for public transport access. The supplied data do not establish whether the dwelling can accommodate 18 people, whether the recorded area is gross floor area, or whether its layout and planning status are suitable; these points require verification.",
+          "final_ranking_score": 93,
+          "pros": [
+            "Residential property in Turin, matching the requested location and property type.",
+            "Recorded area of 512.84 sqm substantially exceeds the 140 sqm target, subject to confirming that it is gross floor area.",
+            "Energy class A4 and mobility percentile 95.26 align strongly with the energy and public transport preferences."
+          ],
+          "cons": [
+            "Capacity for 18 people is not established by the supplied information and needs verification.",
+            "The area metric is not identified as gross floor area, so its comparability with the requested threshold needs confirmation.",
+            "Layout, planning compatibility, and technical suitability for the intended occupancy are not documented and require assessment."
+          ]
+        },
+        "batch_id": 5,
+        "timestamp": "2026-11-18T22:18:19.634777",
+        "execution_time_ms": 15077.181100845337
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "16428",
+          "evaluation_text": "This 264.6 sqm residential property in Turin aligns well with the stated search: its recorded area exceeds 140 sqm, and its A4 energy class is better than the preferred C threshold. Mobility proximity is exceptionally high, supporting access by public transport. The supplied data do not establish capacity for 18 people, room layout, planning compatibility, accessibility, or technical suitability; these require verification. No regulatory requirements or matched use cases were provided.",
+          "final_ranking_score": 92,
+          "pros": [
+            "Recorded surface area of 264.6 sqm exceeds the 140 sqm gross-area target.",
+            "A4 energy class substantially exceeds the preferred C-or-better threshold; energy sub-scores also indicate strong plant and envelope performance.",
+            "Mobility percentile of 99.54 indicates exceptionally strong proximity to public transport."
+          ],
+          "cons": [
+            "Capacity for 18 people is not established by the supplied property data and needs verification.",
+            "Room layout, accessibility, and technical feasibility for the intended occupancy are unknown.",
+            "Planning compatibility and authorization for the intended use are not established; no matched regulatory entries were supplied."
+          ]
+        },
+        "batch_id": 6,
+        "timestamp": "2026-11-18T22:18:20.036761",
+        "execution_time_ms": 14687.99901008606
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "M05127",
+          "evaluation_text": "This recent residential property in Turin is a strong match on the stated area, energy, and transport preferences. Its 757.75 sqm surface area exceeds the 140 sqm threshold, and its A4 energy class is better than the preferred C or better. Mobility scores highly at 95.26, indicating strong relative public transport access. The supplied data do not establish whether the dwelling can accommodate 18 people, its internal layout, or its authorization for the intended occupancy; these require verification. No regulatory requirements or matched use cases were supplied.",
+          "final_ranking_score": 93,
+          "pros": [
+            "757.75 sqm surface area substantially exceeds the stated 140 sqm threshold.",
+            "A4 energy class exceeds the preferred C or better standard; the property dates to 2022.",
+            "Mobility percentile of 95.26 supports the preference for strong public transport access."
+          ],
+          "cons": [
+            "Capacity for 18 people is not established by the supplied data and requires verification.",
+            "The property’s internal layout and usable residential configuration are not provided.",
+            "Planning and occupancy compatibility for the intended use are unverified; the regulatory context contains no matched requirements."
+          ]
+        },
+        "batch_id": 7,
+        "timestamp": "2026-11-18T22:18:20.668318",
+        "execution_time_ms": 15525.164365768433
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "18978",
+          "evaluation_text": "This recently constructed residential property in Turin aligns strongly with the search: its recorded area of 295.64 sqm exceeds the 140 sqm target, its A3 energy class is better than the preferred C threshold, and its mobility percentile of 99.01 indicates very strong public transport proximity. The supplied data do not establish capacity for 18 people, room layout, planning compatibility, or technical suitability, so these require verification. No regulatory requirements or matching normative entries were supplied.",
+          "final_ranking_score": 91,
+          "pros": [
+            "295.64 sqm recorded area exceeds the 140 sqm target.",
+            "A3 energy class exceeds the preference for C or better; the property was constructed in 2019.",
+            "Mobility percentile of 99.01 indicates excellent proximity to public transport."
+          ],
+          "cons": [
+            "Capacity for 18 people is not established by the supplied data and needs verification.",
+            "Room layout and the suitability of the dwelling for the intended occupancy are unknown.",
+            "Planning compatibility and any required authorizations have not been established; no matching regulatory entries were supplied."
+          ]
+        },
+        "batch_id": 8,
+        "timestamp": "2026-11-18T22:18:20.688865",
+        "execution_time_ms": 14010.381937026978
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "M03593",
+          "evaluation_text": "This 2020 residential property in Turin is a strong strategic match: its A3 energy class exceeds the preferred C threshold, and mobility access is exceptionally high. The recorded gross area of 3,108.14 sqm is above the 140 sqm requirement. However, the data do not establish whether the dwelling can accommodate 18 people, how the space is laid out, or whether the intended occupancy is permitted; these points require verification. No applicable regulatory requirements were identified in the supplied context.",
+          "final_ranking_score": 91,
+          "pros": [
+            "A3 energy class is better than the preferred C or better threshold; the building dates from 2020.",
+            "Recorded gross area of 3,108.14 sqm exceeds the requested minimum of 140 sqm.",
+            "Mobility percentile of 99.01 indicates excellent proximity to public transport."
+          ],
+          "cons": [
+            "Capacity for 18 people is not established by the supplied data and requires verification.",
+            "The floor plan and usable internal configuration are not provided, so suitability for the intended occupancy cannot be confirmed.",
+            "Planning compatibility and occupancy authorization for the intended use are not established in the supplied regulatory context and need checking."
+          ]
+        },
+        "batch_id": 9,
+        "timestamp": "2026-11-18T22:18:46.759613",
+        "execution_time_ms": 27113.526582717896
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "16465",
+          "evaluation_text": "This 313.5 sqm residential property in central Turin is a strong match for the search: its recorded area exceeds the 140 sqm target, and its A3 energy class is better than the preferred C threshold. Mobility access is exceptionally strong, with a 99.26 percentile score. The data do not establish whether the existing layout can accommodate 18 people, whether the dwelling is authorized and suitable for that capacity, or whether any adaptation is feasible; these points require verification. No matching regulatory requirements or source entries were provided.",
+          "final_ranking_score": 91,
+          "pros": [
+            "313.5 sqm of recorded area exceeds the 140 sqm target.",
+            "A3 energy class exceeds the preferred C-or-better threshold.",
+            "Very strong public transport proximity, with a mobility score of 99.26."
+          ],
+          "cons": [
+            "Capacity for 18 people is not established by the supplied data and must be verified against the layout and applicable requirements.",
+            "The building dates to 1880, so its condition and the feasibility of any required adaptation need inspection.",
+            "Energy sub-scores for the envelope and renewables are low despite the A3 class; the underlying systems and performance details merit review."
+          ]
+        },
+        "batch_id": 10,
+        "timestamp": "2026-11-18T22:18:48.151302",
+        "execution_time_ms": 28115.08059501648
+      }
+    ],
+    "evaluation_results": [
+      {
+        "id": "16419",
+        "evaluation_text": "This 1955 continuous residential property in Turin is a strong strategic match on the supplied indicators: its 2,195.13 sqm surface area substantially exceeds the requested 140 sqm gross area, its A4 energy class is better than the preferred C threshold, and mobility proximity is exceptionally high at 99.54. However, the data do not establish capacity for 18 people, internal layout, or planning and technical suitability; these require verification. The regulatory context contains no matched requirements or normative entries, so it does not establish authorization for the intended occupancy or use.",
+        "final_ranking_score": 93,
+        "pros": [
+          "Reported surface area of 2,195.13 sqm is well above the 140 sqm gross-area requirement, subject to confirming the area metric and usable configuration.",
+          "A4 energy class exceeds the preferred C-or-better threshold; energy sub-scores are strong for class, plant, and envelope.",
+          "Very high public transport proximity indicator (mobility 99.54), with healthcare, commercial, and education indicators also above 90."
+        ],
+        "cons": [
+          "The data do not confirm that the dwelling can accommodate 18 people; occupancy capacity and room configuration need assessment.",
+          "Planning compatibility, accessibility, and technical feasibility for the intended occupancy are not established by the supplied records.",
+          "The regulatory search found no matched use cases or normative entries, leaving applicable requirements to be checked."
+        ]
+      },
+      {
+        "id": "16429",
+        "evaluation_text": "This existing residential dwelling in Turin is a strong match for the stated objective. Its 329.42 sqm recorded surface area is well above the requested 140 sqm threshold, although the data do not establish its layout or whether it can accommodate 18 people. Energy class A4 exceeds the preferred C-or-better level, and the mobility percentile of 99.54 indicates excellent relative access to public transport. Suitability for the intended occupancy, room configuration, planning compatibility, and accessibility require verification; no applicable regulatory requirements were identified in the supplied context.",
+        "final_ranking_score": 93,
+        "pros": [
+          "Existing residential property in Turin with 329.42 sqm recorded surface area, exceeding the requested 140 sqm threshold.",
+          "Energy class A4 meets and exceeds the stated preference for class C or better.",
+          "Very high public transport proximity percentile of 99.54."
+        ],
+        "cons": [
+          "Capacity for 18 people is not established by the supplied property data.",
+          "The property's room layout and accessibility for the intended occupancy require verification.",
+          "Planning compatibility and any use-specific authorizations require verification; the supplied regulatory context identifies no applicable requirements."
+        ]
+      },
+      {
+        "id": "M03079",
+        "evaluation_text": "This existing residential property in Turin is a strong strategic match: its recorded surface area of 4,164.09 sqm substantially exceeds the requested 140 sqm, and its A4 energy class exceeds the preferred C threshold. Mobility access is exceptionally strong (99.54), supporting the preference for public transport. However, the data do not establish whether the dwelling can accommodate 18 people, its internal layout, or planning and technical suitability for that occupancy; these require verification. No regulatory requirements were returned in the supplied context.",
+        "final_ranking_score": 93,
+        "pros": [
+          "Recorded surface area of 4,164.09 sqm is well above the 140 sqm target.",
+          "Energy class A4 exceeds the preferred C-or-better threshold; the energy total is 16/20.",
+          "Mobility score of 99.54 indicates excellent proximity to public transport."
+        ],
+        "cons": [
+          "Capacity for 18 people is not established by the supplied data and needs verification.",
+          "Internal layout and technical suitability for the intended occupancy are unspecified.",
+          "Planning compatibility and any required authorization for the proposed occupancy need verification; no applicable regulatory entries were supplied."
+        ]
+      },
+      {
+        "id": "16425",
+        "evaluation_text": "This 277.91 sqm continuous residential property in Turin is a strong match for the stated search: its recorded area exceeds the 140 sqm target, it is an existing dwelling, and its A4 energy class is better than the preferred C threshold. Its mobility percentile of 99.54 also supports the preference for public transport access. The supplied data do not establish whether the property can accommodate 18 people, its internal layout, or planning and technical suitability for that occupancy; these require verification. No regulatory requirements or matched use cases were returned, so no regulatory compatibility conclusion can be drawn from this context.",
+        "final_ranking_score": 93,
+        "pros": [
+          "Recorded surface area of 277.91 sqm exceeds the requested 140 sqm gross-area target.",
+          "A4 energy class exceeds the preferred C-or-better standard; energy score total is 16.",
+          "Mobility percentile of 99.54 indicates very strong proximity to public transport."
+        ],
+        "cons": [
+          "Capacity for 18 people is not established by the supplied data and needs verification.",
+          "Internal layout and room distribution are unspecified, so suitability for the intended occupancy cannot be confirmed.",
+          "Regulatory context returned no requirements or matched use cases; planning and occupancy compatibility need verification."
+        ]
+      },
+      {
+        "id": "M02885",
+        "evaluation_text": "This 2019 residential property in Turin is a strong match for the stated search: its 512.84 sqm recorded area is well above the requested 140 sqm, and its A4 energy class exceeds the preferred C threshold. The mobility percentile of 95.26 also supports the preference for public transport access. The supplied data do not establish whether the dwelling can accommodate 18 people, whether the recorded area is gross floor area, or whether its layout and planning status are suitable; these points require verification.",
+        "final_ranking_score": 93,
+        "pros": [
+          "Residential property in Turin, matching the requested location and property type.",
+          "Recorded area of 512.84 sqm substantially exceeds the 140 sqm target, subject to confirming that it is gross floor area.",
+          "Energy class A4 and mobility percentile 95.26 align strongly with the energy and public transport preferences."
+        ],
+        "cons": [
+          "Capacity for 18 people is not established by the supplied information and needs verification.",
+          "The area metric is not identified as gross floor area, so its comparability with the requested threshold needs confirmation.",
+          "Layout, planning compatibility, and technical suitability for the intended occupancy are not documented and require assessment."
+        ]
+      },
+      {
+        "id": "M05127",
+        "evaluation_text": "This recent residential property in Turin is a strong match on the stated area, energy, and transport preferences. Its 757.75 sqm surface area exceeds the 140 sqm threshold, and its A4 energy class is better than the preferred C or better. Mobility scores highly at 95.26, indicating strong relative public transport access. The supplied data do not establish whether the dwelling can accommodate 18 people, its internal layout, or its authorization for the intended occupancy; these require verification. No regulatory requirements or matched use cases were supplied.",
+        "final_ranking_score": 93,
+        "pros": [
+          "757.75 sqm surface area substantially exceeds the stated 140 sqm threshold.",
+          "A4 energy class exceeds the preferred C or better standard; the property dates to 2022.",
+          "Mobility percentile of 95.26 supports the preference for strong public transport access."
+        ],
+        "cons": [
+          "Capacity for 18 people is not established by the supplied data and requires verification.",
+          "The property’s internal layout and usable residential configuration are not provided.",
+          "Planning and occupancy compatibility for the intended use are unverified; the regulatory context contains no matched requirements."
+        ]
+      },
+      {
+        "id": "16428",
+        "evaluation_text": "This 264.6 sqm residential property in Turin aligns well with the stated search: its recorded area exceeds 140 sqm, and its A4 energy class is better than the preferred C threshold. Mobility proximity is exceptionally high, supporting access by public transport. The supplied data do not establish capacity for 18 people, room layout, planning compatibility, accessibility, or technical suitability; these require verification. No regulatory requirements or matched use cases were provided.",
+        "final_ranking_score": 92,
+        "pros": [
+          "Recorded surface area of 264.6 sqm exceeds the 140 sqm gross-area target.",
+          "A4 energy class substantially exceeds the preferred C-or-better threshold; energy sub-scores also indicate strong plant and envelope performance.",
+          "Mobility percentile of 99.54 indicates exceptionally strong proximity to public transport."
+        ],
+        "cons": [
+          "Capacity for 18 people is not established by the supplied property data and needs verification.",
+          "Room layout, accessibility, and technical feasibility for the intended occupancy are unknown.",
+          "Planning compatibility and authorization for the intended use are not established; no matched regulatory entries were supplied."
+        ]
+      },
+      {
+        "id": "18978",
+        "evaluation_text": "This recently constructed residential property in Turin aligns strongly with the search: its recorded area of 295.64 sqm exceeds the 140 sqm target, its A3 energy class is better than the preferred C threshold, and its mobility percentile of 99.01 indicates very strong public transport proximity. The supplied data do not establish capacity for 18 people, room layout, planning compatibility, or technical suitability, so these require verification. No regulatory requirements or matching normative entries were supplied.",
+        "final_ranking_score": 91,
+        "pros": [
+          "295.64 sqm recorded area exceeds the 140 sqm target.",
+          "A3 energy class exceeds the preference for C or better; the property was constructed in 2019.",
+          "Mobility percentile of 99.01 indicates excellent proximity to public transport."
+        ],
+        "cons": [
+          "Capacity for 18 people is not established by the supplied data and needs verification.",
+          "Room layout and the suitability of the dwelling for the intended occupancy are unknown.",
+          "Planning compatibility and any required authorizations have not been established; no matching regulatory entries were supplied."
+        ]
+      },
+      {
+        "id": "M03593",
+        "evaluation_text": "This 2020 residential property in Turin is a strong strategic match: its A3 energy class exceeds the preferred C threshold, and mobility access is exceptionally high. The recorded gross area of 3,108.14 sqm is above the 140 sqm requirement. However, the data do not establish whether the dwelling can accommodate 18 people, how the space is laid out, or whether the intended occupancy is permitted; these points require verification. No applicable regulatory requirements were identified in the supplied context.",
+        "final_ranking_score": 91,
+        "pros": [
+          "A3 energy class is better than the preferred C or better threshold; the building dates from 2020.",
+          "Recorded gross area of 3,108.14 sqm exceeds the requested minimum of 140 sqm.",
+          "Mobility percentile of 99.01 indicates excellent proximity to public transport."
+        ],
+        "cons": [
+          "Capacity for 18 people is not established by the supplied data and requires verification.",
+          "The floor plan and usable internal configuration are not provided, so suitability for the intended occupancy cannot be confirmed.",
+          "Planning compatibility and occupancy authorization for the intended use are not established in the supplied regulatory context and need checking."
+        ]
+      },
+      {
+        "id": "16465",
+        "evaluation_text": "This 313.5 sqm residential property in central Turin is a strong match for the search: its recorded area exceeds the 140 sqm target, and its A3 energy class is better than the preferred C threshold. Mobility access is exceptionally strong, with a 99.26 percentile score. The data do not establish whether the existing layout can accommodate 18 people, whether the dwelling is authorized and suitable for that capacity, or whether any adaptation is feasible; these points require verification. No matching regulatory requirements or source entries were provided.",
+        "final_ranking_score": 91,
+        "pros": [
+          "313.5 sqm of recorded area exceeds the 140 sqm target.",
+          "A3 energy class exceeds the preferred C-or-better threshold.",
+          "Very strong public transport proximity, with a mobility score of 99.26."
+        ],
+        "cons": [
+          "Capacity for 18 people is not established by the supplied data and must be verified against the layout and applicable requirements.",
+          "The building dates to 1880, so its condition and the feasibility of any required adaptation need inspection.",
+          "Energy sub-scores for the envelope and renewables are low despite the A3 class; the underlying systems and performance details merit review."
+        ]
+      }
+    ],
+    "relaxation_applied": false,
+    "relaxation_count": 0,
+    "fallback_activated": false,
+    "agent_errors": []
+  }
+}

@@ -1,0 +1,807 @@
+{
+  "run_id": "bench_4d191b2ca4e6",
+  "condition": "one_shot",
+  "unit_id": "MS03_k2_vague",
+  "scenario_id": "MS03_k2_vague",
+  "base_case_id": "UC03_spring_missing_use",
+  "missing_count": 2,
+  "scenario_name": "2 omitted dimensions; intended use: Spring section (Sezione primavera); vague first answer on Ce",
+  "tags": [
+    "edbt",
+    "controlled_missingness_v3",
+    "missing_2",
+    "UC03_spring_missing_use",
+    "imperfect_user",
+    "vague"
+  ],
+  "model": "gpt-6-luna",
+  "repeat": 2,
+  "attempt": 1,
+  "input_sha256": "e87d6eca1980b9650128ead7030ba9390d5d4cc715c6fa65903cf2bcd254ac2f",
+  "scenario_sha256": "7a73beb9c2bc66f4d22ab76540b1b9b85808dca43d9d4904fd6085775acfdb86",
+  "initial_query": "I am looking for an existing school building. I intend to create a spring section (sezione primavera), integrated into an existing kindergarten. The location is in Turin. I need a property with at least 180 sqm of gross floor area and capacity for 14 people.",
+  "options": {
+    "dataset_key": "full",
+    "map_limit": 1000,
+    "llm_limit": 10,
+    "analysis_mode": "agent",
+    "use_relaxation": true,
+    "use_data_knowledge": true,
+    "architecture": "multiagent",
+    "disabled_agents": null
+  },
+  "started_at": "2026-11-18T21:22:09.942998+00:00",
+  "clarification_seconds": null,
+  "analysis_seconds": 129.326,
+  "submitted_query": "I am looking for an existing school building. I intend to create a spring section (sezione primavera), integrated into an existing kindergarten. The location is in Turin. I need a property with at least 180 sqm of gross floor area and capacity for 14 people.",
+  "status": "completed",
+  "results_count": 20,
+  "top_ids": [
+    "M03513",
+    "M02363",
+    "M03717",
+    "M01380",
+    "M02740",
+    "M03092",
+    "M04113",
+    "M02407",
+    "M04818",
+    "M02244"
+  ],
+  "quality": {
+    "expected_count": 0,
+    "matched_expected": null,
+    "precision_at_returned": null,
+    "recall": null
+  },
+  "final_sql": "SELECT\n  *\nFROM ESTATES\nWHERE\n  property_type IN (\n    'Schools and educational activities',\n    'Hospitals, clinics, nursing homes and similar',\n    'Gyms and similar',\n    'Exhibitions, museums, libraries, places of worship and similar',\n    'Cinemas, theaters, congress halls and similar'\n  )\n  AND surface_area >= 109.71\n  AND cadastral_units_count >= 2\n  AND HAVERSINE_KM(latitude, longitude, 45.0677551, 7.6824892) <= 8.0\nORDER BY\n  HAVERSINE_KM(latitude, longitude, 45.0677551, 7.6824892) ASC",
+  "duration_seconds": 129.344,
+  "scenario_definition": {
+    "id": "MS03_k2_vague",
+    "name": "2 omitted dimensions; intended use: Spring section (Sezione primavera); vague first answer on Ce",
+    "tags": [
+      "edbt",
+      "controlled_missingness_v3",
+      "missing_2",
+      "UC03_spring_missing_use",
+      "imperfect_user",
+      "vague"
+    ],
+    "base_case_id": "UC03_spring_missing_use",
+    "missing_count": 2,
+    "initial_query": "I am looking for an existing school building. I intend to create a spring section (sezione primavera), integrated into an existing kindergarten. The location is in Turin. I need a property with at least 180 sqm of gross floor area and capacity for 14 people.",
+    "one_shot_query": "I am looking for an existing school building. I intend to create a spring section (sezione primavera), integrated into an existing kindergarten. The location is in Turin. I need a property with at least 180 sqm of gross floor area and capacity for 14 people.",
+    "oracle_query": "Find an existing school building to create a spring section (sezione primavera) for 14 children, integrated into an existing kindergarten in Turin with at least 180 sqm of gross floor area in energy class C or better near public transport.",
+    "expected_initial_missing": [
+      "Ce",
+      "Cp"
+    ],
+    "clarifications": {
+      "I": "I am looking for an existing school building.",
+      "D": "I intend to create a spring section (sezione primavera), integrated into an existing kindergarten.",
+      "L": "The location is in Turin.",
+      "Cb": "I need a property with at least 180 sqm of gross floor area and capacity for 14 people.",
+      "Ce": [
+        "It depends; something suitable for the project, I guess.",
+        "I prefer a property in energy class C or better."
+      ],
+      "Cp": "I prefer properties near public transport."
+    },
+    "expected_mapping": {
+      "I": "SPECIFIED",
+      "D": "SPECIFIED",
+      "L": "SPECIFIED",
+      "Cb": "SPECIFIED",
+      "Ce": "SPECIFIED",
+      "Cp": "SPECIFIED"
+    },
+    "repeats": 1,
+    "imperfect_user": {
+      "profile": "vague",
+      "dimension": "Ce"
+    }
+  },
+  "artifact_file": "runs/bench_4d191b2ca4e6.json",
+  "artifact_schema_version": 4,
+  "ranking_ids": [
+    "M03513",
+    "M02363",
+    "M03717",
+    "M01380",
+    "M02740",
+    "M03092",
+    "M04113",
+    "M02407",
+    "M04818",
+    "M02244",
+    "M02152",
+    "M03026",
+    "M00374",
+    "M00960",
+    "M01312",
+    "M02886",
+    "M01530",
+    "M02766",
+    "M00002",
+    "M01369"
+  ],
+  "top": [
+    {
+      "id": "M03513",
+      "score": 91.65,
+      "distance_km": 1.01
+    },
+    {
+      "id": "M02363",
+      "score": 82.85,
+      "distance_km": 1.18
+    },
+    {
+      "id": "M03717",
+      "score": 72.0,
+      "distance_km": 1.84
+    },
+    {
+      "id": "M01380",
+      "score": 62.5,
+      "distance_km": 0.18
+    },
+    {
+      "id": "M02740",
+      "score": 62.5,
+      "distance_km": 0.18
+    },
+    {
+      "id": "M03092",
+      "score": 62.0,
+      "distance_km": 0.56
+    },
+    {
+      "id": "M04113",
+      "score": 59.45,
+      "distance_km": 1.02
+    },
+    {
+      "id": "M02407",
+      "score": 57.0,
+      "distance_km": 1.25
+    },
+    {
+      "id": "M04818",
+      "score": 54.6,
+      "distance_km": 2.62
+    },
+    {
+      "id": "M02244",
+      "score": 43.6,
+      "distance_km": 2.33
+    }
+  ],
+  "api_response": {
+    "agent_trace": [
+      {
+        "agent_name": "proximity-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "requirements": []
+        }
+      },
+      {
+        "agent_name": "energy-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "requirements": [],
+          "found": false
+        }
+      },
+      {
+        "agent_name": "location-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "places": [
+            {
+              "name": "Turin",
+              "city": "Turin",
+              "lat": 45.0677551,
+              "lon": 7.6824892,
+              "radius_km": 3.0
+            }
+          ],
+          "found": true
+        }
+      },
+      {
+        "agent_name": "regulatory-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "found": false,
+          "matched_use_cases": [
+            "Spring section (Sezione primavera)"
+          ],
+          "requirements": []
+        }
+      },
+      {
+        "agent_name": "building-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "typologies": [
+            "Schools and educational activities"
+          ],
+          "found": true,
+          "requirements": [
+            {
+              "target_column": "surface_area",
+              "operator": ">=",
+              "value": 180,
+              "description": "The request explicitly requires at least 180 sqm of gross floor area."
+            },
+            {
+              "target_column": "cadastral_units_count",
+              "operator": ">=",
+              "value": 14,
+              "description": "The request specifies capacity for 14 people; this is not a cadastral unit count, so no requirement for this column can be derived."
+            }
+          ]
+        }
+      },
+      {
+        "agent_name": "ranking-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "ranking": [
+            {
+              "agent_name": "building",
+              "rank": 1
+            },
+            {
+              "agent_name": "location",
+              "rank": 1
+            },
+            {
+              "agent_name": "regulatory",
+              "rank": 1
+            },
+            {
+              "agent_name": "proximity",
+              "rank": 2
+            },
+            {
+              "agent_name": "energy",
+              "rank": 3
+            }
+          ],
+          "weights": {
+            "location": 0.26,
+            "regulatory": 0.26,
+            "energy": 0.09,
+            "building": 0.26,
+            "proximity": 0.13
+          }
+        }
+      },
+      {
+        "agent_name": "sql-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "sql": "SELECT * FROM ESTATES WHERE property_type = 'Schools and educational activities' AND surface_area >= 180 AND cadastral_units_count >= 14 AND haversine_km(latitude, longitude, 45.0677551, 7.6824892) <= 3.0 ORDER BY haversine_km(latitude, longitude, 45.0677551, 7.6824892) ASC",
+          "explanation": "Filters to schools with at least 180 sqm and 14 cadastral units within 3 km of the supplied coordinates, ordered by distance."
+        }
+      },
+      {
+        "agent_name": "relaxation-agent",
+        "agent_mode": "extraction",
+        "output": [
+          {
+            "condizione_iniziale": "property_type = 'Schools and educational activities'",
+            "condizione_relaxed": "property_type IN ('Schools and educational activities', 'Hospitals, clinics, nursing homes and similar', 'Gyms and similar')",
+            "piani_progressivi": [
+              "Add 'Hospitals, clinics, nursing homes and similar'",
+              "Then add 'Gyms and similar'"
+            ],
+            "strategia": "Category widening",
+            "motivazione": "Adds the closest education and care facility categories while preserving the search for institutional properties.",
+            "livello_rilassamento": "low"
+          },
+          {
+            "condizione_iniziale": "property_type = 'Schools and educational activities'",
+            "condizione_relaxed": "property_type IN ('Schools and educational activities', 'Hospitals, clinics, nursing homes and similar', 'Gyms and similar', 'Exhibitions, museums, libraries, places of worship and similar', 'Cinemas, theaters, congress halls and similar')",
+            "piani_progressivi": [
+              "Add healthcare and gym categories",
+              "Then add cultural and public assembly venues"
+            ],
+            "strategia": "Category widening",
+            "motivazione": "Extends the search to other institutional or public-use properties, which may share relevant building characteristics with schools.",
+            "livello_rilassamento": "medium"
+          },
+          {
+            "condizione_iniziale": "property_type = 'Schools and educational activities'",
+            "condizione_relaxed": "property_type IN ('Schools and educational activities', 'Hospitals, clinics, nursing homes and similar', 'Gyms and similar', 'Exhibitions, museums, libraries, places of worship and similar', 'Cinemas, theaters, congress halls and similar', 'Sports support services', 'Hotels, pensions, and similar', 'Hospitals, retirement homes, prisons, barracks, convents')",
+            "piani_progressivi": [
+              "Add healthcare, gym, cultural, and assembly categories",
+              "Then add other large-use institutional and service properties"
+            ],
+            "strategia": "Category widening",
+            "motivazione": "Includes a broader set of institutional and service properties while keeping the search focused on non-residential uses.",
+            "livello_rilassamento": "high"
+          },
+          {
+            "condizione_iniziale": "surface_area >= 180",
+            "condizione_relaxed": "surface_area >= 150",
+            "piani_progressivi": [
+              "Lower the minimum area to 165"
+            ],
+            "strategia": "Threshold change",
+            "motivazione": "The 180 threshold is above the 75th percentile of 109.71; lowering it modestly can include more properties while retaining a preference for larger buildings.",
+            "livello_rilassamento": "low"
+          },
+          {
+            "condizione_iniziale": "surface_area >= 180",
+            "condizione_relaxed": "surface_area >= 109.71",
+            "piani_progressivi": [
+              "Lower the minimum area to 150",
+              "Then lower it to 125"
+            ],
+            "strategia": "Threshold change",
+            "motivazione": "Using the 75th percentile as the minimum broadens the candidate pool while still prioritizing properties larger than typical records.",
+            "livello_rilassamento": "medium"
+          },
+          {
+            "condizione_iniziale": "surface_area >= 180",
+            "condizione_relaxed": "surface_area >= 70.14",
+            "piani_progressivi": [
+              "Lower the minimum area to 109.71",
+              "Then lower it to the median of 70.14"
+            ],
+            "strategia": "Threshold change",
+            "motivazione": "The median area is substantially lower than the original threshold and is likely to admit many more records while retaining a meaningful size floor.",
+            "livello_rilassamento": "high"
+          },
+          {
+            "condizione_iniziale": "cadastral_units_count >= 14",
+            "condizione_relaxed": "cadastral_units_count >= 10",
+            "piani_progressivi": [
+              "Lower the minimum to 12"
+            ],
+            "strategia": "Threshold change",
+            "motivazione": "The original minimum is far above the median of 1; a modest reduction may capture additional multi-unit properties while preserving the intended preference.",
+            "livello_rilassamento": "low"
+          },
+          {
+            "condizione_iniziale": "cadastral_units_count >= 14",
+            "condizione_relaxed": "cadastral_units_count >= 6",
+            "piani_progressivi": [
+              "Lower the minimum to 10",
+              "Then lower it to 8"
+            ],
+            "strategia": "Threshold change",
+            "motivazione": "Reducing the threshold admits properties with fewer cadastral units, though the value remains well above the dataset median.",
+            "livello_rilassamento": "medium"
+          },
+          {
+            "condizione_iniziale": "cadastral_units_count >= 14",
+            "condizione_relaxed": "cadastral_units_count >= 2",
+            "piani_progressivi": [
+              "Lower the minimum to 6",
+              "Then lower it to 2"
+            ],
+            "strategia": "Threshold change",
+            "motivazione": "A minimum of 2 still selects multi-unit properties and should broaden results considerably given that the median is 1.",
+            "livello_rilassamento": "high"
+          },
+          {
+            "condizione_iniziale": "HAVERSINE_KM(latitude, longitude, 45.0677551, 7.6824892) <= 3.0",
+            "condizione_relaxed": "HAVERSINE_KM(latitude, longitude, 45.0677551, 7.6824892) <= 4.0",
+            "piani_progressivi": [
+              "Increase radius to 3.5 km"
+            ],
+            "strategia": "Radius expansion",
+            "motivazione": "A 1 km increase expands the nearby search area while retaining the specified location as its center.",
+            "livello_rilassamento": "low"
+          },
+          {
+            "condizione_iniziale": "HAVERSINE_KM(latitude, longitude, 45.0677551, 7.6824892) <= 3.0",
+            "condizione_relaxed": "HAVERSINE_KM(latitude, longitude, 45.0677551, 7.6824892) <= 5.0",
+            "piani_progressivi": [
+              "Increase radius to 4 km",
+              "Then to 5 km"
+            ],
+            "strategia": "Radius expansion",
+            "motivazione": "A 5 km radius includes a wider local area while keeping the search centered on the requested coordinates.",
+            "livello_rilassamento": "medium"
+          },
+          {
+            "condizione_iniziale": "HAVERSINE_KM(latitude, longitude, 45.0677551, 7.6824892) <= 3.0",
+            "condizione_relaxed": "HAVERSINE_KM(latitude, longitude, 45.0677551, 7.6824892) <= 8.0",
+            "piani_progressivi": [
+              "Increase radius to 5 km",
+              "Then to 8 km"
+            ],
+            "strategia": "Radius expansion",
+            "motivazione": "An 8 km radius substantially enlarges geographic coverage but still constrains results to the surrounding region.",
+            "livello_rilassamento": "high"
+          }
+        ],
+        "batch_id": null,
+        "timestamp": "2026-11-18T22:23:16.046755",
+        "execution_time_ms": 39821.97332382202
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "M03717",
+          "evaluation_text": "This substantial existing educational property in Turin is strategically relevant for integrating a spring section into a kindergarten. Its reported gross area of 16,956.73 sqm exceeds the requested 180 sqm, and the stated capacity of 14 children falls within the verified regional range of 6–20 children. However, the 6 sqm per child standard applies to the combined net useful areas for specified functions, not to the property’s gross area; those rooms and areas are not documented here. Suitability remains conditional on confirming the host kindergarten’s requirements, applicable rules at the application date, and the listed planning, building, health, accessibility, fire safety, structural and authorization checks.",
+          "final_ranking_score": 72,
+          "pros": [
+            "Existing school and educational use aligns with the intended integration into a kindergarten.",
+            "Reported gross area of 16,956.73 sqm is above the requested 180 sqm, although this does not establish required net functional areas.",
+            "Requested capacity of 14 children is within the verified regional range of 6–20 children."
+          ],
+          "cons": [
+            "The data do not establish the net useful areas or room layout needed for the spring section’s specified functions.",
+            "Compatibility with Turin planning rules, building title or use change, hygiene, accessibility, safety and sector authorization requires verification.",
+            "The regional source notes a regulatory transition; the applicable requirements at the time of application need confirmation, as do the host kindergarten’s requirements."
+          ]
+        },
+        "batch_id": 1,
+        "timestamp": "2026-11-18T22:23:31.897258",
+        "execution_time_ms": 15741.875171661377
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "M03513",
+          "evaluation_text": "This 2020 educational property in Turin is a strong strategic candidate: its listed use as a school aligns with the objective of integrating a spring section into a kindergarten, and its 13,253.31 sqm recorded surface is well above the requested 180 sqm threshold. The verified regional standard specifies 6 sqm of net useful area per child across designated functions, with capacity between 6 and 20 children; it does not establish a minimum gross property area. The requested capacity of 14 falls within that range, but the data do not confirm that the required dedicated rooms or net areas are available. Confirm the host kindergarten arrangement and applicable authorization rules, including the regulatory transition, as well as planning, change-of-use, hygiene, accessibility, fire-safety where required, and structural requirements.",
+          "final_ranking_score": 92,
+          "pros": [
+            "Existing school and educational use is closely aligned with the proposed spring section integrated into a kindergarten.",
+            "The recorded 13,253.31 sqm surface exceeds the requested 180 sqm gross floor area, although the available data do not clarify the measurement basis or usable layout.",
+            "The 2020 construction date and A1 energy class indicate a relatively recent building with a strong energy rating."
+          ],
+          "cons": [
+            "Property data do not confirm the net useful area, room layout, or dedicated facilities needed to meet the regional 6 sqm-per-child standard.",
+            "Capacity for 14 children is within the stated regional range, but actual capacity and integration with a qualifying host kindergarten require verification.",
+            "Turin planning compatibility, authorization, hygiene, accessibility, fire-safety where required, and structural compliance are not established by the supplied data."
+          ]
+        },
+        "batch_id": 2,
+        "timestamp": "2026-11-18T22:23:32.763659",
+        "execution_time_ms": 16602.439641952515
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "M02363",
+          "evaluation_text": "This 1,072.33 sqm property is classified for schools and educational activities, making it a strong candidate for investigating a spring section integrated with an existing kindergarten. Its stated area exceeds the requested 180 sqm, and the verified regional capacity range of 6–20 children includes the target of 14. However, the area figure alone does not establish that the property has the required usable rooms, layout, or authorization. The applicable source specifies 6 sqm per child across designated net-use areas, not as a minimum gross area for the whole property. Confirm the host kindergarten’s requirements, Turin planning compatibility, building and health standards, accessibility, fire and structural safety where applicable, and the sector authorization process. Check which regulatory provisions apply on the application date, given the stated transition to D.G.R. 3-1937/2025. The central location has strong proximity indicators, while the building’s age and weak envelope and renewables scores warrant technical review.",
+          "final_ranking_score": 83,
+          "pros": [
+            "Existing educational use aligns with the objective of integrating a spring section into a kindergarten.",
+            "The 1,072.33 sqm stated area exceeds the requested 180 sqm, although suitability of the usable areas and layout remains to be verified.",
+            "Verified regional capacity range of 6–20 children includes the target of 14; mobility (99.7) and healthcare (89.45) proximity indicators are high."
+          ],
+          "cons": [
+            "The 1860 construction period and envelope score of 1 indicate potential renovation needs; the supplied data do not establish the building’s current condition.",
+            "Energy class E, energy score total 10, and renewables score 1 suggest energy-performance and modernization considerations.",
+            "Planning compatibility, host-school requirements, room layout, accessibility, health and safety compliance, and sector authorization remain to be checked; gross floor area alone cannot confirm suitability."
+          ]
+        },
+        "batch_id": 3,
+        "timestamp": "2026-11-18T22:23:33.676414",
+        "execution_time_ms": 17519.208669662476
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "M01380",
+          "evaluation_text": "The property has substantial gross area at 1,042 sqm and is located in Turin, with strong proximity indicators for healthcare, public transport, commerce, and education. Its current classification as a gym means its suitability as a school building is not established; planning compatibility, change of use, layout, accessibility, health and safety requirements, and sector authorization all require verification. The regional standard specifies 6 sqm of net useful area per child across designated functions, not a minimum gross property area. The listed capacity range is 6–20 children, so the target of 14 is within that range, subject to confirmation that the applicable requirements are met. The property is aggregated with an existing kindergarten as required. The energy class is E and the total energy score is 6, indicating weak plant, envelope, and renewable-energy scores. Overall, the area and urban location warrant further assessment, while conversion and compliance uncertainties temper its potential.",
+          "final_ranking_score": 62,
+          "pros": [
+            "The 1,042 sqm gross area is well above the requested 180 sqm, although it does not establish compliance with the 6 sqm per child net-area standard or prove that the required room layout is feasible.",
+            "The target capacity of 14 falls within the stated regional range of 6–20 children, and the use is intended to be aggregated with an existing kindergarten.",
+            "Proximity percentiles are high for healthcare (96.03), public transport (95.26), commerce (96.35), and education (96.15)."
+          ],
+          "cons": [
+            "The property is classified as a gym, so its suitability as a school building, urban-planning compatibility, and any change-of-use requirements need verification.",
+            "The supplied data do not establish the necessary net usable area, internal layout, accessibility, hygiene, fire safety where applicable, structural safety, or sector authorization.",
+            "Energy performance is a weakness: class E, energy total 6, with low plant, envelope, and renewable-energy scores."
+          ]
+        },
+        "batch_id": 4,
+        "timestamp": "2026-11-18T22:23:33.836457",
+        "execution_time_ms": 17679.218769073486
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "M02740",
+          "evaluation_text": "This 490.77 sqm property in Turin is substantially larger than the stated 180 sqm target, and its existing gym use may offer a sizeable space to investigate for conversion to a spring section integrated with a kindergarten. The provided regulatory context sets a verified capacity range of 6–20 children, so the intended capacity of 14 is within that range. However, it does not verify a minimum gross property area: the 6 sqm/child standard applies to the combined net useful area for specified functions, not the whole property. The data do not establish the required room layout, planning compatibility, accessibility, authorization, or technical feasibility, all of which need checking. Its central location and strong proximity indicators support accessibility, while the 1964 construction date and weak envelope and renewables scores signal possible upgrade needs. Verify which regulatory framework applies at the application date, including the stated transition to D.G.R. 3-1937/2025.",
+          "final_ranking_score": 62,
+          "pros": [
+            "At 490.77 sqm, the property exceeds the requested 180 sqm gross floor area, leaving area to investigate for the required functions and circulation.",
+            "The intended capacity of 14 falls within the verified regional range of 6–20 children for a spring section.",
+            "Turin location with high reported proximity percentiles for healthcare (96.03), mobility (95.26), education (96.15), and commercial services (96.35)."
+          ],
+          "cons": [
+            "Listed as “Gyms and similar,” not as a school; planning compatibility, change of use, and sector authorization require verification.",
+            "The data do not establish whether the specified net useful areas, room layout, hygiene, accessibility, fire safety, or structural requirements can be met.",
+            "Built in 1964 with a low envelope score (1) and no reported renewables; upgrades may be needed despite energy class D and a plant score of 5."
+          ]
+        },
+        "batch_id": 5,
+        "timestamp": "2026-11-18T22:23:42.165216",
+        "execution_time_ms": 10267.669439315796
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "M03092",
+          "evaluation_text": "M03092 offers substantial reported gross area (1,624.99 sqm) and is in central Turin, with strong proximity indicators for education (91.63), public transport (95.26), healthcare (91.58), and commercial services (91.87). Its recorded use as an exhibition, museum, library, or similar property does not establish that it is an existing school or that conversion to a spring section is permitted. The applicable regional entry sets capacity at 6–20 children, so a 14-person target is within that range if it refers to children; it specifies 6 sqm per child of net area for defined functions, not a minimum gross area for the whole property. The entry also requires the spring section to be integrated with a qualifying host facility. Verify the intended kindergarten integration, room layout and net areas, planning compatibility, change-of-use and building approvals, health requirements, accessibility, fire safety where required, structural safety, and applicable authorization rules. The 1750 construction period and energy class F also indicate likely adaptation and energy-upgrade considerations; the supplied data do not establish technical feasibility.",
+          "final_ranking_score": 62,
+          "pros": [
+            "Large reported surface area of 1,624.99 sqm, offering room for adaptation subject to survey, layout, and net-area verification.",
+            "Central Turin location with high education, mobility, healthcare, and commercial proximity indicators.",
+            "The stated target of 14 children falls within the regional entry’s verified capacity range of 6–20 children, subject to applicable authorization and host-facility requirements."
+          ],
+          "cons": [
+            "Recorded property type is not a school; existing school status, planning compatibility, and permission for the proposed use are unverified.",
+            "The property must be integrated with a qualifying kindergarten or other eligible host, and the dataset does not confirm that such a facility is present.",
+            "Construction period 1750 and energy class F make building condition, accessibility, safety, and energy performance key checks; feasibility is not established by the supplied data."
+          ]
+        },
+        "batch_id": 6,
+        "timestamp": "2026-11-18T22:23:43.993707",
+        "execution_time_ms": 11240.564823150635
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "M02407",
+          "evaluation_text": "M02407 has notable conversion potential for the proposed spring section: its reported gross area of 1,462.16 sqm is well above the requested 180 sqm, and the verified regional capacity range of 6–20 children includes the intended group size of 14. Its central Turin location is supported by strong proximity indicators, particularly for healthcare, public transport, commercial services, and education. However, the dataset identifies it as a gym rather than a school, so it does not establish that it is an existing school or that it can be integrated with a kindergarten. The regional standard of 6 sqm per child applies to the combined net useful areas for specified functions, not to the property’s gross area; room layout and compliance therefore need verification. Planning compatibility, change of use, hygiene, accessibility, safety, and the applicable authorization process also require checks. Confirm which regulatory regime applies at the application date, given the stated transition to D.G.R. 3-1937/2025.",
+          "final_ranking_score": 57,
+          "pros": [
+            "Reported gross area of 1,462.16 sqm exceeds the requested 180 sqm threshold, although this alone does not establish that the required net functional areas are available.",
+            "A capacity of 14 children falls within the supplied verified regional range of 6–20 children for a spring section.",
+            "Strong proximity indicators in Turin, including mobility (87.77), education (87.06), commercial services (87.23), and healthcare (86.57)."
+          ],
+          "cons": [
+            "The recorded property type is “Gyms and similar,” so the data do not confirm the requested existing-school setting or integration with a kindergarten.",
+            "The reported gross area does not establish the net useful area, room arrangement, or suitability for the required activities, rest, and sanitary functions.",
+            "Planning compatibility, change of use, hygiene, accessibility, fire and structural safety where applicable, sector authorization, and the regulation in force at application time remain to be checked."
+          ]
+        },
+        "batch_id": 7,
+        "timestamp": "2026-11-18T22:23:44.070225",
+        "execution_time_ms": 10234.232425689697
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "M04113",
+          "evaluation_text": "This 659.51 sqm property in Turin offers substantial gross area relative to the stated 180 sqm target, and its former healthcare-related use may make it a candidate for adaptation. However, the supplied data do not establish that it is an existing school building, that it can accommodate 14 people in a suitable layout, or that it can be integrated with an existing kindergarten. The regional standard specifies 6 sqm of net usable area per child across designated activity, rest, and toilet spaces; this is not a minimum gross property area and cannot be assessed from the gross area alone. The stated capacity range of 6–20 children includes the intended group size, subject to the host facility meeting requirements. Planning compatibility, change of use, hygiene, accessibility, fire and structural safety, and sector authorization require verification. Check which regulatory framework applies at the application date, given the stated transition to D.G.R. 3-1937/2025. The location and service-access scores are strong, while the older construction date and low envelope and renewables scores point to potential energy improvement needs.",
+          "final_ranking_score": 59,
+          "pros": [
+            "The 659.51 sqm gross area exceeds the stated 180 sqm target, although it does not establish compliance with net-area standards or suitability of the internal layout.",
+            "The verified regional capacity range of 6–20 children encompasses the intended capacity of 14, subject to requirements for the host facility.",
+            "Strong reported proximity indicators for healthcare (91.86), mobility (90.35), education (91.11), and commercial services (91.26)."
+          ],
+          "cons": [
+            "The recorded property type is hospitals, clinics, nursing homes and similar; the data do not confirm that it is an existing school or that it can be integrated with a kindergarten.",
+            "The 6 sqm-per-child standard applies to specified net usable spaces; room layout and usable areas are not provided and need assessment.",
+            "Planning and change-of-use compatibility, hygiene, accessibility, fire and structural safety, and sector authorization remain to be verified; energy envelope and renewables scores are also low."
+          ]
+        },
+        "batch_id": 8,
+        "timestamp": "2026-11-18T22:23:44.164324",
+        "execution_time_ms": 10492.873430252075
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "M04818",
+          "evaluation_text": "This existing educational property is a strong strategic candidate for a spring section integrated with a kindergarten: its listed gross area of 10,165.23 sqm is well above the requested 180 sqm, and the verified regional capacity range of 6–20 children includes the target of 14. The regional 6 sqm/child standard applies to the combined net useful areas for specified functions, not to the property’s gross area; room layout and compliance with that standard therefore require verification. Suitability also depends on confirming that the host school meets the applicable requirements and completing the relevant planning, building, health, accessibility, safety, and authorization checks. Confirm which regulatory requirements apply at the application date, given the stated transition to D.G.R. 3-1937/2025.",
+          "final_ranking_score": 55,
+          "pros": [
+            "Existing use as a school and educational facility aligns directly with the intended integration into a kindergarten.",
+            "Listed gross area of 10,165.23 sqm exceeds the requested 180 sqm threshold by a wide margin.",
+            "The verified capacity range of 6–20 children includes the intended capacity of 14; proximity percentiles are also strong for green areas (96.12), sport (99), healthcare (83.24), and education (82.93)."
+          ],
+          "cons": [
+            "The supplied data do not establish whether the host kindergarten meets the required conditions or whether suitable room layouts can provide the specified net areas.",
+            "Urban-planning compatibility, building-use authorization, health and accessibility compliance, applicable fire and structural safety requirements, and sector authorization remain to be checked.",
+            "The 1965 construction date and energy total of 10/20 indicate that building condition and energy performance merit review; renewables are not reported as present."
+          ]
+        },
+        "batch_id": 9,
+        "timestamp": "2026-11-18T22:23:59.266093",
+        "execution_time_ms": 17101.56798362732
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "M02244",
+          "evaluation_text": "This 1,965.76 sqm property in Turin is substantially larger than the requested 180 sqm and its former healthcare use may offer adaptable space for an education function. Its score of 44 reflects relevant size and strong local access, tempered by the mismatch between its recorded property type and the requested existing school, as well as weak energy performance. The supplied data do not confirm that it is an existing kindergarten or school, that a 14-child section can be accommodated in compliant rooms, or that planning and authorization requirements can be met. Regional rules specify 6 sqm per child of net useful area across designated functions, not a gross-area threshold; a section is to be integrated with a kindergarten, nursery, or micronursery meeting host-facility requirements. Confirm the applicable rules and all required planning, building, health, accessibility, fire-safety where applicable, structural, and sector authorization checks before considering conversion.",
+          "final_ranking_score": 44,
+          "pros": [
+            "Recorded gross area of 1,965.76 sqm is well above the requested 180 sqm, although it does not establish suitable net functional areas or room layout.",
+            "Good proximity percentiles for green areas (86.47), education (81.97), and sports facilities (77).",
+            "Energy class D and a plant score of 3 provide a more favorable starting point than the very weak envelope and renewables indicators."
+          ],
+          "cons": [
+            "The recorded use is hospitals, clinics, nursing homes and similar, so the data do not establish that this is an existing school or kindergarten suitable as the host facility.",
+            "The 1953 construction date and envelope score of 1 indicate potential retrofit needs; renewables are not reported as present.",
+            "Planning compatibility, authorized use, accessibility, compliant room areas and layout, capacity, and required sector approvals are not established by the supplied data."
+          ]
+        },
+        "batch_id": 10,
+        "timestamp": "2026-11-18T22:24:02.304392",
+        "execution_time_ms": 18310.831308364868
+      }
+    ],
+    "evaluation_results": [
+      {
+        "id": "M03513",
+        "evaluation_text": "This 2020 educational property in Turin is a strong strategic candidate: its listed use as a school aligns with the objective of integrating a spring section into a kindergarten, and its 13,253.31 sqm recorded surface is well above the requested 180 sqm threshold. The verified regional standard specifies 6 sqm of net useful area per child across designated functions, with capacity between 6 and 20 children; it does not establish a minimum gross property area. The requested capacity of 14 falls within that range, but the data do not confirm that the required dedicated rooms or net areas are available. Confirm the host kindergarten arrangement and applicable authorization rules, including the regulatory transition, as well as planning, change-of-use, hygiene, accessibility, fire-safety where required, and structural requirements.",
+        "final_ranking_score": 92,
+        "pros": [
+          "Existing school and educational use is closely aligned with the proposed spring section integrated into a kindergarten.",
+          "The recorded 13,253.31 sqm surface exceeds the requested 180 sqm gross floor area, although the available data do not clarify the measurement basis or usable layout.",
+          "The 2020 construction date and A1 energy class indicate a relatively recent building with a strong energy rating."
+        ],
+        "cons": [
+          "Property data do not confirm the net useful area, room layout, or dedicated facilities needed to meet the regional 6 sqm-per-child standard.",
+          "Capacity for 14 children is within the stated regional range, but actual capacity and integration with a qualifying host kindergarten require verification.",
+          "Turin planning compatibility, authorization, hygiene, accessibility, fire-safety where required, and structural compliance are not established by the supplied data."
+        ]
+      },
+      {
+        "id": "M02363",
+        "evaluation_text": "This 1,072.33 sqm property is classified for schools and educational activities, making it a strong candidate for investigating a spring section integrated with an existing kindergarten. Its stated area exceeds the requested 180 sqm, and the verified regional capacity range of 6–20 children includes the target of 14. However, the area figure alone does not establish that the property has the required usable rooms, layout, or authorization. The applicable source specifies 6 sqm per child across designated net-use areas, not as a minimum gross area for the whole property. Confirm the host kindergarten’s requirements, Turin planning compatibility, building and health standards, accessibility, fire and structural safety where applicable, and the sector authorization process. Check which regulatory provisions apply on the application date, given the stated transition to D.G.R. 3-1937/2025. The central location has strong proximity indicators, while the building’s age and weak envelope and renewables scores warrant technical review.",
+        "final_ranking_score": 83,
+        "pros": [
+          "Existing educational use aligns with the objective of integrating a spring section into a kindergarten.",
+          "The 1,072.33 sqm stated area exceeds the requested 180 sqm, although suitability of the usable areas and layout remains to be verified.",
+          "Verified regional capacity range of 6–20 children includes the target of 14; mobility (99.7) and healthcare (89.45) proximity indicators are high."
+        ],
+        "cons": [
+          "The 1860 construction period and envelope score of 1 indicate potential renovation needs; the supplied data do not establish the building’s current condition.",
+          "Energy class E, energy score total 10, and renewables score 1 suggest energy-performance and modernization considerations.",
+          "Planning compatibility, host-school requirements, room layout, accessibility, health and safety compliance, and sector authorization remain to be checked; gross floor area alone cannot confirm suitability."
+        ]
+      },
+      {
+        "id": "M03717",
+        "evaluation_text": "This substantial existing educational property in Turin is strategically relevant for integrating a spring section into a kindergarten. Its reported gross area of 16,956.73 sqm exceeds the requested 180 sqm, and the stated capacity of 14 children falls within the verified regional range of 6–20 children. However, the 6 sqm per child standard applies to the combined net useful areas for specified functions, not to the property’s gross area; those rooms and areas are not documented here. Suitability remains conditional on confirming the host kindergarten’s requirements, applicable rules at the application date, and the listed planning, building, health, accessibility, fire safety, structural and authorization checks.",
+        "final_ranking_score": 72,
+        "pros": [
+          "Existing school and educational use aligns with the intended integration into a kindergarten.",
+          "Reported gross area of 16,956.73 sqm is above the requested 180 sqm, although this does not establish required net functional areas.",
+          "Requested capacity of 14 children is within the verified regional range of 6–20 children."
+        ],
+        "cons": [
+          "The data do not establish the net useful areas or room layout needed for the spring section’s specified functions.",
+          "Compatibility with Turin planning rules, building title or use change, hygiene, accessibility, safety and sector authorization requires verification.",
+          "The regional source notes a regulatory transition; the applicable requirements at the time of application need confirmation, as do the host kindergarten’s requirements."
+        ]
+      },
+      {
+        "id": "M01380",
+        "evaluation_text": "The property has substantial gross area at 1,042 sqm and is located in Turin, with strong proximity indicators for healthcare, public transport, commerce, and education. Its current classification as a gym means its suitability as a school building is not established; planning compatibility, change of use, layout, accessibility, health and safety requirements, and sector authorization all require verification. The regional standard specifies 6 sqm of net useful area per child across designated functions, not a minimum gross property area. The listed capacity range is 6–20 children, so the target of 14 is within that range, subject to confirmation that the applicable requirements are met. The property is aggregated with an existing kindergarten as required. The energy class is E and the total energy score is 6, indicating weak plant, envelope, and renewable-energy scores. Overall, the area and urban location warrant further assessment, while conversion and compliance uncertainties temper its potential.",
+        "final_ranking_score": 62,
+        "pros": [
+          "The 1,042 sqm gross area is well above the requested 180 sqm, although it does not establish compliance with the 6 sqm per child net-area standard or prove that the required room layout is feasible.",
+          "The target capacity of 14 falls within the stated regional range of 6–20 children, and the use is intended to be aggregated with an existing kindergarten.",
+          "Proximity percentiles are high for healthcare (96.03), public transport (95.26), commerce (96.35), and education (96.15)."
+        ],
+        "cons": [
+          "The property is classified as a gym, so its suitability as a school building, urban-planning compatibility, and any change-of-use requirements need verification.",
+          "The supplied data do not establish the necessary net usable area, internal layout, accessibility, hygiene, fire safety where applicable, structural safety, or sector authorization.",
+          "Energy performance is a weakness: class E, energy total 6, with low plant, envelope, and renewable-energy scores."
+        ]
+      },
+      {
+        "id": "M02740",
+        "evaluation_text": "This 490.77 sqm property in Turin is substantially larger than the stated 180 sqm target, and its existing gym use may offer a sizeable space to investigate for conversion to a spring section integrated with a kindergarten. The provided regulatory context sets a verified capacity range of 6–20 children, so the intended capacity of 14 is within that range. However, it does not verify a minimum gross property area: the 6 sqm/child standard applies to the combined net useful area for specified functions, not the whole property. The data do not establish the required room layout, planning compatibility, accessibility, authorization, or technical feasibility, all of which need checking. Its central location and strong proximity indicators support accessibility, while the 1964 construction date and weak envelope and renewables scores signal possible upgrade needs. Verify which regulatory framework applies at the application date, including the stated transition to D.G.R. 3-1937/2025.",
+        "final_ranking_score": 62,
+        "pros": [
+          "At 490.77 sqm, the property exceeds the requested 180 sqm gross floor area, leaving area to investigate for the required functions and circulation.",
+          "The intended capacity of 14 falls within the verified regional range of 6–20 children for a spring section.",
+          "Turin location with high reported proximity percentiles for healthcare (96.03), mobility (95.26), education (96.15), and commercial services (96.35)."
+        ],
+        "cons": [
+          "Listed as “Gyms and similar,” not as a school; planning compatibility, change of use, and sector authorization require verification.",
+          "The data do not establish whether the specified net useful areas, room layout, hygiene, accessibility, fire safety, or structural requirements can be met.",
+          "Built in 1964 with a low envelope score (1) and no reported renewables; upgrades may be needed despite energy class D and a plant score of 5."
+        ]
+      },
+      {
+        "id": "M03092",
+        "evaluation_text": "M03092 offers substantial reported gross area (1,624.99 sqm) and is in central Turin, with strong proximity indicators for education (91.63), public transport (95.26), healthcare (91.58), and commercial services (91.87). Its recorded use as an exhibition, museum, library, or similar property does not establish that it is an existing school or that conversion to a spring section is permitted. The applicable regional entry sets capacity at 6–20 children, so a 14-person target is within that range if it refers to children; it specifies 6 sqm per child of net area for defined functions, not a minimum gross area for the whole property. The entry also requires the spring section to be integrated with a qualifying host facility. Verify the intended kindergarten integration, room layout and net areas, planning compatibility, change-of-use and building approvals, health requirements, accessibility, fire safety where required, structural safety, and applicable authorization rules. The 1750 construction period and energy class F also indicate likely adaptation and energy-upgrade considerations; the supplied data do not establish technical feasibility.",
+        "final_ranking_score": 62,
+        "pros": [
+          "Large reported surface area of 1,624.99 sqm, offering room for adaptation subject to survey, layout, and net-area verification.",
+          "Central Turin location with high education, mobility, healthcare, and commercial proximity indicators.",
+          "The stated target of 14 children falls within the regional entry’s verified capacity range of 6–20 children, subject to applicable authorization and host-facility requirements."
+        ],
+        "cons": [
+          "Recorded property type is not a school; existing school status, planning compatibility, and permission for the proposed use are unverified.",
+          "The property must be integrated with a qualifying kindergarten or other eligible host, and the dataset does not confirm that such a facility is present.",
+          "Construction period 1750 and energy class F make building condition, accessibility, safety, and energy performance key checks; feasibility is not established by the supplied data."
+        ]
+      },
+      {
+        "id": "M04113",
+        "evaluation_text": "This 659.51 sqm property in Turin offers substantial gross area relative to the stated 180 sqm target, and its former healthcare-related use may make it a candidate for adaptation. However, the supplied data do not establish that it is an existing school building, that it can accommodate 14 people in a suitable layout, or that it can be integrated with an existing kindergarten. The regional standard specifies 6 sqm of net usable area per child across designated activity, rest, and toilet spaces; this is not a minimum gross property area and cannot be assessed from the gross area alone. The stated capacity range of 6–20 children includes the intended group size, subject to the host facility meeting requirements. Planning compatibility, change of use, hygiene, accessibility, fire and structural safety, and sector authorization require verification. Check which regulatory framework applies at the application date, given the stated transition to D.G.R. 3-1937/2025. The location and service-access scores are strong, while the older construction date and low envelope and renewables scores point to potential energy improvement needs.",
+        "final_ranking_score": 59,
+        "pros": [
+          "The 659.51 sqm gross area exceeds the stated 180 sqm target, although it does not establish compliance with net-area standards or suitability of the internal layout.",
+          "The verified regional capacity range of 6–20 children encompasses the intended capacity of 14, subject to requirements for the host facility.",
+          "Strong reported proximity indicators for healthcare (91.86), mobility (90.35), education (91.11), and commercial services (91.26)."
+        ],
+        "cons": [
+          "The recorded property type is hospitals, clinics, nursing homes and similar; the data do not confirm that it is an existing school or that it can be integrated with a kindergarten.",
+          "The 6 sqm-per-child standard applies to specified net usable spaces; room layout and usable areas are not provided and need assessment.",
+          "Planning and change-of-use compatibility, hygiene, accessibility, fire and structural safety, and sector authorization remain to be verified; energy envelope and renewables scores are also low."
+        ]
+      },
+      {
+        "id": "M02407",
+        "evaluation_text": "M02407 has notable conversion potential for the proposed spring section: its reported gross area of 1,462.16 sqm is well above the requested 180 sqm, and the verified regional capacity range of 6–20 children includes the intended group size of 14. Its central Turin location is supported by strong proximity indicators, particularly for healthcare, public transport, commercial services, and education. However, the dataset identifies it as a gym rather than a school, so it does not establish that it is an existing school or that it can be integrated with a kindergarten. The regional standard of 6 sqm per child applies to the combined net useful areas for specified functions, not to the property’s gross area; room layout and compliance therefore need verification. Planning compatibility, change of use, hygiene, accessibility, safety, and the applicable authorization process also require checks. Confirm which regulatory regime applies at the application date, given the stated transition to D.G.R. 3-1937/2025.",
+        "final_ranking_score": 57,
+        "pros": [
+          "Reported gross area of 1,462.16 sqm exceeds the requested 180 sqm threshold, although this alone does not establish that the required net functional areas are available.",
+          "A capacity of 14 children falls within the supplied verified regional range of 6–20 children for a spring section.",
+          "Strong proximity indicators in Turin, including mobility (87.77), education (87.06), commercial services (87.23), and healthcare (86.57)."
+        ],
+        "cons": [
+          "The recorded property type is “Gyms and similar,” so the data do not confirm the requested existing-school setting or integration with a kindergarten.",
+          "The reported gross area does not establish the net useful area, room arrangement, or suitability for the required activities, rest, and sanitary functions.",
+          "Planning compatibility, change of use, hygiene, accessibility, fire and structural safety where applicable, sector authorization, and the regulation in force at application time remain to be checked."
+        ]
+      },
+      {
+        "id": "M04818",
+        "evaluation_text": "This existing educational property is a strong strategic candidate for a spring section integrated with a kindergarten: its listed gross area of 10,165.23 sqm is well above the requested 180 sqm, and the verified regional capacity range of 6–20 children includes the target of 14. The regional 6 sqm/child standard applies to the combined net useful areas for specified functions, not to the property’s gross area; room layout and compliance with that standard therefore require verification. Suitability also depends on confirming that the host school meets the applicable requirements and completing the relevant planning, building, health, accessibility, safety, and authorization checks. Confirm which regulatory requirements apply at the application date, given the stated transition to D.G.R. 3-1937/2025.",
+        "final_ranking_score": 55,
+        "pros": [
+          "Existing use as a school and educational facility aligns directly with the intended integration into a kindergarten.",
+          "Listed gross area of 10,165.23 sqm exceeds the requested 180 sqm threshold by a wide margin.",
+          "The verified capacity range of 6–20 children includes the intended capacity of 14; proximity percentiles are also strong for green areas (96.12), sport (99), healthcare (83.24), and education (82.93)."
+        ],
+        "cons": [
+          "The supplied data do not establish whether the host kindergarten meets the required conditions or whether suitable room layouts can provide the specified net areas.",
+          "Urban-planning compatibility, building-use authorization, health and accessibility compliance, applicable fire and structural safety requirements, and sector authorization remain to be checked.",
+          "The 1965 construction date and energy total of 10/20 indicate that building condition and energy performance merit review; renewables are not reported as present."
+        ]
+      },
+      {
+        "id": "M02244",
+        "evaluation_text": "This 1,965.76 sqm property in Turin is substantially larger than the requested 180 sqm and its former healthcare use may offer adaptable space for an education function. Its score of 44 reflects relevant size and strong local access, tempered by the mismatch between its recorded property type and the requested existing school, as well as weak energy performance. The supplied data do not confirm that it is an existing kindergarten or school, that a 14-child section can be accommodated in compliant rooms, or that planning and authorization requirements can be met. Regional rules specify 6 sqm per child of net useful area across designated functions, not a gross-area threshold; a section is to be integrated with a kindergarten, nursery, or micronursery meeting host-facility requirements. Confirm the applicable rules and all required planning, building, health, accessibility, fire-safety where applicable, structural, and sector authorization checks before considering conversion.",
+        "final_ranking_score": 44,
+        "pros": [
+          "Recorded gross area of 1,965.76 sqm is well above the requested 180 sqm, although it does not establish suitable net functional areas or room layout.",
+          "Good proximity percentiles for green areas (86.47), education (81.97), and sports facilities (77).",
+          "Energy class D and a plant score of 3 provide a more favorable starting point than the very weak envelope and renewables indicators."
+        ],
+        "cons": [
+          "The recorded use is hospitals, clinics, nursing homes and similar, so the data do not establish that this is an existing school or kindergarten suitable as the host facility.",
+          "The 1953 construction date and envelope score of 1 indicate potential retrofit needs; renewables are not reported as present.",
+          "Planning compatibility, authorized use, accessibility, compliant room areas and layout, capacity, and required sector approvals are not established by the supplied data."
+        ]
+      }
+    ],
+    "relaxation_applied": true,
+    "relaxation_count": 1,
+    "fallback_activated": false,
+    "agent_errors": []
+  }
+}
