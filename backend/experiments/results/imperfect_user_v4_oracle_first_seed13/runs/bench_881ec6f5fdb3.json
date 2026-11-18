@@ -1,0 +1,839 @@
+{
+  "run_id": "bench_881ec6f5fdb3",
+  "condition": "oracle",
+  "unit_id": "S03",
+  "scenario_id": null,
+  "base_case_id": "S03",
+  "missing_count": null,
+  "scenario_name": null,
+  "tags": [],
+  "model": "gpt-6-luna",
+  "repeat": 1,
+  "attempt": 1,
+  "input_sha256": "e383a2bf103ef41d1527094230325bb749445b610bd5d4052437db07349918c8",
+  "scenario_sha256": null,
+  "initial_query": "Find an existing school building to create a spring section (sezione primavera) for 14 children, integrated into an existing kindergarten in Turin with at least 180 sqm of gross floor area in energy class C or better near public transport.",
+  "options": {
+    "dataset_key": "full",
+    "map_limit": 1000,
+    "llm_limit": 10,
+    "analysis_mode": "agent",
+    "use_relaxation": true,
+    "use_data_knowledge": true,
+    "architecture": "multiagent",
+    "disabled_agents": null
+  },
+  "started_at": "2026-11-18T13:31:10.400011+00:00",
+  "clarification_seconds": null,
+  "analysis_seconds": 138.676,
+  "submitted_query": "Find an existing school building to create a spring section (sezione primavera) for 14 children, integrated into an existing kindergarten in Turin with at least 180 sqm of gross floor area in energy class C or better near public transport.",
+  "status": "completed",
+  "results_count": 10,
+  "top_ids": [
+    "DEMO-01337",
+    "DEMO-00901",
+    "DEMO-00651",
+    "DEMO-01136",
+    "DEMO-01296",
+    "DEMO-00961",
+    "DEMO-01494",
+    "DEMO-00180",
+    "DEMO-01110",
+    "DEMO-01004"
+  ],
+  "quality": {
+    "expected_count": 0,
+    "matched_expected": null,
+    "precision_at_returned": null,
+    "recall": null
+  },
+  "final_sql": "SELECT\n  *\nFROM ESTATES\nWHERE\n  property_type IN ('School building', 'Office building')\n  AND surface_area >= 180\n  AND HAVERSINE_KM(latitude, longitude, 45.0677551, 7.6824892) <= 5.0\n  AND energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C', 'D', 'E')\n  AND mobility >= 47.1\nORDER BY\n  HAVERSINE_KM(latitude, longitude, 45.0677551, 7.6824892) ASC",
+  "duration_seconds": 138.69,
+  "scenario_definition": {
+    "id": "S03_k2_D_L_vague_D_optout_L",
+    "name": "2 omitted dimensions; intended use: Spring section (Sezione primavera); balance: 0 specified, 1 vague, 1 opt-out",
+    "tags": [
+      "edbt",
+      "controlled_missingness_v3",
+      "missing_2",
+      "UC03_spring_missing_use",
+      "imperfect_user_v4",
+      "spec_0",
+      "vague_1",
+      "optout_1",
+      "balance_0_1_1"
+    ],
+    "base_case_id": "S03",
+    "source_case_id": "UC03_spring_missing_use",
+    "missing_count": 2,
+    "initial_query": "I am looking for an existing school building. I need a property with at least 180 sqm of gross floor area and capacity for 14 people. I prefer a property in energy class C or better. I prefer properties near public transport.",
+    "one_shot_query": "I am looking for an existing school building. I need a property with at least 180 sqm of gross floor area and capacity for 14 people. I prefer a property in energy class C or better. I prefer properties near public transport.",
+    "oracle_query": "Find an existing school building to create a spring section (sezione primavera) for 14 children, integrated into an existing kindergarten in Turin with at least 180 sqm of gross floor area in energy class C or better near public transport.",
+    "expected_initial_missing": [
+      "D",
+      "L"
+    ],
+    "clarifications": {
+      "I": "I am looking for an existing school building.",
+      "D": [
+        "I want to introduce an educational transition group for two-year-olds connected with an early years preschool.",
+        "I intend to create a spring section (sezione primavera), integrated into an existing kindergarten."
+      ],
+      "L": "I have no requirement on the specific city or location.",
+      "Cb": "I need a property with at least 180 sqm of gross floor area and capacity for 14 people.",
+      "Ce": "I prefer a property in energy class C or better.",
+      "Cp": "I prefer properties near public transport."
+    },
+    "expected_mapping": {
+      "I": "SPECIFIED",
+      "D": "SPECIFIED",
+      "L": "NOT_REQUESTED",
+      "Cb": "SPECIFIED",
+      "Ce": "SPECIFIED",
+      "Cp": "SPECIFIED"
+    },
+    "repeats": 1,
+    "imperfect_user": {
+      "profile": "mixed",
+      "balance": "0spec_1vague_1optout",
+      "source_variant_id": "S03_k2_D_L",
+      "source_enabled": true,
+      "specified_count": 0,
+      "vague_count": 1,
+      "optout_count": 1,
+      "specified_dimensions": [],
+      "vague_dimensions": [
+        "D"
+      ],
+      "optout_dimensions": [
+        "L"
+      ],
+      "expected_turns": 3
+    }
+  },
+  "artifact_file": "runs/bench_881ec6f5fdb3.json",
+  "artifact_schema_version": 4,
+  "ranking_ids": [
+    "DEMO-01337",
+    "DEMO-00901",
+    "DEMO-00651",
+    "DEMO-01136",
+    "DEMO-01296",
+    "DEMO-00961",
+    "DEMO-01494",
+    "DEMO-00180",
+    "DEMO-01110",
+    "DEMO-01004"
+  ],
+  "top": [
+    {
+      "id": "DEMO-01337",
+      "score": 65.014,
+      "distance_km": 2.43
+    },
+    {
+      "id": "DEMO-00901",
+      "score": 52.995,
+      "distance_km": 0.45
+    },
+    {
+      "id": "DEMO-00651",
+      "score": 50.55499999999999,
+      "distance_km": 0.42
+    },
+    {
+      "id": "DEMO-01136",
+      "score": 49.49799999999999,
+      "distance_km": 2.13
+    },
+    {
+      "id": "DEMO-01296",
+      "score": 47.53,
+      "distance_km": 0.81
+    },
+    {
+      "id": "DEMO-00961",
+      "score": 44.425,
+      "distance_km": 2.09
+    },
+    {
+      "id": "DEMO-01494",
+      "score": 38.065,
+      "distance_km": 3.28
+    },
+    {
+      "id": "DEMO-00180",
+      "score": 35.019999999999996,
+      "distance_km": 3.03
+    },
+    {
+      "id": "DEMO-01110",
+      "score": 14.42,
+      "distance_km": 3.38
+    },
+    {
+      "id": "DEMO-01004",
+      "score": 9.485,
+      "distance_km": 3.16
+    }
+  ],
+  "api_response": {
+    "agent_trace": [
+      {
+        "agent_name": "ranking-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "ranking": [
+            {
+              "agent_name": "building",
+              "rank": 1
+            },
+            {
+              "agent_name": "location",
+              "rank": 1
+            },
+            {
+              "agent_name": "regulatory",
+              "rank": 2
+            },
+            {
+              "agent_name": "energy",
+              "rank": 2
+            },
+            {
+              "agent_name": "proximity",
+              "rank": 3
+            }
+          ],
+          "weights": {
+            "location": 0.3,
+            "regulatory": 0.15,
+            "energy": 0.15,
+            "building": 0.3,
+            "proximity": 0.1
+          }
+        }
+      },
+      {
+        "agent_name": "energy-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "requirements": [
+            {
+              "target_column": "energy_class",
+              "operator": "IN",
+              "value": [
+                "A1",
+                "A2",
+                "A3",
+                "A4",
+                "B",
+                "C"
+              ],
+              "description": "Requires energy class C or better."
+            }
+          ],
+          "found": true
+        }
+      },
+      {
+        "agent_name": "regulatory-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "found": false,
+          "matched_use_cases": [
+            "Spring section (Sezione primavera)"
+          ],
+          "requirements": []
+        }
+      },
+      {
+        "agent_name": "building-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "typologies": [
+            "School building"
+          ],
+          "found": true,
+          "requirements": [
+            {
+              "target_column": "property_type",
+              "operator": "=",
+              "value": "School building",
+              "description": "The request explicitly seeks an existing school building."
+            },
+            {
+              "target_column": "surface_area",
+              "operator": ">=",
+              "value": 180,
+              "description": "The request specifies at least 180 sqm of gross floor area."
+            }
+          ]
+        }
+      },
+      {
+        "agent_name": "location-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "places": [
+            {
+              "name": "Turin",
+              "city": "Turin",
+              "lat": 45.0677551,
+              "lon": 7.6824892,
+              "radius_km": 3.0
+            }
+          ],
+          "found": true
+        }
+      },
+      {
+        "agent_name": "proximity-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "requirements": [
+            {
+              "target_column": "mobility",
+              "operator": ">=",
+              "value": 71,
+              "description": "Near public transport; threshold meets the 75th percentile for mobility."
+            }
+          ]
+        }
+      },
+      {
+        "agent_name": "sql-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "sql": "SELECT * FROM ESTATES WHERE property_type = 'School building' AND surface_area >= 180 AND haversine_km(latitude, longitude, 45.0677551, 7.6824892) <= 3.0 AND energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C') AND mobility >= 71 ORDER BY haversine_km(latitude, longitude, 45.0677551, 7.6824892) ASC",
+          "explanation": "Filters school buildings by minimum area, distance, energy class, and public transport accessibility, then orders by distance."
+        }
+      },
+      {
+        "agent_name": "relaxation-agent",
+        "agent_mode": "extraction",
+        "output": [
+          {
+            "condizione_iniziale": "property_type = 'School building'",
+            "condizione_relaxed": "property_type IN ('School building', 'Office building')",
+            "piani_progressivi": [
+              "property_type IN ('School building', 'Office building', 'Commercial unit')"
+            ],
+            "strategia": "Category widening",
+            "motivazione": "Adds related non-residential property types while preserving the focus on institutional and work spaces.",
+            "livello_rilassamento": "low"
+          },
+          {
+            "condizione_iniziale": "property_type = 'School building'",
+            "condizione_relaxed": "property_type IN ('School building', 'Office building', 'Commercial unit')",
+            "piani_progressivi": [
+              "property_type IN ('School building', 'Office building', 'Commercial unit', 'Clinic')"
+            ],
+            "strategia": "Category widening",
+            "motivazione": "Includes additional non-residential buildings with potentially comparable space needs.",
+            "livello_rilassamento": "medium"
+          },
+          {
+            "condizione_iniziale": "property_type = 'School building'",
+            "condizione_relaxed": "property_type IN ('School building', 'Office building', 'Commercial unit', 'Clinic', 'Hotel', 'Industrial shed')",
+            "piani_progressivi": [],
+            "strategia": "Category widening",
+            "motivazione": "Broadens the search to several non-residential property types while excluding residential dwellings.",
+            "livello_rilassamento": "high"
+          },
+          {
+            "condizione_iniziale": "surface_area >= 180",
+            "condizione_relaxed": "surface_area >= 146",
+            "piani_progressivi": [
+              "surface_area >= 99"
+            ],
+            "strategia": "Threshold change",
+            "motivazione": "The 180 threshold exceeds the 75th percentile of 146; lowering it to that percentile can admit more properties while still favoring larger spaces.",
+            "livello_rilassamento": "low"
+          },
+          {
+            "condizione_iniziale": "surface_area >= 180",
+            "condizione_relaxed": "surface_area >= 99",
+            "piani_progressivi": [
+              "surface_area >= 69"
+            ],
+            "strategia": "Threshold change",
+            "motivazione": "The median is 99, a reasonable broader cutoff that retains a preference for properties around or above typical size.",
+            "livello_rilassamento": "medium"
+          },
+          {
+            "condizione_iniziale": "surface_area >= 180",
+            "condizione_relaxed": "surface_area >= 69",
+            "piani_progressivi": [],
+            "strategia": "Threshold change",
+            "motivazione": "The 25th percentile of 69 substantially broadens the size range while keeping a minimum area requirement.",
+            "livello_rilassamento": "high"
+          },
+          {
+            "condizione_iniziale": "HAVERSINE_KM(latitude, longitude, 45.0677551, 7.6824892) <= 3.0",
+            "condizione_relaxed": "HAVERSINE_KM(latitude, longitude, 45.0677551, 7.6824892) <= 4.0",
+            "piani_progressivi": [
+              "HAVERSINE_KM(latitude, longitude, 45.0677551, 7.6824892) <= 5.0"
+            ],
+            "strategia": "Radius expansion",
+            "motivazione": "A modest radius increase can include nearby properties without moving the search far from the requested location.",
+            "livello_rilassamento": "low"
+          },
+          {
+            "condizione_iniziale": "HAVERSINE_KM(latitude, longitude, 45.0677551, 7.6824892) <= 3.0",
+            "condizione_relaxed": "HAVERSINE_KM(latitude, longitude, 45.0677551, 7.6824892) <= 5.0",
+            "piani_progressivi": [
+              "HAVERSINE_KM(latitude, longitude, 45.0677551, 7.6824892) <= 7.0"
+            ],
+            "strategia": "Radius expansion",
+            "motivazione": "Expanding to 5 km may reach more of the dataset while keeping results within the surrounding area.",
+            "livello_rilassamento": "medium"
+          },
+          {
+            "condizione_iniziale": "HAVERSINE_KM(latitude, longitude, 45.0677551, 7.6824892) <= 3.0",
+            "condizione_relaxed": "HAVERSINE_KM(latitude, longitude, 45.0677551, 7.6824892) <= 8.0",
+            "piani_progressivi": [],
+            "strategia": "Radius expansion",
+            "motivazione": "An 8 km radius is a wider local search that can recover more candidates while remaining centered on the requested location.",
+            "livello_rilassamento": "high"
+          },
+          {
+            "condizione_iniziale": "energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C')",
+            "condizione_relaxed": "energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C', 'D')",
+            "piani_progressivi": [
+              "energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C', 'D', 'E')"
+            ],
+            "strategia": "Category widening",
+            "motivazione": "Adds the next less efficient class, which has 243 records, while retaining a preference for better-rated properties.",
+            "livello_rilassamento": "low"
+          },
+          {
+            "condizione_iniziale": "energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C')",
+            "condizione_relaxed": "energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C', 'D', 'E')",
+            "piani_progressivi": [
+              "energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C', 'D', 'E', 'F')"
+            ],
+            "strategia": "Category widening",
+            "motivazione": "Including classes D and E greatly increases the available pool while keeping the very inefficient classes excluded.",
+            "livello_rilassamento": "medium"
+          },
+          {
+            "condizione_iniziale": "energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C')",
+            "condizione_relaxed": "energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C', 'D', 'E', 'F')",
+            "piani_progressivi": [],
+            "strategia": "Category widening",
+            "motivazione": "Adding class F broadens the search substantially while still excluding the least efficient class G.",
+            "livello_rilassamento": "high"
+          },
+          {
+            "condizione_iniziale": "mobility >= 71",
+            "condizione_relaxed": "mobility >= 58.95",
+            "piani_progressivi": [
+              "mobility >= 47.1"
+            ],
+            "strategia": "Threshold change",
+            "motivazione": "The original cutoff is just above the 75th percentile of 70.9; the median of 58.95 offers a moderate expansion while favoring above-average mobility.",
+            "livello_rilassamento": "low"
+          },
+          {
+            "condizione_iniziale": "mobility >= 71",
+            "condizione_relaxed": "mobility >= 47.1",
+            "piani_progressivi": [
+              "mobility >= 6.4"
+            ],
+            "strategia": "Threshold change",
+            "motivazione": "The 25th percentile of 47.1 admits more properties while maintaining a meaningful mobility score threshold.",
+            "livello_rilassamento": "medium"
+          },
+          {
+            "condizione_iniziale": "mobility >= 71",
+            "condizione_relaxed": "mobility >= 6.4",
+            "piani_progressivi": [],
+            "strategia": "Threshold change",
+            "motivazione": "The dataset minimum retains an explicit lower bound while maximizing the number of properties that can match.",
+            "livello_rilassamento": "high"
+          }
+        ],
+        "batch_id": null,
+        "timestamp": "2026-11-18T14:32:30.982962",
+        "execution_time_ms": 47712.29696273804
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "DEMO-00901",
+          "evaluation_text": "The property is a moderately relevant candidate for the proposed spring section. Its 189 sqm gross area exceeds the user’s 180 sqm screening target, and energy class C meets the requested threshold. The verified regional capacity range of 6–20 children includes the target of 14, while the 6 sqm per child standard applies to specified net-use areas, not the whole property; the supplied data do not establish whether those spaces can be provided. The office building’s existing layout, suitability for integration with a kindergarten, planning compatibility, authorization, accessibility, health and safety requirements all need verification. Mobility is moderate (66.8 percentile), and the data do not confirm proximity to the host kindergarten or a transit stop.",
+          "final_ranking_score": 53,
+          "pros": [
+            "At 189 sqm gross, it exceeds the requested 180 sqm screening target.",
+            "Energy class C meets the requested minimum, with a total energy score of 10/20.",
+            "The verified regional capacity range of 6–20 children includes the proposed 14-child section."
+          ],
+          "cons": [
+            "It is an office building, and the data do not establish that its layout can provide the required net-use spaces or support integration with an existing kindergarten.",
+            "Mobility percentile is 66.8; the data do not establish proximity to a specific public transport stop or meet a defined high-quality threshold.",
+            "Urban-planning compatibility, change-of-use and sector authorization, accessibility, hygiene, fire-safety where required, and structural compliance remain to be checked."
+          ]
+        },
+        "batch_id": 1,
+        "timestamp": "2026-11-18T14:32:49.100824",
+        "execution_time_ms": 18031.83364868164
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "DEMO-00651",
+          "evaluation_text": "The property merits further assessment for the spring section objective: its 182 sqm gross floor area is above the requested 180 sqm, and mobility is relatively strong at 80.9. However, it is an office building rather than an existing school, and its energy class D does not meet the requested C-or-better threshold. The cited regional standard specifies 6 sqm per child of net usable area for designated functions, not a minimum gross property area; the supplied data do not establish whether the required rooms can be arranged. Capacity of 14 falls within the verified range of 6–20 children, while integration with a qualifying host kindergarten, planning and building-use compatibility, and authorization requirements need verification. The applicability of the 2025 requirements should also be checked at the application date.",
+          "final_ranking_score": 51,
+          "pros": [
+            "182 sqm gross floor area exceeds the user's requested 180 sqm threshold.",
+            "Mobility percentile of 80.9 supports the preference for strong public transport access.",
+            "The target capacity of 14 children is within the cited verified regional range of 6–20 children."
+          ],
+          "cons": [
+            "Energy class D falls short of the requested C-or-better criterion.",
+            "The property is listed as an office building, not an existing school or kindergarten for integration.",
+            "Net usable area for the required functions, room layout, planning compatibility, change-of-use, and sector authorization are unverified."
+          ]
+        },
+        "batch_id": 2,
+        "timestamp": "2026-11-18T14:32:49.662311",
+        "execution_time_ms": 18591.996669769287
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "DEMO-01337",
+          "evaluation_text": "This existing school building is a promising candidate for a spring section integrated with a kindergarten: its school use aligns with the stated objective, its 208.0 sqm gross floor area exceeds the user's 180 sqm screening threshold, and its A3 energy class is better than C. Mobility is relatively strong at 74.8, supporting access by public transport. The regional standard specifies 6 sqm of net useful area per child across designated activity, rest and hygiene spaces; for 14 children this amounts to 84 sqm of qualifying net space, not a gross-area threshold. The data do not establish whether that layout fits, nor do they confirm integration with a host kindergarten or authorization. Verify the applicable regulatory transition, host-structure requirements, planning and change-of-use status, hygiene, accessibility, fire safety where required, structural safety, and sector authorization before proceeding.",
+          "final_ranking_score": 65,
+          "pros": [
+            "Existing school building is functionally aligned with the proposed spring section and kindergarten setting.",
+            "At 208.0 sqm gross floor area, it exceeds the user's 180 sqm screening threshold; the 14-child group is within the verified regional capacity range of 6–20.",
+            "A3 energy class exceeds the requested C-or-better standard, and mobility percentile 74.8 indicates relatively strong public transport proximity."
+          ],
+          "cons": [
+            "Gross floor area does not establish the required 84 sqm of net usable space for the specified spring-section functions or confirm a workable layout.",
+            "The supplied data do not confirm integration with an existing kindergarten or compliance with the host structure's requirements.",
+            "Planning compatibility, building title and change of use, hygiene, accessibility, applicable fire and structural safety requirements, and sector authorization require verification; the applicable regulatory transition also needs checking."
+          ]
+        },
+        "batch_id": 3,
+        "timestamp": "2026-11-18T14:32:50.622736",
+        "execution_time_ms": 19554.669857025146
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "DEMO-01136",
+          "evaluation_text": "This 193 sqm office building on Via Madama Cristina is a promising candidate for conversion to a spring section serving 14 children: its A2 energy class exceeds the requested C threshold, and its 19/20 energy score indicates strong plant, envelope, and renewable-energy performance. The verified regional standard specifies 6 sqm of net useful area per child across designated rooms and toilets; that is a room-level metric, not a gross property-area threshold, so the 193 sqm gross area alone cannot establish whether the required spaces fit. The stated capacity range of 6–20 children includes the target group, and the use case requires integration with a kindergarten, which is not confirmed here. Its mobility percentile is 71.5, supporting the preference for public transport access. The listed office use means urban-planning compatibility, change-of-use authorization, access, hygiene, fire and structural safety, and sector authorization all require verification. Confirm which regulatory regime applies at the application date, given the stated transition to D.G.R. 3-1937/2025.",
+          "final_ranking_score": 49,
+          "pros": [
+            "A2 energy class is better than the requested C-or-better threshold, with a strong total energy score of 19/20.",
+            "193 sqm gross area and the verified 6–20-child capacity range make the target of 14 children worth assessing, subject to a room-by-room net-area plan.",
+            "Mobility percentile of 71.5 supports the preference for access to public transport."
+          ],
+          "cons": [
+            "The property is listed as an office building; compatibility with the spring-section use, planning rules, and any change of use must be verified.",
+            "The 193 sqm gross area does not establish whether the required 6 sqm net useful area per child can be provided in the specified functions or whether a suitable kindergarten can host the section.",
+            "Accessibility, hygiene, fire safety where required, structural and seismic safety, and sector authorization remain to be checked; the applicable regulatory regime at the application date also needs confirmation."
+          ]
+        },
+        "batch_id": 4,
+        "timestamp": "2026-11-18T14:32:55.311283",
+        "execution_time_ms": 24237.118244171143
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "DEMO-01296",
+          "evaluation_text": "The property offers a substantial 280 sqm gross area and is centrally located in Turin, with healthcare access and nearby green and commercial amenities. Its office use means adaptation and integration with a kindergarten would need assessment. The supplied data do not establish planning compatibility, authorization, room layout, accessibility, or technical feasibility. Energy class E falls short of the requested C or better, and the mobility percentile of 61.3 does not establish that the preferred high public transport threshold is met. The regional entry specifies capacity of 6–20 children and 6 sqm per child of net usable area across specified functions; this is not a gross-area minimum for the property. The site's ability to meet those room requirements and all applicable checks requires verification.",
+          "final_ranking_score": 48,
+          "pros": [
+            "280 sqm gross area provides substantial space to assess for adaptation, although it does not prove the required usable room areas can be provided.",
+            "The location is within Turin and has a healthcare proximity percentile of 90.1.",
+            "Nearby green and commercial services score 74.7 and 74.6, respectively."
+          ],
+          "cons": [
+            "Energy class E does not meet the requested C-or-better criterion; the energy total is 7.",
+            "The mobility percentile is 61.3, and the supplied data do not confirm that public transport meets the requested high-quality threshold.",
+            "The property is an office building; conversion, integration with a kindergarten, planning compatibility, authorization, accessibility, and room suitability require verification."
+          ]
+        },
+        "batch_id": 5,
+        "timestamp": "2026-11-18T14:33:07.221555",
+        "execution_time_ms": 18120.981216430664
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "DEMO-00961",
+          "evaluation_text": "The 342 sqm building is an existing office, so conversion into a spring section integrated with a kindergarten is a possibility that requires confirmation; the data do not establish that its current use is authorized or compatible. Its area is substantial, but it cannot by itself establish that the required rooms, layout, or overall suitability are present. Energy class D falls short of the requested C or better, while mobility is a strong point (88.8). The verified regional standard specifies 6 sqm of net useful area per child for designated spaces, not a minimum gross area for the whole property. Capacity for 14 is within the stated 6–20 child range. Planning compatibility, change of use, building and health requirements, accessibility, fire safety where required, structural safety, and sector authorization need checking; the applicable regulatory framework should also be confirmed at the application date.",
+          "final_ranking_score": 44,
+          "pros": [
+            "342 sqm of reported floor area offers a sizeable starting point for assessing a conversion, though room layout and regulatory adequacy are unverified.",
+            "Mobility score of 88.8 indicates strong proximity to public transport, matching a stated priority.",
+            "The requested 14-child capacity is within the verified regional range of 6–20 children for a spring section."
+          ],
+          "cons": [
+            "Energy class D does not meet the requested threshold of C or better.",
+            "The property is listed as an office building; suitability for integration with a kindergarten and planning compatibility are unverified.",
+            "No evidence establishes that the required net usable areas, accessibility, health and safety conditions, or authorization requirements can be met."
+          ]
+        },
+        "batch_id": 6,
+        "timestamp": "2026-11-18T14:33:08.090803",
+        "execution_time_ms": 18428.553104400635
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "DEMO-01494",
+          "evaluation_text": "This pre-1919 school building is a relevant candidate for a spring section integrated into a kindergarten: its 201 sqm gross area exceeds the requested 180 sqm, and its energy class B meets the class C or better preference. The regional standard specifies 6 sqm per child of net useful area across designated rooms and sanitary facilities; this is not a gross-area threshold, so the information provided does not establish whether the layout can accommodate 14 children. Integration with a host kindergarten, planning and building-use compatibility, health and safety requirements, accessibility, and authorization all require verification. The mobility percentile is 59.0, a moderate result that may fall short of the preference for high public transport access. The deterministic ranking score is 38.",
+          "final_ranking_score": 38,
+          "pros": [
+            "Existing school building, aligning with the requested property type and the need to integrate the spring section with a kindergarten.",
+            "Gross floor area of 201 sqm exceeds the requested 180 sqm, although suitable net room areas and layout for 14 children remain unverified.",
+            "Energy class B meets the requested C-or-better threshold."
+          ],
+          "cons": [
+            "Mobility percentile of 59.0 provides only moderate public transport accessibility relative to the stated preference for high quality.",
+            "The data do not establish that the property contains the required net useful areas, sanitary facilities, or layout for 14 children.",
+            "Planning compatibility, building-use authorization, accessibility, health and safety compliance, and integration with a qualifying host kindergarten require verification."
+          ]
+        },
+        "batch_id": 7,
+        "timestamp": "2026-11-18T14:33:08.676751",
+        "execution_time_ms": 18054.47220802307
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "DEMO-00180",
+          "evaluation_text": "The existing school building has a relevant starting point for integrating a spring section into a kindergarten: its recorded 233 sqm gross area exceeds the user’s 180 sqm screening target, and the reported capacity range for a spring section is 6–20 children, which includes the target of 14. The regional standard specifies 6 sqm of net usable area per child across designated activity, rest, and toilet areas; this is a room-level metric, not a minimum gross area for the whole property, and the data do not establish whether those spaces can be provided. Mobility is a relative strength, while energy class E falls short of the requested C or better. Layout, host-school requirements, planning compatibility, authorization, and technical suitability require verification. Check which regulatory provisions apply when submitting the application, given the stated transition to the 2025 requirements.",
+          "final_ranking_score": 35,
+          "pros": [
+            "Existing school building, consistent with the objective of integrating the spring section into a kindergarten.",
+            "Recorded gross floor area of 233 sqm exceeds the requested 180 sqm screening target.",
+            "Reported capacity range of 6–20 children includes the target of 14; mobility percentile is 73.2."
+          ],
+          "cons": [
+            "Energy class E does not meet the requested C-or-better condition; the energy score total is 9.",
+            "The data do not establish whether the required 6 sqm per child of designated net usable space, including activity, rest, and toilet areas, can be accommodated.",
+            "Planning compatibility, host-school requirements, accessibility, safety, and authorization remain to be verified."
+          ]
+        },
+        "batch_id": 8,
+        "timestamp": "2026-11-18T14:33:13.708950",
+        "execution_time_ms": 18398.462057113647
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "DEMO-01110",
+          "evaluation_text": "This 297 sqm office building offers substantial gross floor area and could merit investigation for conversion to a spring section integrated with a kindergarten. Its current use is not a school, however, and the available data do not establish planning compatibility, authorization, accessibility, room layout, or technical suitability. The verified regional standard requires 6 sqm of net useful area per child across specified functions, including at least 1 sqm per child for covered free activity and rest; this is not a gross-area threshold. Capacity of 14 falls within the verified range of 6–20 children, subject to the host facility’s requirements. The property does not meet the requested energy-class C-or-better criterion (it is class E), while its mobility percentile is 70. Overall, its area and location provide some potential, but the energy mismatch and unverified conversion requirements constrain its fit.",
+          "final_ranking_score": 14,
+          "pros": [
+            "297 sqm of reported gross floor area provides a substantial starting point for assessing a 14-child spring section, though net functional areas and layout require verification.",
+            "The requested capacity of 14 is within the verified regional range of 6–20 children for a spring section.",
+            "Mobility percentile of 70 indicates a comparatively supportive public transport profile."
+          ],
+          "cons": [
+            "Energy class E falls short of the requested C-or-better threshold; the energy scores also indicate weak plant, envelope, and renewables performance.",
+            "The property is an office building, not an existing school; integration with a kindergarten and suitability for the required functions are unestablished.",
+            "Urban-planning compatibility, change-of-use and sector authorization, hygiene, accessibility, fire-safety where required, and structural checks remain outstanding."
+          ]
+        },
+        "batch_id": 9,
+        "timestamp": "2026-11-18T14:33:20.005865",
+        "execution_time_ms": 12784.709692001343
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "DEMO-01004",
+          "evaluation_text": "This 195 sqm office building offers a potentially useful starting footprint for a 14-child spring section integrated with a kindergarten, but its current use and the available data do not establish that it can be adapted or authorized for this purpose. The verified regional standard specifies 6 sqm per child of net useful area across designated rooms and toilets; that is a room-level requirement, not a gross-area threshold, so the property’s 195 sqm cannot by itself confirm sufficiency. Capacity of 14 falls within the verified range of 6–20 children, subject to the host facility meeting requirements. Energy class D falls short of the requested C-or-better threshold, and mobility is moderate rather than demonstrably high. Planning compatibility, change of use, layout, accessibility, hygiene, safety, and authorization require verification. Check which regulatory transition applies when an application is submitted.",
+          "final_ranking_score": 9,
+          "pros": [
+            "The 195 sqm gross area is a potentially useful starting footprint, although it does not establish that the required net functional spaces can be provided.",
+            "The requested capacity of 14 children is within the verified regional capacity range of 6–20 for a spring section.",
+            "The property has existing renewable energy sources and medium-rated plant and envelope scores, which may provide a basis for energy improvements."
+          ],
+          "cons": [
+            "Energy class D does not meet the requested C-or-better threshold.",
+            "The property is an office building; compatibility with integration into a kindergarten, planning permission, and change of use have not been established.",
+            "Mobility percentile 56.2 does not demonstrate the requested high public transport quality; accessibility, layout, hygiene, safety, and authorization also require checks."
+          ]
+        },
+        "batch_id": 10,
+        "timestamp": "2026-11-18T14:33:21.391317",
+        "execution_time_ms": 13301.217079162598
+      }
+    ],
+    "evaluation_results": [
+      {
+        "id": "DEMO-01337",
+        "evaluation_text": "This existing school building is a promising candidate for a spring section integrated with a kindergarten: its school use aligns with the stated objective, its 208.0 sqm gross floor area exceeds the user's 180 sqm screening threshold, and its A3 energy class is better than C. Mobility is relatively strong at 74.8, supporting access by public transport. The regional standard specifies 6 sqm of net useful area per child across designated activity, rest and hygiene spaces; for 14 children this amounts to 84 sqm of qualifying net space, not a gross-area threshold. The data do not establish whether that layout fits, nor do they confirm integration with a host kindergarten or authorization. Verify the applicable regulatory transition, host-structure requirements, planning and change-of-use status, hygiene, accessibility, fire safety where required, structural safety, and sector authorization before proceeding.",
+        "final_ranking_score": 65,
+        "pros": [
+          "Existing school building is functionally aligned with the proposed spring section and kindergarten setting.",
+          "At 208.0 sqm gross floor area, it exceeds the user's 180 sqm screening threshold; the 14-child group is within the verified regional capacity range of 6–20.",
+          "A3 energy class exceeds the requested C-or-better standard, and mobility percentile 74.8 indicates relatively strong public transport proximity."
+        ],
+        "cons": [
+          "Gross floor area does not establish the required 84 sqm of net usable space for the specified spring-section functions or confirm a workable layout.",
+          "The supplied data do not confirm integration with an existing kindergarten or compliance with the host structure's requirements.",
+          "Planning compatibility, building title and change of use, hygiene, accessibility, applicable fire and structural safety requirements, and sector authorization require verification; the applicable regulatory transition also needs checking."
+        ]
+      },
+      {
+        "id": "DEMO-00901",
+        "evaluation_text": "The property is a moderately relevant candidate for the proposed spring section. Its 189 sqm gross area exceeds the user’s 180 sqm screening target, and energy class C meets the requested threshold. The verified regional capacity range of 6–20 children includes the target of 14, while the 6 sqm per child standard applies to specified net-use areas, not the whole property; the supplied data do not establish whether those spaces can be provided. The office building’s existing layout, suitability for integration with a kindergarten, planning compatibility, authorization, accessibility, health and safety requirements all need verification. Mobility is moderate (66.8 percentile), and the data do not confirm proximity to the host kindergarten or a transit stop.",
+        "final_ranking_score": 53,
+        "pros": [
+          "At 189 sqm gross, it exceeds the requested 180 sqm screening target.",
+          "Energy class C meets the requested minimum, with a total energy score of 10/20.",
+          "The verified regional capacity range of 6–20 children includes the proposed 14-child section."
+        ],
+        "cons": [
+          "It is an office building, and the data do not establish that its layout can provide the required net-use spaces or support integration with an existing kindergarten.",
+          "Mobility percentile is 66.8; the data do not establish proximity to a specific public transport stop or meet a defined high-quality threshold.",
+          "Urban-planning compatibility, change-of-use and sector authorization, accessibility, hygiene, fire-safety where required, and structural compliance remain to be checked."
+        ]
+      },
+      {
+        "id": "DEMO-00651",
+        "evaluation_text": "The property merits further assessment for the spring section objective: its 182 sqm gross floor area is above the requested 180 sqm, and mobility is relatively strong at 80.9. However, it is an office building rather than an existing school, and its energy class D does not meet the requested C-or-better threshold. The cited regional standard specifies 6 sqm per child of net usable area for designated functions, not a minimum gross property area; the supplied data do not establish whether the required rooms can be arranged. Capacity of 14 falls within the verified range of 6–20 children, while integration with a qualifying host kindergarten, planning and building-use compatibility, and authorization requirements need verification. The applicability of the 2025 requirements should also be checked at the application date.",
+        "final_ranking_score": 51,
+        "pros": [
+          "182 sqm gross floor area exceeds the user's requested 180 sqm threshold.",
+          "Mobility percentile of 80.9 supports the preference for strong public transport access.",
+          "The target capacity of 14 children is within the cited verified regional range of 6–20 children."
+        ],
+        "cons": [
+          "Energy class D falls short of the requested C-or-better criterion.",
+          "The property is listed as an office building, not an existing school or kindergarten for integration.",
+          "Net usable area for the required functions, room layout, planning compatibility, change-of-use, and sector authorization are unverified."
+        ]
+      },
+      {
+        "id": "DEMO-01136",
+        "evaluation_text": "This 193 sqm office building on Via Madama Cristina is a promising candidate for conversion to a spring section serving 14 children: its A2 energy class exceeds the requested C threshold, and its 19/20 energy score indicates strong plant, envelope, and renewable-energy performance. The verified regional standard specifies 6 sqm of net useful area per child across designated rooms and toilets; that is a room-level metric, not a gross property-area threshold, so the 193 sqm gross area alone cannot establish whether the required spaces fit. The stated capacity range of 6–20 children includes the target group, and the use case requires integration with a kindergarten, which is not confirmed here. Its mobility percentile is 71.5, supporting the preference for public transport access. The listed office use means urban-planning compatibility, change-of-use authorization, access, hygiene, fire and structural safety, and sector authorization all require verification. Confirm which regulatory regime applies at the application date, given the stated transition to D.G.R. 3-1937/2025.",
+        "final_ranking_score": 49,
+        "pros": [
+          "A2 energy class is better than the requested C-or-better threshold, with a strong total energy score of 19/20.",
+          "193 sqm gross area and the verified 6–20-child capacity range make the target of 14 children worth assessing, subject to a room-by-room net-area plan.",
+          "Mobility percentile of 71.5 supports the preference for access to public transport."
+        ],
+        "cons": [
+          "The property is listed as an office building; compatibility with the spring-section use, planning rules, and any change of use must be verified.",
+          "The 193 sqm gross area does not establish whether the required 6 sqm net useful area per child can be provided in the specified functions or whether a suitable kindergarten can host the section.",
+          "Accessibility, hygiene, fire safety where required, structural and seismic safety, and sector authorization remain to be checked; the applicable regulatory regime at the application date also needs confirmation."
+        ]
+      },
+      {
+        "id": "DEMO-01296",
+        "evaluation_text": "The property offers a substantial 280 sqm gross area and is centrally located in Turin, with healthcare access and nearby green and commercial amenities. Its office use means adaptation and integration with a kindergarten would need assessment. The supplied data do not establish planning compatibility, authorization, room layout, accessibility, or technical feasibility. Energy class E falls short of the requested C or better, and the mobility percentile of 61.3 does not establish that the preferred high public transport threshold is met. The regional entry specifies capacity of 6–20 children and 6 sqm per child of net usable area across specified functions; this is not a gross-area minimum for the property. The site's ability to meet those room requirements and all applicable checks requires verification.",
+        "final_ranking_score": 48,
+        "pros": [
+          "280 sqm gross area provides substantial space to assess for adaptation, although it does not prove the required usable room areas can be provided.",
+          "The location is within Turin and has a healthcare proximity percentile of 90.1.",
+          "Nearby green and commercial services score 74.7 and 74.6, respectively."
+        ],
+        "cons": [
+          "Energy class E does not meet the requested C-or-better criterion; the energy total is 7.",
+          "The mobility percentile is 61.3, and the supplied data do not confirm that public transport meets the requested high-quality threshold.",
+          "The property is an office building; conversion, integration with a kindergarten, planning compatibility, authorization, accessibility, and room suitability require verification."
+        ]
+      },
+      {
+        "id": "DEMO-00961",
+        "evaluation_text": "The 342 sqm building is an existing office, so conversion into a spring section integrated with a kindergarten is a possibility that requires confirmation; the data do not establish that its current use is authorized or compatible. Its area is substantial, but it cannot by itself establish that the required rooms, layout, or overall suitability are present. Energy class D falls short of the requested C or better, while mobility is a strong point (88.8). The verified regional standard specifies 6 sqm of net useful area per child for designated spaces, not a minimum gross area for the whole property. Capacity for 14 is within the stated 6–20 child range. Planning compatibility, change of use, building and health requirements, accessibility, fire safety where required, structural safety, and sector authorization need checking; the applicable regulatory framework should also be confirmed at the application date.",
+        "final_ranking_score": 44,
+        "pros": [
+          "342 sqm of reported floor area offers a sizeable starting point for assessing a conversion, though room layout and regulatory adequacy are unverified.",
+          "Mobility score of 88.8 indicates strong proximity to public transport, matching a stated priority.",
+          "The requested 14-child capacity is within the verified regional range of 6–20 children for a spring section."
+        ],
+        "cons": [
+          "Energy class D does not meet the requested threshold of C or better.",
+          "The property is listed as an office building; suitability for integration with a kindergarten and planning compatibility are unverified.",
+          "No evidence establishes that the required net usable areas, accessibility, health and safety conditions, or authorization requirements can be met."
+        ]
+      },
+      {
+        "id": "DEMO-01494",
+        "evaluation_text": "This pre-1919 school building is a relevant candidate for a spring section integrated into a kindergarten: its 201 sqm gross area exceeds the requested 180 sqm, and its energy class B meets the class C or better preference. The regional standard specifies 6 sqm per child of net useful area across designated rooms and sanitary facilities; this is not a gross-area threshold, so the information provided does not establish whether the layout can accommodate 14 children. Integration with a host kindergarten, planning and building-use compatibility, health and safety requirements, accessibility, and authorization all require verification. The mobility percentile is 59.0, a moderate result that may fall short of the preference for high public transport access. The deterministic ranking score is 38.",
+        "final_ranking_score": 38,
+        "pros": [
+          "Existing school building, aligning with the requested property type and the need to integrate the spring section with a kindergarten.",
+          "Gross floor area of 201 sqm exceeds the requested 180 sqm, although suitable net room areas and layout for 14 children remain unverified.",
+          "Energy class B meets the requested C-or-better threshold."
+        ],
+        "cons": [
+          "Mobility percentile of 59.0 provides only moderate public transport accessibility relative to the stated preference for high quality.",
+          "The data do not establish that the property contains the required net useful areas, sanitary facilities, or layout for 14 children.",
+          "Planning compatibility, building-use authorization, accessibility, health and safety compliance, and integration with a qualifying host kindergarten require verification."
+        ]
+      },
+      {
+        "id": "DEMO-00180",
+        "evaluation_text": "The existing school building has a relevant starting point for integrating a spring section into a kindergarten: its recorded 233 sqm gross area exceeds the user’s 180 sqm screening target, and the reported capacity range for a spring section is 6–20 children, which includes the target of 14. The regional standard specifies 6 sqm of net usable area per child across designated activity, rest, and toilet areas; this is a room-level metric, not a minimum gross area for the whole property, and the data do not establish whether those spaces can be provided. Mobility is a relative strength, while energy class E falls short of the requested C or better. Layout, host-school requirements, planning compatibility, authorization, and technical suitability require verification. Check which regulatory provisions apply when submitting the application, given the stated transition to the 2025 requirements.",
+        "final_ranking_score": 35,
+        "pros": [
+          "Existing school building, consistent with the objective of integrating the spring section into a kindergarten.",
+          "Recorded gross floor area of 233 sqm exceeds the requested 180 sqm screening target.",
+          "Reported capacity range of 6–20 children includes the target of 14; mobility percentile is 73.2."
+        ],
+        "cons": [
+          "Energy class E does not meet the requested C-or-better condition; the energy score total is 9.",
+          "The data do not establish whether the required 6 sqm per child of designated net usable space, including activity, rest, and toilet areas, can be accommodated.",
+          "Planning compatibility, host-school requirements, accessibility, safety, and authorization remain to be verified."
+        ]
+      },
+      {
+        "id": "DEMO-01110",
+        "evaluation_text": "This 297 sqm office building offers substantial gross floor area and could merit investigation for conversion to a spring section integrated with a kindergarten. Its current use is not a school, however, and the available data do not establish planning compatibility, authorization, accessibility, room layout, or technical suitability. The verified regional standard requires 6 sqm of net useful area per child across specified functions, including at least 1 sqm per child for covered free activity and rest; this is not a gross-area threshold. Capacity of 14 falls within the verified range of 6–20 children, subject to the host facility’s requirements. The property does not meet the requested energy-class C-or-better criterion (it is class E), while its mobility percentile is 70. Overall, its area and location provide some potential, but the energy mismatch and unverified conversion requirements constrain its fit.",
+        "final_ranking_score": 14,
+        "pros": [
+          "297 sqm of reported gross floor area provides a substantial starting point for assessing a 14-child spring section, though net functional areas and layout require verification.",
+          "The requested capacity of 14 is within the verified regional range of 6–20 children for a spring section.",
+          "Mobility percentile of 70 indicates a comparatively supportive public transport profile."
+        ],
+        "cons": [
+          "Energy class E falls short of the requested C-or-better threshold; the energy scores also indicate weak plant, envelope, and renewables performance.",
+          "The property is an office building, not an existing school; integration with a kindergarten and suitability for the required functions are unestablished.",
+          "Urban-planning compatibility, change-of-use and sector authorization, hygiene, accessibility, fire-safety where required, and structural checks remain outstanding."
+        ]
+      },
+      {
+        "id": "DEMO-01004",
+        "evaluation_text": "This 195 sqm office building offers a potentially useful starting footprint for a 14-child spring section integrated with a kindergarten, but its current use and the available data do not establish that it can be adapted or authorized for this purpose. The verified regional standard specifies 6 sqm per child of net useful area across designated rooms and toilets; that is a room-level requirement, not a gross-area threshold, so the property’s 195 sqm cannot by itself confirm sufficiency. Capacity of 14 falls within the verified range of 6–20 children, subject to the host facility meeting requirements. Energy class D falls short of the requested C-or-better threshold, and mobility is moderate rather than demonstrably high. Planning compatibility, change of use, layout, accessibility, hygiene, safety, and authorization require verification. Check which regulatory transition applies when an application is submitted.",
+        "final_ranking_score": 9,
+        "pros": [
+          "The 195 sqm gross area is a potentially useful starting footprint, although it does not establish that the required net functional spaces can be provided.",
+          "The requested capacity of 14 children is within the verified regional capacity range of 6–20 for a spring section.",
+          "The property has existing renewable energy sources and medium-rated plant and envelope scores, which may provide a basis for energy improvements."
+        ],
+        "cons": [
+          "Energy class D does not meet the requested C-or-better threshold.",
+          "The property is an office building; compatibility with integration into a kindergarten, planning permission, and change of use have not been established.",
+          "Mobility percentile 56.2 does not demonstrate the requested high public transport quality; accessibility, layout, hygiene, safety, and authorization also require checks."
+        ]
+      }
+    ],
+    "relaxation_applied": true,
+    "relaxation_count": 1,
+    "fallback_activated": false,
+    "agent_errors": []
+  }
+}

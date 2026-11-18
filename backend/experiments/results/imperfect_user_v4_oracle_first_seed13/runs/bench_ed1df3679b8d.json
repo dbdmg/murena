@@ -1,0 +1,815 @@
+{
+  "run_id": "bench_ed1df3679b8d",
+  "condition": "oracle",
+  "unit_id": "S07",
+  "scenario_id": null,
+  "base_case_id": "S07",
+  "missing_count": null,
+  "scenario_name": null,
+  "tags": [],
+  "model": "gpt-6-luna",
+  "repeat": 1,
+  "attempt": 1,
+  "input_sha256": "1e450f56cc6f3000cd2b4a32198673adddc640144b523dfa41a5c77f4ba2789d",
+  "scenario_sha256": null,
+  "initial_query": "Find a hotel building to convert it into a residential senior care facility (RSA) for 30 residents in Turin with at least 1600 sqm of gross floor area in energy class D or better near healthcare services.",
+  "options": {
+    "dataset_key": "full",
+    "map_limit": 1000,
+    "llm_limit": 10,
+    "analysis_mode": "agent",
+    "use_relaxation": true,
+    "use_data_knowledge": true,
+    "architecture": "multiagent",
+    "disabled_agents": null
+  },
+  "started_at": "2026-11-18T13:31:10.400687+00:00",
+  "clarification_seconds": null,
+  "analysis_seconds": 135.442,
+  "submitted_query": "Find a hotel building to convert it into a residential senior care facility (RSA) for 30 residents in Turin with at least 1600 sqm of gross floor area in energy class D or better near healthcare services.",
+  "status": "completed",
+  "results_count": 15,
+  "top_ids": [
+    "DEMO-01383",
+    "DEMO-01313",
+    "DEMO-00122",
+    "DEMO-00592",
+    "DEMO-00365",
+    "DEMO-00038",
+    "DEMO-00126",
+    "DEMO-01308",
+    "DEMO-00027",
+    "DEMO-00058"
+  ],
+  "quality": {
+    "expected_count": 0,
+    "matched_expected": null,
+    "precision_at_returned": null,
+    "recall": null
+  },
+  "final_sql": "SELECT\n  *\nFROM ESTATES\nWHERE\n  property_type IN ('Hotel', 'Commercial unit', 'Office building', 'Warehouse', 'Industrial shed')\n  AND surface_area >= 99\n  AND energy_class <= 'D'\n  AND healthcare >= 64\n  AND HAVERSINE_KM(latitude, longitude, 45.0677551, 7.6824892) <= 3.0\nORDER BY\n  HAVERSINE_KM(latitude, longitude, 45.0677551, 7.6824892) ASC",
+  "duration_seconds": 135.46,
+  "scenario_definition": {
+    "id": "S07_k3_D_Cb_Cp_all_optout",
+    "name": "3 omitted dimensions; intended use: Senior Residential Care (RSA); balance: 0 specified, 0 vague, 3 opt-out",
+    "tags": [
+      "edbt",
+      "controlled_missingness_v3",
+      "missing_3",
+      "UC07_RSA_missing_use",
+      "imperfect_user_v4",
+      "spec_0",
+      "vague_0",
+      "optout_3",
+      "balance_0_0_3"
+    ],
+    "base_case_id": "S07",
+    "source_case_id": "UC07_RSA_missing_use",
+    "missing_count": 3,
+    "initial_query": "I am looking for a hotel building. The location is in Turin. I prefer a property in energy class D or better.",
+    "one_shot_query": "I am looking for a hotel building. The location is in Turin. I prefer a property in energy class D or better.",
+    "oracle_query": "Find a hotel building to convert it into a residential senior care facility (RSA) for 30 residents in Turin with at least 1600 sqm of gross floor area in energy class D or better near healthcare services.",
+    "expected_initial_missing": [
+      "D",
+      "Cb",
+      "Cp"
+    ],
+    "clarifications": {
+      "I": "I am looking for a hotel building.",
+      "D": "I have no specific residential care or nursing facility conversion in mind.",
+      "L": "The location is in Turin.",
+      "Cb": "I have no requirement on total gross floor area, resident capacity, or structural dimensions for the RSA.",
+      "Ce": "I prefer a property in energy class D or better.",
+      "Cp": "I have no requirement on proximity to hospitals or healthcare facilities."
+    },
+    "expected_mapping": {
+      "I": "SPECIFIED",
+      "D": "NOT_REQUESTED",
+      "L": "SPECIFIED",
+      "Cb": "NOT_REQUESTED",
+      "Ce": "SPECIFIED",
+      "Cp": "NOT_REQUESTED"
+    },
+    "repeats": 1,
+    "imperfect_user": {
+      "profile": "all_optout",
+      "balance": "0spec_0vague_3optout",
+      "source_variant_id": "S07_k3_D_Cb_Cp",
+      "source_enabled": true,
+      "specified_count": 0,
+      "vague_count": 0,
+      "optout_count": 3,
+      "specified_dimensions": [],
+      "vague_dimensions": [],
+      "optout_dimensions": [
+        "D",
+        "Cb",
+        "Cp"
+      ],
+      "expected_turns": 3
+    }
+  },
+  "artifact_file": "runs/bench_ed1df3679b8d.json",
+  "artifact_schema_version": 4,
+  "ranking_ids": [
+    "DEMO-01383",
+    "DEMO-01313",
+    "DEMO-00122",
+    "DEMO-00592",
+    "DEMO-00365",
+    "DEMO-00038",
+    "DEMO-00126",
+    "DEMO-01308",
+    "DEMO-00027",
+    "DEMO-00058",
+    "DEMO-00190",
+    "DEMO-00492",
+    "DEMO-01418",
+    "DEMO-01035",
+    "DEMO-01009"
+  ],
+  "top": [
+    {
+      "id": "DEMO-01383",
+      "score": 62.513,
+      "distance_km": 1.15
+    },
+    {
+      "id": "DEMO-01313",
+      "score": 60.509,
+      "distance_km": 1.34
+    },
+    {
+      "id": "DEMO-00122",
+      "score": 59.892,
+      "distance_km": 2.2
+    },
+    {
+      "id": "DEMO-00592",
+      "score": 54.164,
+      "distance_km": 1.73
+    },
+    {
+      "id": "DEMO-00365",
+      "score": 51.705,
+      "distance_km": 2.02
+    },
+    {
+      "id": "DEMO-00038",
+      "score": 47.524,
+      "distance_km": 0.92
+    },
+    {
+      "id": "DEMO-00126",
+      "score": 46.412000000000006,
+      "distance_km": 0.98
+    },
+    {
+      "id": "DEMO-01308",
+      "score": 46.242000000000004,
+      "distance_km": 2.25
+    },
+    {
+      "id": "DEMO-00027",
+      "score": 43.437,
+      "distance_km": 2.36
+    },
+    {
+      "id": "DEMO-00058",
+      "score": 40.027,
+      "distance_km": 1.68
+    }
+  ],
+  "api_response": {
+    "agent_trace": [
+      {
+        "agent_name": "ranking-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "ranking": [
+            {
+              "agent_name": "regulatory",
+              "rank": 1
+            },
+            {
+              "agent_name": "location",
+              "rank": 2
+            },
+            {
+              "agent_name": "building",
+              "rank": 3
+            },
+            {
+              "agent_name": "proximity",
+              "rank": 4
+            },
+            {
+              "agent_name": "energy",
+              "rank": 5
+            }
+          ],
+          "weights": {
+            "location": 0.22,
+            "regulatory": 0.43,
+            "energy": 0.09,
+            "building": 0.15,
+            "proximity": 0.11
+          }
+        }
+      },
+      {
+        "agent_name": "regulatory-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "found": false,
+          "matched_use_cases": [
+            "Senior Residential Care (RSA)"
+          ],
+          "requirements": []
+        }
+      },
+      {
+        "agent_name": "location-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "places": [
+            {
+              "name": "Turin",
+              "city": "Turin",
+              "lat": 45.0677551,
+              "lon": 7.6824892,
+              "radius_km": 3.0
+            }
+          ],
+          "found": true
+        }
+      },
+      {
+        "agent_name": "building-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "typologies": [
+            "Hotel"
+          ],
+          "found": true,
+          "requirements": [
+            {
+              "target_column": "property_type",
+              "operator": "=",
+              "value": "Hotel",
+              "description": "The request specifies a hotel building as its current typology."
+            },
+            {
+              "target_column": "surface_area",
+              "operator": ">=",
+              "value": 1600,
+              "description": "The request explicitly requires at least 1600 sqm of gross floor area."
+            }
+          ]
+        }
+      },
+      {
+        "agent_name": "energy-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "requirements": [
+            {
+              "target_column": "energy_class",
+              "operator": "<=",
+              "value": "D",
+              "description": "Energy class D or better."
+            }
+          ],
+          "found": true
+        }
+      },
+      {
+        "agent_name": "proximity-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "requirements": [
+            {
+              "target_column": "healthcare",
+              "operator": ">=",
+              "value": 64,
+              "description": "Healthcare services nearby; threshold is the 75th percentile."
+            }
+          ]
+        }
+      },
+      {
+        "agent_name": "sql-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "sql": "SELECT * FROM ESTATES WHERE property_type = 'Hotel' AND surface_area >= 1600 AND energy_class <= 'D' AND healthcare >= 64 AND haversine_km(latitude, longitude, 45.0677551, 7.6824892) <= 3.0 ORDER BY haversine_km(latitude, longitude, 45.0677551, 7.6824892) ASC",
+          "explanation": "Filters for hotels with at least 1600 sqm, energy class D or better, healthcare proximity score of at least 64, and within 3 km of the supplied coordinates; orders by distance."
+        }
+      },
+      {
+        "agent_name": "relaxation-agent",
+        "agent_mode": "extraction",
+        "output": [
+          {
+            "condizione_iniziale": "property_type = 'Hotel'",
+            "condizione_relaxed": "property_type IN ('Hotel', 'Commercial unit')",
+            "piani_progressivi": [],
+            "strategia": "Category widening",
+            "motivazione": "Adds a related commercial property category while retaining hotels.",
+            "livello_rilassamento": "low"
+          },
+          {
+            "condizione_iniziale": "property_type = 'Hotel'",
+            "condizione_relaxed": "property_type IN ('Hotel', 'Commercial unit', 'Office building')",
+            "piani_progressivi": [],
+            "strategia": "Category widening",
+            "motivazione": "Includes other non-residential property types that may suit a similar use.",
+            "livello_rilassamento": "medium"
+          },
+          {
+            "condizione_iniziale": "property_type = 'Hotel'",
+            "condizione_relaxed": "property_type IN ('Hotel', 'Commercial unit', 'Office building', 'Warehouse', 'Industrial shed')",
+            "piani_progressivi": [],
+            "strategia": "Category widening",
+            "motivazione": "Broadens the search across commercial and business property types while keeping hotels included.",
+            "livello_rilassamento": "high"
+          },
+          {
+            "condizione_iniziale": "surface_area >= 1600",
+            "condizione_relaxed": "surface_area >= 400",
+            "piani_progressivi": [],
+            "strategia": "Threshold change",
+            "motivazione": "The current minimum exceeds the reported maximum of 547, so lowering it to 400 makes matches possible while still selecting larger properties.",
+            "livello_rilassamento": "low"
+          },
+          {
+            "condizione_iniziale": "surface_area >= 1600",
+            "condizione_relaxed": "surface_area >= 146",
+            "piani_progressivi": [],
+            "strategia": "Threshold change",
+            "motivazione": "Uses the 75th percentile as a lower bound to include properties in the upper quarter of the observed area distribution.",
+            "livello_rilassamento": "medium"
+          },
+          {
+            "condizione_iniziale": "surface_area >= 1600",
+            "condizione_relaxed": "surface_area >= 99",
+            "piani_progressivi": [],
+            "strategia": "Threshold change",
+            "motivazione": "Moves the minimum to the median, substantially widening the search while retaining a size constraint.",
+            "livello_rilassamento": "high"
+          },
+          {
+            "condizione_iniziale": "energy_class <= 'D'",
+            "condizione_relaxed": "energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C', 'D', 'E')",
+            "piani_progressivi": [],
+            "strategia": "Category widening",
+            "motivazione": "Adds the adjacent E class, which is the most common class in the statistics, while retaining the original classes.",
+            "livello_rilassamento": "low"
+          },
+          {
+            "condizione_iniziale": "energy_class <= 'D'",
+            "condizione_relaxed": "energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C', 'D', 'E', 'F')",
+            "piani_progressivi": [],
+            "strategia": "Category widening",
+            "motivazione": "Includes E and F, both common observed classes, to broaden the energy performance range.",
+            "livello_rilassamento": "medium"
+          },
+          {
+            "condizione_iniziale": "energy_class <= 'D'",
+            "condizione_relaxed": "energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C', 'D', 'E', 'F', 'G')",
+            "piani_progressivi": [],
+            "strategia": "Category widening",
+            "motivazione": "Includes every observed energy class, providing the widest category expansion while preserving the energy class condition.",
+            "livello_rilassamento": "high"
+          },
+          {
+            "condizione_iniziale": "healthcare >= 64",
+            "condizione_relaxed": "healthcare >= 51.95",
+            "piani_progressivi": [],
+            "strategia": "Threshold change",
+            "motivazione": "Moves the minimum from the 75th percentile to the median, increasing eligible properties while retaining an above-average amenity score.",
+            "livello_rilassamento": "low"
+          },
+          {
+            "condizione_iniziale": "healthcare >= 64",
+            "condizione_relaxed": "healthcare >= 39.3",
+            "piani_progressivi": [],
+            "strategia": "Threshold change",
+            "motivazione": "Uses the 25th percentile as the minimum to widen the search while keeping a meaningful healthcare score requirement.",
+            "livello_rilassamento": "medium"
+          },
+          {
+            "condizione_iniziale": "healthcare >= 64",
+            "condizione_relaxed": "healthcare >= 4.1",
+            "piani_progressivi": [],
+            "strategia": "Threshold change",
+            "motivazione": "Uses the observed minimum as the broadest threshold, allowing nearly all records with a valid healthcare score.",
+            "livello_rilassamento": "high"
+          },
+          {
+            "condizione_iniziale": "HAVERSINE_KM(latitude, longitude, 45.0677551, 7.6824892) <= 3.0",
+            "condizione_relaxed": "HAVERSINE_KM(latitude, longitude, 45.0677551, 7.6824892) <= 5.0",
+            "piani_progressivi": [],
+            "strategia": "Radius expansion",
+            "motivazione": "Expands the search radius moderately around the same location to include nearby properties.",
+            "livello_rilassamento": "low"
+          },
+          {
+            "condizione_iniziale": "HAVERSINE_KM(latitude, longitude, 45.0677551, 7.6824892) <= 3.0",
+            "condizione_relaxed": "HAVERSINE_KM(latitude, longitude, 45.0677551, 7.6824892) <= 8.0",
+            "piani_progressivi": [],
+            "strategia": "Radius expansion",
+            "motivazione": "Uses a wider local radius to improve coverage while keeping the search centered on the requested coordinates.",
+            "livello_rilassamento": "medium"
+          },
+          {
+            "condizione_iniziale": "HAVERSINE_KM(latitude, longitude, 45.0677551, 7.6824892) <= 3.0",
+            "condizione_relaxed": "HAVERSINE_KM(latitude, longitude, 45.0677551, 7.6824892) <= 12.0",
+            "piani_progressivi": [],
+            "strategia": "Radius expansion",
+            "motivazione": "Broadens the geographic area substantially while preserving the original center point.",
+            "livello_rilassamento": "high"
+          }
+        ],
+        "batch_id": null,
+        "timestamp": "2026-11-18T14:32:26.166243",
+        "execution_time_ms": 40045.60613632202
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "DEMO-00592",
+          "evaluation_text": "This property has limited suitability for conversion into a 30-resident senior care facility. Its energy class D meets the stated threshold, and healthcare proximity is moderate (64.2). However, the recorded area is only 215 sqm, far below the requested minimum of 1,600 sqm gross floor area, and the property is listed as a commercial unit rather than a hotel. The supplied data do not establish whether the site could be expanded or whether the required planning, building, accessibility, safety, and sector authorization conditions can be met. The cited regional standards specify net areas for particular rooms and shared functions; they do not establish a minimum gross area for the entire property.",
+          "final_ranking_score": 54,
+          "pros": [
+            "Energy class D meets the requested minimum energy standard.",
+            "Healthcare proximity is moderate, with a score of 64.2.",
+            "The property’s commercial use may offer some scope for adaptive reuse, subject to planning and authorization checks."
+          ],
+          "cons": [
+            "At 215 sqm, the recorded area is well below the requested 1,600 sqm gross floor area.",
+            "The property is identified as a commercial unit, not a hotel; its suitability for conversion and any expansion potential are unverified.",
+            "The data do not establish compliance with RSA room and shared-space requirements, urban-planning compatibility, accessibility, safety, or sector authorization."
+          ]
+        },
+        "batch_id": 1,
+        "timestamp": "2026-11-18T14:32:34.382983",
+        "execution_time_ms": 8129.7807693481445
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "DEMO-01313",
+          "evaluation_text": "The office building has limited strategic suitability for conversion into a 30-resident RSA. Its energy class D meets the requested threshold, and its healthcare proximity percentile of 72.3 supports the location preference. However, the recorded gross area is 172 sqm, far below the requested 1,600 sqm. The regulatory data provide no verified minimum gross property area, so this comparison is against the user's objective, not a legal threshold. The listed room and common-area standards are net useful-area requirements and do not establish that this property can accommodate the required layout. Urban-planning compatibility, change of use, accessibility, safety, and sector authorization also require verification.",
+          "final_ranking_score": 61,
+          "pros": [
+            "Energy class D meets the user's stated minimum.",
+            "Healthcare proximity is relatively strong, at 72.3 percentile.",
+            "Good access to mobility and commercial services, with scores of 87.3 and 91.6 respectively."
+          ],
+          "cons": [
+            "The recorded surface area of 172 sqm is substantially below the requested 1,600 sqm gross floor area.",
+            "The property is identified as an office building; conversion to an RSA and its planning compatibility are unverified.",
+            "The supplied data do not establish room layout, accessibility, structural or fire-safety compliance, or sector authorization."
+          ]
+        },
+        "batch_id": 2,
+        "timestamp": "2026-11-18T14:32:43.216538",
+        "execution_time_ms": 16967.14758872986
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "DEMO-00122",
+          "evaluation_text": "This hotel in Turin has a relevant starting use and meets the requested energy class threshold at D. Its healthcare proximity score of 68.9 indicates some access to healthcare services, though the data do not establish whether it meets the user’s high quality threshold. The listed gross floor area is only 110 sqm, well below the requested 1,600 sqm, so the property does not meet the stated size criterion. Conversion potential and RSA authorization cannot be established from the available data; planning, building, accessibility, fire safety, structural, and sector authorization checks are required. The cited regional standards include room and shared-space net-area requirements, but no verified minimum gross property area is supplied.",
+          "final_ranking_score": 60,
+          "pros": [
+            "Existing hotel use is a potentially relevant starting point for considering conversion to an RSA.",
+            "Energy class D meets the requested minimum energy threshold.",
+            "Healthcare proximity score is 68.9, indicating some nearby healthcare access."
+          ],
+          "cons": [
+            "The reported 110 sqm gross floor area is substantially below the requested 1,600 sqm.",
+            "Healthcare proximity is not demonstrated to meet the requested high quality threshold.",
+            "Conversion feasibility and authorization require verification, including Turin planning compatibility, change of use, accessibility, and sector requirements."
+          ]
+        },
+        "batch_id": 3,
+        "timestamp": "2026-11-18T14:32:43.565424",
+        "execution_time_ms": 17314.72611427307
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "DEMO-01383",
+          "evaluation_text": "The property has limited suitability for conversion into a 30-resident RSA. Its energy class D meets the stated threshold, and its healthcare proximity indicator of 73.5 supports the location preference. However, the recorded gross floor area is 156 sqm, far below the requested 1,600 sqm, and the property is listed as a commercial unit rather than a hotel. The regulatory data provide no verified minimum gross-area threshold; they do specify room-level and other net useful-area standards, alongside required planning, change-of-use, accessibility, hygiene, safety, and sector authorization checks. These must be verified, and the supplied data do not establish that the building can accommodate the required RSA layout.",
+          "final_ranking_score": 63,
+          "pros": [
+            "Energy class D meets the user's minimum energy requirement.",
+            "Healthcare proximity indicator is 73.5, supporting the preference for access to healthcare services.",
+            "Construction period is after 2000, with a total energy score of 13 and renewable-energy score of 5."
+          ],
+          "cons": [
+            "Recorded surface area is 156 sqm, substantially below the user's requested 1,600 sqm gross floor area.",
+            "The property is classified as a commercial unit, not a hotel building as requested.",
+            "RSA conversion suitability is unestablished; planning compatibility, change of use, layout, accessibility, safety, and sector authorization require verification."
+          ]
+        },
+        "batch_id": 4,
+        "timestamp": "2026-11-18T14:32:44.656846",
+        "execution_time_ms": 18408.400774002075
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "DEMO-00365",
+          "evaluation_text": "The building has limited strategic fit for conversion to a 30-resident RSA. Its energy class D meets the stated threshold, and the healthcare proximity indicator is relatively strong at 79.8. However, the recorded gross area is only 119 sqm, far below the requested 1,600 sqm, and the property is identified as an office building rather than a hotel. The supplied data do not establish that an RSA use is permitted or that the layout, accessibility, and technical requirements can be met. The cited regional standard specifies net room and function areas; it provides no verified minimum gross property area, so it does not establish gross-area eligibility. Planning, change-of-use, hygiene, accessibility, fire-safety, structural, and sector authorization checks remain necessary.",
+          "final_ranking_score": 52,
+          "pros": [
+            "Energy class D meets the requested minimum energy class.",
+            "Healthcare proximity is relatively strong, with a percentile value of 79.8.",
+            "The 1981–2000 construction period provides a potential existing building for adaptation, subject to technical assessment."
+          ],
+          "cons": [
+            "The recorded surface area is 119 sqm, substantially below the requested 1,600 sqm gross floor area.",
+            "The property is listed as an office building, not a hotel; suitability for conversion to an RSA is unverified.",
+            "Energy sub-scores total only 5, with low plant, envelope, and renewables ratings, indicating potential upgrade needs."
+          ]
+        },
+        "batch_id": 5,
+        "timestamp": "2026-11-18T14:32:52.150715",
+        "execution_time_ms": 17768.06092262268
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "DEMO-00038",
+          "evaluation_text": "The warehouse has a strong energy profile (class A4) and is in an area with good access to healthcare services (healthcare percentile 69.2) and public transport (89.2). These features support further investigation for an RSA conversion. However, the recorded gross area is only 240 sqm, far below the requested 1,600 sqm, and the property is identified as a warehouse rather than a hotel. The supplied data do not establish planning compatibility, authorization for a change of use, accessibility, or whether a suitable internal layout can be achieved. The regional standards include room and shared-space requirements, but provide no verified minimum gross property area; the 240 sqm figure therefore cannot establish regulatory compliance or ineligibility on its own. Overall, the stated area and building type make this a weak match for the objective despite its energy and location advantages.",
+          "final_ranking_score": 48,
+          "pros": [
+            "Energy class A4 exceeds the requested class D threshold.",
+            "Healthcare access is relatively strong, with a healthcare proximity percentile of 69.2.",
+            "Public transport accessibility is high, at the 89.2 percentile."
+          ],
+          "cons": [
+            "The recorded surface area is 240 sqm, substantially below the requested 1,600 sqm gross floor area.",
+            "The property is listed as a warehouse, not a hotel, so it does not match the requested building type.",
+            "Planning compatibility, change-of-use authorization, accessibility, and the feasibility of the required RSA layout need verification."
+          ]
+        },
+        "batch_id": 6,
+        "timestamp": "2026-11-18T14:33:01.024877",
+        "execution_time_ms": 17808.119535446167
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "DEMO-00126",
+          "evaluation_text": "The property has limited suitability for conversion into a 30-resident RSA. Its energy class C meets the requested D-or-better threshold, and healthcare services are 0.98 km away, with a healthcare proximity percentile of 64.4. However, the recorded area is only 109 sqm, far below the requested 1,600 sqm gross floor area, and the property is described as an office building rather than a hotel. The supplied regulatory data establish no minimum gross-area threshold; the 12 sqm standard applies only to a single bedroom, while other standards concern specific rooms and functions. Urban-planning compatibility, change-of-use authorization, layout, accessibility, and technical and sectoral requirements need verification.",
+          "final_ranking_score": 46,
+          "pros": [
+            "Energy class C meets the requested energy-class threshold of D or better.",
+            "Healthcare proximity is 0.98 km, with a healthcare percentile of 64.4.",
+            "Location indicators are favorable for mobility (87.4), green areas (86.9), and commercial services (78.7)."
+          ],
+          "cons": [
+            "The listed 109 sqm area is well below the user's 1,600 sqm gross-area requirement.",
+            "The property is listed as an office building, not a hotel, so its fit with the requested building type is unconfirmed.",
+            "Conversion feasibility and RSA compliance remain unverified, including urban-planning compatibility, change of use, accessibility, room configuration, and sectoral authorization."
+          ]
+        },
+        "batch_id": 7,
+        "timestamp": "2026-11-18T14:33:01.731865",
+        "execution_time_ms": 18167.255878448486
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "DEMO-01308",
+          "evaluation_text": "The property is a weak fit for the stated RSA objective. Its energy class D meets the requested threshold, and healthcare proximity is moderate (70.5). However, the recorded 118.0 sqm is far below the requested 1,600 sqm gross floor area, and the listing identifies it as a warehouse rather than a hotel. Conversion potential therefore appears limited on the supplied evidence; urban planning compatibility, change-of-use authorization, accessibility, layout, and technical suitability all require verification. The regulatory context identifies regional room and function standards but no verified minimum gross property area, so those standards do not establish overall area sufficiency.",
+          "final_ranking_score": 46,
+          "pros": [
+            "Energy class D meets the user's stated minimum.",
+            "Healthcare proximity is 70.5, providing some access to healthcare services.",
+            "Built between 1981 and 2000, the property may offer a more recent starting point for assessment than older stock, though its condition is unspecified."
+          ],
+          "cons": [
+            "At 118.0 sqm, the recorded area is substantially below the requested 1,600 sqm gross floor area.",
+            "The property is recorded as a warehouse, not a hotel, so it does not match the requested building type.",
+            "Energy indicators are weak overall (energy_score_total 6), including a low envelope score; conversion, authorization, accessibility, and RSA-specific layout and safety requirements remain unverified."
+          ]
+        },
+        "batch_id": 8,
+        "timestamp": "2026-11-18T14:33:02.099392",
+        "execution_time_ms": 17443.22943687439
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "DEMO-00027",
+          "evaluation_text": "This property has limited strategic fit for conversion into a 30-resident RSA. Its energy class D meets the stated threshold, and healthcare proximity is moderate (64.8). However, the recorded surface area is 256 sqm, far below the requested 1,600 sqm gross area. The data identify it as a commercial unit rather than a hotel, so neither its suitability for conversion nor authorization for the proposed use is established. The regional standard specifies room and shared-space requirements but provides no verified minimum gross property area; the listed net room and function measurements cannot establish overall area sufficiency. Urban planning, change-of-use, access, health, fire, structural, and sector authorization checks remain necessary.",
+          "final_ranking_score": 43,
+          "pros": [
+            "Energy class D meets the user's stated minimum.",
+            "Healthcare proximity percentile is 64.8, offering a moderate location advantage.",
+            "The regional RSA standards provide specified room and shared-space requirements to inform a future feasibility review."
+          ],
+          "cons": [
+            "Recorded surface area is 256 sqm, substantially below the requested minimum of 1,600 sqm gross.",
+            "The property is listed as a commercial unit, not a hotel; conversion suitability and authorization are unverified.",
+            "The available data do not establish a compliant layout or feasibility for 30 residents, and the required planning, accessibility, safety, and sector authorization checks remain open."
+          ]
+        },
+        "batch_id": 9,
+        "timestamp": "2026-11-18T14:33:10.577223",
+        "execution_time_ms": 18426.557540893555
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "DEMO-00058",
+          "evaluation_text": "The unit offers limited strategic potential for conversion to a 30-resident RSA. Its energy class C exceeds the requested D-or-better threshold, and its healthcare proximity percentile of 71.6 is a relative strength. However, the recorded area is only 160 sqm, far below the requested 1,600 sqm gross floor area. This dataset does not establish whether the space can be combined with adjoining premises. The property is listed as a commercial unit rather than a hotel, and neither planning compatibility nor authorization for an RSA conversion is established. Regulatory context provides no verified minimum gross property area; room and other functional requirements are scoped to net usable area and would require a layout assessment. Accessibility, sanitary compliance, fire and structural safety, and sector authorization also need verification.",
+          "final_ranking_score": 40,
+          "pros": [
+            "Energy class C meets the requested D-or-better standard.",
+            "Healthcare proximity percentile of 71.6 is comparatively strong.",
+            "Commercial-unit classification may offer some scope for adaptation, subject to layout and regulatory checks."
+          ],
+          "cons": [
+            "Recorded area is 160 sqm, well below the requested 1,600 sqm gross floor area.",
+            "The property is identified as a commercial unit, not a hotel, and suitability for conversion to an RSA is unverified.",
+            "Planning compatibility, accessibility, required room configuration, safety compliance, and sector authorization remain to be checked."
+          ]
+        },
+        "batch_id": 10,
+        "timestamp": "2026-11-18T14:33:18.659139",
+        "execution_time_ms": 17620.041608810425
+      }
+    ],
+    "evaluation_results": [
+      {
+        "id": "DEMO-01383",
+        "evaluation_text": "The property has limited suitability for conversion into a 30-resident RSA. Its energy class D meets the stated threshold, and its healthcare proximity indicator of 73.5 supports the location preference. However, the recorded gross floor area is 156 sqm, far below the requested 1,600 sqm, and the property is listed as a commercial unit rather than a hotel. The regulatory data provide no verified minimum gross-area threshold; they do specify room-level and other net useful-area standards, alongside required planning, change-of-use, accessibility, hygiene, safety, and sector authorization checks. These must be verified, and the supplied data do not establish that the building can accommodate the required RSA layout.",
+        "final_ranking_score": 63,
+        "pros": [
+          "Energy class D meets the user's minimum energy requirement.",
+          "Healthcare proximity indicator is 73.5, supporting the preference for access to healthcare services.",
+          "Construction period is after 2000, with a total energy score of 13 and renewable-energy score of 5."
+        ],
+        "cons": [
+          "Recorded surface area is 156 sqm, substantially below the user's requested 1,600 sqm gross floor area.",
+          "The property is classified as a commercial unit, not a hotel building as requested.",
+          "RSA conversion suitability is unestablished; planning compatibility, change of use, layout, accessibility, safety, and sector authorization require verification."
+        ]
+      },
+      {
+        "id": "DEMO-01313",
+        "evaluation_text": "The office building has limited strategic suitability for conversion into a 30-resident RSA. Its energy class D meets the requested threshold, and its healthcare proximity percentile of 72.3 supports the location preference. However, the recorded gross area is 172 sqm, far below the requested 1,600 sqm. The regulatory data provide no verified minimum gross property area, so this comparison is against the user's objective, not a legal threshold. The listed room and common-area standards are net useful-area requirements and do not establish that this property can accommodate the required layout. Urban-planning compatibility, change of use, accessibility, safety, and sector authorization also require verification.",
+        "final_ranking_score": 61,
+        "pros": [
+          "Energy class D meets the user's stated minimum.",
+          "Healthcare proximity is relatively strong, at 72.3 percentile.",
+          "Good access to mobility and commercial services, with scores of 87.3 and 91.6 respectively."
+        ],
+        "cons": [
+          "The recorded surface area of 172 sqm is substantially below the requested 1,600 sqm gross floor area.",
+          "The property is identified as an office building; conversion to an RSA and its planning compatibility are unverified.",
+          "The supplied data do not establish room layout, accessibility, structural or fire-safety compliance, or sector authorization."
+        ]
+      },
+      {
+        "id": "DEMO-00122",
+        "evaluation_text": "This hotel in Turin has a relevant starting use and meets the requested energy class threshold at D. Its healthcare proximity score of 68.9 indicates some access to healthcare services, though the data do not establish whether it meets the user’s high quality threshold. The listed gross floor area is only 110 sqm, well below the requested 1,600 sqm, so the property does not meet the stated size criterion. Conversion potential and RSA authorization cannot be established from the available data; planning, building, accessibility, fire safety, structural, and sector authorization checks are required. The cited regional standards include room and shared-space net-area requirements, but no verified minimum gross property area is supplied.",
+        "final_ranking_score": 60,
+        "pros": [
+          "Existing hotel use is a potentially relevant starting point for considering conversion to an RSA.",
+          "Energy class D meets the requested minimum energy threshold.",
+          "Healthcare proximity score is 68.9, indicating some nearby healthcare access."
+        ],
+        "cons": [
+          "The reported 110 sqm gross floor area is substantially below the requested 1,600 sqm.",
+          "Healthcare proximity is not demonstrated to meet the requested high quality threshold.",
+          "Conversion feasibility and authorization require verification, including Turin planning compatibility, change of use, accessibility, and sector requirements."
+        ]
+      },
+      {
+        "id": "DEMO-00592",
+        "evaluation_text": "This property has limited suitability for conversion into a 30-resident senior care facility. Its energy class D meets the stated threshold, and healthcare proximity is moderate (64.2). However, the recorded area is only 215 sqm, far below the requested minimum of 1,600 sqm gross floor area, and the property is listed as a commercial unit rather than a hotel. The supplied data do not establish whether the site could be expanded or whether the required planning, building, accessibility, safety, and sector authorization conditions can be met. The cited regional standards specify net areas for particular rooms and shared functions; they do not establish a minimum gross area for the entire property.",
+        "final_ranking_score": 54,
+        "pros": [
+          "Energy class D meets the requested minimum energy standard.",
+          "Healthcare proximity is moderate, with a score of 64.2.",
+          "The property’s commercial use may offer some scope for adaptive reuse, subject to planning and authorization checks."
+        ],
+        "cons": [
+          "At 215 sqm, the recorded area is well below the requested 1,600 sqm gross floor area.",
+          "The property is identified as a commercial unit, not a hotel; its suitability for conversion and any expansion potential are unverified.",
+          "The data do not establish compliance with RSA room and shared-space requirements, urban-planning compatibility, accessibility, safety, or sector authorization."
+        ]
+      },
+      {
+        "id": "DEMO-00365",
+        "evaluation_text": "The building has limited strategic fit for conversion to a 30-resident RSA. Its energy class D meets the stated threshold, and the healthcare proximity indicator is relatively strong at 79.8. However, the recorded gross area is only 119 sqm, far below the requested 1,600 sqm, and the property is identified as an office building rather than a hotel. The supplied data do not establish that an RSA use is permitted or that the layout, accessibility, and technical requirements can be met. The cited regional standard specifies net room and function areas; it provides no verified minimum gross property area, so it does not establish gross-area eligibility. Planning, change-of-use, hygiene, accessibility, fire-safety, structural, and sector authorization checks remain necessary.",
+        "final_ranking_score": 52,
+        "pros": [
+          "Energy class D meets the requested minimum energy class.",
+          "Healthcare proximity is relatively strong, with a percentile value of 79.8.",
+          "The 1981–2000 construction period provides a potential existing building for adaptation, subject to technical assessment."
+        ],
+        "cons": [
+          "The recorded surface area is 119 sqm, substantially below the requested 1,600 sqm gross floor area.",
+          "The property is listed as an office building, not a hotel; suitability for conversion to an RSA is unverified.",
+          "Energy sub-scores total only 5, with low plant, envelope, and renewables ratings, indicating potential upgrade needs."
+        ]
+      },
+      {
+        "id": "DEMO-00038",
+        "evaluation_text": "The warehouse has a strong energy profile (class A4) and is in an area with good access to healthcare services (healthcare percentile 69.2) and public transport (89.2). These features support further investigation for an RSA conversion. However, the recorded gross area is only 240 sqm, far below the requested 1,600 sqm, and the property is identified as a warehouse rather than a hotel. The supplied data do not establish planning compatibility, authorization for a change of use, accessibility, or whether a suitable internal layout can be achieved. The regional standards include room and shared-space requirements, but provide no verified minimum gross property area; the 240 sqm figure therefore cannot establish regulatory compliance or ineligibility on its own. Overall, the stated area and building type make this a weak match for the objective despite its energy and location advantages.",
+        "final_ranking_score": 48,
+        "pros": [
+          "Energy class A4 exceeds the requested class D threshold.",
+          "Healthcare access is relatively strong, with a healthcare proximity percentile of 69.2.",
+          "Public transport accessibility is high, at the 89.2 percentile."
+        ],
+        "cons": [
+          "The recorded surface area is 240 sqm, substantially below the requested 1,600 sqm gross floor area.",
+          "The property is listed as a warehouse, not a hotel, so it does not match the requested building type.",
+          "Planning compatibility, change-of-use authorization, accessibility, and the feasibility of the required RSA layout need verification."
+        ]
+      },
+      {
+        "id": "DEMO-00126",
+        "evaluation_text": "The property has limited suitability for conversion into a 30-resident RSA. Its energy class C meets the requested D-or-better threshold, and healthcare services are 0.98 km away, with a healthcare proximity percentile of 64.4. However, the recorded area is only 109 sqm, far below the requested 1,600 sqm gross floor area, and the property is described as an office building rather than a hotel. The supplied regulatory data establish no minimum gross-area threshold; the 12 sqm standard applies only to a single bedroom, while other standards concern specific rooms and functions. Urban-planning compatibility, change-of-use authorization, layout, accessibility, and technical and sectoral requirements need verification.",
+        "final_ranking_score": 46,
+        "pros": [
+          "Energy class C meets the requested energy-class threshold of D or better.",
+          "Healthcare proximity is 0.98 km, with a healthcare percentile of 64.4.",
+          "Location indicators are favorable for mobility (87.4), green areas (86.9), and commercial services (78.7)."
+        ],
+        "cons": [
+          "The listed 109 sqm area is well below the user's 1,600 sqm gross-area requirement.",
+          "The property is listed as an office building, not a hotel, so its fit with the requested building type is unconfirmed.",
+          "Conversion feasibility and RSA compliance remain unverified, including urban-planning compatibility, change of use, accessibility, room configuration, and sectoral authorization."
+        ]
+      },
+      {
+        "id": "DEMO-01308",
+        "evaluation_text": "The property is a weak fit for the stated RSA objective. Its energy class D meets the requested threshold, and healthcare proximity is moderate (70.5). However, the recorded 118.0 sqm is far below the requested 1,600 sqm gross floor area, and the listing identifies it as a warehouse rather than a hotel. Conversion potential therefore appears limited on the supplied evidence; urban planning compatibility, change-of-use authorization, accessibility, layout, and technical suitability all require verification. The regulatory context identifies regional room and function standards but no verified minimum gross property area, so those standards do not establish overall area sufficiency.",
+        "final_ranking_score": 46,
+        "pros": [
+          "Energy class D meets the user's stated minimum.",
+          "Healthcare proximity is 70.5, providing some access to healthcare services.",
+          "Built between 1981 and 2000, the property may offer a more recent starting point for assessment than older stock, though its condition is unspecified."
+        ],
+        "cons": [
+          "At 118.0 sqm, the recorded area is substantially below the requested 1,600 sqm gross floor area.",
+          "The property is recorded as a warehouse, not a hotel, so it does not match the requested building type.",
+          "Energy indicators are weak overall (energy_score_total 6), including a low envelope score; conversion, authorization, accessibility, and RSA-specific layout and safety requirements remain unverified."
+        ]
+      },
+      {
+        "id": "DEMO-00027",
+        "evaluation_text": "This property has limited strategic fit for conversion into a 30-resident RSA. Its energy class D meets the stated threshold, and healthcare proximity is moderate (64.8). However, the recorded surface area is 256 sqm, far below the requested 1,600 sqm gross area. The data identify it as a commercial unit rather than a hotel, so neither its suitability for conversion nor authorization for the proposed use is established. The regional standard specifies room and shared-space requirements but provides no verified minimum gross property area; the listed net room and function measurements cannot establish overall area sufficiency. Urban planning, change-of-use, access, health, fire, structural, and sector authorization checks remain necessary.",
+        "final_ranking_score": 43,
+        "pros": [
+          "Energy class D meets the user's stated minimum.",
+          "Healthcare proximity percentile is 64.8, offering a moderate location advantage.",
+          "The regional RSA standards provide specified room and shared-space requirements to inform a future feasibility review."
+        ],
+        "cons": [
+          "Recorded surface area is 256 sqm, substantially below the requested minimum of 1,600 sqm gross.",
+          "The property is listed as a commercial unit, not a hotel; conversion suitability and authorization are unverified.",
+          "The available data do not establish a compliant layout or feasibility for 30 residents, and the required planning, accessibility, safety, and sector authorization checks remain open."
+        ]
+      },
+      {
+        "id": "DEMO-00058",
+        "evaluation_text": "The unit offers limited strategic potential for conversion to a 30-resident RSA. Its energy class C exceeds the requested D-or-better threshold, and its healthcare proximity percentile of 71.6 is a relative strength. However, the recorded area is only 160 sqm, far below the requested 1,600 sqm gross floor area. This dataset does not establish whether the space can be combined with adjoining premises. The property is listed as a commercial unit rather than a hotel, and neither planning compatibility nor authorization for an RSA conversion is established. Regulatory context provides no verified minimum gross property area; room and other functional requirements are scoped to net usable area and would require a layout assessment. Accessibility, sanitary compliance, fire and structural safety, and sector authorization also need verification.",
+        "final_ranking_score": 40,
+        "pros": [
+          "Energy class C meets the requested D-or-better standard.",
+          "Healthcare proximity percentile of 71.6 is comparatively strong.",
+          "Commercial-unit classification may offer some scope for adaptation, subject to layout and regulatory checks."
+        ],
+        "cons": [
+          "Recorded area is 160 sqm, well below the requested 1,600 sqm gross floor area.",
+          "The property is identified as a commercial unit, not a hotel, and suitability for conversion to an RSA is unverified.",
+          "Planning compatibility, accessibility, required room configuration, safety compliance, and sector authorization remain to be checked."
+        ]
+      }
+    ],
+    "relaxation_applied": true,
+    "relaxation_count": 1,
+    "fallback_activated": false,
+    "agent_errors": []
+  }
+}

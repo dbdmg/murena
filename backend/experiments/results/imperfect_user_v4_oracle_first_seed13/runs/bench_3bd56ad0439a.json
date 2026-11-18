@@ -1,0 +1,827 @@
+{
+  "run_id": "bench_3bd56ad0439a",
+  "condition": "oracle",
+  "unit_id": "S08",
+  "scenario_id": null,
+  "base_case_id": "S08",
+  "missing_count": null,
+  "scenario_name": null,
+  "tags": [],
+  "model": "gpt-6-luna",
+  "repeat": 1,
+  "attempt": 1,
+  "input_sha256": "dda07bc2a0b55f34146d168272efd3f8c19a55fbbee9de67d40286f0ace1ae2a",
+  "scenario_sha256": null,
+  "initial_query": "Find an office building to convert it into a university student residence with 60 beds under the specific CDP/PNRR funding program in Turin with at least 850 sqm of gross floor area in energy class C or better near public transport.",
+  "options": {
+    "dataset_key": "full",
+    "map_limit": 1000,
+    "llm_limit": 10,
+    "analysis_mode": "agent",
+    "use_relaxation": true,
+    "use_data_knowledge": true,
+    "architecture": "multiagent",
+    "disabled_agents": null
+  },
+  "started_at": "2026-11-18T13:32:43.215256+00:00",
+  "clarification_seconds": null,
+  "analysis_seconds": 131.626,
+  "submitted_query": "Find an office building to convert it into a university student residence with 60 beds under the specific CDP/PNRR funding program in Turin with at least 850 sqm of gross floor area in energy class C or better near public transport.",
+  "status": "completed",
+  "results_count": 16,
+  "top_ids": [
+    "DEMO-00038",
+    "DEMO-00901",
+    "DEMO-01136",
+    "DEMO-01418",
+    "DEMO-00492",
+    "DEMO-00058",
+    "DEMO-01035",
+    "DEMO-01467",
+    "DEMO-01292",
+    "DEMO-01284"
+  ],
+  "quality": {
+    "expected_count": 0,
+    "matched_expected": null,
+    "precision_at_returned": null,
+    "recall": null
+  },
+  "final_sql": "SELECT\n  *\nFROM ESTATES\nWHERE\n  property_type IN ('Office building', 'Commercial unit', 'Warehouse')\n  AND surface_area >= 146\n  AND energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C')\n  AND mobility >= 47.1\n  AND HAVERSINE_KM(latitude, longitude, 45.0677551, 7.6824892) <= 8.0\nORDER BY\n  HAVERSINE_KM(latitude, longitude, 45.0677551, 7.6824892) ASC",
+  "duration_seconds": 131.642,
+  "scenario_definition": {
+    "id": "S08_k2_D_Cp_all_vague",
+    "name": "2 omitted dimensions; intended use: University Student Residence (specific CDP/PNRR grant); balance: 0 specified, 2 vague, 0 opt-out",
+    "tags": [
+      "edbt",
+      "controlled_missingness_v3",
+      "missing_2",
+      "UC08_student_grant_missing_use",
+      "imperfect_user_v4",
+      "spec_0",
+      "vague_2",
+      "optout_0",
+      "balance_0_2_0"
+    ],
+    "base_case_id": "S08",
+    "source_case_id": "UC08_student_grant_missing_use",
+    "missing_count": 2,
+    "initial_query": "I am looking for an office building. The location is in Turin. I need a property with at least 850 sqm of gross floor area and capacity for 60 people. I prefer a property in energy class C or better.",
+    "one_shot_query": "I am looking for an office building. The location is in Turin. I need a property with at least 850 sqm of gross floor area and capacity for 60 people. I prefer a property in energy class C or better.",
+    "oracle_query": "Find an office building to convert it into a university student residence with 60 beds under the specific CDP/PNRR funding program in Turin with at least 850 sqm of gross floor area in energy class C or better near public transport.",
+    "expected_initial_missing": [
+      "D",
+      "Cp"
+    ],
+    "clarifications": {
+      "I": "I am looking for an office building.",
+      "D": [
+        "I plan to develop affordable housing and dormitory accommodations for university students eligible under regional support schemes.",
+        "I intend to convert it into a university student residence under the specific CDP/PNRR funding program."
+      ],
+      "L": "The location is in Turin.",
+      "Cb": "I need a property with at least 850 sqm of gross floor area and capacity for 60 people.",
+      "Ce": "I prefer a property in energy class C or better.",
+      "Cp": [
+        "Direct access to high-frequency metro or bus corridors and close to daily student amenities.",
+        "I prefer properties near public transport."
+      ]
+    },
+    "expected_mapping": {
+      "I": "SPECIFIED",
+      "D": "SPECIFIED",
+      "L": "SPECIFIED",
+      "Cb": "SPECIFIED",
+      "Ce": "SPECIFIED",
+      "Cp": "SPECIFIED"
+    },
+    "repeats": 1,
+    "imperfect_user": {
+      "profile": "all_vague",
+      "balance": "0spec_2vague_0optout",
+      "source_variant_id": "S08_k2_D_Cp",
+      "source_enabled": true,
+      "specified_count": 0,
+      "vague_count": 2,
+      "optout_count": 0,
+      "specified_dimensions": [],
+      "vague_dimensions": [
+        "D",
+        "Cp"
+      ],
+      "optout_dimensions": [],
+      "expected_turns": 4
+    }
+  },
+  "artifact_file": "runs/bench_3bd56ad0439a.json",
+  "artifact_schema_version": 4,
+  "ranking_ids": [
+    "DEMO-00038",
+    "DEMO-00901",
+    "DEMO-01136",
+    "DEMO-01418",
+    "DEMO-00492",
+    "DEMO-00058",
+    "DEMO-01035",
+    "DEMO-01467",
+    "DEMO-01292",
+    "DEMO-01284",
+    "DEMO-00806",
+    "DEMO-00686",
+    "DEMO-01428",
+    "DEMO-01074",
+    "DEMO-00942",
+    "DEMO-00668"
+  ],
+  "top": [
+    {
+      "id": "DEMO-00038",
+      "score": 74.061,
+      "distance_km": 0.92
+    },
+    {
+      "id": "DEMO-00901",
+      "score": 71.225,
+      "distance_km": 0.45
+    },
+    {
+      "id": "DEMO-01136",
+      "score": 57.65800000000001,
+      "distance_km": 2.13
+    },
+    {
+      "id": "DEMO-01418",
+      "score": 54.21000000000001,
+      "distance_km": 1.98
+    },
+    {
+      "id": "DEMO-00492",
+      "score": 49.58500000000001,
+      "distance_km": 1.94
+    },
+    {
+      "id": "DEMO-00058",
+      "score": 48.470000000000006,
+      "distance_km": 1.68
+    },
+    {
+      "id": "DEMO-01035",
+      "score": 26.085000000000004,
+      "distance_km": 2.61
+    },
+    {
+      "id": "DEMO-01467",
+      "score": 24.930000000000003,
+      "distance_km": 2.66
+    },
+    {
+      "id": "DEMO-01292",
+      "score": 19.3,
+      "distance_km": 5.1
+    },
+    {
+      "id": "DEMO-01284",
+      "score": 18.165000000000003,
+      "distance_km": 2.99
+    }
+  ],
+  "api_response": {
+    "agent_trace": [
+      {
+        "agent_name": "location-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "places": [
+            {
+              "name": "Turin",
+              "city": "Turin",
+              "lat": 45.0677551,
+              "lon": 7.6824892,
+              "radius_km": 3.0
+            }
+          ],
+          "found": true
+        }
+      },
+      {
+        "agent_name": "proximity-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "requirements": [
+            {
+              "target_column": "mobility",
+              "operator": ">=",
+              "value": 71,
+              "description": "The request asks for proximity to public transport; threshold is the 75th percentile for mobility, rounded to the nearest integer."
+            }
+          ]
+        }
+      },
+      {
+        "agent_name": "building-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "typologies": [
+            "Office building"
+          ],
+          "found": true,
+          "requirements": [
+            {
+              "target_column": "property_type",
+              "operator": "=",
+              "value": "Office building",
+              "description": "The request explicitly seeks an office building in its current state."
+            },
+            {
+              "target_column": "surface_area",
+              "operator": ">=",
+              "value": 850,
+              "description": "The request specifies at least 850 sqm of gross floor area."
+            }
+          ]
+        }
+      },
+      {
+        "agent_name": "ranking-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "ranking": [
+            {
+              "agent_name": "location",
+              "rank": 1
+            },
+            {
+              "agent_name": "regulatory",
+              "rank": 2
+            },
+            {
+              "agent_name": "building",
+              "rank": 3
+            },
+            {
+              "agent_name": "energy",
+              "rank": 4
+            },
+            {
+              "agent_name": "proximity",
+              "rank": 5
+            }
+          ],
+          "weights": {
+            "location": 0.43,
+            "regulatory": 0.22,
+            "energy": 0.11,
+            "building": 0.15,
+            "proximity": 0.09
+          }
+        }
+      },
+      {
+        "agent_name": "energy-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "requirements": [
+            {
+              "target_column": "energy_class",
+              "operator": "IN",
+              "value": [
+                "A1",
+                "A2",
+                "A3",
+                "A4",
+                "B",
+                "C"
+              ],
+              "description": "Energy class C or better."
+            }
+          ],
+          "found": true
+        }
+      },
+      {
+        "agent_name": "regulatory-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "found": false,
+          "matched_use_cases": [
+            "University Student Residence (specific CDP/PNRR grant)"
+          ],
+          "requirements": []
+        }
+      },
+      {
+        "agent_name": "sql-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "sql": "SELECT * FROM ESTATES WHERE property_type = 'Office building' AND surface_area >= 850 AND energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C') AND mobility >= 71 AND haversine_km(latitude, longitude, 45.0677551, 7.6824892) <= 3.0 ORDER BY haversine_km(latitude, longitude, 45.0677551, 7.6824892) ASC",
+          "explanation": "Filters office buildings by minimum area, qualifying energy class, mobility score, and 3 km radius, then sorts by distance."
+        }
+      },
+      {
+        "agent_name": "relaxation-agent",
+        "agent_mode": "extraction",
+        "output": [
+          {
+            "condizione_iniziale": "property_type = 'Office building'",
+            "condizione_relaxed": "property_type IN ('Office building', 'Commercial unit')",
+            "piani_progressivi": [],
+            "strategia": "Category widening",
+            "motivazione": "Commercial units are the closest listed property type to office buildings and adding them can increase matches while preserving the commercial property intent.",
+            "livello_rilassamento": "low"
+          },
+          {
+            "condizione_iniziale": "property_type = 'Office building'",
+            "condizione_relaxed": "property_type IN ('Office building', 'Commercial unit', 'Warehouse')",
+            "piani_progressivi": [],
+            "strategia": "Category widening",
+            "motivazione": "Adding commercial units and warehouses broadens the search to related non-residential property types.",
+            "livello_rilassamento": "medium"
+          },
+          {
+            "condizione_iniziale": "property_type = 'Office building'",
+            "condizione_relaxed": "property_type IN ('Office building', 'Commercial unit', 'Warehouse', 'Industrial shed', 'Hotel')",
+            "piani_progressivi": [],
+            "strategia": "Category widening",
+            "motivazione": "This includes additional non-residential property types, giving the search a wider pool while retaining its commercial focus.",
+            "livello_rilassamento": "high"
+          },
+          {
+            "condizione_iniziale": "surface_area >= 850",
+            "condizione_relaxed": "surface_area >= 547",
+            "piani_progressivi": [],
+            "strategia": "Threshold change",
+            "motivazione": "The reported maximum area is 547, so the original threshold excludes all records; lowering it to the maximum is the smallest data-supported adjustment that can admit matches.",
+            "livello_rilassamento": "low"
+          },
+          {
+            "condizione_iniziale": "surface_area >= 850",
+            "condizione_relaxed": "surface_area >= 146",
+            "piani_progressivi": [],
+            "strategia": "Threshold change",
+            "motivazione": "The 75th percentile is 146, providing a substantial but still large-area threshold supported by the observed distribution.",
+            "livello_rilassamento": "medium"
+          },
+          {
+            "condizione_iniziale": "surface_area >= 850",
+            "condizione_relaxed": "surface_area >= 99",
+            "piani_progressivi": [],
+            "strategia": "Threshold change",
+            "motivazione": "The median area is 99, so this broader threshold admits a large share of the observed properties while retaining a minimum size requirement.",
+            "livello_rilassamento": "high"
+          },
+          {
+            "condizione_iniziale": "energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C')",
+            "condizione_relaxed": "energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C', 'D')",
+            "piani_progressivi": [],
+            "strategia": "Category widening",
+            "motivazione": "Adding the adjacent D class broadens the accepted energy range while keeping the focus on the more efficient classes.",
+            "livello_rilassamento": "low"
+          },
+          {
+            "condizione_iniziale": "energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C')",
+            "condizione_relaxed": "energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C', 'D', 'E')",
+            "piani_progressivi": [],
+            "strategia": "Category widening",
+            "motivazione": "Including D and E adds adjacent lower-efficiency classes and materially expands coverage across the observed distribution.",
+            "livello_rilassamento": "medium"
+          },
+          {
+            "condizione_iniziale": "energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C')",
+            "condizione_relaxed": "energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C', 'D', 'E', 'F', 'G')",
+            "piani_progressivi": [],
+            "strategia": "Category widening",
+            "motivazione": "Including every observed energy class maximizes the available pool when stricter class limits return too few results.",
+            "livello_rilassamento": "high"
+          },
+          {
+            "condizione_iniziale": "mobility >= 71",
+            "condizione_relaxed": "mobility >= 70.9",
+            "piani_progressivi": [],
+            "strategia": "Threshold change",
+            "motivazione": "The 75th percentile is 70.9, so this minimal adjustment includes records at the observed upper-quartile boundary.",
+            "livello_rilassamento": "low"
+          },
+          {
+            "condizione_iniziale": "mobility >= 71",
+            "condizione_relaxed": "mobility >= 58.95",
+            "piani_progressivi": [],
+            "strategia": "Threshold change",
+            "motivazione": "The median mobility score is 58.95, offering a broader threshold grounded in the distribution while retaining a minimum score.",
+            "livello_rilassamento": "medium"
+          },
+          {
+            "condizione_iniziale": "mobility >= 71",
+            "condizione_relaxed": "mobility >= 47.1",
+            "piani_progressivi": [],
+            "strategia": "Threshold change",
+            "motivazione": "The 25th percentile is 47.1, so lowering the cutoff to this level substantially widens eligibility while preserving a floor.",
+            "livello_rilassamento": "high"
+          },
+          {
+            "condizione_iniziale": "HAVERSINE_KM(latitude, longitude, 45.0677551, 7.6824892) <= 3.0",
+            "condizione_relaxed": "HAVERSINE_KM(latitude, longitude, 45.0677551, 7.6824892) <= 4.0",
+            "piani_progressivi": [],
+            "strategia": "Radius expansion",
+            "motivazione": "Increasing the radius by 1 km modestly widens the nearby search while keeping the location centered on the requested point.",
+            "livello_rilassamento": "low"
+          },
+          {
+            "condizione_iniziale": "HAVERSINE_KM(latitude, longitude, 45.0677551, 7.6824892) <= 3.0",
+            "condizione_relaxed": "HAVERSINE_KM(latitude, longitude, 45.0677551, 7.6824892) <= 5.0",
+            "piani_progressivi": [],
+            "strategia": "Radius expansion",
+            "motivazione": "A 5 km radius extends the local search area enough to admit more candidates while remaining neighborhood-scale.",
+            "livello_rilassamento": "medium"
+          },
+          {
+            "condizione_iniziale": "HAVERSINE_KM(latitude, longitude, 45.0677551, 7.6824892) <= 3.0",
+            "condizione_relaxed": "HAVERSINE_KM(latitude, longitude, 45.0677551, 7.6824892) <= 8.0",
+            "piani_progressivi": [],
+            "strategia": "Radius expansion",
+            "motivazione": "An 8 km radius gives the search a wider local catchment while preserving the original geographic center.",
+            "livello_rilassamento": "high"
+          }
+        ],
+        "batch_id": null,
+        "timestamp": "2026-11-18T14:33:49.679435",
+        "execution_time_ms": 33347.92709350586
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "DEMO-00038",
+          "evaluation_text": "The property has strong energy performance, with an A4 rating, and good public transport proximity (mobility percentile 89.2), both aligned with the stated preferences. However, it is recorded as a 240 sqm warehouse rather than an office building, and the supplied data do not establish whether it can be converted to a 60-bed residence. The requested 850 sqm gross floor area threshold is not met by the recorded area. The grant-specific source provides net area standards per bed and room, but no verified gross-property-area threshold; its net measures cannot establish overall area sufficiency. Urban planning compatibility, change-of-use authorization, layout, accessibility, sanitary and fire requirements, and structural feasibility require verification. The recorded relevance score is 74.",
+          "final_ranking_score": 74,
+          "pros": [
+            "A4 energy class exceeds the requested C-or-better threshold.",
+            "Public transport proximity is strong, with a mobility percentile of 89.2.",
+            "Green-area proximity is also high, at the 93.5 percentile."
+          ],
+          "cons": [
+            "The recorded surface area is 240 sqm, below the user’s stated 850 sqm gross floor area requirement.",
+            "The property is listed as a warehouse, not an office building; suitability for conversion to student housing is unverified.",
+            "The data do not establish capacity for 60 beds or compliance with grant standards and required planning, accessibility, sanitary, fire-safety, and structural checks."
+          ]
+        },
+        "batch_id": 1,
+        "timestamp": "2026-11-18T14:34:07.915926",
+        "execution_time_ms": 18160.61568260193
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "DEMO-00901",
+          "evaluation_text": "The property has some alignment with the requested conversion: it is an office building, has an energy class of C, and is 0.45 km from the Turin reference point. However, its reported 189 sqm surface area is far below the requested minimum of 850 sqm gross floor area. The mobility percentile is 66.8, but the data do not establish transit access against a defined high-quality threshold. The CDP/PNRR source provides grant-specific net area and other standards, but no verified gross-area threshold; grant eligibility, planning compatibility, change of use, accessibility, and technical feasibility require verification.",
+          "final_ranking_score": 71,
+          "pros": [
+            "Office building use is consistent with the requested starting property type for conversion.",
+            "Energy class C meets the stated energy threshold.",
+            "The property is located 0.45 km from the Turin reference point, with mobility at the 66.8 percentile."
+          ],
+          "cons": [
+            "The reported surface area is 189 sqm, substantially below the requested minimum of 850 sqm gross floor area.",
+            "The supplied data do not show whether the building can accommodate 60 beds or satisfy the grant’s net-area, accessible-bed, and bathroom standards.",
+            "Transit quality at the requested threshold, grant eligibility, urban-planning compatibility, change-of-use approval, and technical feasibility are unverified."
+          ]
+        },
+        "batch_id": 2,
+        "timestamp": "2026-11-18T14:34:08.039737",
+        "execution_time_ms": 18283.65731239319
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "DEMO-01418",
+          "evaluation_text": "The property has strong energy credentials, with an A3 rating and an energy score of 19/20, and its mobility percentile of 82.4 aligns well with the preference for public transport access. However, the recorded area is 198 sqm, far below the stated 850 sqm search target, and the property is listed as a commercial unit rather than an office building. The supplied grant information gives no verified minimum gross area for the whole property; its net room and bed standards cannot establish gross-area eligibility or capacity for 60 beds. Conversion potential therefore remains unsubstantiated, pending verification of the building’s layout, planning compatibility, change-of-use approvals, and technical and grant requirements.",
+          "final_ranking_score": 54,
+          "pros": [
+            "A3 energy class and energy score of 19/20 indicate strong reported energy performance.",
+            "Mobility percentile of 82.4 is consistent with the preference for good public transport access.",
+            "Construction period of 1981–2000 and the reported commercial use provide a basis for further assessment of adaptation potential."
+          ],
+          "cons": [
+            "At 198 sqm, the recorded area is substantially below the requested 850 sqm gross floor area; the data do not establish capacity for 60 beds.",
+            "The property is identified as a commercial unit, not an office building, so its fit with the requested asset type is uncertain.",
+            "Planning compatibility, change of use, accessibility, fire and structural safety, and grant-specific compliance require verification; the supplied data do not establish conversion feasibility."
+          ]
+        },
+        "batch_id": 3,
+        "timestamp": "2026-11-18T14:34:08.195033",
+        "execution_time_ms": 18437.776565551758
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "DEMO-01136",
+          "evaluation_text": "The office building has a strong energy profile (A2; energy score 19/20) and a mobility percentile of 71.5, supporting two stated priorities. However, its recorded area is 193 sqm, far below the requested 850 sqm gross floor area, so it does not meet the user's stated size criterion for a 60-bed residence. The CDP/PNRR source provides grant-specific net area standards but no verified minimum gross property area; those room and bed standards cannot establish overall capacity from this dataset. Urban-planning compatibility, change-of-use approval, layout, accessibility, and other required checks remain unverified.",
+          "final_ranking_score": 58,
+          "pros": [
+            "Energy class A2 and an energy score of 19/20 indicate very strong performance against the requested energy criterion.",
+            "Mobility percentile of 71.5 supports the preference for good public transport access.",
+            "Existing office use aligns with the requested starting property type for a conversion, subject to planning and authorization checks."
+          ],
+          "cons": [
+            "Recorded surface area is 193 sqm, well below the requested minimum of 850 sqm gross floor area and insufficient evidence for the target project scale.",
+            "The supplied area and property details do not establish capacity for 60 beds or compliance with the grant's room-level net area standards.",
+            "Turin PRG compatibility, change of use, accessibility, sanitary and fire requirements, structural safety, and sector authorization all require verification."
+          ]
+        },
+        "batch_id": 4,
+        "timestamp": "2026-11-18T14:34:09.310918",
+        "execution_time_ms": 19554.585218429565
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "DEMO-00058",
+          "evaluation_text": "This 160 sqm commercial unit offers only a limited starting point for conversion to a 60-bed university residence. Its C energy class meets the stated threshold, and its mobility score indicates some public transport access, though proximity is not especially strong. The supplied data do not establish that the unit is an office building, that its layout or area can support the required beds and grant standards, or that conversion is authorized. The grant-specific source provides net room and bed standards but no verified minimum gross property area; urban-planning, building, health, accessibility, fire-safety, structural, and sector authorization checks remain necessary.",
+          "final_ranking_score": 48,
+          "pros": [
+            "Energy class C meets the requested minimum.",
+            "Mobility score of 52.6 indicates some public transport access.",
+            "The existing commercial use may offer a basis to investigate adaptive reuse, subject to change-of-use and planning checks."
+          ],
+          "cons": [
+            "At 160 sqm, the unit is substantially smaller than the requested 850 sqm gross floor area.",
+            "The property is listed as a commercial unit, not an office building, and its layout and capacity for 60 beds are unverified.",
+            "Conversion eligibility and compliance with the CDP/PNRR grant standards and required planning, health, accessibility, safety, and authorization checks are not established."
+          ]
+        },
+        "batch_id": 5,
+        "timestamp": "2026-11-18T14:34:19.356920",
+        "execution_time_ms": 11317.206859588623
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "DEMO-01035",
+          "evaluation_text": "This 159 sqm warehouse in Turin has energy class C, meeting the stated energy threshold, and a moderate energy profile (total score 10/20). Its mobility percentile of 47.9 indicates only middling public transport proximity. The available data do not establish that it is an office building, that 159 sqm is gross floor area, or that it can accommodate 60 beds; the supplied grant standard gives net area requirements per bed and no verified minimum gross property area. Conversion suitability, planning compatibility, accessibility, and other required approvals need verification. Overall, the evidence shows limited alignment with the requested residence project.",
+          "final_ranking_score": 26,
+          "pros": [
+            "Energy class C meets the stated minimum energy class.",
+            "Healthcare and commercial proximity percentiles are relatively strong at 72.6 and 84.8.",
+            "The existing warehouse use could be assessed for adaptive reuse, subject to technical and regulatory checks."
+          ],
+          "cons": [
+            "The 159 sqm listed area is far below the requested 850 sqm gross floor area, and its gross-area basis is not specified.",
+            "The property is identified as a warehouse rather than an office building, and the data do not establish capacity for 60 beds.",
+            "Mobility percentile is 47.9, providing only moderate evidence of public transport access; planning, change-of-use, accessibility, and grant compliance remain unverified."
+          ]
+        },
+        "batch_id": 6,
+        "timestamp": "2026-11-18T14:34:19.576756",
+        "execution_time_ms": 11381.717920303345
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "DEMO-01467",
+          "evaluation_text": "The unit has some relevant attributes for the proposed student residence: its energy class C meets the stated energy threshold, and its mobility percentile of 61.3 suggests moderate public transport access. However, the supplied data describe a 191 sqm commercial unit, not an office building, and its area is far below the requested 850 sqm gross floor area. Conversion to 60 beds is therefore not supported by the available property data. The grant’s cited 10.6 sqm per bed standard applies to net residential space for single rooms (or 8.1 sqm per bed for double rooms); it is not a minimum gross property-area threshold. Grant eligibility and conversion feasibility would require verification, including Turin planning compatibility, change-of-use authorization, health and safety requirements, and accessibility.",
+          "final_ranking_score": 25,
+          "pros": [
+            "Energy class C meets the user's stated minimum.",
+            "Mobility percentile of 61.3 indicates some public transport accessibility.",
+            "Renewables are present, with an energy total of 15 out of 20."
+          ],
+          "cons": [
+            "At 191 sqm, the unit is well below the requested minimum of 850 sqm gross floor area.",
+            "The listed property type is a commercial unit, not an office building.",
+            "The data do not establish that conversion to 60 beds is feasible or grant-compliant; planning, authorization, accessibility, and room-level requirements need verification."
+          ]
+        },
+        "batch_id": 7,
+        "timestamp": "2026-11-18T14:34:19.806650",
+        "execution_time_ms": 10495.970964431763
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "DEMO-00492",
+          "evaluation_text": "This warehouse has strong energy credentials, with an A4 rating and high scores for its plant and building envelope. Its proximity profile is also supportive of student housing, particularly for education, commercial services, healthcare, and green space; public transport accessibility is moderate. However, the stated 191.0 sqm gross area is far below the requested 850 sqm, and the property is identified as a warehouse rather than an office building. Conversion to a 60-bed residence under the CDP/PNRR program is therefore not substantiated by the available data. The cited grant standards concern net residential space per bed and accessible beds, while no verified gross-area threshold is supplied; planning, change-of-use, health, accessibility, fire-safety, structural, and sector authorization checks remain necessary.",
+          "final_ranking_score": 50,
+          "pros": [
+            "Energy class A4 with strong plant and envelope scores supports the requested energy-performance preference.",
+            "Education proximity is high (90.1), with strong access to commercial services (75.7), healthcare (74.1), and green areas (78.7).",
+            "The stated mobility score of 61.8 indicates some public transport access, though its quality should be checked against the user's needs."
+          ],
+          "cons": [
+            "At 191.0 sqm, the recorded gross area is substantially below the requested 850 sqm, and the supplied data do not support capacity for 60 beds.",
+            "The property is classified as a warehouse, not an office building; suitability for conversion to student residence needs verification.",
+            "Turin planning compatibility, change-of-use permissions, grant-standard room layouts, accessibility, health and safety requirements, and other required authorizations are unverified."
+          ]
+        },
+        "batch_id": 8,
+        "timestamp": "2026-11-18T14:34:20.310820",
+        "execution_time_ms": 12395.467519760132
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "DEMO-01284",
+          "evaluation_text": "The property has limited strategic fit for a 60-bed student residence under the specific CDP/PNRR program. Its energy class C meets the stated energy threshold, and its mobility percentile of 66.6 indicates some public-transport access. However, the recorded area is only 188 sqm, and the property is classified as a warehouse rather than an office building. The supplied regulatory data provide no verified minimum gross-area threshold; the 10.6 sqm per bed standard is net area for single-occupancy residential function under this specific grant, not a gross property-area test. The available data therefore do not establish capacity for 60 beds or grant compliance. Urban-planning compatibility, change-of-use approval, layout, accessibility, fire and structural safety, and other required checks need verification.",
+          "final_ranking_score": 18,
+          "pros": [
+            "Energy class C meets the user's stated minimum energy requirement.",
+            "Mobility percentile of 66.6 provides a moderate public-transport access indicator.",
+            "Energy plant and envelope scores are both 4, indicating relatively strong scores for these components."
+          ],
+          "cons": [
+            "The recorded area is 188 sqm, well below the user's stated 850 sqm gross-area target.",
+            "The property is identified as a warehouse, not an office building; suitability and approval for conversion to student housing are unverified.",
+            "The supplied data do not establish capacity for 60 beds or compliance with the grant's net-area, accessible-bed, and other applicable standards."
+          ]
+        },
+        "batch_id": 9,
+        "timestamp": "2026-11-18T14:34:37.484940",
+        "execution_time_ms": 17908.559322357178
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "DEMO-01292",
+          "evaluation_text": "This office building has limited suitability for the stated objective. Its A1 energy class is better than the requested C threshold, and the supplied data show strong envelope performance. However, its 358 sqm gross area is substantially below the requested 850 sqm, so it does not meet the user's area criterion for a 60-bed residence. The listed mobility percentile of 54.6 provides some transit proximity, but does not establish that transport access meets the user's high-quality preference. The CDP/PNRR source provides grant-specific net area standards per bed and no verified gross-area threshold; therefore, those standards cannot establish grant eligibility from the property's gross area. Urban-planning compatibility, change-of-use approval, sanitary requirements, accessibility, fire safety where applicable, structural safety, and sector authorization require verification.",
+          "final_ranking_score": 19,
+          "pros": [
+            "Office building use offers a possible starting point for assessing conversion, subject to planning and building approvals.",
+            "A1 energy class exceeds the requested C-or-better threshold; the envelope score is strong at 5.",
+            "Mobility percentile is 54.6, indicating some public transport proximity, though alignment with the high-quality preference needs assessment."
+          ],
+          "cons": [
+            "At 358 sqm, the property is well below the user's stated minimum of 850 sqm gross floor area for the project.",
+            "Mobility percentile of 54.6 does not establish that the location meets the user's high-quality public transport preference.",
+            "The data do not establish that conversion can accommodate 60 beds or satisfy the grant's net room standards; layout and all required regulatory and technical checks need verification."
+          ]
+        },
+        "batch_id": 10,
+        "timestamp": "2026-11-18T14:34:37.908139",
+        "execution_time_ms": 18551.501274108887
+      }
+    ],
+    "evaluation_results": [
+      {
+        "id": "DEMO-00038",
+        "evaluation_text": "The property has strong energy performance, with an A4 rating, and good public transport proximity (mobility percentile 89.2), both aligned with the stated preferences. However, it is recorded as a 240 sqm warehouse rather than an office building, and the supplied data do not establish whether it can be converted to a 60-bed residence. The requested 850 sqm gross floor area threshold is not met by the recorded area. The grant-specific source provides net area standards per bed and room, but no verified gross-property-area threshold; its net measures cannot establish overall area sufficiency. Urban planning compatibility, change-of-use authorization, layout, accessibility, sanitary and fire requirements, and structural feasibility require verification. The recorded relevance score is 74.",
+        "final_ranking_score": 74,
+        "pros": [
+          "A4 energy class exceeds the requested C-or-better threshold.",
+          "Public transport proximity is strong, with a mobility percentile of 89.2.",
+          "Green-area proximity is also high, at the 93.5 percentile."
+        ],
+        "cons": [
+          "The recorded surface area is 240 sqm, below the user’s stated 850 sqm gross floor area requirement.",
+          "The property is listed as a warehouse, not an office building; suitability for conversion to student housing is unverified.",
+          "The data do not establish capacity for 60 beds or compliance with grant standards and required planning, accessibility, sanitary, fire-safety, and structural checks."
+        ]
+      },
+      {
+        "id": "DEMO-00901",
+        "evaluation_text": "The property has some alignment with the requested conversion: it is an office building, has an energy class of C, and is 0.45 km from the Turin reference point. However, its reported 189 sqm surface area is far below the requested minimum of 850 sqm gross floor area. The mobility percentile is 66.8, but the data do not establish transit access against a defined high-quality threshold. The CDP/PNRR source provides grant-specific net area and other standards, but no verified gross-area threshold; grant eligibility, planning compatibility, change of use, accessibility, and technical feasibility require verification.",
+        "final_ranking_score": 71,
+        "pros": [
+          "Office building use is consistent with the requested starting property type for conversion.",
+          "Energy class C meets the stated energy threshold.",
+          "The property is located 0.45 km from the Turin reference point, with mobility at the 66.8 percentile."
+        ],
+        "cons": [
+          "The reported surface area is 189 sqm, substantially below the requested minimum of 850 sqm gross floor area.",
+          "The supplied data do not show whether the building can accommodate 60 beds or satisfy the grant’s net-area, accessible-bed, and bathroom standards.",
+          "Transit quality at the requested threshold, grant eligibility, urban-planning compatibility, change-of-use approval, and technical feasibility are unverified."
+        ]
+      },
+      {
+        "id": "DEMO-01136",
+        "evaluation_text": "The office building has a strong energy profile (A2; energy score 19/20) and a mobility percentile of 71.5, supporting two stated priorities. However, its recorded area is 193 sqm, far below the requested 850 sqm gross floor area, so it does not meet the user's stated size criterion for a 60-bed residence. The CDP/PNRR source provides grant-specific net area standards but no verified minimum gross property area; those room and bed standards cannot establish overall capacity from this dataset. Urban-planning compatibility, change-of-use approval, layout, accessibility, and other required checks remain unverified.",
+        "final_ranking_score": 58,
+        "pros": [
+          "Energy class A2 and an energy score of 19/20 indicate very strong performance against the requested energy criterion.",
+          "Mobility percentile of 71.5 supports the preference for good public transport access.",
+          "Existing office use aligns with the requested starting property type for a conversion, subject to planning and authorization checks."
+        ],
+        "cons": [
+          "Recorded surface area is 193 sqm, well below the requested minimum of 850 sqm gross floor area and insufficient evidence for the target project scale.",
+          "The supplied area and property details do not establish capacity for 60 beds or compliance with the grant's room-level net area standards.",
+          "Turin PRG compatibility, change of use, accessibility, sanitary and fire requirements, structural safety, and sector authorization all require verification."
+        ]
+      },
+      {
+        "id": "DEMO-01418",
+        "evaluation_text": "The property has strong energy credentials, with an A3 rating and an energy score of 19/20, and its mobility percentile of 82.4 aligns well with the preference for public transport access. However, the recorded area is 198 sqm, far below the stated 850 sqm search target, and the property is listed as a commercial unit rather than an office building. The supplied grant information gives no verified minimum gross area for the whole property; its net room and bed standards cannot establish gross-area eligibility or capacity for 60 beds. Conversion potential therefore remains unsubstantiated, pending verification of the building’s layout, planning compatibility, change-of-use approvals, and technical and grant requirements.",
+        "final_ranking_score": 54,
+        "pros": [
+          "A3 energy class and energy score of 19/20 indicate strong reported energy performance.",
+          "Mobility percentile of 82.4 is consistent with the preference for good public transport access.",
+          "Construction period of 1981–2000 and the reported commercial use provide a basis for further assessment of adaptation potential."
+        ],
+        "cons": [
+          "At 198 sqm, the recorded area is substantially below the requested 850 sqm gross floor area; the data do not establish capacity for 60 beds.",
+          "The property is identified as a commercial unit, not an office building, so its fit with the requested asset type is uncertain.",
+          "Planning compatibility, change of use, accessibility, fire and structural safety, and grant-specific compliance require verification; the supplied data do not establish conversion feasibility."
+        ]
+      },
+      {
+        "id": "DEMO-00492",
+        "evaluation_text": "This warehouse has strong energy credentials, with an A4 rating and high scores for its plant and building envelope. Its proximity profile is also supportive of student housing, particularly for education, commercial services, healthcare, and green space; public transport accessibility is moderate. However, the stated 191.0 sqm gross area is far below the requested 850 sqm, and the property is identified as a warehouse rather than an office building. Conversion to a 60-bed residence under the CDP/PNRR program is therefore not substantiated by the available data. The cited grant standards concern net residential space per bed and accessible beds, while no verified gross-area threshold is supplied; planning, change-of-use, health, accessibility, fire-safety, structural, and sector authorization checks remain necessary.",
+        "final_ranking_score": 50,
+        "pros": [
+          "Energy class A4 with strong plant and envelope scores supports the requested energy-performance preference.",
+          "Education proximity is high (90.1), with strong access to commercial services (75.7), healthcare (74.1), and green areas (78.7).",
+          "The stated mobility score of 61.8 indicates some public transport access, though its quality should be checked against the user's needs."
+        ],
+        "cons": [
+          "At 191.0 sqm, the recorded gross area is substantially below the requested 850 sqm, and the supplied data do not support capacity for 60 beds.",
+          "The property is classified as a warehouse, not an office building; suitability for conversion to student residence needs verification.",
+          "Turin planning compatibility, change-of-use permissions, grant-standard room layouts, accessibility, health and safety requirements, and other required authorizations are unverified."
+        ]
+      },
+      {
+        "id": "DEMO-00058",
+        "evaluation_text": "This 160 sqm commercial unit offers only a limited starting point for conversion to a 60-bed university residence. Its C energy class meets the stated threshold, and its mobility score indicates some public transport access, though proximity is not especially strong. The supplied data do not establish that the unit is an office building, that its layout or area can support the required beds and grant standards, or that conversion is authorized. The grant-specific source provides net room and bed standards but no verified minimum gross property area; urban-planning, building, health, accessibility, fire-safety, structural, and sector authorization checks remain necessary.",
+        "final_ranking_score": 48,
+        "pros": [
+          "Energy class C meets the requested minimum.",
+          "Mobility score of 52.6 indicates some public transport access.",
+          "The existing commercial use may offer a basis to investigate adaptive reuse, subject to change-of-use and planning checks."
+        ],
+        "cons": [
+          "At 160 sqm, the unit is substantially smaller than the requested 850 sqm gross floor area.",
+          "The property is listed as a commercial unit, not an office building, and its layout and capacity for 60 beds are unverified.",
+          "Conversion eligibility and compliance with the CDP/PNRR grant standards and required planning, health, accessibility, safety, and authorization checks are not established."
+        ]
+      },
+      {
+        "id": "DEMO-01035",
+        "evaluation_text": "This 159 sqm warehouse in Turin has energy class C, meeting the stated energy threshold, and a moderate energy profile (total score 10/20). Its mobility percentile of 47.9 indicates only middling public transport proximity. The available data do not establish that it is an office building, that 159 sqm is gross floor area, or that it can accommodate 60 beds; the supplied grant standard gives net area requirements per bed and no verified minimum gross property area. Conversion suitability, planning compatibility, accessibility, and other required approvals need verification. Overall, the evidence shows limited alignment with the requested residence project.",
+        "final_ranking_score": 26,
+        "pros": [
+          "Energy class C meets the stated minimum energy class.",
+          "Healthcare and commercial proximity percentiles are relatively strong at 72.6 and 84.8.",
+          "The existing warehouse use could be assessed for adaptive reuse, subject to technical and regulatory checks."
+        ],
+        "cons": [
+          "The 159 sqm listed area is far below the requested 850 sqm gross floor area, and its gross-area basis is not specified.",
+          "The property is identified as a warehouse rather than an office building, and the data do not establish capacity for 60 beds.",
+          "Mobility percentile is 47.9, providing only moderate evidence of public transport access; planning, change-of-use, accessibility, and grant compliance remain unverified."
+        ]
+      },
+      {
+        "id": "DEMO-01467",
+        "evaluation_text": "The unit has some relevant attributes for the proposed student residence: its energy class C meets the stated energy threshold, and its mobility percentile of 61.3 suggests moderate public transport access. However, the supplied data describe a 191 sqm commercial unit, not an office building, and its area is far below the requested 850 sqm gross floor area. Conversion to 60 beds is therefore not supported by the available property data. The grant’s cited 10.6 sqm per bed standard applies to net residential space for single rooms (or 8.1 sqm per bed for double rooms); it is not a minimum gross property-area threshold. Grant eligibility and conversion feasibility would require verification, including Turin planning compatibility, change-of-use authorization, health and safety requirements, and accessibility.",
+        "final_ranking_score": 25,
+        "pros": [
+          "Energy class C meets the user's stated minimum.",
+          "Mobility percentile of 61.3 indicates some public transport accessibility.",
+          "Renewables are present, with an energy total of 15 out of 20."
+        ],
+        "cons": [
+          "At 191 sqm, the unit is well below the requested minimum of 850 sqm gross floor area.",
+          "The listed property type is a commercial unit, not an office building.",
+          "The data do not establish that conversion to 60 beds is feasible or grant-compliant; planning, authorization, accessibility, and room-level requirements need verification."
+        ]
+      },
+      {
+        "id": "DEMO-01292",
+        "evaluation_text": "This office building has limited suitability for the stated objective. Its A1 energy class is better than the requested C threshold, and the supplied data show strong envelope performance. However, its 358 sqm gross area is substantially below the requested 850 sqm, so it does not meet the user's area criterion for a 60-bed residence. The listed mobility percentile of 54.6 provides some transit proximity, but does not establish that transport access meets the user's high-quality preference. The CDP/PNRR source provides grant-specific net area standards per bed and no verified gross-area threshold; therefore, those standards cannot establish grant eligibility from the property's gross area. Urban-planning compatibility, change-of-use approval, sanitary requirements, accessibility, fire safety where applicable, structural safety, and sector authorization require verification.",
+        "final_ranking_score": 19,
+        "pros": [
+          "Office building use offers a possible starting point for assessing conversion, subject to planning and building approvals.",
+          "A1 energy class exceeds the requested C-or-better threshold; the envelope score is strong at 5.",
+          "Mobility percentile is 54.6, indicating some public transport proximity, though alignment with the high-quality preference needs assessment."
+        ],
+        "cons": [
+          "At 358 sqm, the property is well below the user's stated minimum of 850 sqm gross floor area for the project.",
+          "Mobility percentile of 54.6 does not establish that the location meets the user's high-quality public transport preference.",
+          "The data do not establish that conversion can accommodate 60 beds or satisfy the grant's net room standards; layout and all required regulatory and technical checks need verification."
+        ]
+      },
+      {
+        "id": "DEMO-01284",
+        "evaluation_text": "The property has limited strategic fit for a 60-bed student residence under the specific CDP/PNRR program. Its energy class C meets the stated energy threshold, and its mobility percentile of 66.6 indicates some public-transport access. However, the recorded area is only 188 sqm, and the property is classified as a warehouse rather than an office building. The supplied regulatory data provide no verified minimum gross-area threshold; the 10.6 sqm per bed standard is net area for single-occupancy residential function under this specific grant, not a gross property-area test. The available data therefore do not establish capacity for 60 beds or grant compliance. Urban-planning compatibility, change-of-use approval, layout, accessibility, fire and structural safety, and other required checks need verification.",
+        "final_ranking_score": 18,
+        "pros": [
+          "Energy class C meets the user's stated minimum energy requirement.",
+          "Mobility percentile of 66.6 provides a moderate public-transport access indicator.",
+          "Energy plant and envelope scores are both 4, indicating relatively strong scores for these components."
+        ],
+        "cons": [
+          "The recorded area is 188 sqm, well below the user's stated 850 sqm gross-area target.",
+          "The property is identified as a warehouse, not an office building; suitability and approval for conversion to student housing are unverified.",
+          "The supplied data do not establish capacity for 60 beds or compliance with the grant's net-area, accessible-bed, and other applicable standards."
+        ]
+      }
+    ],
+    "relaxation_applied": true,
+    "relaxation_count": 1,
+    "fallback_activated": false,
+    "agent_errors": []
+  }
+}

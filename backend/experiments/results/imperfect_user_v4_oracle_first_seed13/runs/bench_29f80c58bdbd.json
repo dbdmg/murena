@@ -1,0 +1,823 @@
+{
+  "run_id": "bench_29f80c58bdbd",
+  "condition": "oracle",
+  "unit_id": "S06",
+  "scenario_id": null,
+  "base_case_id": "S06",
+  "missing_count": null,
+  "scenario_name": null,
+  "tags": [],
+  "model": "gpt-6-luna",
+  "repeat": 3,
+  "attempt": 1,
+  "input_sha256": "8c9719e952b0dcb1c098bcea112a2309f45d33e67bcc518d17729f538d2cb317",
+  "scenario_sha256": null,
+  "initial_query": "Find an office building to convert it into an autonomous senior day center (CDIA) for 18 guests in Turin with at least 360 sqm of gross floor area in energy class D or better near healthcare services.",
+  "options": {
+    "dataset_key": "full",
+    "map_limit": 1000,
+    "llm_limit": 10,
+    "analysis_mode": "agent",
+    "use_relaxation": true,
+    "use_data_knowledge": true,
+    "architecture": "multiagent",
+    "disabled_agents": null
+  },
+  "started_at": "2026-11-18T13:31:10.400651+00:00",
+  "clarification_seconds": null,
+  "analysis_seconds": 128.662,
+  "submitted_query": "Find an office building to convert it into an autonomous senior day center (CDIA) for 18 guests in Turin with at least 360 sqm of gross floor area in energy class D or better near healthcare services.",
+  "status": "completed",
+  "results_count": 11,
+  "top_ids": [
+    "DEMO-01313",
+    "DEMO-00038",
+    "DEMO-01383",
+    "DEMO-00492",
+    "DEMO-00058",
+    "DEMO-01418",
+    "DEMO-00592",
+    "DEMO-00027",
+    "DEMO-01035",
+    "DEMO-00641"
+  ],
+  "quality": {
+    "expected_count": 0,
+    "matched_expected": null,
+    "precision_at_returned": null,
+    "recall": null
+  },
+  "final_sql": "SELECT\n  *\nFROM ESTATES\nWHERE\n  property_type IN ('Office building', 'Commercial unit', 'Warehouse', 'Industrial shed', 'Hotel')\n  AND surface_area >= 146\n  AND energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C', 'D')\n  AND healthcare >= 64\nORDER BY\n  HAVERSINE_KM(latitude, longitude, 45.0677551, 7.6824892) ASC",
+  "duration_seconds": 128.679,
+  "scenario_definition": {
+    "id": "S06_k2_D_L_all_vague",
+    "name": "2 omitted dimensions; intended use: Senior Day Center (CDI / CDIA / CDAA / CDAI); balance: 0 specified, 2 vague, 0 opt-out",
+    "tags": [
+      "edbt",
+      "controlled_missingness_v3",
+      "missing_2",
+      "UC06_senior_day_missing_use",
+      "imperfect_user_v4",
+      "spec_0",
+      "vague_2",
+      "optout_0",
+      "balance_0_2_0"
+    ],
+    "base_case_id": "S06",
+    "source_case_id": "UC06_senior_day_missing_use",
+    "missing_count": 2,
+    "initial_query": "I am looking for an office building. I need a property with at least 360 sqm of gross floor area and capacity for 18 people. I prefer a property in energy class D or better. I prefer properties near healthcare services.",
+    "one_shot_query": "I am looking for an office building. I need a property with at least 360 sqm of gross floor area and capacity for 18 people. I prefer a property in energy class D or better. I prefer properties near healthcare services.",
+    "oracle_query": "Find an office building to convert it into an autonomous senior day center (CDIA) for 18 guests in Turin with at least 360 sqm of gross floor area in energy class D or better near healthcare services.",
+    "expected_initial_missing": [
+      "D",
+      "L"
+    ],
+    "clarifications": {
+      "I": "I am looking for an office building.",
+      "D": [
+        "I intend to establish a daytime social and recreational support center for elderly community members.",
+        "I intend to convert it into an autonomous senior day center (CDIA)."
+      ],
+      "L": [
+        "In Turin, in a central or well-connected neighborhood that elderly visitors and their families can reach with ease.",
+        "The location is in Turin."
+      ],
+      "Cb": "I need a property with at least 360 sqm of gross floor area and capacity for 18 people.",
+      "Ce": "I prefer a property in energy class D or better.",
+      "Cp": "I prefer properties near healthcare services."
+    },
+    "expected_mapping": {
+      "I": "SPECIFIED",
+      "D": "SPECIFIED",
+      "L": "SPECIFIED",
+      "Cb": "SPECIFIED",
+      "Ce": "SPECIFIED",
+      "Cp": "SPECIFIED"
+    },
+    "repeats": 1,
+    "imperfect_user": {
+      "profile": "all_vague",
+      "balance": "0spec_2vague_0optout",
+      "source_variant_id": "S06_k2_D_L",
+      "source_enabled": true,
+      "specified_count": 0,
+      "vague_count": 2,
+      "optout_count": 0,
+      "specified_dimensions": [],
+      "vague_dimensions": [
+        "D",
+        "L"
+      ],
+      "optout_dimensions": [],
+      "expected_turns": 4
+    }
+  },
+  "artifact_file": "runs/bench_29f80c58bdbd.json",
+  "artifact_schema_version": 4,
+  "ranking_ids": [
+    "DEMO-01313",
+    "DEMO-00038",
+    "DEMO-01383",
+    "DEMO-00492",
+    "DEMO-00058",
+    "DEMO-01418",
+    "DEMO-00592",
+    "DEMO-00027",
+    "DEMO-01035",
+    "DEMO-00641",
+    "DEMO-01004"
+  ],
+  "top": [
+    {
+      "id": "DEMO-01313",
+      "score": 68.348,
+      "distance_km": 1.34
+    },
+    {
+      "id": "DEMO-00038",
+      "score": 68.332,
+      "distance_km": 0.92
+    },
+    {
+      "id": "DEMO-01383",
+      "score": 58.711999999999996,
+      "distance_km": 1.15
+    },
+    {
+      "id": "DEMO-00492",
+      "score": 54.004,
+      "distance_km": 1.94
+    },
+    {
+      "id": "DEMO-00058",
+      "score": 52.227999999999994,
+      "distance_km": 1.68
+    },
+    {
+      "id": "DEMO-01418",
+      "score": 52.172,
+      "distance_km": 1.98
+    },
+    {
+      "id": "DEMO-00592",
+      "score": 49.256,
+      "distance_km": 1.73
+    },
+    {
+      "id": "DEMO-00027",
+      "score": 36.008,
+      "distance_km": 2.36
+    },
+    {
+      "id": "DEMO-01035",
+      "score": 32.788000000000004,
+      "distance_km": 2.61
+    },
+    {
+      "id": "DEMO-00641",
+      "score": 27.188,
+      "distance_km": 3.48
+    }
+  ],
+  "api_response": {
+    "agent_trace": [
+      {
+        "agent_name": "location-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "places": [
+            {
+              "name": "Turin",
+              "city": "Turin",
+              "lat": 45.0677551,
+              "lon": 7.6824892,
+              "radius_km": 3.0
+            }
+          ],
+          "found": true
+        }
+      },
+      {
+        "agent_name": "proximity-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "requirements": [
+            {
+              "target_column": "healthcare",
+              "operator": ">=",
+              "value": 64,
+              "description": "Healthcare services nearby; threshold is the 75th percentile."
+            }
+          ]
+        }
+      },
+      {
+        "agent_name": "regulatory-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "found": false,
+          "matched_use_cases": [
+            "Senior Day Center (CDI / CDIA / CDAA / CDAI)"
+          ],
+          "requirements": []
+        }
+      },
+      {
+        "agent_name": "energy-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "requirements": [
+            {
+              "target_column": "energy_class",
+              "operator": "IN",
+              "value": [
+                "A1",
+                "A2",
+                "A3",
+                "A4",
+                "B",
+                "C",
+                "D"
+              ],
+              "description": "Energy class D or better."
+            }
+          ],
+          "found": true
+        }
+      },
+      {
+        "agent_name": "building-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "typologies": [
+            "Office building"
+          ],
+          "found": true,
+          "requirements": [
+            {
+              "target_column": "property_type",
+              "operator": "=",
+              "value": "Office building",
+              "description": "The request explicitly seeks an office building in its current state."
+            },
+            {
+              "target_column": "surface_area",
+              "operator": ">=",
+              "value": 360,
+              "description": "The request specifies at least 360 sqm of gross floor area."
+            }
+          ]
+        }
+      },
+      {
+        "agent_name": "ranking-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "ranking": [
+            {
+              "agent_name": "regulatory",
+              "rank": 1
+            },
+            {
+              "agent_name": "location",
+              "rank": 1
+            },
+            {
+              "agent_name": "building",
+              "rank": 2
+            },
+            {
+              "agent_name": "energy",
+              "rank": 3
+            },
+            {
+              "agent_name": "proximity",
+              "rank": 4
+            }
+          ],
+          "weights": {
+            "location": 0.32,
+            "regulatory": 0.33,
+            "energy": 0.11,
+            "building": 0.16,
+            "proximity": 0.08
+          }
+        }
+      },
+      {
+        "agent_name": "sql-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "sql": "SELECT * FROM ESTATES WHERE property_type = 'Office building' AND surface_area >= 360 AND energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C', 'D') AND healthcare >= 64 AND haversine_km(latitude, longitude, 45.0677551, 7.6824892) <= 3.0 ORDER BY haversine_km(latitude, longitude, 45.0677551, 7.6824892) ASC",
+          "explanation": "Filters for office buildings meeting the minimum area, energy class, healthcare score, and 3 km location radius; sorts by distance."
+        }
+      },
+      {
+        "agent_name": "relaxation-agent",
+        "agent_mode": "extraction",
+        "output": [
+          {
+            "condizione_iniziale": "property_type = 'Office building'",
+            "condizione_relaxed": "property_type IN ('Office building', 'Commercial unit')",
+            "piani_progressivi": [],
+            "strategia": "Category widening",
+            "motivazione": "Commercial units are a closely related property type and adding them may increase matches while preserving the focus on nonresidential properties.",
+            "livello_rilassamento": "low"
+          },
+          {
+            "condizione_iniziale": "property_type = 'Office building'",
+            "condizione_relaxed": "property_type IN ('Office building', 'Commercial unit', 'Warehouse')",
+            "piani_progressivi": [],
+            "strategia": "Category widening",
+            "motivazione": "Including commercial units and warehouses broadens the search to related nonresidential properties.",
+            "livello_rilassamento": "medium"
+          },
+          {
+            "condizione_iniziale": "property_type = 'Office building'",
+            "condizione_relaxed": "property_type IN ('Office building', 'Commercial unit', 'Warehouse', 'Industrial shed', 'Hotel')",
+            "piani_progressivi": [],
+            "strategia": "Category widening",
+            "motivazione": "These additional nonresidential property types expand the candidate pool while keeping the search centered on business and institutional uses.",
+            "livello_rilassamento": "high"
+          },
+          {
+            "condizione_iniziale": "surface_area >= 360",
+            "condizione_relaxed": "surface_area >= 300",
+            "piani_progressivi": [],
+            "strategia": "Threshold reduction",
+            "motivazione": "The threshold remains well above the 146.0 75th percentile, while admitting larger properties closer to the requested size.",
+            "livello_rilassamento": "low"
+          },
+          {
+            "condizione_iniziale": "surface_area >= 360",
+            "condizione_relaxed": "surface_area >= 200",
+            "piani_progressivi": [],
+            "strategia": "Threshold reduction",
+            "motivazione": "Lowering the minimum to 200 expands the search while still selecting properties substantially larger than the 99.0 median.",
+            "livello_rilassamento": "medium"
+          },
+          {
+            "condizione_iniziale": "surface_area >= 360",
+            "condizione_relaxed": "surface_area >= 146",
+            "piani_progressivi": [],
+            "strategia": "Threshold reduction",
+            "motivazione": "Using the 75th percentile as the minimum considerably widens the search while retaining a preference for larger properties.",
+            "livello_rilassamento": "high"
+          },
+          {
+            "condizione_iniziale": "energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C', 'D')",
+            "condizione_relaxed": "energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C', 'D', 'E')",
+            "piani_progressivi": [],
+            "strategia": "Category widening",
+            "motivazione": "Adding the adjacent E class admits more properties while preserving the preference for relatively efficient energy classes.",
+            "livello_rilassamento": "low"
+          },
+          {
+            "condizione_iniziale": "energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C', 'D')",
+            "condizione_relaxed": "energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C', 'D', 'E', 'F')",
+            "piani_progressivi": [],
+            "strategia": "Category widening",
+            "motivazione": "Adding E and F expands the eligible set using adjacent energy classes, with 328 E and 293 F records available.",
+            "livello_rilassamento": "medium"
+          },
+          {
+            "condizione_iniziale": "energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C', 'D')",
+            "condizione_relaxed": "energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C', 'D', 'E', 'F', 'G')",
+            "piani_progressivi": [],
+            "strategia": "Category widening",
+            "motivazione": "Including all remaining energy classes maximizes the candidate pool if stricter criteria still return too few matches.",
+            "livello_rilassamento": "high"
+          },
+          {
+            "condizione_iniziale": "healthcare >= 64",
+            "condizione_relaxed": "healthcare >= 60",
+            "piani_progressivi": [],
+            "strategia": "Threshold reduction",
+            "motivazione": "A small reduction from the 75th percentile threshold broadens eligibility while keeping the required healthcare score relatively high.",
+            "livello_rilassamento": "low"
+          },
+          {
+            "condizione_iniziale": "healthcare >= 64",
+            "condizione_relaxed": "healthcare >= 51.95",
+            "piani_progressivi": [],
+            "strategia": "Threshold reduction",
+            "motivazione": "The median threshold admits about half the records by this measure while retaining an above average healthcare score.",
+            "livello_rilassamento": "medium"
+          },
+          {
+            "condizione_iniziale": "healthcare >= 64",
+            "condizione_relaxed": "healthcare >= 39.3",
+            "piani_progressivi": [],
+            "strategia": "Threshold reduction",
+            "motivazione": "The 25th percentile threshold substantially widens the search while continuing to exclude the lowest scoring quarter.",
+            "livello_rilassamento": "high"
+          },
+          {
+            "condizione_iniziale": "HAVERSINE_KM(latitude, longitude, 45.0677551, 7.6824892) <= 3.0",
+            "condizione_relaxed": "HAVERSINE_KM(latitude, longitude, 45.0677551, 7.6824892) <= 5.0",
+            "piani_progressivi": [],
+            "strategia": "Radius expansion",
+            "motivazione": "Increasing the radius modestly preserves the location focus while including nearby properties beyond the original 3 km area.",
+            "livello_rilassamento": "low"
+          },
+          {
+            "condizione_iniziale": "HAVERSINE_KM(latitude, longitude, 45.0677551, 7.6824892) <= 3.0",
+            "condizione_relaxed": "HAVERSINE_KM(latitude, longitude, 45.0677551, 7.6824892) <= 8.0",
+            "piani_progressivi": [],
+            "strategia": "Radius expansion",
+            "motivazione": "An 8 km radius expands coverage to a wider nearby area while maintaining a practical geographic boundary.",
+            "livello_rilassamento": "medium"
+          },
+          {
+            "condizione_iniziale": "HAVERSINE_KM(latitude, longitude, 45.0677551, 7.6824892) <= 3.0",
+            "condizione_relaxed": "HAVERSINE_KM(latitude, longitude, 45.0677551, 7.6824892) <= 12.0",
+            "piani_progressivi": [],
+            "strategia": "Radius expansion",
+            "motivazione": "A 12 km radius provides a substantial fallback expansion while keeping the results within the surrounding area.",
+            "livello_rilassamento": "high"
+          }
+        ],
+        "batch_id": null,
+        "timestamp": "2026-11-18T14:32:23.957517",
+        "execution_time_ms": 42373.32892417908
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "DEMO-01313",
+          "evaluation_text": "This office building has a relevant starting point for the proposed senior day center: its office use may warrant conversion review, it is in energy class D, and healthcare proximity is relatively strong (72.3). However, its 172 sqm recorded surface area is substantially below the requested 360 sqm gross floor area. The data therefore do not establish that it meets the size requirement. For an autonomous CDIA serving 18 guests, the stated regional capacity range of 10–25 guests includes the target, and the verified 5 sqm per guest applies only to specified rooms, not the whole property. The available data do not establish room layout, planning compatibility, accessibility, or technical suitability; these require verification.",
+          "final_ranking_score": 68,
+          "pros": [
+            "Energy class D meets the stated minimum energy-class requirement.",
+            "Healthcare proximity is relatively strong, with a score of 72.3.",
+            "The target capacity of 18 guests falls within the stated 10–25 guest range for an autonomous CDIA."
+          ],
+          "cons": [
+            "Recorded surface area is 172 sqm, below the requested minimum of 360 sqm gross floor area.",
+            "Energy performance remains modest overall: energy score total is 8, with no renewables recorded and a low envelope score of 2.",
+            "Urban-planning compatibility, change-of-use approval, accessibility, room layout, and technical suitability remain unverified."
+          ]
+        },
+        "batch_id": 1,
+        "timestamp": "2026-11-18T14:32:33.346346",
+        "execution_time_ms": 9294.34585571289
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "DEMO-00038",
+          "evaluation_text": "DEMO-00038 has a strong energy profile, with an A4 class and a total energy score of 15, and is well connected by public transport. Its healthcare proximity percentile is 69.2, providing a positive location indicator for the objective. However, the listed 240 sqm is below the requested 360 sqm gross area, and the property is identified as a warehouse rather than an office building. The data do not establish whether conversion to an autonomous CDIA is permitted or technically feasible. The supplied regional standard specifies 5 sqm per guest for designated net-use rooms, not a minimum gross area for the whole property; it also lists capacity of 10–25 guests and additional dedicated spaces for autonomous centers. Urban-planning compatibility, change-of-use approval, hygiene, accessibility, fire and structural safety, and sector authorization require verification.",
+          "final_ranking_score": 68,
+          "pros": [
+            "A4 energy class and energy score total of 15 align well with the requested energy performance.",
+            "Healthcare proximity percentile of 69.2 offers a favorable location indicator for senior users.",
+            "Mobility percentile of 89.2 and green-area percentile of 93.5 indicate strong access to transit and nearby green spaces."
+          ],
+          "cons": [
+            "The listed surface area of 240 sqm is below the user's stated minimum of 360 sqm gross floor area.",
+            "The property is listed as a warehouse, not an office building; conversion suitability and change-of-use approval need verification.",
+            "The data do not confirm accessibility, layout, hygiene compliance, safety, or sector authorization for an autonomous CDIA."
+          ]
+        },
+        "batch_id": 2,
+        "timestamp": "2026-11-18T14:32:33.561408",
+        "execution_time_ms": 9508.042097091675
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "DEMO-01383",
+          "evaluation_text": "This post-2000 commercial unit has some relevant qualities for a proposed autonomous senior day center: its energy class D meets the stated threshold, and its healthcare proximity percentile of 73.5 supports the preference for nearby services. However, the recorded 156 sqm is well below the requested 360 sqm gross floor area. The data do not establish whether the unit can be expanded or combined with adjoining space, nor do they establish planning compatibility, accessibility, room layout, or technical suitability. The regional standard specifies 5 sqm per guest net for designated shared and rest/reading rooms, not a minimum gross property area; the supplied regulatory result identifies no verified gross-area threshold. For 18 guests, autonomous-center requirements and the listed checks—including Turin planning compatibility, change of use, hygiene, accessibility, and sector authorization—would need to be assessed. Overall, the location and energy class are favorable, but the documented area gap makes this a weak fit for the stated objective unless additional usable space can be secured.",
+          "final_ranking_score": 59,
+          "pros": [
+            "Energy class D meets the requested minimum, with renewables present and a total energy sub-score of 13.",
+            "Healthcare proximity percentile is 73.5, consistent with the preference for access to healthcare services.",
+            "Post-2000 construction period may offer a useful starting point for adaptation, subject to verification of layout and technical feasibility."
+          ],
+          "cons": [
+            "Recorded surface area is 156 sqm, substantially below the requested 360 sqm gross floor area; expansion or adjoining space is not documented.",
+            "The property is listed as a commercial unit, and planning compatibility and authorization for a change of use to an autonomous senior day center require verification.",
+            "Accessibility, hygiene compliance, fire and structural safety, room layout, and sector authorization are not established by the supplied data."
+          ]
+        },
+        "batch_id": 3,
+        "timestamp": "2026-11-18T14:32:34.207582",
+        "execution_time_ms": 10152.273178100586
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "DEMO-00492",
+          "evaluation_text": "The warehouse offers a strong energy profile, with class A4 and a total energy score of 16, and its healthcare proximity indicator of 74.1 supports the location preference. However, its recorded area of 191 sqm is below the requested 360 sqm gross floor area, and the data do not establish that it is an office building or suitable for conversion. The regional standard specifies 5 sqm per guest for designated net-use rooms, not a minimum gross property area; it therefore cannot validate overall space sufficiency. An autonomous CDIA serving 18 guests falls within the stated 10–25 guest capacity range, but dedicated support rooms and other requirements would need to be assessed. Planning compatibility, change of use, accessibility, health and safety requirements, and authorization all require verification.",
+          "final_ranking_score": 54,
+          "pros": [
+            "Energy class A4 exceeds the requested minimum of D; the energy score is 16.",
+            "Healthcare proximity indicator is 74.1, consistent with the preference for nearby healthcare services.",
+            "The property's recorded area does not by itself determine the feasibility of the use; the regional source gives no verified minimum gross property area."
+          ],
+          "cons": [
+            "At 191 sqm, the recorded area is 169 sqm below the requested 360 sqm gross floor area.",
+            "The property is classified as a warehouse, not an office building; suitability for conversion and planning permission are unverified.",
+            "The data do not establish that the layout can accommodate an autonomous 18-guest CDIA, including dedicated support spaces; accessibility, technical compliance, and sector authorization also require checks."
+          ]
+        },
+        "batch_id": 4,
+        "timestamp": "2026-11-18T14:32:34.607511",
+        "execution_time_ms": 10551.219940185547
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "DEMO-00058",
+          "evaluation_text": "This commercial unit offers a partial fit for an autonomous senior day center in Turin. Its C energy class meets the requested D-or-better threshold, and healthcare proximity is moderately favorable (71.6). However, the recorded area is 160 sqm, below the requested minimum of 360 sqm gross, so the property does not meet the stated area requirement on the supplied data. The regulatory context provides no verified minimum gross property area; its 5 sqm per guest standard applies only to specified net-use rooms and cannot establish overall area sufficiency. The autonomous-center capacity range includes 18 guests, but room layout, planning compatibility, accessibility, and other required approvals need verification.",
+          "final_ranking_score": 52,
+          "pros": [
+            "Energy class C satisfies the requested D-or-better threshold.",
+            "Healthcare proximity is relatively strong, with a score of 71.6.",
+            "The stated 18-guest capacity falls within the 10–25 guest range for an autonomous CDIA."
+          ],
+          "cons": [
+            "Recorded surface area is 160 sqm, below the requested minimum of 360 sqm gross.",
+            "Property data do not establish whether the layout can accommodate the required dedicated rooms and support spaces.",
+            "Turin planning compatibility, change-of-use authorization, accessibility, and sector approvals remain to be checked."
+          ]
+        },
+        "batch_id": 5,
+        "timestamp": "2026-11-18T14:32:50.537990",
+        "execution_time_ms": 17191.55788421631
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "DEMO-01418",
+          "evaluation_text": "This commercial unit has strong energy performance (A3, total energy score 19) and good healthcare proximity (77.4), supporting two key aspects of the objective. Its 198 sqm area is below the requested 360 sqm gross floor area, so it does not meet the stated size target. The regulatory data provide no verified minimum gross property area; the 5 sqm per guest standard applies only to specified net-use rooms and cannot establish overall area sufficiency. The unit’s layout and suitability for an autonomous 18-guest CDIA, including dedicated infirmary and gym areas, require verification, along with planning, change-of-use, accessibility, hygiene, fire-safety, structural, and sector authorization requirements.",
+          "final_ranking_score": 52,
+          "pros": [
+            "A3 energy class and total energy score of 19 are substantially better than the requested D-or-better threshold.",
+            "Healthcare proximity is relatively strong at 77.4.",
+            "Commercial-unit status offers potential for adaptation, subject to verification of layout, planning compatibility, and authorization."
+          ],
+          "cons": [
+            "At 198 sqm, the property is 162 sqm below the requested 360 sqm gross floor area.",
+            "An autonomous CDIA for 18 guests must fit within the stated 10–25 guest capacity range and include dedicated support spaces; the available data do not establish that the property can accommodate them.",
+            "Urban-planning compatibility, change-of-use approval, accessibility, hygiene, fire and structural safety, and sector authorization all require verification."
+          ]
+        },
+        "batch_id": 6,
+        "timestamp": "2026-11-18T14:32:50.817109",
+        "execution_time_ms": 17255.566120147705
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "DEMO-00592",
+          "evaluation_text": "The unit has limited strategic suitability for conversion into an autonomous senior day center for 18 guests. Its energy class D meets the requested threshold, and healthcare proximity is moderate (64.2). However, the recorded 215 sqm gross area is below the requested 360 sqm, and property data do not establish the layout or permissions needed for this use. The regional standard specifies 5 sqm of net useful space per guest for designated common and rest/reading rooms; this is not a whole-property gross-area threshold. For an autonomous CDIA, the supplied standards also identify dedicated infirmary and gym space. Urban-planning compatibility, change-of-use permissions, accessibility, health requirements, fire safety where applicable, structural safety, and sector authorization require verification.",
+          "final_ranking_score": 49,
+          "pros": [
+            "Energy class D meets the user's stated minimum energy threshold.",
+            "Healthcare proximity is moderate, with a score of 64.2.",
+            "Green space (84.6), education (82.4), and commercial services (90.7) have strong proximity scores."
+          ],
+          "cons": [
+            "At 215 sqm, the recorded gross area falls 145 sqm short of the requested 360 sqm.",
+            "The 18-guest target is within the stated 10–25 guest range for an autonomous CDIA, but required dedicated rooms and their fit cannot be established from the supplied area or property type.",
+            "The property is listed as a commercial unit, and planning compatibility, change of use, accessibility, technical requirements, and sector authorization remain unverified."
+          ]
+        },
+        "batch_id": 7,
+        "timestamp": "2026-11-18T14:32:52.076543",
+        "execution_time_ms": 17869.333744049072
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "DEMO-00027",
+          "evaluation_text": "This commercial unit offers limited potential for conversion into an autonomous CDIA for 18 guests. Its 256 sqm area is below the requested 360 sqm gross floor area, and the supplied data do not establish whether its rooms, access, or building systems can meet the center’s needs. The stated energy class D meets the requested energy threshold. Healthcare proximity is moderate (64.8), rather than evidence of especially strong access. The regional standard specifies 5 sqm per guest for designated common and rest/reading areas, alongside separate support-space requirements; it does not establish a minimum gross property area. For an autonomous center, the listed capacity range is 10–25 guests, so 18 is within that range. Turin planning compatibility, change-of-use approval, health and safety requirements, accessibility, structural suitability, and sector authorization all require verification.",
+          "final_ranking_score": 36,
+          "pros": [
+            "Energy class D meets the requested threshold.",
+            "The property is a commercial unit, providing a potential basis for considering a change of use, subject to planning and building approval.",
+            "A capacity of 18 guests falls within the stated 10–25 guest range for an autonomous CDIA."
+          ],
+          "cons": [
+            "The 256 sqm area is 104 sqm below the requested 360 sqm gross floor area.",
+            "Healthcare proximity is moderate, with a percentile value of 64.8.",
+            "The supplied data do not confirm space for the required functions or compliance with accessibility, planning, health, safety, structural, and authorization checks."
+          ]
+        },
+        "batch_id": 8,
+        "timestamp": "2026-11-18T14:32:53.144246",
+        "execution_time_ms": 18537.139892578125
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "DEMO-00641",
+          "evaluation_text": "The office building has limited strategic fit for conversion to an autonomous senior day center for 18 guests. Its energy class D meets the stated threshold, and the healthcare proximity percentile of 76.7 is a relative strength. However, the recorded 155 sqm falls well below the requested 360 sqm gross floor area. The regulatory data provide no verified minimum gross-area threshold; the 5 sqm per guest standard applies only to specified net-use rooms and cannot establish whole-property sufficiency. An autonomous CDIA has a stated capacity range of 10–25 guests, which includes the target of 18, but the property data do not establish that required rooms, accessibility, or approvals are feasible. These require verification.",
+          "final_ranking_score": 27,
+          "pros": [
+            "Energy class D meets the user's minimum energy requirement.",
+            "Healthcare proximity is relatively strong, at percentile 76.7.",
+            "The target capacity of 18 guests is within the stated 10–25 guest range for an autonomous CDIA."
+          ],
+          "cons": [
+            "Recorded area is 155 sqm, below the requested minimum of 360 sqm gross floor area.",
+            "The property data do not establish that dedicated rooms and support spaces required for an autonomous center can be accommodated.",
+            "Turin planning compatibility, change-of-use approval, accessibility, health and safety requirements, and sector authorization remain to be verified."
+          ]
+        },
+        "batch_id": 9,
+        "timestamp": "2026-11-18T14:33:07.886565",
+        "execution_time_ms": 17070.469856262207
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "DEMO-01035",
+          "evaluation_text": "The property has limited strategic suitability for an autonomous senior day center for 18 guests. Its energy class C meets the requested D-or-better threshold, and healthcare proximity is relatively strong at 72.6. However, the recorded 159 sqm is below the requested 360 sqm gross floor area. The regional standard specifies 5 sqm per guest for particular rooms, not a minimum gross property area; it therefore does not establish that this property meets the overall space needs. Its warehouse classification and age also leave planning compatibility, change of use, accessibility, layout, and technical feasibility to be verified.",
+          "final_ranking_score": 33,
+          "pros": [
+            "Energy class C meets the requested D-or-better threshold.",
+            "Healthcare proximity is relatively strong, with a score of 72.6.",
+            "Commercial-service proximity is high at 84.8, which may support access to nearby amenities."
+          ],
+          "cons": [
+            "Recorded surface area of 159 sqm falls short of the requested 360 sqm gross floor area.",
+            "The property is classified as a warehouse; conversion to a senior day center requires verification of planning compatibility and change-of-use authorization.",
+            "The supplied data do not establish accessibility, required room layout, or technical suitability for an autonomous center serving 18 guests."
+          ]
+        },
+        "batch_id": 10,
+        "timestamp": "2026-11-18T14:33:08.698826",
+        "execution_time_ms": 18161.051750183105
+      }
+    ],
+    "evaluation_results": [
+      {
+        "id": "DEMO-01313",
+        "evaluation_text": "This office building has a relevant starting point for the proposed senior day center: its office use may warrant conversion review, it is in energy class D, and healthcare proximity is relatively strong (72.3). However, its 172 sqm recorded surface area is substantially below the requested 360 sqm gross floor area. The data therefore do not establish that it meets the size requirement. For an autonomous CDIA serving 18 guests, the stated regional capacity range of 10–25 guests includes the target, and the verified 5 sqm per guest applies only to specified rooms, not the whole property. The available data do not establish room layout, planning compatibility, accessibility, or technical suitability; these require verification.",
+        "final_ranking_score": 68,
+        "pros": [
+          "Energy class D meets the stated minimum energy-class requirement.",
+          "Healthcare proximity is relatively strong, with a score of 72.3.",
+          "The target capacity of 18 guests falls within the stated 10–25 guest range for an autonomous CDIA."
+        ],
+        "cons": [
+          "Recorded surface area is 172 sqm, below the requested minimum of 360 sqm gross floor area.",
+          "Energy performance remains modest overall: energy score total is 8, with no renewables recorded and a low envelope score of 2.",
+          "Urban-planning compatibility, change-of-use approval, accessibility, room layout, and technical suitability remain unverified."
+        ]
+      },
+      {
+        "id": "DEMO-00038",
+        "evaluation_text": "DEMO-00038 has a strong energy profile, with an A4 class and a total energy score of 15, and is well connected by public transport. Its healthcare proximity percentile is 69.2, providing a positive location indicator for the objective. However, the listed 240 sqm is below the requested 360 sqm gross area, and the property is identified as a warehouse rather than an office building. The data do not establish whether conversion to an autonomous CDIA is permitted or technically feasible. The supplied regional standard specifies 5 sqm per guest for designated net-use rooms, not a minimum gross area for the whole property; it also lists capacity of 10–25 guests and additional dedicated spaces for autonomous centers. Urban-planning compatibility, change-of-use approval, hygiene, accessibility, fire and structural safety, and sector authorization require verification.",
+        "final_ranking_score": 68,
+        "pros": [
+          "A4 energy class and energy score total of 15 align well with the requested energy performance.",
+          "Healthcare proximity percentile of 69.2 offers a favorable location indicator for senior users.",
+          "Mobility percentile of 89.2 and green-area percentile of 93.5 indicate strong access to transit and nearby green spaces."
+        ],
+        "cons": [
+          "The listed surface area of 240 sqm is below the user's stated minimum of 360 sqm gross floor area.",
+          "The property is listed as a warehouse, not an office building; conversion suitability and change-of-use approval need verification.",
+          "The data do not confirm accessibility, layout, hygiene compliance, safety, or sector authorization for an autonomous CDIA."
+        ]
+      },
+      {
+        "id": "DEMO-01383",
+        "evaluation_text": "This post-2000 commercial unit has some relevant qualities for a proposed autonomous senior day center: its energy class D meets the stated threshold, and its healthcare proximity percentile of 73.5 supports the preference for nearby services. However, the recorded 156 sqm is well below the requested 360 sqm gross floor area. The data do not establish whether the unit can be expanded or combined with adjoining space, nor do they establish planning compatibility, accessibility, room layout, or technical suitability. The regional standard specifies 5 sqm per guest net for designated shared and rest/reading rooms, not a minimum gross property area; the supplied regulatory result identifies no verified gross-area threshold. For 18 guests, autonomous-center requirements and the listed checks—including Turin planning compatibility, change of use, hygiene, accessibility, and sector authorization—would need to be assessed. Overall, the location and energy class are favorable, but the documented area gap makes this a weak fit for the stated objective unless additional usable space can be secured.",
+        "final_ranking_score": 59,
+        "pros": [
+          "Energy class D meets the requested minimum, with renewables present and a total energy sub-score of 13.",
+          "Healthcare proximity percentile is 73.5, consistent with the preference for access to healthcare services.",
+          "Post-2000 construction period may offer a useful starting point for adaptation, subject to verification of layout and technical feasibility."
+        ],
+        "cons": [
+          "Recorded surface area is 156 sqm, substantially below the requested 360 sqm gross floor area; expansion or adjoining space is not documented.",
+          "The property is listed as a commercial unit, and planning compatibility and authorization for a change of use to an autonomous senior day center require verification.",
+          "Accessibility, hygiene compliance, fire and structural safety, room layout, and sector authorization are not established by the supplied data."
+        ]
+      },
+      {
+        "id": "DEMO-00492",
+        "evaluation_text": "The warehouse offers a strong energy profile, with class A4 and a total energy score of 16, and its healthcare proximity indicator of 74.1 supports the location preference. However, its recorded area of 191 sqm is below the requested 360 sqm gross floor area, and the data do not establish that it is an office building or suitable for conversion. The regional standard specifies 5 sqm per guest for designated net-use rooms, not a minimum gross property area; it therefore cannot validate overall space sufficiency. An autonomous CDIA serving 18 guests falls within the stated 10–25 guest capacity range, but dedicated support rooms and other requirements would need to be assessed. Planning compatibility, change of use, accessibility, health and safety requirements, and authorization all require verification.",
+        "final_ranking_score": 54,
+        "pros": [
+          "Energy class A4 exceeds the requested minimum of D; the energy score is 16.",
+          "Healthcare proximity indicator is 74.1, consistent with the preference for nearby healthcare services.",
+          "The property's recorded area does not by itself determine the feasibility of the use; the regional source gives no verified minimum gross property area."
+        ],
+        "cons": [
+          "At 191 sqm, the recorded area is 169 sqm below the requested 360 sqm gross floor area.",
+          "The property is classified as a warehouse, not an office building; suitability for conversion and planning permission are unverified.",
+          "The data do not establish that the layout can accommodate an autonomous 18-guest CDIA, including dedicated support spaces; accessibility, technical compliance, and sector authorization also require checks."
+        ]
+      },
+      {
+        "id": "DEMO-00058",
+        "evaluation_text": "This commercial unit offers a partial fit for an autonomous senior day center in Turin. Its C energy class meets the requested D-or-better threshold, and healthcare proximity is moderately favorable (71.6). However, the recorded area is 160 sqm, below the requested minimum of 360 sqm gross, so the property does not meet the stated area requirement on the supplied data. The regulatory context provides no verified minimum gross property area; its 5 sqm per guest standard applies only to specified net-use rooms and cannot establish overall area sufficiency. The autonomous-center capacity range includes 18 guests, but room layout, planning compatibility, accessibility, and other required approvals need verification.",
+        "final_ranking_score": 52,
+        "pros": [
+          "Energy class C satisfies the requested D-or-better threshold.",
+          "Healthcare proximity is relatively strong, with a score of 71.6.",
+          "The stated 18-guest capacity falls within the 10–25 guest range for an autonomous CDIA."
+        ],
+        "cons": [
+          "Recorded surface area is 160 sqm, below the requested minimum of 360 sqm gross.",
+          "Property data do not establish whether the layout can accommodate the required dedicated rooms and support spaces.",
+          "Turin planning compatibility, change-of-use authorization, accessibility, and sector approvals remain to be checked."
+        ]
+      },
+      {
+        "id": "DEMO-01418",
+        "evaluation_text": "This commercial unit has strong energy performance (A3, total energy score 19) and good healthcare proximity (77.4), supporting two key aspects of the objective. Its 198 sqm area is below the requested 360 sqm gross floor area, so it does not meet the stated size target. The regulatory data provide no verified minimum gross property area; the 5 sqm per guest standard applies only to specified net-use rooms and cannot establish overall area sufficiency. The unit’s layout and suitability for an autonomous 18-guest CDIA, including dedicated infirmary and gym areas, require verification, along with planning, change-of-use, accessibility, hygiene, fire-safety, structural, and sector authorization requirements.",
+        "final_ranking_score": 52,
+        "pros": [
+          "A3 energy class and total energy score of 19 are substantially better than the requested D-or-better threshold.",
+          "Healthcare proximity is relatively strong at 77.4.",
+          "Commercial-unit status offers potential for adaptation, subject to verification of layout, planning compatibility, and authorization."
+        ],
+        "cons": [
+          "At 198 sqm, the property is 162 sqm below the requested 360 sqm gross floor area.",
+          "An autonomous CDIA for 18 guests must fit within the stated 10–25 guest capacity range and include dedicated support spaces; the available data do not establish that the property can accommodate them.",
+          "Urban-planning compatibility, change-of-use approval, accessibility, hygiene, fire and structural safety, and sector authorization all require verification."
+        ]
+      },
+      {
+        "id": "DEMO-00592",
+        "evaluation_text": "The unit has limited strategic suitability for conversion into an autonomous senior day center for 18 guests. Its energy class D meets the requested threshold, and healthcare proximity is moderate (64.2). However, the recorded 215 sqm gross area is below the requested 360 sqm, and property data do not establish the layout or permissions needed for this use. The regional standard specifies 5 sqm of net useful space per guest for designated common and rest/reading rooms; this is not a whole-property gross-area threshold. For an autonomous CDIA, the supplied standards also identify dedicated infirmary and gym space. Urban-planning compatibility, change-of-use permissions, accessibility, health requirements, fire safety where applicable, structural safety, and sector authorization require verification.",
+        "final_ranking_score": 49,
+        "pros": [
+          "Energy class D meets the user's stated minimum energy threshold.",
+          "Healthcare proximity is moderate, with a score of 64.2.",
+          "Green space (84.6), education (82.4), and commercial services (90.7) have strong proximity scores."
+        ],
+        "cons": [
+          "At 215 sqm, the recorded gross area falls 145 sqm short of the requested 360 sqm.",
+          "The 18-guest target is within the stated 10–25 guest range for an autonomous CDIA, but required dedicated rooms and their fit cannot be established from the supplied area or property type.",
+          "The property is listed as a commercial unit, and planning compatibility, change of use, accessibility, technical requirements, and sector authorization remain unverified."
+        ]
+      },
+      {
+        "id": "DEMO-00027",
+        "evaluation_text": "This commercial unit offers limited potential for conversion into an autonomous CDIA for 18 guests. Its 256 sqm area is below the requested 360 sqm gross floor area, and the supplied data do not establish whether its rooms, access, or building systems can meet the center’s needs. The stated energy class D meets the requested energy threshold. Healthcare proximity is moderate (64.8), rather than evidence of especially strong access. The regional standard specifies 5 sqm per guest for designated common and rest/reading areas, alongside separate support-space requirements; it does not establish a minimum gross property area. For an autonomous center, the listed capacity range is 10–25 guests, so 18 is within that range. Turin planning compatibility, change-of-use approval, health and safety requirements, accessibility, structural suitability, and sector authorization all require verification.",
+        "final_ranking_score": 36,
+        "pros": [
+          "Energy class D meets the requested threshold.",
+          "The property is a commercial unit, providing a potential basis for considering a change of use, subject to planning and building approval.",
+          "A capacity of 18 guests falls within the stated 10–25 guest range for an autonomous CDIA."
+        ],
+        "cons": [
+          "The 256 sqm area is 104 sqm below the requested 360 sqm gross floor area.",
+          "Healthcare proximity is moderate, with a percentile value of 64.8.",
+          "The supplied data do not confirm space for the required functions or compliance with accessibility, planning, health, safety, structural, and authorization checks."
+        ]
+      },
+      {
+        "id": "DEMO-01035",
+        "evaluation_text": "The property has limited strategic suitability for an autonomous senior day center for 18 guests. Its energy class C meets the requested D-or-better threshold, and healthcare proximity is relatively strong at 72.6. However, the recorded 159 sqm is below the requested 360 sqm gross floor area. The regional standard specifies 5 sqm per guest for particular rooms, not a minimum gross property area; it therefore does not establish that this property meets the overall space needs. Its warehouse classification and age also leave planning compatibility, change of use, accessibility, layout, and technical feasibility to be verified.",
+        "final_ranking_score": 33,
+        "pros": [
+          "Energy class C meets the requested D-or-better threshold.",
+          "Healthcare proximity is relatively strong, with a score of 72.6.",
+          "Commercial-service proximity is high at 84.8, which may support access to nearby amenities."
+        ],
+        "cons": [
+          "Recorded surface area of 159 sqm falls short of the requested 360 sqm gross floor area.",
+          "The property is classified as a warehouse; conversion to a senior day center requires verification of planning compatibility and change-of-use authorization.",
+          "The supplied data do not establish accessibility, required room layout, or technical suitability for an autonomous center serving 18 guests."
+        ]
+      },
+      {
+        "id": "DEMO-00641",
+        "evaluation_text": "The office building has limited strategic fit for conversion to an autonomous senior day center for 18 guests. Its energy class D meets the stated threshold, and the healthcare proximity percentile of 76.7 is a relative strength. However, the recorded 155 sqm falls well below the requested 360 sqm gross floor area. The regulatory data provide no verified minimum gross-area threshold; the 5 sqm per guest standard applies only to specified net-use rooms and cannot establish whole-property sufficiency. An autonomous CDIA has a stated capacity range of 10–25 guests, which includes the target of 18, but the property data do not establish that required rooms, accessibility, or approvals are feasible. These require verification.",
+        "final_ranking_score": 27,
+        "pros": [
+          "Energy class D meets the user's minimum energy requirement.",
+          "Healthcare proximity is relatively strong, at percentile 76.7.",
+          "The target capacity of 18 guests is within the stated 10–25 guest range for an autonomous CDIA."
+        ],
+        "cons": [
+          "Recorded area is 155 sqm, below the requested minimum of 360 sqm gross floor area.",
+          "The property data do not establish that dedicated rooms and support spaces required for an autonomous center can be accommodated.",
+          "Turin planning compatibility, change-of-use approval, accessibility, health and safety requirements, and sector authorization remain to be verified."
+        ]
+      }
+    ],
+    "relaxation_applied": true,
+    "relaxation_count": 1,
+    "fallback_activated": false,
+    "agent_errors": []
+  }
+}

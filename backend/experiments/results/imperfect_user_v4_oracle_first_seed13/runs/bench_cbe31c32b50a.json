@@ -1,0 +1,691 @@
+{
+  "run_id": "bench_cbe31c32b50a",
+  "condition": "oracle",
+  "unit_id": "S01",
+  "scenario_id": null,
+  "base_case_id": "S01",
+  "missing_count": null,
+  "scenario_name": null,
+  "tags": [],
+  "model": "gpt-6-luna",
+  "repeat": 2,
+  "attempt": 1,
+  "input_sha256": "7ababd311f614bbf5df2a425bd2ea91ce3782e3f7876674db7fc413421378163",
+  "scenario_sha256": null,
+  "initial_query": "Find an existing residential dwelling to convert it into a micro-nursery for 18 children in Turin with at least 140 sqm of gross floor area in energy class C or better near public transport.",
+  "options": {
+    "dataset_key": "full",
+    "map_limit": 1000,
+    "llm_limit": 10,
+    "analysis_mode": "agent",
+    "use_relaxation": true,
+    "use_data_knowledge": true,
+    "architecture": "multiagent",
+    "disabled_agents": null
+  },
+  "started_at": "2026-11-18T13:31:10.399501+00:00",
+  "clarification_seconds": null,
+  "analysis_seconds": 92.585,
+  "submitted_query": "Find an existing residential dwelling to convert it into a micro-nursery for 18 children in Turin with at least 140 sqm of gross floor area in energy class C or better near public transport.",
+  "status": "completed",
+  "results_count": 11,
+  "top_ids": [
+    "DEMO-01430",
+    "DEMO-00133",
+    "DEMO-00877",
+    "DEMO-00962",
+    "DEMO-00289",
+    "DEMO-00225",
+    "DEMO-00802",
+    "DEMO-00804",
+    "DEMO-00372",
+    "DEMO-01197"
+  ],
+  "quality": {
+    "expected_count": 0,
+    "matched_expected": null,
+    "precision_at_returned": null,
+    "recall": null
+  },
+  "final_sql": "SELECT * FROM ESTATES WHERE property_type = 'Residential dwelling' AND surface_area >= 140 AND haversine_km(latitude, longitude, 45.0677551, 7.6824892) <= 3.0 AND energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C') AND mobility >= 71 ORDER BY haversine_km(latitude, longitude, 45.0677551, 7.6824892) ASC",
+  "duration_seconds": 92.599,
+  "scenario_definition": {
+    "id": "S01_k2_D_Ce_spec_D_vague_Ce",
+    "name": "2 omitted dimensions; intended use: Micro-nursery; balance: 1 specified, 1 vague, 0 opt-out",
+    "tags": [
+      "edbt",
+      "controlled_missingness_v3",
+      "missing_2",
+      "UC01_micro_nursery_missing_use",
+      "imperfect_user_v4",
+      "spec_1",
+      "vague_1",
+      "optout_0",
+      "balance_1_1_0"
+    ],
+    "base_case_id": "S01",
+    "source_case_id": "UC01_micro_nursery_missing_use",
+    "missing_count": 2,
+    "initial_query": "I am looking for an existing residential dwelling. The location is in Turin. I need a property with at least 140 sqm of gross floor area and capacity for 18 people. I prefer properties near public transport.",
+    "one_shot_query": "I am looking for an existing residential dwelling. The location is in Turin. I need a property with at least 140 sqm of gross floor area and capacity for 18 people. I prefer properties near public transport.",
+    "oracle_query": "Find an existing residential dwelling to convert it into a micro-nursery for 18 children in Turin with at least 140 sqm of gross floor area in energy class C or better near public transport.",
+    "expected_initial_missing": [
+      "D",
+      "Ce"
+    ],
+    "clarifications": {
+      "I": "I am looking for an existing residential dwelling.",
+      "D": "I intend to convert it into a micro-nursery.",
+      "L": "The location is in Turin.",
+      "Cb": "I need a property with at least 140 sqm of gross floor area and capacity for 18 people.",
+      "Ce": [
+        "A warm and well-insulated building with good climate control since toddlers crawl on the floor, without a specific required rating.",
+        "I prefer a property in energy class C or better."
+      ],
+      "Cp": "I prefer properties near public transport."
+    },
+    "expected_mapping": {
+      "I": "SPECIFIED",
+      "D": "SPECIFIED",
+      "L": "SPECIFIED",
+      "Cb": "SPECIFIED",
+      "Ce": "SPECIFIED",
+      "Cp": "SPECIFIED"
+    },
+    "repeats": 1,
+    "imperfect_user": {
+      "profile": "mixed",
+      "balance": "1spec_1vague_0optout",
+      "source_variant_id": "S01_k2_D_Ce",
+      "source_enabled": true,
+      "specified_count": 1,
+      "vague_count": 1,
+      "optout_count": 0,
+      "specified_dimensions": [
+        "D"
+      ],
+      "vague_dimensions": [
+        "Ce"
+      ],
+      "optout_dimensions": [],
+      "expected_turns": 3
+    }
+  },
+  "artifact_file": "runs/bench_cbe31c32b50a.json",
+  "artifact_schema_version": 4,
+  "ranking_ids": [
+    "DEMO-01430",
+    "DEMO-00133",
+    "DEMO-00877",
+    "DEMO-00962",
+    "DEMO-00289",
+    "DEMO-00225",
+    "DEMO-00802",
+    "DEMO-00804",
+    "DEMO-00372",
+    "DEMO-01197",
+    "DEMO-00071"
+  ],
+  "top": [
+    {
+      "id": "DEMO-01430",
+      "score": 89.025,
+      "distance_km": 0.45
+    },
+    {
+      "id": "DEMO-00133",
+      "score": 80.918,
+      "distance_km": 1.29
+    },
+    {
+      "id": "DEMO-00877",
+      "score": 80.833,
+      "distance_km": 1.95
+    },
+    {
+      "id": "DEMO-00962",
+      "score": 78.444,
+      "distance_km": 0.31
+    },
+    {
+      "id": "DEMO-00289",
+      "score": 74.76,
+      "distance_km": 1.92
+    },
+    {
+      "id": "DEMO-00225",
+      "score": 73.63999999999999,
+      "distance_km": 1.92
+    },
+    {
+      "id": "DEMO-00802",
+      "score": 71.00099999999999,
+      "distance_km": 1.52
+    },
+    {
+      "id": "DEMO-00804",
+      "score": 66.434,
+      "distance_km": 1.92
+    },
+    {
+      "id": "DEMO-00372",
+      "score": 66.234,
+      "distance_km": 2.34
+    },
+    {
+      "id": "DEMO-01197",
+      "score": 59.26299999999999,
+      "distance_km": 2.57
+    }
+  ],
+  "api_response": {
+    "agent_trace": [
+      {
+        "agent_name": "regulatory-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "found": false,
+          "matched_use_cases": [
+            "Micro-nursery"
+          ],
+          "requirements": []
+        }
+      },
+      {
+        "agent_name": "location-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "places": [
+            {
+              "name": "Turin",
+              "city": "Turin",
+              "lat": 45.0677551,
+              "lon": 7.6824892,
+              "radius_km": 3.0
+            }
+          ],
+          "found": true
+        }
+      },
+      {
+        "agent_name": "energy-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "requirements": [
+            {
+              "target_column": "energy_class",
+              "operator": "IN",
+              "value": [
+                "A1",
+                "A2",
+                "A3",
+                "A4",
+                "B",
+                "C"
+              ],
+              "description": "Energy class C or better."
+            }
+          ],
+          "found": true
+        }
+      },
+      {
+        "agent_name": "building-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "typologies": [
+            "Residential dwelling"
+          ],
+          "found": true,
+          "requirements": [
+            {
+              "target_column": "property_type",
+              "operator": "=",
+              "value": "Residential dwelling",
+              "description": "The request asks for an existing residential dwelling; the conversion describes its future use."
+            },
+            {
+              "target_column": "surface_area",
+              "operator": ">=",
+              "value": 140,
+              "description": "The request specifies at least 140 sqm of gross floor area."
+            }
+          ]
+        }
+      },
+      {
+        "agent_name": "ranking-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "ranking": [
+            {
+              "agent_name": "location",
+              "rank": 1
+            },
+            {
+              "agent_name": "regulatory",
+              "rank": 1
+            },
+            {
+              "agent_name": "building",
+              "rank": 1
+            },
+            {
+              "agent_name": "energy",
+              "rank": 2
+            },
+            {
+              "agent_name": "proximity",
+              "rank": 2
+            }
+          ],
+          "weights": {
+            "location": 0.26,
+            "regulatory": 0.25,
+            "energy": 0.12,
+            "building": 0.25,
+            "proximity": 0.12
+          }
+        }
+      },
+      {
+        "agent_name": "proximity-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "requirements": [
+            {
+              "target_column": "mobility",
+              "operator": ">=",
+              "value": 71,
+              "description": "Public transport should be nearby; value meets the 75th percentile threshold of 70.9."
+            }
+          ]
+        }
+      },
+      {
+        "agent_name": "sql-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "sql": "SELECT * FROM ESTATES WHERE property_type = 'Residential dwelling' AND surface_area >= 140 AND haversine_km(latitude, longitude, 45.0677551, 7.6824892) <= 3.0 AND energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C') AND mobility >= 71 ORDER BY haversine_km(latitude, longitude, 45.0677551, 7.6824892) ASC",
+          "explanation": "Filters for residential dwellings meeting the area, nearby radius, energy class, and public transport score requirements, then orders by distance."
+        }
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "DEMO-00133",
+          "evaluation_text": "This 243 sqm residential dwelling in Turin is a promising candidate for conversion to an 18-child micro-nursery: its reported area is substantial, its energy class B meets the stated C-or-better preference, and its mobility percentile of 86.1 indicates strong public-transport access. The supplied regulatory result does not establish a minimum gross area, and the 5.5 sqm-per-child standard applies to children’s net usable spaces, not the property’s gross area. Layout, required functions and area allocation therefore need assessment. Planning compatibility, change-of-use approval, hygiene, accessibility, fire and structural safety, and the applicable authorization procedure also require verification; check which regulatory regime applies when seeking approval.",
+          "final_ranking_score": 81,
+          "pros": [
+            "Existing residential dwelling aligns with the requested property type; reported area is 243 sqm for the proposed 18 children.",
+            "Energy class B meets the stated C-or-better threshold.",
+            "Mobility percentile of 86.1 supports the preference for strong public-transport access."
+          ],
+          "cons": [
+            "Gross area alone does not establish that the required net child spaces and other functional areas can be accommodated; layout and measurements need verification.",
+            "Urban-planning compatibility, change-of-use permission, hygiene, accessibility, fire and structural requirements, and sector authorization are unverified.",
+            "The regulatory result gives no verified gross-area threshold; confirm the standards and transition rules applicable at the time of application."
+          ]
+        },
+        "batch_id": 1,
+        "timestamp": "2026-11-18T14:31:56.964892",
+        "execution_time_ms": 18038.3563041687
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "DEMO-01430",
+          "evaluation_text": "This existing residential dwelling has strong strategic potential for conversion into an 18-child micro-nursery: its 414 sqm gross area and A2 energy class comfortably meet the stated area and energy targets, while the mobility percentile of 74.6 supports the preference for public transport access. The supplied data do not establish whether the layout can meet the required room areas or whether conversion is permitted. The regional standard specifies 5.5 sqm of net usable child-dedicated space per child, plus separate minimums for operator and other spaces; these figures are not gross-area thresholds. Verify Turin planning compatibility, change-of-use and building permits, hygiene, accessibility, fire and structural safety, sector authorization, and which regulatory requirements apply when the application is made.",
+          "final_ranking_score": 89,
+          "pros": [
+            "414 sqm gross floor area exceeds the requested 140 sqm threshold, with potential to accommodate conversion subject to layout verification.",
+            "A2 energy class exceeds the requested C-or-better target; the energy system score is 5 and envelope score is 4.",
+            "Mobility percentile of 74.6 is consistent with the preference for strong public transport access."
+          ],
+          "cons": [
+            "The property is currently residential; planning compatibility, change of use, and required permits need verification.",
+            "The data do not confirm that the layout can provide the required child, operator, acceptance, and general service spaces, or the indicative external area.",
+            "Hygiene, accessibility, fire and structural safety, sector authorization, and the regulatory framework applicable at application date remain to be checked."
+          ]
+        },
+        "batch_id": 2,
+        "timestamp": "2026-11-18T14:31:57.534802",
+        "execution_time_ms": 18608.7167263031
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "DEMO-00877",
+          "evaluation_text": "This pre-1919 residential dwelling has strong strategic potential for conversion to a micro-nursery: its recorded 338 sqm surface area is substantial, its A4 energy class exceeds the requested C threshold, and its mobility percentile of 82.8 indicates strong public transport proximity. The supplied data do not establish whether the area is gross floor area or whether the internal layout can meet the nursery’s room requirements. The verified regional standard requires 5.5 sqm of net child-use area per child, alongside separate minimum spaces for children, operators, and reception/multipurpose use; that net metric cannot be compared directly with the property’s surface area. No validated gross-area threshold is supplied. Turin planning compatibility, change-of-use permissions, hygiene, accessibility, fire and structural safety, and sector authorization all require verification. Confirm which regulatory regime applies at the application date, given the stated transition to newer requirements.",
+          "final_ranking_score": 81,
+          "pros": [
+            "Recorded area of 338 sqm offers a substantial starting point, subject to confirming that it is gross floor area and assessing the usable layout.",
+            "A4 energy class exceeds the requested minimum of C, with energy class and envelope scores of 5.",
+            "Mobility percentile of 82.8 supports the preference for strong public transport access."
+          ],
+          "cons": [
+            "The data do not confirm gross floor area, net child-use space, or whether the dwelling’s layout can meet the required room areas for 18 children.",
+            "As a pre-1919 dwelling, its conversion requires assessment of building condition and verification of hygiene, accessibility, fire and structural safety requirements.",
+            "Turin planning compatibility, change-of-use permission, sector authorization, and the applicable regulatory regime remain to be verified."
+          ]
+        },
+        "batch_id": 3,
+        "timestamp": "2026-11-18T14:31:57.955536",
+        "execution_time_ms": 19027.72831916809
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "DEMO-00962",
+          "evaluation_text": "This 165 sqm residential dwelling in Turin is a promising candidate for conversion into a micro-nursery for 18 children. Its energy class C meets the stated threshold, and mobility is strong at 82.6. The reported floor area exceeds the requested 140 sqm, but this does not establish that the usable rooms, layout, outdoor area, or regulatory requirements are adequate. The supplied regional standard specifies 5.5 sqm per child for the combined net areas dedicated to children, alongside other space standards; it provides no verified minimum gross property area. Urban-planning compatibility, change-of-use approval, hygiene, accessibility, fire and structural safety, and sector authorization require verification. Check which rules apply when an application is submitted, given the reported regulatory transition.",
+          "final_ranking_score": 78,
+          "pros": [
+            "165 sqm reported gross floor area exceeds the requested 140 sqm, offering a potentially useful base for adaptation; room layout and usable area remain unverified.",
+            "Energy class C meets the user's requested efficiency threshold; the energy score total is 14/20, with renewables present.",
+            "Mobility percentile of 82.6 indicates strong public-transport proximity; green and commercial service percentiles are also high at 92.0 and 85.5."
+          ],
+          "cons": [
+            "The 165 sqm gross figure does not establish compliance with the 5.5 sqm per child net-area standard or the specified minimum spaces for children, operators, and general services.",
+            "The data do not establish outdoor space, accessibility, or suitability of the dwelling's layout for nursery use.",
+            "Turin planning compatibility, change-of-use and building permissions, hygiene, safety, and sector authorization require checks; the applicable regulatory framework at application date also needs confirmation."
+          ]
+        },
+        "batch_id": 4,
+        "timestamp": "2026-11-18T14:31:58.493731",
+        "execution_time_ms": 19565.268993377686
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "DEMO-00802",
+          "evaluation_text": "This existing residential dwelling is a plausible candidate for conversion: its 146 sqm gross area exceeds the requested 140 sqm, it is in energy class C, and its mobility percentile of 84.6 indicates strong public transport proximity. The area and dwelling type alone do not establish that the building can accommodate the required nursery spaces or that a change of use is feasible. The verified regional standard specifies 5.5 sqm per child of net areas for children, plus additional function-specific area requirements; this is distinct from gross property area. Verify the layout, urban-planning compatibility, change-of-use authorization, health and safety requirements, accessibility, and the applicable authorization rules at the application date. The provided regulatory result found no validated gross-area screening threshold.",
+          "final_ranking_score": 71,
+          "pros": [
+            "146 sqm gross area exceeds the user's 140 sqm target.",
+            "Energy class C meets the stated energy threshold.",
+            "Mobility percentile of 84.6 supports the preference for strong public transport access."
+          ],
+          "cons": [
+            "The regulatory result provides no verified gross-area threshold, and gross area does not establish whether the necessary net areas and functions can fit.",
+            "Urban-planning compatibility and permission for a change of use in Turin require verification.",
+            "The dwelling's layout, accessibility, health and safety compliance, and sector authorization are not established by the supplied data."
+          ]
+        },
+        "batch_id": 5,
+        "timestamp": "2026-11-18T14:32:15.528004",
+        "execution_time_ms": 17573.13323020935
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "DEMO-00289",
+          "evaluation_text": "This 301 sqm residential dwelling is a promising candidate for conversion to an 18-child micro-nursery: its recorded gross area is substantial, its B energy class meets the requested C-or-better threshold, and its mobility percentile of 81.7 indicates strong public transport proximity. The supplied regulatory data set no verified minimum gross-property-area threshold, so the gross area alone cannot establish compliance. The verified regional standard calls for 5.5 sqm of net child-use area per child, plus specified minimum areas for children’s and staff spaces; whether the dwelling’s layout can provide these areas, and whether the proposed use and conversion are feasible, require verification. Confirm the rules in force at the application date and check planning compatibility, change-of-use and building permits, hygiene, accessibility, structural and fire-safety requirements, and sector authorization.",
+          "final_ranking_score": 75,
+          "pros": [
+            "At 301 sqm gross, the dwelling offers substantial area to assess for the required child, staff, and general service spaces, subject to verification of its usable layout.",
+            "Energy class B meets the requested C-or-better threshold; the envelope score is 4, while the total energy score is 11.",
+            "Mobility percentile of 81.7 supports the preference for strong public transport access."
+          ],
+          "cons": [
+            "Gross area does not establish that the dwelling can meet the verified net-area standards or required room arrangements; these need assessment.",
+            "Planning compatibility in Turin, change-of-use permissions, hygiene requirements, accessibility, safety, and sector authorization remain to be checked.",
+            "The plant score is 3 and renewables score is 1, indicating potential energy-system limitations despite the qualifying B class."
+          ]
+        },
+        "batch_id": 6,
+        "timestamp": "2026-11-18T14:32:16.298916",
+        "execution_time_ms": 19333.675146102905
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "DEMO-00804",
+          "evaluation_text": "This existing 169 sqm residential dwelling in Turin is a promising candidate for conversion to a micro-nursery for 18 children: it meets the requested gross-area and energy-class thresholds, and its mobility score indicates relatively strong public-transport access. The verified regional standard specifies 5.5 sqm per child of net areas dedicated to children, or 99 sqm for 18 children, while setting no verified minimum gross property area. The property’s gross area alone cannot establish that the required spaces, layout, external area, or other facilities can be provided. Urban-planning compatibility, change-of-use approval, health and safety requirements, accessibility, and sector authorization require verification under the rules applicable when the application is submitted.",
+          "final_ranking_score": 66,
+          "pros": [
+            "At 169 sqm gross, it exceeds the user's 140 sqm screening threshold; the verified 5.5 sqm per child standard concerns net child-use areas and does not establish that the required internal spaces fit.",
+            "Energy class C meets the requested minimum; the energy total is 14, with renewables present according to the supplied score.",
+            "Mobility score of 79.9 indicates relatively strong public-transport access."
+          ],
+          "cons": [
+            "The data do not describe room layout or net usable areas, so capacity for the required child areas, staff and general services is unconfirmed.",
+            "The supplied information does not establish urban-planning compatibility, permission for change of use, accessibility, health and safety compliance, or sector authorization.",
+            "No information is provided about outdoor space; the applicable standard and whether it can be met need verification."
+          ]
+        },
+        "batch_id": 7,
+        "timestamp": "2026-11-18T14:32:17.138288",
+        "execution_time_ms": 18645.286798477173
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "DEMO-00225",
+          "evaluation_text": "This 414 sqm residential dwelling in Turin is a strong initial candidate for conversion to a micro-nursery for 18 children. Its stated gross area is substantial, its energy class C meets the requested threshold, and its mobility percentile of 85.9 indicates strong public transport access. The supplied regional standard specifies 5.5 sqm of net child-dedicated area per child, plus other function-specific space requirements; these cannot be verified from gross property area alone. The source gives no verified minimum gross property-area threshold. Urban-planning compatibility, change-of-use permissions, sanitary requirements, accessibility, fire safety where required, structural safety, and sector authorization all need verification, along with the applicable regulatory regime at the application date.",
+          "final_ranking_score": 74,
+          "pros": [
+            "414 sqm gross floor area exceeds the user's 140 sqm screening target, although the internal usable layout and required functional areas remain unverified.",
+            "Energy class C meets the requested efficiency threshold; the envelope score is relatively strong at 4, while the total energy score is 10/20.",
+            "Mobility percentile of 85.9 supports the preference for strong public transport access; commercial and education proximity percentiles are also high at 85.3 and 78.9."
+          ],
+          "cons": [
+            "The data do not establish whether the dwelling can provide the required net areas for children, operators, and general services, nor whether its layout is suitable for the proposed capacity.",
+            "The energy plant score is 2 and renewables score is 1, indicating potential efficiency and decarbonization limitations despite class C.",
+            "Planning compatibility, change of use, sanitary compliance, accessibility, applicable fire and structural requirements, and sector authorization require verification."
+          ]
+        },
+        "batch_id": 8,
+        "timestamp": "2026-11-18T14:32:17.920385",
+        "execution_time_ms": 20386.04784011841
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "DEMO-01197",
+          "evaluation_text": "This existing residential dwelling has a promising starting profile for conversion to an 18-child micro-nursery: its 192 sqm gross area exceeds the user’s requested 140 sqm threshold, it is in energy class B, and its mobility percentile of 80.8 indicates strong public transport proximity. The supplied data do not establish whether the gross area can accommodate the required net child areas and other functions, or whether the layout, planning status, accessibility, and technical conditions support the proposed use. The cited regional standard specifies 5.5 sqm of net child-use area per child, plus other area requirements; it does not establish a minimum gross property area. Confirm the applicable rules at the application date and complete the required planning, building-use, health, accessibility, fire-safety, structural, and authorization checks.",
+          "final_ranking_score": 59,
+          "pros": [
+            "At 192 sqm, the dwelling exceeds the requested 140 sqm gross-area threshold, though this does not establish that the required internal layout or net areas can be provided.",
+            "Energy class B meets the requested class C or better criterion.",
+            "Mobility percentile 80.8 supports the preference for strong public transport access."
+          ],
+          "cons": [
+            "Built before 1919, the property may require substantial adaptation; its suitability and structural condition are not established by the supplied data.",
+            "Energy sub-scores show a weaker envelope (2) and no renewables (1), despite the overall class B rating.",
+            "The data do not verify planning compatibility, change-of-use approval, accessibility, hygiene, fire and structural safety, or whether required net areas and an external area can be provided."
+          ]
+        },
+        "batch_id": 9,
+        "timestamp": "2026-11-18T14:32:26.169301",
+        "execution_time_ms": 9870.87345123291
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "DEMO-00372",
+          "evaluation_text": "This pre-1919 residential dwelling in Turin offers a promising starting point for conversion to a micro-nursery: its 197.0 sqm gross area exceeds the requested 140 sqm, it is already in energy class A2, and its mobility percentile of 79.9 indicates strong public transport proximity. The supplied regulatory result identifies a verified net standard of 5.5 sqm per child for specified child-use areas, alongside other function-specific requirements, but establishes no validated minimum gross property area. The listed gross area therefore does not establish that the required room areas, layout, or capacity for 18 children can be accommodated. Urban-planning compatibility, change-of-use authorization, hygiene, accessibility, safety, and sector authorization require verification; the applicable regional rules should also be confirmed for the application date.",
+          "final_ranking_score": 66,
+          "pros": [
+            "197.0 sqm gross floor area exceeds the stated 140 sqm target.",
+            "Energy class A2 exceeds the requested minimum of C; the energy total is 17.",
+            "Mobility percentile of 79.9 supports the preference for strong public transport access."
+          ],
+          "cons": [
+            "Gross area alone does not confirm the required net areas, room layout, or suitability for 18 children.",
+            "Turin planning compatibility, change-of-use title, hygiene, accessibility, safety, and sector authorization remain to be checked.",
+            "The building predates 1919, so its structural and technical suitability for conversion is not established by the supplied data."
+          ]
+        },
+        "batch_id": 10,
+        "timestamp": "2026-11-18T14:32:26.633016",
+        "execution_time_ms": 11105.224609375
+      }
+    ],
+    "evaluation_results": [
+      {
+        "id": "DEMO-01430",
+        "evaluation_text": "This existing residential dwelling has strong strategic potential for conversion into an 18-child micro-nursery: its 414 sqm gross area and A2 energy class comfortably meet the stated area and energy targets, while the mobility percentile of 74.6 supports the preference for public transport access. The supplied data do not establish whether the layout can meet the required room areas or whether conversion is permitted. The regional standard specifies 5.5 sqm of net usable child-dedicated space per child, plus separate minimums for operator and other spaces; these figures are not gross-area thresholds. Verify Turin planning compatibility, change-of-use and building permits, hygiene, accessibility, fire and structural safety, sector authorization, and which regulatory requirements apply when the application is made.",
+        "final_ranking_score": 89,
+        "pros": [
+          "414 sqm gross floor area exceeds the requested 140 sqm threshold, with potential to accommodate conversion subject to layout verification.",
+          "A2 energy class exceeds the requested C-or-better target; the energy system score is 5 and envelope score is 4.",
+          "Mobility percentile of 74.6 is consistent with the preference for strong public transport access."
+        ],
+        "cons": [
+          "The property is currently residential; planning compatibility, change of use, and required permits need verification.",
+          "The data do not confirm that the layout can provide the required child, operator, acceptance, and general service spaces, or the indicative external area.",
+          "Hygiene, accessibility, fire and structural safety, sector authorization, and the regulatory framework applicable at application date remain to be checked."
+        ]
+      },
+      {
+        "id": "DEMO-00133",
+        "evaluation_text": "This 243 sqm residential dwelling in Turin is a promising candidate for conversion to an 18-child micro-nursery: its reported area is substantial, its energy class B meets the stated C-or-better preference, and its mobility percentile of 86.1 indicates strong public-transport access. The supplied regulatory result does not establish a minimum gross area, and the 5.5 sqm-per-child standard applies to children’s net usable spaces, not the property’s gross area. Layout, required functions and area allocation therefore need assessment. Planning compatibility, change-of-use approval, hygiene, accessibility, fire and structural safety, and the applicable authorization procedure also require verification; check which regulatory regime applies when seeking approval.",
+        "final_ranking_score": 81,
+        "pros": [
+          "Existing residential dwelling aligns with the requested property type; reported area is 243 sqm for the proposed 18 children.",
+          "Energy class B meets the stated C-or-better threshold.",
+          "Mobility percentile of 86.1 supports the preference for strong public-transport access."
+        ],
+        "cons": [
+          "Gross area alone does not establish that the required net child spaces and other functional areas can be accommodated; layout and measurements need verification.",
+          "Urban-planning compatibility, change-of-use permission, hygiene, accessibility, fire and structural requirements, and sector authorization are unverified.",
+          "The regulatory result gives no verified gross-area threshold; confirm the standards and transition rules applicable at the time of application."
+        ]
+      },
+      {
+        "id": "DEMO-00877",
+        "evaluation_text": "This pre-1919 residential dwelling has strong strategic potential for conversion to a micro-nursery: its recorded 338 sqm surface area is substantial, its A4 energy class exceeds the requested C threshold, and its mobility percentile of 82.8 indicates strong public transport proximity. The supplied data do not establish whether the area is gross floor area or whether the internal layout can meet the nursery’s room requirements. The verified regional standard requires 5.5 sqm of net child-use area per child, alongside separate minimum spaces for children, operators, and reception/multipurpose use; that net metric cannot be compared directly with the property’s surface area. No validated gross-area threshold is supplied. Turin planning compatibility, change-of-use permissions, hygiene, accessibility, fire and structural safety, and sector authorization all require verification. Confirm which regulatory regime applies at the application date, given the stated transition to newer requirements.",
+        "final_ranking_score": 81,
+        "pros": [
+          "Recorded area of 338 sqm offers a substantial starting point, subject to confirming that it is gross floor area and assessing the usable layout.",
+          "A4 energy class exceeds the requested minimum of C, with energy class and envelope scores of 5.",
+          "Mobility percentile of 82.8 supports the preference for strong public transport access."
+        ],
+        "cons": [
+          "The data do not confirm gross floor area, net child-use space, or whether the dwelling’s layout can meet the required room areas for 18 children.",
+          "As a pre-1919 dwelling, its conversion requires assessment of building condition and verification of hygiene, accessibility, fire and structural safety requirements.",
+          "Turin planning compatibility, change-of-use permission, sector authorization, and the applicable regulatory regime remain to be verified."
+        ]
+      },
+      {
+        "id": "DEMO-00962",
+        "evaluation_text": "This 165 sqm residential dwelling in Turin is a promising candidate for conversion into a micro-nursery for 18 children. Its energy class C meets the stated threshold, and mobility is strong at 82.6. The reported floor area exceeds the requested 140 sqm, but this does not establish that the usable rooms, layout, outdoor area, or regulatory requirements are adequate. The supplied regional standard specifies 5.5 sqm per child for the combined net areas dedicated to children, alongside other space standards; it provides no verified minimum gross property area. Urban-planning compatibility, change-of-use approval, hygiene, accessibility, fire and structural safety, and sector authorization require verification. Check which rules apply when an application is submitted, given the reported regulatory transition.",
+        "final_ranking_score": 78,
+        "pros": [
+          "165 sqm reported gross floor area exceeds the requested 140 sqm, offering a potentially useful base for adaptation; room layout and usable area remain unverified.",
+          "Energy class C meets the user's requested efficiency threshold; the energy score total is 14/20, with renewables present.",
+          "Mobility percentile of 82.6 indicates strong public-transport proximity; green and commercial service percentiles are also high at 92.0 and 85.5."
+        ],
+        "cons": [
+          "The 165 sqm gross figure does not establish compliance with the 5.5 sqm per child net-area standard or the specified minimum spaces for children, operators, and general services.",
+          "The data do not establish outdoor space, accessibility, or suitability of the dwelling's layout for nursery use.",
+          "Turin planning compatibility, change-of-use and building permissions, hygiene, safety, and sector authorization require checks; the applicable regulatory framework at application date also needs confirmation."
+        ]
+      },
+      {
+        "id": "DEMO-00289",
+        "evaluation_text": "This 301 sqm residential dwelling is a promising candidate for conversion to an 18-child micro-nursery: its recorded gross area is substantial, its B energy class meets the requested C-or-better threshold, and its mobility percentile of 81.7 indicates strong public transport proximity. The supplied regulatory data set no verified minimum gross-property-area threshold, so the gross area alone cannot establish compliance. The verified regional standard calls for 5.5 sqm of net child-use area per child, plus specified minimum areas for children’s and staff spaces; whether the dwelling’s layout can provide these areas, and whether the proposed use and conversion are feasible, require verification. Confirm the rules in force at the application date and check planning compatibility, change-of-use and building permits, hygiene, accessibility, structural and fire-safety requirements, and sector authorization.",
+        "final_ranking_score": 75,
+        "pros": [
+          "At 301 sqm gross, the dwelling offers substantial area to assess for the required child, staff, and general service spaces, subject to verification of its usable layout.",
+          "Energy class B meets the requested C-or-better threshold; the envelope score is 4, while the total energy score is 11.",
+          "Mobility percentile of 81.7 supports the preference for strong public transport access."
+        ],
+        "cons": [
+          "Gross area does not establish that the dwelling can meet the verified net-area standards or required room arrangements; these need assessment.",
+          "Planning compatibility in Turin, change-of-use permissions, hygiene requirements, accessibility, safety, and sector authorization remain to be checked.",
+          "The plant score is 3 and renewables score is 1, indicating potential energy-system limitations despite the qualifying B class."
+        ]
+      },
+      {
+        "id": "DEMO-00225",
+        "evaluation_text": "This 414 sqm residential dwelling in Turin is a strong initial candidate for conversion to a micro-nursery for 18 children. Its stated gross area is substantial, its energy class C meets the requested threshold, and its mobility percentile of 85.9 indicates strong public transport access. The supplied regional standard specifies 5.5 sqm of net child-dedicated area per child, plus other function-specific space requirements; these cannot be verified from gross property area alone. The source gives no verified minimum gross property-area threshold. Urban-planning compatibility, change-of-use permissions, sanitary requirements, accessibility, fire safety where required, structural safety, and sector authorization all need verification, along with the applicable regulatory regime at the application date.",
+        "final_ranking_score": 74,
+        "pros": [
+          "414 sqm gross floor area exceeds the user's 140 sqm screening target, although the internal usable layout and required functional areas remain unverified.",
+          "Energy class C meets the requested efficiency threshold; the envelope score is relatively strong at 4, while the total energy score is 10/20.",
+          "Mobility percentile of 85.9 supports the preference for strong public transport access; commercial and education proximity percentiles are also high at 85.3 and 78.9."
+        ],
+        "cons": [
+          "The data do not establish whether the dwelling can provide the required net areas for children, operators, and general services, nor whether its layout is suitable for the proposed capacity.",
+          "The energy plant score is 2 and renewables score is 1, indicating potential efficiency and decarbonization limitations despite class C.",
+          "Planning compatibility, change of use, sanitary compliance, accessibility, applicable fire and structural requirements, and sector authorization require verification."
+        ]
+      },
+      {
+        "id": "DEMO-00802",
+        "evaluation_text": "This existing residential dwelling is a plausible candidate for conversion: its 146 sqm gross area exceeds the requested 140 sqm, it is in energy class C, and its mobility percentile of 84.6 indicates strong public transport proximity. The area and dwelling type alone do not establish that the building can accommodate the required nursery spaces or that a change of use is feasible. The verified regional standard specifies 5.5 sqm per child of net areas for children, plus additional function-specific area requirements; this is distinct from gross property area. Verify the layout, urban-planning compatibility, change-of-use authorization, health and safety requirements, accessibility, and the applicable authorization rules at the application date. The provided regulatory result found no validated gross-area screening threshold.",
+        "final_ranking_score": 71,
+        "pros": [
+          "146 sqm gross area exceeds the user's 140 sqm target.",
+          "Energy class C meets the stated energy threshold.",
+          "Mobility percentile of 84.6 supports the preference for strong public transport access."
+        ],
+        "cons": [
+          "The regulatory result provides no verified gross-area threshold, and gross area does not establish whether the necessary net areas and functions can fit.",
+          "Urban-planning compatibility and permission for a change of use in Turin require verification.",
+          "The dwelling's layout, accessibility, health and safety compliance, and sector authorization are not established by the supplied data."
+        ]
+      },
+      {
+        "id": "DEMO-00804",
+        "evaluation_text": "This existing 169 sqm residential dwelling in Turin is a promising candidate for conversion to a micro-nursery for 18 children: it meets the requested gross-area and energy-class thresholds, and its mobility score indicates relatively strong public-transport access. The verified regional standard specifies 5.5 sqm per child of net areas dedicated to children, or 99 sqm for 18 children, while setting no verified minimum gross property area. The property’s gross area alone cannot establish that the required spaces, layout, external area, or other facilities can be provided. Urban-planning compatibility, change-of-use approval, health and safety requirements, accessibility, and sector authorization require verification under the rules applicable when the application is submitted.",
+        "final_ranking_score": 66,
+        "pros": [
+          "At 169 sqm gross, it exceeds the user's 140 sqm screening threshold; the verified 5.5 sqm per child standard concerns net child-use areas and does not establish that the required internal spaces fit.",
+          "Energy class C meets the requested minimum; the energy total is 14, with renewables present according to the supplied score.",
+          "Mobility score of 79.9 indicates relatively strong public-transport access."
+        ],
+        "cons": [
+          "The data do not describe room layout or net usable areas, so capacity for the required child areas, staff and general services is unconfirmed.",
+          "The supplied information does not establish urban-planning compatibility, permission for change of use, accessibility, health and safety compliance, or sector authorization.",
+          "No information is provided about outdoor space; the applicable standard and whether it can be met need verification."
+        ]
+      },
+      {
+        "id": "DEMO-00372",
+        "evaluation_text": "This pre-1919 residential dwelling in Turin offers a promising starting point for conversion to a micro-nursery: its 197.0 sqm gross area exceeds the requested 140 sqm, it is already in energy class A2, and its mobility percentile of 79.9 indicates strong public transport proximity. The supplied regulatory result identifies a verified net standard of 5.5 sqm per child for specified child-use areas, alongside other function-specific requirements, but establishes no validated minimum gross property area. The listed gross area therefore does not establish that the required room areas, layout, or capacity for 18 children can be accommodated. Urban-planning compatibility, change-of-use authorization, hygiene, accessibility, safety, and sector authorization require verification; the applicable regional rules should also be confirmed for the application date.",
+        "final_ranking_score": 66,
+        "pros": [
+          "197.0 sqm gross floor area exceeds the stated 140 sqm target.",
+          "Energy class A2 exceeds the requested minimum of C; the energy total is 17.",
+          "Mobility percentile of 79.9 supports the preference for strong public transport access."
+        ],
+        "cons": [
+          "Gross area alone does not confirm the required net areas, room layout, or suitability for 18 children.",
+          "Turin planning compatibility, change-of-use title, hygiene, accessibility, safety, and sector authorization remain to be checked.",
+          "The building predates 1919, so its structural and technical suitability for conversion is not established by the supplied data."
+        ]
+      },
+      {
+        "id": "DEMO-01197",
+        "evaluation_text": "This existing residential dwelling has a promising starting profile for conversion to an 18-child micro-nursery: its 192 sqm gross area exceeds the user’s requested 140 sqm threshold, it is in energy class B, and its mobility percentile of 80.8 indicates strong public transport proximity. The supplied data do not establish whether the gross area can accommodate the required net child areas and other functions, or whether the layout, planning status, accessibility, and technical conditions support the proposed use. The cited regional standard specifies 5.5 sqm of net child-use area per child, plus other area requirements; it does not establish a minimum gross property area. Confirm the applicable rules at the application date and complete the required planning, building-use, health, accessibility, fire-safety, structural, and authorization checks.",
+        "final_ranking_score": 59,
+        "pros": [
+          "At 192 sqm, the dwelling exceeds the requested 140 sqm gross-area threshold, though this does not establish that the required internal layout or net areas can be provided.",
+          "Energy class B meets the requested class C or better criterion.",
+          "Mobility percentile 80.8 supports the preference for strong public transport access."
+        ],
+        "cons": [
+          "Built before 1919, the property may require substantial adaptation; its suitability and structural condition are not established by the supplied data.",
+          "Energy sub-scores show a weaker envelope (2) and no renewables (1), despite the overall class B rating.",
+          "The data do not verify planning compatibility, change-of-use approval, accessibility, hygiene, fire and structural safety, or whether required net areas and an external area can be provided."
+        ]
+      }
+    ],
+    "relaxation_applied": false,
+    "relaxation_count": 0,
+    "fallback_activated": false,
+    "agent_errors": []
+  }
+}
