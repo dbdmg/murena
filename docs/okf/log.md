@@ -2,6 +2,22 @@
 
 ## 2026-11-18
 
+* **`SAGE_MAX_TURNS` alzato da 6 a 20:** valore predefinito in `backend/app/core/config.py` e `backend/.env.example`. Serve a coprire i dialoghi con ambiguità multiple della suite v4 (fino a 10 turni nei profili `all_vague` a $k=5$). Le serie pubblicate furono eseguite con 6 turni; il paper distingue esplicitamente il protocollo dei run riportati dal default corrente. Documentazione aggiornata in `architecture/query-clarification.md` e `research/edbt-conversational-benchmark.md`.
+
+* **Definizione della suite di scenari v4 (`scenarios_v4/`):**
+  * Creata la cartella `backend/experiments/data/scenarios_v4/` con formulazioni realistiche e contestualizzate per use case e dimensione.
+  * Superata la limitazione della frase generica v3 (*"It depends; something suitable for the project, I guess."*): introdotte 40 risposte vaghe specifiche per use case e dimensione ($8 \times 5 = 40$) e frasi di opt-out contestualizzate al dominio (asilo, RSA, studentato...), estese anche a $D$ e $L$.
+  * Generalizzazione massima: il generatore legge il catalogo combinatorio `scenarios_v3/conversational_scenarios.yaml` (256 maschere) e produce tutte le $3^k$ assegnazioni ternarie per ogni maschera, per **8.192 scenari** ($8 \times 4^5$). Distribuzione: 8 controlli k=0, 120 a k=1, 720 a k=2, 2.160 a k=3, 3.240 a k=4, 1.944 a k=5.
+  * Asset creati:
+    * `derive_imperfect_user_v4.py`: generatore deterministico senza chiamate LLM.
+    * `imperfect_user_v4.yaml`: 8.192 scenari (8 controlli, 248 `all_specified`, 248 `all_vague`, 248 `all_optout`, 7.440 `mixed`).
+    * `validate_scenarios_v4.py`: validatore statico superato (conteggi, 256 maschere, formati e coerenza degli stati).
+    * `README.md`: documentazione della suite e cautele (turni fino a 10, ora coperti da `max_turns=20`; opt-out su $D$/$L$ gestito come per le altre dimensioni, con ricerca su tutto il dataset se $L$ non è specificata).
+  * Compatibilità con `benchmark_cli.py`; `analyze_imperfect_user.py` riconosce solo i profili storici. Nessuna esecuzione LLM ancora effettuata su v4.
+  * **Piano campionato:** `benchmark_cli.py` supporta `--sample-fraction`, `--sample-seed` singolo e `--sample-seeds` multiplo; ogni seed seleziona uniformemente in modo riproducibile e usa una directory/manifest separati con gli ID campionati. Configurazione v4 documentata: 1% (82 scenari per seed), cinque seed e tre repliche comuni a refined e oracle (1.350 job totali); il campione seed 13 include tutti gli otto intenti base. L'oracle statico non costituisce un target di ranking condizionato per profili con opt-out. Nessuna run LLM è stata lanciata.
+* **Frontend demo allineato alla serie v4 seed 13:** `frontend/.env.demo` imposta `VITE_BENCHMARK_RESULTS_DIR` a `backend/experiments/results/imperfect_user_v4_multiseed_seed13`. Sia `/benchmark` sia il pannello demo derivano da quella cartella; l'export statico `public/data/benchmark_runs.json` ora contiene definizione, transcript e top risultati degli scenari refined completati. `dev:demo` e `build:demo` rigenerano l'indice dalla medesima directory. Il selettore mostra gli scenari v4 completati invece del catalogo v3. Nessun PDF o paper modificato.
+
+
 * **Registrazione della demo** in `paper/video/murena_demo_nursery.gif`:
   * Contenuto: GIF di 36 fotogrammi, 1400×841, senza audio.
   * Esecuzione: app locale, backend con `claude_cli`/`claude-haiku-5-5` dal vivo, caso nido.

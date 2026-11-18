@@ -1,6 +1,5 @@
 import { AxiosError, type AxiosAdapter } from 'axios';
 import type { AnalysisResults } from '../api/types';
-import { dimensionLabels } from '../utils/demoScenarios';
 import type { DemoScenario, Dimension } from '../utils/demoScenarios';
 
 export const demoUser = { id: 0, username: 'Demo presenter', created_at: '2026-01-01T00:00:00Z' };
@@ -27,25 +26,21 @@ export function selectDemoScenario(scenario: DemoScenario) {
 const sessions = new Map<string, { remaining: Dimension[]; text: string; turn: number }>();
 const runs = new Map<string, AnalysisResults>();
 
-const questionFor = (dimension: Dimension) =>
-    `Please specify your requirements for ${dimensionLabels[dimension].toLowerCase()}.`;
-
 /** Load the complete local script and leave its session ready for review. */
 export function loadDemoConversation(scenario: DemoScenario) {
     const messages: { role: 'user' | 'assistant'; content: string }[] = [
-        { role: 'user', content: scenario.conversational.initial_query },
+        { role: 'user', content: scenario.initial_query },
     ];
-    let text = scenario.conversational.initial_query;
-    for (const dimension of scenario.missing_dimensions) {
-        const answer = scenario.conversational.simulated_user_answers_by_dimension[dimension];
-        if (!answer?.trim()) throw new Error(`Missing prepared answer for ${dimension}.`);
-        messages.push({ role: 'assistant', content: questionFor(dimension) }, { role: 'user', content: answer });
-        text += ` ${answer}`;
+    for (const turn of scenario.turns) {
+        messages.push(
+            { role: 'assistant', content: turn.question },
+            { role: 'user', content: turn.answer },
+        );
     }
     selectDemoScenario(scenario);
     const sessionId = `demo-session-${crypto.randomUUID()}`;
-    sessions.set(sessionId, { remaining: [], text, turn: scenario.missing_dimensions.length });
-    return { sessionId, messages, reviewQuery: text };
+    sessions.set(sessionId, { remaining: [], text: scenario.review_query, turn: scenario.turns.length });
+    return { sessionId, messages, reviewQuery: scenario.review_query };
 }
 
 
@@ -68,9 +63,8 @@ export const demoAdapter: AxiosAdapter = async config => {
         if (!body.clarification_session_id) {
             if (!activeScenario) return fail('Select a demo scenario first.');
             const id = `demo-session-${crypto.randomUUID()}`;
-            // Oracle text is already complete. Other inputs follow the selected script.
             sessions.set(id, {
-                remaining: body.query === activeScenario.oracle.query ? [] : [...activeScenario.missing_dimensions],
+                remaining: [...activeScenario.missing_dimensions],
                 text: body.query, turn: 0,
             });
             body.clarification_session_id = id;
@@ -79,11 +73,13 @@ export const demoAdapter: AxiosAdapter = async config => {
         const session = sessions.get(id);
         if (!session) return fail('Demo session expired. Start a new search.');
         if (body.clarification_confirmed) {
+            const scenario = activeScenario;
+            if (!scenario) return fail('Select a demo scenario first.');
             if (session.remaining.length) return fail('Complete the scripted clarification first.');
             const runId = `demo-${crypto.randomUUID()}`;
             const now = new Date().toISOString();
             const [benchmarkRuns, estates] = await Promise.all([getBenchmarkRuns(), getEstates()]);
-            const benchmarkRun = benchmarkRuns[activeScenario.case_id];
+            const benchmarkRun = benchmarkRuns[scenario.case_id];
             const estatesById = new Map(estates.map(estate => [String(estate.id), estate]));
             const buildings = (benchmarkRun?.top ?? []).flatMap(top => {
                 const estate = estatesById.get(String(top.id));
@@ -113,8 +109,8 @@ export const demoAdapter: AxiosAdapter = async config => {
                 run_id: runId, status: 'completed', query: body.query,
                 created_at: now, completed_at: now, buildings, location: [],
                 broker_summary: benchmarkRun
-                    ? `Showing the precomputed refined benchmark output for ${activeScenario.case_id} (${benchmarkRun.run_id}). ${buildings.length} of the top 10 properties were matched to the local inventory. EvaluationAgent output was not retained in this compact benchmark artifact.`
-                    : `No completed refined benchmark run is available for ${activeScenario.case_id}. The local inventory is shown without scenario-specific results.`,
+                    ? `Showing the precomputed refined benchmark output for ${scenario.case_id} (${benchmarkRun.run_id}). ${buildings.length} of the top 10 properties were matched to the local inventory. EvaluationAgent output was not retained in this compact benchmark artifact.`
+                    : `No completed refined benchmark run is available for ${scenario.case_id}. The local inventory is shown without scenario-specific results.`,
                 agent_trace: benchmarkRun?.agent_trace ?? [],
             };
             runs.set(runId, result);
@@ -128,7 +124,7 @@ export const demoAdapter: AxiosAdapter = async config => {
         }
         const dimension = session.remaining[0];
         return respond(dimension
-            ? { session_id: id, status: 'ASK', turn: session.turn, question: questionFor(dimension) }
+            ? { session_id: id, status: 'ASK', turn: session.turn, question: `Please specify your requirements for ${dimension.toLowerCase()}.` }
             : { session_id: id, status: 'REVIEW', turn: session.turn, refined_query: session.text });
     }
     const match = path.match(/^\/analysis\/([^/]+)(?:\/(agent_steps|gemini_responses))?$/);

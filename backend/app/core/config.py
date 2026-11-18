@@ -137,7 +137,7 @@ class Settings(BaseSettings):
     # Set to False in production to avoid unnecessary file writes
     ENABLE_RUN_JSON_EXPORT: bool = False
     ENABLE_SAGE_CLARIFICATION: bool = True
-    SAGE_MAX_TURNS: int = 6
+    SAGE_MAX_TURNS: int = 20
     SAGE_REDUNDANCY_LAMBDA: float = 0.5
     SAGE_EVPI_STOP_ALPHA: float = 0.1
     # Codex CLI is an optional provider in the centralized LLM factory.

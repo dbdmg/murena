@@ -1,6 +1,4 @@
 import { useMemo, useState, type ReactNode } from 'react';
-import manifestSource from '@benchmark-manifest?raw';
-import runsSource from '@benchmark-runs?raw';
 
 type JsonObject = Record<string, unknown>;
 type BenchmarkRun = JsonObject & {
@@ -50,21 +48,31 @@ function readRuns(source: string): BenchmarkRun[] {
     });
 }
 
-const manifest = readObject(manifestSource);
-const runs = readRuns(runsSource);
+const manifest = readObject(__BENCHMARK_MANIFEST__);
+const runs = readRuns(__BENCHMARK_RUNS__);
+const scenarioFile = typeof manifest.scenario_file === 'string'
+    ? manifest.scenario_file.replaceAll('\\', '/').split('/').pop()?.replace(/\.(json|ya?ml)$/i, '')
+    : undefined;
+const benchmarkLabel = [scenarioFile || 'Benchmark',
+    typeof manifest.sample_seed === 'number' ? `seed ${manifest.sample_seed}` : undefined,
+].filter(Boolean).join(' · ');
 const formatDuration = (seconds: unknown) => typeof seconds === 'number' ? `${seconds.toFixed(1)} s` : '—';
 const display = (value: unknown) => value === null || value === undefined || value === '' ? '—' : String(value);
 
 function plannedRuns(): number | null {
     const variants = manifest.enabled_variant_ids;
     const scenarios = manifest.enabled_scenario_ids;
-    if (!Array.isArray(variants) || !Array.isArray(scenarios)) return null;
+    const conditions = manifest.conditions;
+    if (!Array.isArray(variants) || !Array.isArray(scenarios) || !Array.isArray(conditions)) return null;
 
     const ordinaryVariants = variants.filter((variant: unknown) => typeof variant === 'string' && !variant.endsWith('_k0')).length;
-    const k0Variants = variants.length - ordinaryVariants;
     const repeat = Number(manifest.repeat_default) || 1;
     const oracleRepeat = Number(manifest.oracle_repeat) || repeat;
-    return variants.length * repeat * 2 - k0Variants * repeat + scenarios.length * oracleRepeat;
+    let planned = 0;
+    if (conditions.includes('refined')) planned += variants.length * repeat;
+    if (conditions.includes('one_shot')) planned += ordinaryVariants * repeat;
+    if (conditions.includes('oracle')) planned += scenarios.length * oracleRepeat;
+    return planned || null;
 }
 
 function StatusBadge({ status }: { status: unknown }) {
@@ -125,7 +133,7 @@ export function BenchmarkPage() {
                 <header className="flex flex-wrap items-end justify-between gap-4">
                     <div>
                         <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-emerald-400">Experiments</p>
-                        <h1 className="text-3xl font-semibold text-white">Benchmark · all_scenarios_codex</h1>
+                        <h1 className="text-3xl font-semibold text-white">Benchmark · {benchmarkLabel}</h1>
                         <p className="mt-2 text-sm text-gray-400">
                             {display(llm.provider)} / {display(llm.model)} · {display(manifest.clarification_mode)} · {display(manifest.concurrency)} parallel workers
                         </p>

@@ -230,7 +230,7 @@ export const SearchPage: React.FC = () => {
 
     const openDemoScenario = async (scenario: DemoScenario) => {
         if (!OFFLINE_DEMO || busy) return;
-        const initialQuery = scenario.conversational.initial_query;
+        const initialQuery = scenario.initial_query;
         setQuery('');
         setClarificationOriginalQuery(initialQuery);
         setClarificationSessionId(null);

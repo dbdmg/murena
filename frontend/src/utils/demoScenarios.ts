@@ -7,14 +7,13 @@ export const dimensionLabels: Record<Dimension, string> = {
 export interface DemoScenario {
     case_id: string;
     base_case_id?: string;
-    regulatory_use_case: string;
+    name: string;
+    profile?: string;
+    balance?: string;
+    initial_query: string;
     missing_dimensions: Dimension[];
-    conversational: {
-        initial_query: string;
-        simulated_user_answers_by_dimension: Partial<Record<Dimension, string>>;
-    };
-    one_shot: { query: string };
-    oracle: { query: string };
+    turns: { question: string; answer: string }[];
+    review_query: string;
 }
 
 const record = (value: unknown): value is Record<string, unknown> =>

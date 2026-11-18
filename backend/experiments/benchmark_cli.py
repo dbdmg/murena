@@ -24,11 +24,14 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import copy
 import csv
 import json
 import hashlib
+import math
 import os
 import platform
+import random
 import subprocess
 import sys
 import time
@@ -259,6 +262,19 @@ def load_scenarios(path: Path) -> list[dict[str, Any]]:
         if unknown:
             raise ValueError(f"Scenario '{scenario_id}' has unknown options: {', '.join(sorted(unknown))}")
     return [s for s in raw if s["id"] not in disabled_ids]
+
+
+def sample_scenarios(
+    scenarios: list[dict[str, Any]], fraction: float, seed: int
+) -> list[dict[str, Any]]:
+    """Select a reproducible uniform sample while preserving source-file order."""
+    if not 0 < fraction <= 1:
+        raise ValueError("Sample fraction must be greater than 0 and at most 1.")
+    if fraction == 1 or not scenarios:
+        return scenarios
+    sample_size = min(len(scenarios), math.ceil(len(scenarios) * fraction))
+    selected_indices = set(random.Random(seed).sample(range(len(scenarios)), sample_size))
+    return [scenario for index, scenario in enumerate(scenarios) if index in selected_indices]
 
 
 def scenario_digest(scenario: dict[str, Any]) -> str:
@@ -995,6 +1011,8 @@ def select_jobs(
 
 def dry_run(args: argparse.Namespace) -> int:
     scenarios = load_scenarios(args.scenarios.resolve())
+    source_scenario_count = len(scenarios)
+    scenarios = sample_scenarios(scenarios, args.sample_fraction, args.sample_seed)
     validate_rerun_ids(args, scenarios)
     try:
         from app.core.config import settings  # configuration only, no LLM call
@@ -1023,7 +1041,11 @@ def dry_run(args: argparse.Namespace) -> int:
             f"sha={job['input_sha256'][:10]} | {query[:70]}"
         )
     print(f"\nDry run: model={model} conditions={list(dict.fromkeys(args.condition or ['refined']))}")
-    print(f"  enabled bases={len({s.get('base_case_id') or s['id'] for s in scenarios})} variants={len(scenarios)}")
+    print(
+        f"  sample={len(scenarios)}/{source_scenario_count} scenarios "
+        f"(fraction={args.sample_fraction:g}, seed={args.sample_seed}); "
+        f"enabled bases={len({s.get('base_case_id') or s['id'] for s in scenarios})}"
+    )
     for condition, (to_run, skipped) in counts.items():
         print(f"  {condition:<8} planned={to_run + skipped:>4} to_run={to_run:>4} skipped={skipped:>4}")
     print(f"  total    planned={len(plan):>4} to_run={sum(1 for _, r in plan if r is None):>4}")
@@ -1067,6 +1089,8 @@ async def run(args: argparse.Namespace) -> int:
             setattr(settings, attribute, str((BACKEND / value).resolve()))
 
     scenarios = load_scenarios(args.scenarios.resolve())
+    source_scenario_count = len(scenarios)
+    scenarios = sample_scenarios(scenarios, args.sample_fraction, args.sample_seed)
     validate_rerun_ids(args, scenarios)
     conditions = list(dict.fromkeys(args.condition or ["refined"]))
     oracle_repeat = args.oracle_repeat if args.oracle_repeat is not None else args.repeat
@@ -1114,6 +1138,10 @@ async def run(args: argparse.Namespace) -> int:
         "dataset_sha256": await asyncio.to_thread(file_sha256, Path(dataset_path)),
         "repeat_default": args.repeat,
         "oracle_repeat": oracle_repeat,
+        "sample_fraction": args.sample_fraction,
+        "sample_seed": args.sample_seed,
+        "source_scenario_count": source_scenario_count,
+        "sampled_scenario_ids": [s["id"] for s in scenarios],
         "scenarios_sha256": scenarios_sha256,
         "scenario_hash_history": [scenarios_sha256],
         "enabled_scenario_ids": sorted({s.get("base_case_id") or s["id"] for s in scenarios}),
@@ -1141,6 +1169,12 @@ async def run(args: argparse.Namespace) -> int:
                       "dataset_sha256", "sage", "llm"):
             if field in previous_manifest and previous_manifest.get(field) != manifest.get(field):
                 raise ValueError(f"Cannot resume: benchmark setting '{field}' differs from the existing manifest.")
+        for field in ("sample_fraction", "sample_seed", "sampled_scenario_ids"):
+            if field in previous_manifest:
+                if previous_manifest[field] != manifest[field]:
+                    raise ValueError(f"Cannot resume: benchmark setting '{field}' differs from the existing manifest.")
+            elif args.sample_fraction != 1.0:
+                raise ValueError("Cannot resume with sampling: the existing manifest has no sampling provenance.")
         if previous_manifest.get("conditions", ["refined"]) != conditions:
             raise ValueError("Cannot resume: benchmark setting 'conditions' differs from the existing manifest.")
         previous_options = dict(previous_manifest.get("options", {}))
@@ -1308,6 +1342,12 @@ def build_parser() -> argparse.ArgumentParser:
                         help="Experimental condition; repeatable (default: refined). Jobs follow the requested condition order and scenario file order.")
     parser.add_argument("--repeat", type=int, default=1, help="Minimum repeat count per scenario for refined/one_shot (scenario 'repeats' can request more).")
     parser.add_argument("--oracle-repeat", type=int, default=None, help="Repeats per oracle unit (one per base_case_id); default: --repeat.")
+    parser.add_argument("--sample-fraction", type=float, default=1.0,
+                        help="Uniform random fraction of enabled scenarios to run (default: 1.0; rounded up to at least one).")
+    parser.add_argument("--sample-seed", type=int, default=None,
+                        help="Seed for one reproducible sample (default: 13).")
+    parser.add_argument("--sample-seeds", type=int, nargs="+", default=None, metavar="SEED",
+                        help="Run one independent sample per seed, in sequence; output directories get a _seedN suffix.")
     parser.add_argument("--concurrency", type=int, default=2, help="Maximum number of runs in flight (default: 2). Use 1 for sequential execution.")
     parser.add_argument("--map-limit", type=int, default=1000)
     parser.add_argument("--llm-limit", type=int, default=10)
@@ -1322,10 +1362,18 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> None:
     parser = build_parser()
     args = parser.parse_args(argv)
+    if args.sample_seeds and args.sample_seed is not None:
+        parser.error("Use either --sample-seed or --sample-seeds, not both.")
+    if args.sample_seeds and len(set(args.sample_seeds)) != len(args.sample_seeds):
+        parser.error("--sample-seeds must not contain duplicate seeds.")
+    if not args.sample_seeds:
+        args.sample_seed = 13 if args.sample_seed is None else args.sample_seed
     if args.repeat < 1 or args.map_limit < 1 or args.llm_limit < 1 or args.concurrency < 1:
         parser.error("--repeat, --map-limit, --llm-limit and --concurrency must be positive integers.")
     if args.oracle_repeat is not None and args.oracle_repeat < 1:
         parser.error("--oracle-repeat must be a positive integer.")
+    if not 0 < args.sample_fraction <= 1:
+        parser.error("--sample-fraction must be greater than 0 and at most 1.")
     if args.retry_failed and not args.resume:
         parser.error("--retry-failed requires --resume.")
     if args.rerun_scenario and not args.resume:
@@ -1333,7 +1381,18 @@ def main(argv: list[str] | None = None) -> None:
     if args.retry_failed and args.rerun_scenario:
         parser.error("--retry-failed and --rerun-scenario cannot be used together.")
     try:
-        exit_code = dry_run(args) if args.dry_run else asyncio.run(run(args))
+        if args.sample_seeds:
+            exit_code = 0
+            for seed in args.sample_seeds:
+                seed_args = copy.copy(args)
+                seed_args.sample_seed = seed
+                seed_args.sample_seeds = None
+                seed_args.output = args.output.with_name(f"{args.output.name}_seed{seed}")
+                print(f"\n=== Scenario sample seed {seed}: output {seed_args.output} ===")
+                seed_exit_code = dry_run(seed_args) if args.dry_run else asyncio.run(run(seed_args))
+                exit_code = exit_code or seed_exit_code
+        else:
+            exit_code = dry_run(args) if args.dry_run else asyncio.run(run(args))
     except ValueError as exc:
         parser.error(str(exc))
     raise SystemExit(exit_code)
