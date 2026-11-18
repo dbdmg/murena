@@ -316,10 +316,18 @@ Il test di sign-flip esatto su 7 intenti dà p=0,016 per tutti e tre gli indici.
 
 ## Risultati osservati: serie completa v3 con Claude Haiku 5.5 (2026-11-17)
 
+> **Superata (2026-11-18).** La serie è stata eseguita sul codice `7fd238d` (dirty), che precede la correzione di pipeline `0e29b52` (markdeluk, 2026-11-17 18:37). Prima di quella correzione `graph_agent.py` leggeva la colonna `tipologia_bene_immobile`, che nel dataset si chiama `property_type`, quindi passava all'agente edilizio un elenco di tipologie vuoto.
+>
+> Effetto osservato: un atomo `I:typology` compare in 24 run oracle su 40 e in 83 refined su 144. Nella serie "utente imperfetto" su codice `c7b9f7a` compare in 40 oracle su 40 e in 224 refined su 224, e lì J5 oracle-oracle vale 0,94 [0,88; 0,98] contro 0,53.
+>
+> I confronti interni della serie restano coerenti, perché tutte le condizioni condividono lo stesso codice. Il tetto di rumore e i valori assoluti riflettono però il difetto. Su decisione dell'utente, la serie viene rieseguita sul codice corrente in `missingness_v3_haiku_r2`. I numeri sotto sono conservati come evidenza storica.
+>
+> Nota sulla temperatura: il valore 0 registrato nel manifest non viene applicato, perché l'adattatore `claude_cli` non lo passa alla CLI, che non ha un'opzione per la temperatura. Il campionamento è quello predefinito della CLI.
+
 **Esecuzione.**
 
 - Configurazione:
-  - modello `claude-haiku-5-5` tramite il provider `claude_cli` (Claude Code CLI, effort `medium`, temperatura 0);
+  - modello `claude-haiku-5-5` tramite il provider `claude_cli` (Claude Code CLI, effort `medium`; la temperatura 0 registrata non è applicata, vedi nota sopra);
   - dataset `full` (89.200 immobili, SHA-256 `bc6732c8…`), rilassamento attivo;
   - seed 13 con ordine dei job interleaved, concorrenza 10;
   - ripetizioni: refined ×3, one_shot ×3 (k≥1), oracle ×5 per intento.

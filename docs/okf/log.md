@@ -2,6 +2,14 @@
 
 ## 2026-11-18
 
+* **Rerun delle serie Haiku sul codice corrente (`a5c1b09`), in corso dalle 04:10 circa:**
+  * Motivo: la serie principale `missingness_v3_haiku` (codice `7fd238d`) precede la correzione della colonna tipologia `0e29b52`. Senza quella correzione il filtro tipologia era presente solo in 24 run oracle su 40, e J5 oracle-oracle valeva 0,53 contro 0,94 dopo la correzione. Dettagli in `research/edbt-conversational-benchmark.md`.
+  * Serie cooperativa: 304 run in `results/missingness_v3_haiku_r2` (stesso scenario `nested48_from_4a7c882.yaml`, condizioni refined, one_shot e oracle, 3/5 ripetizioni, concorrenza 10).
+  * Serie "utente imperfetto": 265 run in `results/imperfect_user_haiku`.
+  * Il runner corrente non ha più `--seed`, quindi i job girano in ordine fisso e non interleaved come nella serie del 17-11.
+  * La serie imperfetta precedente (codice `c7b9f7a`, 264 run completate su 265) è conservata in `results/imperfect_user_haiku_c7b9f7a` come superata.
+  * Il paper usa ancora i numeri della serie del 17-11. Sarà aggiornato a serie concluse, senza combinare le serie.
+
 * **SAGE: la soglia di arresto EVPI non scarta più domande su omissioni non confermate** (`_select_question`):
   * Il test di arresto (`score < SAGE_EVPI_STOP_ALPHA × max belief`, applicato solo a domande con alternative enumerabili) poteva scartare la domanda su una dimensione `UNCONFIRMED_ABSENT` o `MISSING_CRITICAL`. `_ready` richiede però che quella dimensione sia risolta o rifiutata, quindi la sessione finiva `BLOCKED` senza aver posto la domanda. Ora il test si applica solo a domande che non coprono omissioni o dettagli critici.
   * Osservato in `MS03_k3_vague` della serie "utente imperfetto" (codice `c7b9f7a`): dopo il follow-up su Ce, Cp, mai chiesta, è rimasta irrisolta e l'analisi si è bloccata al turno 3 su 6. Causa individuata per esclusione: Cp non era mai stata chiesta, quindi non poteva essere fra gli aspetti senza risposta. Meccanismo riprodotto con un test deterministico, `test_evpi_stop_never_drops_an_unconfirmed_omission_question`.
