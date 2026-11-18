@@ -1,0 +1,279 @@
+{
+  "run_id": "bench_bdfc7da9beb8",
+  "condition": "one_shot",
+  "unit_id": "S03_k3_D_L_Ce",
+  "scenario_id": "S03_k3_D_L_Ce",
+  "base_case_id": "S03",
+  "missing_count": 3,
+  "scenario_name": "3 omitted dimensions; intended use: Spring section (Sezione primavera)",
+  "tags": [
+    "edbt",
+    "controlled_missingness_v3",
+    "missing_3",
+    "UC03_spring_missing_use"
+  ],
+  "model": "gpt-6-luna",
+  "repeat": 3,
+  "attempt": 2,
+  "input_sha256": "df1dd765b07f77ded968384546e367e1ee9d06f679b82ec5e59230458e070aab",
+  "scenario_sha256": "ba1c6a689ea05ff86fdc09f25def42a2560a4a06451bfba73dfc3e5f834c9826",
+  "initial_query": "I am looking for an existing school building. I need a property with at least 180 sqm of gross floor area and capacity for 14 people. I prefer properties near public transport.",
+  "options": {
+    "dataset_key": "full",
+    "map_limit": 1000,
+    "llm_limit": 10,
+    "analysis_mode": "agent",
+    "use_relaxation": true,
+    "use_data_knowledge": true,
+    "architecture": "multiagent",
+    "disabled_agents": null
+  },
+  "started_at": "2026-11-18T07:20:43.944855+00:00",
+  "clarification_seconds": null,
+  "analysis_seconds": 239.138,
+  "submitted_query": "I am looking for an existing school building. I need a property with at least 180 sqm of gross floor area and capacity for 14 people. I prefer properties near public transport.",
+  "status": "completed",
+  "results_count": 14,
+  "top_ids": [
+    "15981",
+    "16073",
+    "M02363",
+    "19210",
+    "12811",
+    "16950",
+    "5630",
+    "18501",
+    "18512",
+    "18513"
+  ],
+  "quality": {
+    "expected_count": 0,
+    "matched_expected": null,
+    "precision_at_returned": null,
+    "recall": null
+  },
+  "final_sql": "SELECT * FROM ESTATES WHERE property_type = 'Schools and educational activities' AND surface_area >= 180 AND mobility >= 88 ORDER BY id ASC",
+  "duration_seconds": 239.158,
+  "scenario_definition": {
+    "id": "S03_k3_D_L_Ce",
+    "name": "3 omitted dimensions; intended use: Spring section (Sezione primavera)",
+    "tags": [
+      "edbt",
+      "controlled_missingness_v3",
+      "missing_3",
+      "UC03_spring_missing_use"
+    ],
+    "base_case_id": "S03",
+    "source_case_id": "UC03_spring_missing_use",
+    "missing_count": 3,
+    "initial_query": "I am looking for an existing school building. I need a property with at least 180 sqm of gross floor area and capacity for 14 people. I prefer properties near public transport.",
+    "one_shot_query": "I am looking for an existing school building. I need a property with at least 180 sqm of gross floor area and capacity for 14 people. I prefer properties near public transport.",
+    "oracle_query": "Find an existing school building to create a spring section (sezione primavera) for 14 children, integrated into an existing kindergarten in Turin with at least 180 sqm of gross floor area in energy class C or better near public transport.",
+    "expected_initial_missing": [
+      "D",
+      "L",
+      "Ce"
+    ],
+    "clarifications": {
+      "I": "I am looking for an existing school building.",
+      "D": "I intend to create a spring section (sezione primavera), integrated into an existing kindergarten.",
+      "L": "The location is in Turin.",
+      "Cb": "I need a property with at least 180 sqm of gross floor area and capacity for 14 people.",
+      "Ce": "I prefer a property in energy class C or better.",
+      "Cp": "I prefer properties near public transport."
+    },
+    "expected_mapping": {
+      "I": "SPECIFIED",
+      "D": "SPECIFIED",
+      "L": "SPECIFIED",
+      "Cb": "SPECIFIED",
+      "Ce": "SPECIFIED",
+      "Cp": "SPECIFIED"
+    },
+    "repeats": 1
+  },
+  "artifact_file": "runs/bench_bdfc7da9beb8.json",
+  "artifact_schema_version": 3,
+  "ranking_ids": [
+    "15981",
+    "16073",
+    "M02363",
+    "19210",
+    "12811",
+    "16950",
+    "5630",
+    "18501",
+    "18512",
+    "18513",
+    "M03513",
+    "22364",
+    "13286",
+    "22363"
+  ],
+  "top": [
+    {
+      "id": "15981",
+      "score": 85.711,
+      "distance_km": null
+    },
+    {
+      "id": "16073",
+      "score": 85.711,
+      "distance_km": null
+    },
+    {
+      "id": "M02363",
+      "score": 85.678,
+      "distance_km": null
+    },
+    {
+      "id": "19210",
+      "score": 85.57900000000001,
+      "distance_km": null
+    },
+    {
+      "id": "12811",
+      "score": 84.85300000000001,
+      "distance_km": null
+    },
+    {
+      "id": "16950",
+      "score": 84.85300000000001,
+      "distance_km": null
+    },
+    {
+      "id": "5630",
+      "score": 84.85300000000001,
+      "distance_km": null
+    },
+    {
+      "id": "18501",
+      "score": 84.061,
+      "distance_km": null
+    },
+    {
+      "id": "18512",
+      "score": 84.061,
+      "distance_km": null
+    },
+    {
+      "id": "18513",
+      "score": 84.061,
+      "distance_km": null
+    }
+  ],
+  "api_response": {
+    "agent_trace": [
+      {
+        "agent_name": "energy-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "requirements": [],
+          "found": false
+        }
+      },
+      {
+        "agent_name": "regulatory-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "found": false,
+          "matched_use_cases": [],
+          "requirements": []
+        }
+      },
+      {
+        "agent_name": "proximity-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "requirements": [
+            {
+              "target_column": "mobility",
+              "operator": ">=",
+              "value": 88,
+              "description": "The user prefers proximity to public transport; threshold meets the mobility 75th percentile of 87.77."
+            }
+          ]
+        }
+      },
+      {
+        "agent_name": "building-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "typologies": [
+            "Schools and educational activities"
+          ],
+          "found": true,
+          "requirements": [
+            {
+              "target_column": "property_type",
+              "operator": "=",
+              "value": "Schools and educational activities",
+              "description": "The user is looking for an existing school building."
+            },
+            {
+              "target_column": "surface_area",
+              "operator": ">=",
+              "value": 180,
+              "description": "The user explicitly requires at least 180 sqm of gross floor area."
+            }
+          ]
+        }
+      },
+      {
+        "agent_name": "ranking-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "ranking": [
+            {
+              "agent_name": "building",
+              "rank": 1
+            },
+            {
+              "agent_name": "regulatory",
+              "rank": 1
+            },
+            {
+              "agent_name": "proximity",
+              "rank": 2
+            },
+            {
+              "agent_name": "location",
+              "rank": 3
+            },
+            {
+              "agent_name": "energy",
+              "rank": 4
+            }
+          ],
+          "weights": {
+            "location": 0.11,
+            "regulatory": 0.32,
+            "energy": 0.08,
+            "building": 0.33,
+            "proximity": 0.16
+          }
+        }
+      },
+      {
+        "agent_name": "location-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "places": [],
+          "found": false
+        }
+      },
+      {
+        "agent_name": "sql-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "sql": "SELECT * FROM ESTATES WHERE property_type = 'Schools and educational activities' AND surface_area >= 180 AND mobility >= 88 ORDER BY id ASC",
+          "explanation": "Filters for school properties with at least 180 sqm and mobility score of at least 88."
+        }
+      }
+    ],
+    "relaxation_applied": false,
+    "relaxation_count": 0,
+    "fallback_activated": false,
+    "agent_errors": []
+  }
+}

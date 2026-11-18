@@ -1,0 +1,294 @@
+{
+  "run_id": "bench_fddd343fb10a",
+  "condition": "one_shot",
+  "unit_id": "S02_k2_L_Cb",
+  "scenario_id": "S02_k2_L_Cb",
+  "base_case_id": "S02",
+  "missing_count": 2,
+  "scenario_name": "2 omitted dimensions; intended use: Nursery",
+  "tags": [
+    "edbt",
+    "controlled_missingness_v3",
+    "missing_2",
+    "UC02_nursery_missing_use"
+  ],
+  "model": "gpt-6-luna",
+  "repeat": 1,
+  "attempt": 2,
+  "input_sha256": "bb98b6b5865c762cb9b381bcb0e1e041f829ffb5d0873673c5fb05a52bb0bd05",
+  "scenario_sha256": "88daeb760c5189782bb5f764c692c00f72306a7c1efdb99c11875dca9ce0e78a",
+  "initial_query": "I am looking for an existing school building. I intend to convert it into a nursery. I prefer a property in energy class D or better. I prefer properties near green spaces.",
+  "options": {
+    "dataset_key": "full",
+    "map_limit": 1000,
+    "llm_limit": 10,
+    "analysis_mode": "agent",
+    "use_relaxation": true,
+    "use_data_knowledge": true,
+    "architecture": "multiagent",
+    "disabled_agents": null
+  },
+  "started_at": "2026-11-18T07:12:42.159966+00:00",
+  "clarification_seconds": null,
+  "analysis_seconds": 256.518,
+  "submitted_query": "I am looking for an existing school building. I intend to convert it into a nursery. I prefer a property in energy class D or better. I prefer properties near green spaces.",
+  "status": "completed",
+  "results_count": 26,
+  "top_ids": [
+    "15853",
+    "27482",
+    "395",
+    "18501",
+    "18512",
+    "M03513",
+    "19627",
+    "27572",
+    "M03717",
+    "18513"
+  ],
+  "quality": {
+    "expected_count": 0,
+    "matched_expected": null,
+    "precision_at_returned": null,
+    "recall": null
+  },
+  "final_sql": "SELECT * FROM ESTATES WHERE property_type = 'Schools and educational activities' AND energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C', 'D') AND green >= 89 ORDER BY id ASC",
+  "duration_seconds": 256.538,
+  "scenario_definition": {
+    "id": "S02_k2_L_Cb",
+    "name": "2 omitted dimensions; intended use: Nursery",
+    "tags": [
+      "edbt",
+      "controlled_missingness_v3",
+      "missing_2",
+      "UC02_nursery_missing_use"
+    ],
+    "base_case_id": "S02",
+    "source_case_id": "UC02_nursery_missing_use",
+    "missing_count": 2,
+    "initial_query": "I am looking for an existing school building. I intend to convert it into a nursery. I prefer a property in energy class D or better. I prefer properties near green spaces.",
+    "one_shot_query": "I am looking for an existing school building. I intend to convert it into a nursery. I prefer a property in energy class D or better. I prefer properties near green spaces.",
+    "oracle_query": "Find an existing school building to convert it into a nursery for 45 children in Turin with at least 600 sqm of gross floor area in energy class D or better near green spaces.",
+    "expected_initial_missing": [
+      "L",
+      "Cb"
+    ],
+    "clarifications": {
+      "I": "I am looking for an existing school building.",
+      "D": "I intend to convert it into a nursery.",
+      "L": "The location is in Turin.",
+      "Cb": "I need a property with at least 600 sqm of gross floor area and capacity for 45 people.",
+      "Ce": "I prefer a property in energy class D or better.",
+      "Cp": "I prefer properties near green spaces."
+    },
+    "expected_mapping": {
+      "I": "SPECIFIED",
+      "D": "SPECIFIED",
+      "L": "SPECIFIED",
+      "Cb": "SPECIFIED",
+      "Ce": "SPECIFIED",
+      "Cp": "SPECIFIED"
+    },
+    "repeats": 1
+  },
+  "artifact_file": "runs/bench_fddd343fb10a.json",
+  "artifact_schema_version": 3,
+  "ranking_ids": [
+    "15853",
+    "27482",
+    "395",
+    "18501",
+    "18512",
+    "M03513",
+    "19627",
+    "27572",
+    "M03717",
+    "18513",
+    "28613",
+    "29570",
+    "643",
+    "25095",
+    "M04818",
+    "10600",
+    "12286",
+    "22364",
+    "29644",
+    "29675",
+    "28931",
+    "24857",
+    "638",
+    "9114",
+    "28345",
+    "22363"
+  ],
+  "top": [
+    {
+      "id": "15853",
+      "score": 91.45,
+      "distance_km": null
+    },
+    {
+      "id": "27482",
+      "score": 86.789,
+      "distance_km": null
+    },
+    {
+      "id": "395",
+      "score": 86.656,
+      "distance_km": null
+    },
+    {
+      "id": "18501",
+      "score": 84.225,
+      "distance_km": null
+    },
+    {
+      "id": "18512",
+      "score": 84.225,
+      "distance_km": null
+    },
+    {
+      "id": "M03513",
+      "score": 84.225,
+      "distance_km": null
+    },
+    {
+      "id": "19627",
+      "score": 82.364,
+      "distance_km": null
+    },
+    {
+      "id": "27572",
+      "score": 82.307,
+      "distance_km": null
+    },
+    {
+      "id": "M03717",
+      "score": 82.25,
+      "distance_km": null
+    },
+    {
+      "id": "18513",
+      "score": 81.984,
+      "distance_km": null
+    }
+  ],
+  "api_response": {
+    "agent_trace": [
+      {
+        "agent_name": "building-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "typologies": [
+            "Schools and educational activities"
+          ],
+          "found": true,
+          "requirements": []
+        }
+      },
+      {
+        "agent_name": "proximity-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "requirements": [
+            {
+              "target_column": "green",
+              "operator": ">=",
+              "value": 89,
+              "description": "Prefers property near green spaces; threshold meets the 75th percentile (89.49), rounded to the nearest integer."
+            }
+          ]
+        }
+      },
+      {
+        "agent_name": "energy-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "requirements": [
+            {
+              "target_column": "energy_class",
+              "operator": "IN",
+              "value": [
+                "A1",
+                "A2",
+                "A3",
+                "A4",
+                "B",
+                "C",
+                "D"
+              ],
+              "description": "Prefers energy class D or better."
+            }
+          ],
+          "found": true
+        }
+      },
+      {
+        "agent_name": "regulatory-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "found": false,
+          "matched_use_cases": [
+            "Nursery"
+          ],
+          "requirements": []
+        }
+      },
+      {
+        "agent_name": "ranking-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "ranking": [
+            {
+              "agent_name": "building",
+              "rank": 1
+            },
+            {
+              "agent_name": "energy",
+              "rank": 2
+            },
+            {
+              "agent_name": "proximity",
+              "rank": 3
+            },
+            {
+              "agent_name": "location",
+              "rank": 4
+            },
+            {
+              "agent_name": "regulatory",
+              "rank": 5
+            }
+          ],
+          "weights": {
+            "location": 0.11,
+            "regulatory": 0.09,
+            "energy": 0.22,
+            "building": 0.43,
+            "proximity": 0.15
+          }
+        }
+      },
+      {
+        "agent_name": "location-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "places": [],
+          "found": false
+        }
+      },
+      {
+        "agent_name": "sql-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "sql": "SELECT * FROM ESTATES WHERE property_type = 'Schools and educational activities' AND energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C', 'D') AND green >= 89 ORDER BY id ASC",
+          "explanation": "Filters for school properties, energy class D or better, and green score of at least 89."
+        }
+      }
+    ],
+    "relaxation_applied": false,
+    "relaxation_count": 0,
+    "fallback_activated": false,
+    "agent_errors": []
+  }
+}

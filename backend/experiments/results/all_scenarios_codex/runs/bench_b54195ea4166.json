@@ -1,0 +1,702 @@
+{
+  "run_id": "bench_b54195ea4166",
+  "condition": "refined",
+  "unit_id": "S05_k2_D_L",
+  "scenario_id": "S05_k2_D_L",
+  "base_case_id": "S05",
+  "missing_count": 2,
+  "scenario_name": "2 omitted dimensions; intended use: Home-based nursery (Nido in famiglia)",
+  "tags": [
+    "edbt",
+    "controlled_missingness_v3",
+    "missing_2",
+    "UC05_home_nursery_missing_use"
+  ],
+  "model": "gpt-6-luna",
+  "repeat": 3,
+  "attempt": 1,
+  "input_sha256": "b5139ba0a3270ae3b199b90bc361632068ab624daa487ce821db79ce16d06e22",
+  "scenario_sha256": "b5139ba0a3270ae3b199b90bc361632068ab624daa487ce821db79ce16d06e22",
+  "initial_query": "I am looking for a residential dwelling. I need a property with at least 95 sqm of gross floor area and capacity for four people. I prefer a property in energy class C or better. I prefer properties near green spaces.",
+  "options": {
+    "dataset_key": "full",
+    "map_limit": 1000,
+    "llm_limit": 10,
+    "analysis_mode": "agent",
+    "use_relaxation": true,
+    "use_data_knowledge": true,
+    "architecture": "multiagent",
+    "disabled_agents": null
+  },
+  "started_at": "2026-11-17T21:00:51.287239+00:00",
+  "clarification_seconds": 96.664,
+  "analysis_seconds": 162.037,
+  "conversation": {
+    "session_id": "ac4f2e61-ef33-4fac-9395-505a375ee635",
+    "initial_dimension_state": {
+      "I": {
+        "status": "SPECIFIED",
+        "value": "residential dwelling",
+        "evidence": "“a residential dwelling”"
+      },
+      "D": {
+        "status": "UNCONFIRMED_ABSENT",
+        "value": null,
+        "evidence": null
+      },
+      "L": {
+        "status": "UNCONFIRMED_ABSENT",
+        "value": null,
+        "evidence": null
+      },
+      "Cb": {
+        "status": "SPECIFIED",
+        "value": "at least 95 sqm gross floor area; capacity for four people",
+        "evidence": "“at least 95 sqm of gross floor area and capacity for four people”"
+      },
+      "Ce": {
+        "status": "SPECIFIED",
+        "value": "energy class C or better",
+        "evidence": "“energy class C or better”"
+      },
+      "Cp": {
+        "status": "SPECIFIED",
+        "value": "green spaces",
+        "evidence": "“near green spaces”"
+      }
+    },
+    "initial_missing": [
+      "D",
+      "L"
+    ],
+    "expected_initial_missing": [
+      "D",
+      "L"
+    ],
+    "missing_detection": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "turns": [
+      {
+        "question": "What would you use the dwelling for—for example, a Nursery or a Senior Residential Care (RSA)—or does intended use not matter?",
+        "target_dimensions": [
+          "D"
+        ],
+        "answer": "I intend to operate a home-based nursery (nido in famiglia).",
+        "question_source": "llm_query_parser",
+        "status_after": "ASK",
+        "turn_after": 1,
+        "dimension_state_after": {
+          "I": {
+            "status": "SPECIFIED",
+            "value": "residential dwelling",
+            "evidence": "“a residential dwelling”"
+          },
+          "D": {
+            "status": "SPECIFIED",
+            "value": "Home-based nursery (nido in famiglia)",
+            "evidence": "I intend to operate a home-based nursery (nido in famiglia)."
+          },
+          "L": {
+            "status": "UNCONFIRMED_ABSENT",
+            "value": null,
+            "evidence": null
+          },
+          "Cb": {
+            "status": "SPECIFIED",
+            "value": "at least 95 sqm gross floor area; capacity for four people",
+            "evidence": "“at least 95 sqm of gross floor area and capacity for four people”"
+          },
+          "Ce": {
+            "status": "SPECIFIED",
+            "value": "energy class C or better",
+            "evidence": "“energy class C or better”"
+          },
+          "Cp": {
+            "status": "SPECIFIED",
+            "value": "green spaces",
+            "evidence": "“near green spaces”"
+          }
+        }
+      },
+      {
+        "question": "Which city or area should I search in, or does location not matter?",
+        "target_dimensions": [
+          "L"
+        ],
+        "answer": "The location is in Turin.",
+        "question_source": "llm_query_parser",
+        "status_after": "READY",
+        "turn_after": 2,
+        "dimension_state_after": {
+          "I": {
+            "status": "SPECIFIED",
+            "value": "residential dwelling",
+            "evidence": "“a residential dwelling”"
+          },
+          "D": {
+            "status": "SPECIFIED",
+            "value": "Home-based nursery (nido in famiglia)",
+            "evidence": "I intend to operate a home-based nursery (nido in famiglia)."
+          },
+          "L": {
+            "status": "SPECIFIED",
+            "value": "Turin",
+            "evidence": "The location is in Turin."
+          },
+          "Cb": {
+            "status": "SPECIFIED",
+            "value": "at least 95 sqm gross floor area; capacity for four people",
+            "evidence": "“at least 95 sqm of gross floor area and capacity for four people”"
+          },
+          "Ce": {
+            "status": "SPECIFIED",
+            "value": "energy class C or better",
+            "evidence": "“energy class C or better”"
+          },
+          "Cp": {
+            "status": "SPECIFIED",
+            "value": "green spaces",
+            "evidence": "“near green spaces”"
+          }
+        }
+      }
+    ],
+    "messages": [
+      {
+        "role": "user",
+        "content": "I am looking for a residential dwelling. I need a property with at least 95 sqm of gross floor area and capacity for four people. I prefer a property in energy class C or better. I prefer properties near green spaces."
+      },
+      {
+        "role": "assistant",
+        "content": "What would you use the dwelling for—for example, a Nursery or a Senior Residential Care (RSA)—or does intended use not matter?"
+      },
+      {
+        "role": "user",
+        "content": "I intend to operate a home-based nursery (nido in famiglia)."
+      },
+      {
+        "role": "assistant",
+        "content": "Which city or area should I search in, or does location not matter?"
+      },
+      {
+        "role": "user",
+        "content": "The location is in Turin."
+      },
+      {
+        "role": "assistant",
+        "content": "Query submitted for review: I am looking for a residential dwelling in Turin suitable for operating a home-based nursery (nido in famiglia). It must have at least 95 sqm of gross floor area and capacity for four people. I prefer energy class C or better and a location near green spaces."
+      },
+      {
+        "role": "user",
+        "content": "Confirmed."
+      }
+    ],
+    "dimension_state": {
+      "I": {
+        "status": "SPECIFIED",
+        "value": "residential dwelling",
+        "evidence": "“a residential dwelling”"
+      },
+      "D": {
+        "status": "SPECIFIED",
+        "value": "Home-based nursery (nido in famiglia)",
+        "evidence": "I intend to operate a home-based nursery (nido in famiglia)."
+      },
+      "L": {
+        "status": "SPECIFIED",
+        "value": "Turin",
+        "evidence": "The location is in Turin."
+      },
+      "Cb": {
+        "status": "SPECIFIED",
+        "value": "at least 95 sqm gross floor area; capacity for four people",
+        "evidence": "“at least 95 sqm of gross floor area and capacity for four people”"
+      },
+      "Ce": {
+        "status": "SPECIFIED",
+        "value": "energy class C or better",
+        "evidence": "“energy class C or better”"
+      },
+      "Cp": {
+        "status": "SPECIFIED",
+        "value": "green spaces",
+        "evidence": "“near green spaces”"
+      }
+    },
+    "mapping": {
+      "I": "SPECIFIED",
+      "D": "SPECIFIED",
+      "L": "SPECIFIED",
+      "Cb": "SPECIFIED",
+      "Ce": "SPECIFIED",
+      "Cp": "SPECIFIED"
+    },
+    "expected_mapping": {
+      "I": "SPECIFIED",
+      "D": "SPECIFIED",
+      "L": "SPECIFIED",
+      "Cb": "SPECIFIED",
+      "Ce": "SPECIFIED",
+      "Cp": "SPECIFIED"
+    },
+    "mapping_accuracy": 1.0,
+    "no_clarification": false,
+    "status": "READY",
+    "refined_query": "I am looking for a residential dwelling in Turin suitable for operating a home-based nursery (nido in famiglia). It must have at least 95 sqm of gross floor area and capacity for four people. I prefer energy class C or better and a location near green spaces.",
+    "reviewed_query": "I am looking for a residential dwelling in Turin suitable for operating a home-based nursery (nido in famiglia). It must have at least 95 sqm of gross floor area and capacity for four people. I prefer energy class C or better and a location near green spaces."
+  },
+  "submitted_query": "I am looking for a residential dwelling in Turin suitable for operating a home-based nursery (nido in famiglia). It must have at least 95 sqm of gross floor area and capacity for four people. I prefer energy class C or better and a location near green spaces.",
+  "status": "completed",
+  "results_count": 197,
+  "top_ids": [
+    "M03547",
+    "22192",
+    "12698",
+    "22352",
+    "18591",
+    "M03529",
+    "M03147",
+    "M03515",
+    "M04443",
+    "M04282"
+  ],
+  "quality": {
+    "expected_count": 0,
+    "matched_expected": null,
+    "precision_at_returned": null,
+    "recall": null
+  },
+  "final_sql": "SELECT * FROM ESTATES WHERE property_type = 'Residential (Continuous)' AND surface_area >= 95 AND haversine_km(latitude, longitude, 45.0677551, 7.6824892) <= 3.0 AND energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C') AND green >= 89 ORDER BY haversine_km(latitude, longitude, 45.0677551, 7.6824892) ASC",
+  "duration_seconds": 258.724,
+  "scenario_definition": {
+    "id": "S05_k2_D_L",
+    "name": "2 omitted dimensions; intended use: Home-based nursery (Nido in famiglia)",
+    "tags": [
+      "edbt",
+      "controlled_missingness_v3",
+      "missing_2",
+      "UC05_home_nursery_missing_use"
+    ],
+    "base_case_id": "S05",
+    "source_case_id": "UC05_home_nursery_missing_use",
+    "missing_count": 2,
+    "initial_query": "I am looking for a residential dwelling. I need a property with at least 95 sqm of gross floor area and capacity for four people. I prefer a property in energy class C or better. I prefer properties near green spaces.",
+    "one_shot_query": "I am looking for a residential dwelling. I need a property with at least 95 sqm of gross floor area and capacity for four people. I prefer a property in energy class C or better. I prefer properties near green spaces.",
+    "oracle_query": "Find a residential dwelling to operate a home-based nursery (nido in famiglia) for four children in Turin with at least 95 sqm of gross floor area in energy class C or better near green spaces.",
+    "expected_initial_missing": [
+      "D",
+      "L"
+    ],
+    "clarifications": {
+      "I": "I am looking for a residential dwelling.",
+      "D": "I intend to operate a home-based nursery (nido in famiglia).",
+      "L": "The location is in Turin.",
+      "Cb": "I need a property with at least 95 sqm of gross floor area and capacity for four people.",
+      "Ce": "I prefer a property in energy class C or better.",
+      "Cp": "I prefer properties near green spaces."
+    },
+    "expected_mapping": {
+      "I": "SPECIFIED",
+      "D": "SPECIFIED",
+      "L": "SPECIFIED",
+      "Cb": "SPECIFIED",
+      "Ce": "SPECIFIED",
+      "Cp": "SPECIFIED"
+    },
+    "repeats": 1
+  },
+  "artifact_file": "runs/bench_b54195ea4166.json",
+  "artifact_schema_version": 3,
+  "ranking_ids": [
+    "M03547",
+    "22192",
+    "12698",
+    "22352",
+    "18591",
+    "M03529",
+    "M03147",
+    "M03515",
+    "M04443",
+    "M04282",
+    "18666",
+    "22405",
+    "M04296",
+    "16733",
+    "18662",
+    "22448",
+    "22353",
+    "16724",
+    "18622",
+    "23158",
+    "23161",
+    "23162",
+    "23164",
+    "M03162",
+    "630",
+    "22354",
+    "M03431",
+    "M02465",
+    "18481",
+    "19614",
+    "M04419",
+    "13279",
+    "13280",
+    "18109",
+    "22436",
+    "M02069",
+    "15877",
+    "23015",
+    "13278",
+    "18325",
+    "M04422",
+    "24919",
+    "M04417",
+    "11260",
+    "M02410",
+    "11259",
+    "11251",
+    "11254",
+    "11257",
+    "11250",
+    "11253",
+    "11256",
+    "11258",
+    "23034",
+    "19623",
+    "23019",
+    "M02127",
+    "15854",
+    "23067",
+    "M04718",
+    "23035",
+    "23038",
+    "23037",
+    "22499",
+    "23060",
+    "8768",
+    "13051",
+    "23016",
+    "24920",
+    "11178",
+    "11176",
+    "11190",
+    "22681",
+    "M02976",
+    "11195",
+    "24583",
+    "11188",
+    "27647",
+    "M04712",
+    "17844",
+    "11191",
+    "11184",
+    "11180",
+    "11199",
+    "11182",
+    "22615",
+    "17903",
+    "15773",
+    "15766",
+    "15772",
+    "15768",
+    "15770",
+    "M03228",
+    "18398",
+    "744",
+    "17095",
+    "M03225",
+    "21082",
+    "M01952",
+    "22688",
+    "17093",
+    "M04376",
+    "17072",
+    "11152",
+    "22966",
+    "21058",
+    "17065",
+    "22810",
+    "22795",
+    "10672",
+    "17087",
+    "17090",
+    "17094",
+    "17089",
+    "17092",
+    "22787",
+    "22801",
+    "22792",
+    "17071",
+    "22799",
+    "22796",
+    "24947",
+    "M04787",
+    "22782",
+    "22983",
+    "M02499",
+    "22793",
+    "22806",
+    "24946",
+    "22809",
+    "22802",
+    "22785",
+    "10671",
+    "22790",
+    "22786",
+    "M03962",
+    "22804",
+    "22811",
+    "22794",
+    "22803",
+    "22805",
+    "M04406",
+    "24948",
+    "M04491",
+    "13419",
+    "22778",
+    "20854",
+    "20856",
+    "20958",
+    "M02500",
+    "25044",
+    "M04807",
+    "M02574",
+    "24944",
+    "20845",
+    "20864",
+    "20829",
+    "20835",
+    "20857",
+    "20859",
+    "22957",
+    "10940",
+    "20844",
+    "20846",
+    "20847",
+    "20853",
+    "20836",
+    "13423",
+    "20838",
+    "24219",
+    "21009",
+    "9837",
+    "9842",
+    "M01012",
+    "863",
+    "9838",
+    "9841",
+    "13421",
+    "22945",
+    "25043",
+    "M01991",
+    "9844",
+    "9849",
+    "9884",
+    "9836",
+    "9843",
+    "9848",
+    "25103",
+    "9850",
+    "25050",
+    "6060",
+    "6061",
+    "23786",
+    "6059",
+    "M01891",
+    "24181",
+    "272"
+  ],
+  "top": [
+    {
+      "id": "M03547",
+      "score": 89.57800000000002,
+      "distance_km": 0.47
+    },
+    {
+      "id": "22192",
+      "score": 88.022,
+      "distance_km": 1.25
+    },
+    {
+      "id": "12698",
+      "score": 87.947,
+      "distance_km": 0.84
+    },
+    {
+      "id": "22352",
+      "score": 87.412,
+      "distance_km": 0.95
+    },
+    {
+      "id": "18591",
+      "score": 86.852,
+      "distance_km": 0.39
+    },
+    {
+      "id": "M03529",
+      "score": 86.852,
+      "distance_km": 0.39
+    },
+    {
+      "id": "M03147",
+      "score": 86.82600000000002,
+      "distance_km": 0.46
+    },
+    {
+      "id": "M03515",
+      "score": 85.85000000000001,
+      "distance_km": 1.09
+    },
+    {
+      "id": "M04443",
+      "score": 85.50900000000001,
+      "distance_km": 1.42
+    },
+    {
+      "id": "M04282",
+      "score": 85.30399999999999,
+      "distance_km": 1.01
+    }
+  ],
+  "api_response": {
+    "agent_trace": [
+      {
+        "agent_name": "location-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "places": [
+            {
+              "name": "Turin",
+              "city": "Turin",
+              "lat": 45.0677551,
+              "lon": 7.6824892,
+              "radius_km": 3.0
+            }
+          ],
+          "found": true
+        }
+      },
+      {
+        "agent_name": "building-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "typologies": [
+            "Residential (Continuous)"
+          ],
+          "found": true,
+          "requirements": [
+            {
+              "target_column": "property_type",
+              "operator": "=",
+              "value": "Residential (Continuous)",
+              "description": "The request is for a residential dwelling in its current state."
+            },
+            {
+              "target_column": "surface_area",
+              "operator": ">=",
+              "value": 95,
+              "description": "The requested minimum gross floor area is 95 sqm."
+            }
+          ]
+        }
+      },
+      {
+        "agent_name": "regulatory-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "found": false,
+          "matched_use_cases": [
+            "Home-based nursery (Nido in famiglia)"
+          ],
+          "requirements": []
+        }
+      },
+      {
+        "agent_name": "proximity-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "requirements": [
+            {
+              "target_column": "green",
+              "operator": ">=",
+              "value": 89,
+              "description": "Near green spaces; meets the 75th percentile threshold of 89.49."
+            }
+          ]
+        }
+      },
+      {
+        "agent_name": "ranking-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "ranking": [
+            {
+              "agent_name": "location",
+              "rank": 1
+            },
+            {
+              "agent_name": "regulatory",
+              "rank": 2
+            },
+            {
+              "agent_name": "building",
+              "rank": 3
+            },
+            {
+              "agent_name": "energy",
+              "rank": 4
+            },
+            {
+              "agent_name": "proximity",
+              "rank": 5
+            }
+          ],
+          "weights": {
+            "location": 0.43,
+            "regulatory": 0.22,
+            "energy": 0.11,
+            "building": 0.15,
+            "proximity": 0.09
+          }
+        }
+      },
+      {
+        "agent_name": "energy-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "requirements": [
+            {
+              "target_column": "energy_class",
+              "operator": "IN",
+              "value": [
+                "A1",
+                "A2",
+                "A3",
+                "A4",
+                "B",
+                "C"
+              ],
+              "description": "Energy class C or better"
+            }
+          ],
+          "found": true
+        }
+      },
+      {
+        "agent_name": "sql-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "sql": "SELECT * FROM ESTATES WHERE property_type = 'Residential (Continuous)' AND surface_area >= 95 AND haversine_km(latitude, longitude, 45.0677551, 7.6824892) <= 3.0 AND energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C') AND green >= 89 ORDER BY haversine_km(latitude, longitude, 45.0677551, 7.6824892) ASC",
+          "explanation": "Filters for the requested residential type, minimum area, radius, energy classes, and green score, then orders by distance."
+        }
+      }
+    ],
+    "relaxation_applied": false,
+    "relaxation_count": 0,
+    "fallback_activated": false,
+    "agent_errors": []
+  }
+}

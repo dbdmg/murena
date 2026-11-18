@@ -1,0 +1,300 @@
+{
+  "run_id": "bench_6da37ed54761",
+  "condition": "refined",
+  "unit_id": "S05_k3_D_L_Cb",
+  "scenario_id": "S05_k3_D_L_Cb",
+  "base_case_id": "S05",
+  "missing_count": 3,
+  "scenario_name": "3 omitted dimensions; intended use: Home-based nursery (Nido in famiglia)",
+  "tags": [
+    "edbt",
+    "controlled_missingness_v3",
+    "missing_3",
+    "UC05_home_nursery_missing_use"
+  ],
+  "model": "gpt-6-luna",
+  "repeat": 1,
+  "attempt": 1,
+  "input_sha256": "2818683f4a0fbab60f4f708994e58abca1dc3990f8a3ef8035415f8ec2d70531",
+  "scenario_sha256": "2818683f4a0fbab60f4f708994e58abca1dc3990f8a3ef8035415f8ec2d70531",
+  "initial_query": "I am looking for a residential dwelling. I prefer a property in energy class C or better. I prefer properties near green spaces.",
+  "options": {
+    "dataset_key": "full",
+    "map_limit": 1000,
+    "llm_limit": 10,
+    "analysis_mode": "agent",
+    "use_relaxation": true,
+    "use_data_knowledge": true,
+    "architecture": "multiagent",
+    "disabled_agents": null
+  },
+  "started_at": "2026-11-17T21:02:14.773299+00:00",
+  "clarification_seconds": 74.236,
+  "analysis_seconds": null,
+  "conversation": {
+    "session_id": "2266856e-af51-4eef-be13-ebaf45320874",
+    "initial_dimension_state": {
+      "I": {
+        "status": "SPECIFIED",
+        "value": "residential dwelling",
+        "evidence": "residential dwelling"
+      },
+      "D": {
+        "status": "UNCONFIRMED_ABSENT",
+        "value": null,
+        "evidence": null
+      },
+      "L": {
+        "status": "UNCONFIRMED_ABSENT",
+        "value": null,
+        "evidence": null
+      },
+      "Cb": {
+        "status": "UNCONFIRMED_ABSENT",
+        "value": null,
+        "evidence": null
+      },
+      "Ce": {
+        "status": "SPECIFIED",
+        "value": "energy class C or better",
+        "evidence": "energy class C or better"
+      },
+      "Cp": {
+        "status": "SPECIFIED",
+        "value": "green spaces",
+        "evidence": "near green spaces"
+      }
+    },
+    "initial_missing": [
+      "Cb",
+      "D",
+      "L"
+    ],
+    "expected_initial_missing": [
+      "Cb",
+      "D",
+      "L"
+    ],
+    "missing_detection": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "turns": [
+      {
+        "question": "What location would you prefer for the dwelling? You can also say that location does not matter.",
+        "target_dimensions": [
+          "L"
+        ],
+        "answer": "The location is in Turin.",
+        "question_source": "llm_query_parser",
+        "status_after": "ASK",
+        "turn_after": 1,
+        "dimension_state_after": {
+          "I": {
+            "status": "SPECIFIED",
+            "value": "residential dwelling",
+            "evidence": "residential dwelling"
+          },
+          "D": {
+            "status": "UNCONFIRMED_ABSENT",
+            "value": null,
+            "evidence": null
+          },
+          "L": {
+            "status": "SPECIFIED",
+            "value": "Turin",
+            "evidence": "The location is in Turin."
+          },
+          "Cb": {
+            "status": "UNCONFIRMED_ABSENT",
+            "value": null,
+            "evidence": null
+          },
+          "Ce": {
+            "status": "SPECIFIED",
+            "value": "energy class C or better",
+            "evidence": "energy class C or better"
+          },
+          "Cp": {
+            "status": "SPECIFIED",
+            "value": "green spaces",
+            "evidence": "near green spaces"
+          }
+        }
+      },
+      {
+        "question": "What building constraints would help narrow the search, such as a minimum floor area, occupancy capacity, or structural features? You can also say these do not matter.",
+        "target_dimensions": [
+          "Cb"
+        ],
+        "answer": "I need a property with at least 95 sqm of gross floor area and capacity for four people.",
+        "question_source": "llm_query_parser",
+        "status_after": "BLOCKED",
+        "turn_after": 2,
+        "dimension_state_after": {
+          "I": {
+            "status": "SPECIFIED",
+            "value": "residential dwelling",
+            "evidence": "residential dwelling"
+          },
+          "D": {
+            "status": "UNCONFIRMED_ABSENT",
+            "value": null,
+            "evidence": null
+          },
+          "L": {
+            "status": "SPECIFIED",
+            "value": "Turin",
+            "evidence": "The location is in Turin."
+          },
+          "Cb": {
+            "status": "SPECIFIED",
+            "value": "At least 95 sqm gross floor area; capacity for 4 people",
+            "evidence": "at least 95 sqm of gross floor area and capacity for four people"
+          },
+          "Ce": {
+            "status": "SPECIFIED",
+            "value": "energy class C or better",
+            "evidence": "energy class C or better"
+          },
+          "Cp": {
+            "status": "SPECIFIED",
+            "value": "green spaces",
+            "evidence": "near green spaces"
+          }
+        }
+      }
+    ],
+    "messages": [
+      {
+        "role": "user",
+        "content": "I am looking for a residential dwelling. I prefer a property in energy class C or better. I prefer properties near green spaces."
+      },
+      {
+        "role": "assistant",
+        "content": "What location would you prefer for the dwelling? You can also say that location does not matter."
+      },
+      {
+        "role": "user",
+        "content": "The location is in Turin."
+      },
+      {
+        "role": "assistant",
+        "content": "What building constraints would help narrow the search, such as a minimum floor area, occupancy capacity, or structural features? You can also say these do not matter."
+      },
+      {
+        "role": "user",
+        "content": "I need a property with at least 95 sqm of gross floor area and capacity for four people."
+      },
+      {
+        "role": "assistant",
+        "content": "A necessary query detail remains unresolved; analysis was not started."
+      }
+    ],
+    "dimension_state": {
+      "I": {
+        "status": "SPECIFIED",
+        "value": "residential dwelling",
+        "evidence": "residential dwelling"
+      },
+      "D": {
+        "status": "UNCONFIRMED_ABSENT",
+        "value": null,
+        "evidence": null
+      },
+      "L": {
+        "status": "SPECIFIED",
+        "value": "Turin",
+        "evidence": "The location is in Turin."
+      },
+      "Cb": {
+        "status": "SPECIFIED",
+        "value": "At least 95 sqm gross floor area; capacity for 4 people",
+        "evidence": "at least 95 sqm of gross floor area and capacity for four people"
+      },
+      "Ce": {
+        "status": "SPECIFIED",
+        "value": "energy class C or better",
+        "evidence": "energy class C or better"
+      },
+      "Cp": {
+        "status": "SPECIFIED",
+        "value": "green spaces",
+        "evidence": "near green spaces"
+      }
+    },
+    "mapping": {
+      "I": "SPECIFIED",
+      "D": "UNCONFIRMED_ABSENT",
+      "L": "SPECIFIED",
+      "Cb": "SPECIFIED",
+      "Ce": "SPECIFIED",
+      "Cp": "SPECIFIED"
+    },
+    "expected_mapping": {
+      "I": "SPECIFIED",
+      "D": "SPECIFIED",
+      "L": "SPECIFIED",
+      "Cb": "SPECIFIED",
+      "Ce": "SPECIFIED",
+      "Cp": "SPECIFIED"
+    },
+    "mapping_accuracy": 0.8333,
+    "no_clarification": false,
+    "status": "BLOCKED",
+    "error": "A necessary query detail remains unresolved; analysis was not started."
+  },
+  "status": "error",
+  "error": "A necessary query detail remains unresolved; analysis was not started.",
+  "duration_seconds": 74.236,
+  "scenario_definition": {
+    "id": "S05_k3_D_L_Cb",
+    "name": "3 omitted dimensions; intended use: Home-based nursery (Nido in famiglia)",
+    "tags": [
+      "edbt",
+      "controlled_missingness_v3",
+      "missing_3",
+      "UC05_home_nursery_missing_use"
+    ],
+    "base_case_id": "S05",
+    "source_case_id": "UC05_home_nursery_missing_use",
+    "missing_count": 3,
+    "initial_query": "I am looking for a residential dwelling. I prefer a property in energy class C or better. I prefer properties near green spaces.",
+    "one_shot_query": "I am looking for a residential dwelling. I prefer a property in energy class C or better. I prefer properties near green spaces.",
+    "oracle_query": "Find a residential dwelling to operate a home-based nursery (nido in famiglia) for four children in Turin with at least 95 sqm of gross floor area in energy class C or better near green spaces.",
+    "expected_initial_missing": [
+      "D",
+      "L",
+      "Cb"
+    ],
+    "clarifications": {
+      "I": "I am looking for a residential dwelling.",
+      "D": "I intend to operate a home-based nursery (nido in famiglia).",
+      "L": "The location is in Turin.",
+      "Cb": "I need a property with at least 95 sqm of gross floor area and capacity for four people.",
+      "Ce": "I prefer a property in energy class C or better.",
+      "Cp": "I prefer properties near green spaces."
+    },
+    "expected_mapping": {
+      "I": "SPECIFIED",
+      "D": "SPECIFIED",
+      "L": "SPECIFIED",
+      "Cb": "SPECIFIED",
+      "Ce": "SPECIFIED",
+      "Cp": "SPECIFIED"
+    },
+    "repeats": 1
+  },
+  "artifact_file": "runs/bench_6da37ed54761.json",
+  "artifact_schema_version": 3,
+  "ranking_ids": [],
+  "top": [],
+  "api_response": {
+    "agent_trace": [],
+    "relaxation_applied": null,
+    "relaxation_count": null,
+    "fallback_activated": null,
+    "agent_errors": null
+  }
+}

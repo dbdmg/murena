@@ -1,0 +1,286 @@
+{
+  "run_id": "bench_e7f68d3a3345",
+  "condition": "one_shot",
+  "unit_id": "S07_k2_L_Cb",
+  "scenario_id": "S07_k2_L_Cb",
+  "base_case_id": "S07",
+  "missing_count": 2,
+  "scenario_name": "2 omitted dimensions; intended use: Senior Residential Care (RSA)",
+  "tags": [
+    "edbt",
+    "controlled_missingness_v3",
+    "missing_2",
+    "UC07_RSA_missing_use"
+  ],
+  "model": "gpt-6-luna",
+  "repeat": 2,
+  "attempt": 2,
+  "input_sha256": "19f718a3161d0c95a5b4f5dea18a679b03e2a8b710c4b8fc1283f14a34967ac2",
+  "scenario_sha256": "49e899b518b68756a08ff4433f7f86030f6469946c978ce0d15ebbff6b3cda8c",
+  "initial_query": "I am looking for a hotel building. I intend to convert it into a residential senior care facility (RSA). I prefer a property in energy class D or better. I prefer properties near healthcare services.",
+  "options": {
+    "dataset_key": "full",
+    "map_limit": 1000,
+    "llm_limit": 10,
+    "analysis_mode": "agent",
+    "use_relaxation": true,
+    "use_data_knowledge": true,
+    "architecture": "multiagent",
+    "disabled_agents": null
+  },
+  "started_at": "2026-11-18T07:46:16.803384+00:00",
+  "clarification_seconds": null,
+  "analysis_seconds": 328.093,
+  "submitted_query": "I am looking for a hotel building. I intend to convert it into a residential senior care facility (RSA). I prefer a property in energy class D or better. I prefer properties near healthcare services.",
+  "status": "completed",
+  "results_count": 18,
+  "top_ids": [
+    "18989",
+    "2863",
+    "M00441",
+    "12669",
+    "23211",
+    "24885",
+    "17251",
+    "25207",
+    "857",
+    "16157"
+  ],
+  "quality": {
+    "expected_count": 0,
+    "matched_expected": null,
+    "precision_at_returned": null,
+    "recall": null
+  },
+  "final_sql": "SELECT\n  *\nFROM ESTATES\nWHERE\n  property_type IN (\n    'Hotels, pensions, and similar',\n    'Hospitals, clinics, nursing homes and similar',\n    'Hospitals, retirement homes, prisons, barracks, convents'\n  )\n  AND energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C', 'D')\n  AND healthcare >= 80.08\nORDER BY\n  id ASC",
+  "duration_seconds": 328.109,
+  "scenario_definition": {
+    "id": "S07_k2_L_Cb",
+    "name": "2 omitted dimensions; intended use: Senior Residential Care (RSA)",
+    "tags": [
+      "edbt",
+      "controlled_missingness_v3",
+      "missing_2",
+      "UC07_RSA_missing_use"
+    ],
+    "base_case_id": "S07",
+    "source_case_id": "UC07_RSA_missing_use",
+    "missing_count": 2,
+    "initial_query": "I am looking for a hotel building. I intend to convert it into a residential senior care facility (RSA). I prefer a property in energy class D or better. I prefer properties near healthcare services.",
+    "one_shot_query": "I am looking for a hotel building. I intend to convert it into a residential senior care facility (RSA). I prefer a property in energy class D or better. I prefer properties near healthcare services.",
+    "oracle_query": "Find a hotel building to convert it into a residential senior care facility (RSA) for 30 residents in Turin with at least 1600 sqm of gross floor area in energy class D or better near healthcare services.",
+    "expected_initial_missing": [
+      "L",
+      "Cb"
+    ],
+    "clarifications": {
+      "I": "I am looking for a hotel building.",
+      "D": "I intend to convert it into a residential senior care facility (RSA).",
+      "L": "The location is in Turin.",
+      "Cb": "I need a property with at least 1600 sqm of gross floor area and capacity for 30 people.",
+      "Ce": "I prefer a property in energy class D or better.",
+      "Cp": "I prefer properties near healthcare services."
+    },
+    "expected_mapping": {
+      "I": "SPECIFIED",
+      "D": "SPECIFIED",
+      "L": "SPECIFIED",
+      "Cb": "SPECIFIED",
+      "Ce": "SPECIFIED",
+      "Cp": "SPECIFIED"
+    },
+    "repeats": 1
+  },
+  "artifact_file": "runs/bench_e7f68d3a3345.json",
+  "artifact_schema_version": 3,
+  "ranking_ids": [
+    "18989",
+    "2863",
+    "M00441",
+    "12669",
+    "23211",
+    "24885",
+    "17251",
+    "25207",
+    "857",
+    "16157",
+    "25094",
+    "15851",
+    "20084",
+    "15850",
+    "25097",
+    "11277",
+    "12865",
+    "27406"
+  ],
+  "top": [
+    {
+      "id": "18989",
+      "score": 79.475,
+      "distance_km": null
+    },
+    {
+      "id": "2863",
+      "score": 77.925,
+      "distance_km": null
+    },
+    {
+      "id": "M00441",
+      "score": 77.925,
+      "distance_km": null
+    },
+    {
+      "id": "12669",
+      "score": 72.925,
+      "distance_km": null
+    },
+    {
+      "id": "23211",
+      "score": 62.5,
+      "distance_km": null
+    },
+    {
+      "id": "24885",
+      "score": 35.6,
+      "distance_km": null
+    },
+    {
+      "id": "17251",
+      "score": 34.175,
+      "distance_km": null
+    },
+    {
+      "id": "25207",
+      "score": 27.275,
+      "distance_km": null
+    },
+    {
+      "id": "857",
+      "score": 27.15,
+      "distance_km": null
+    },
+    {
+      "id": "16157",
+      "score": 25.175,
+      "distance_km": null
+    }
+  ],
+  "api_response": {
+    "agent_trace": [
+      {
+        "agent_name": "building-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "typologies": [
+            "Hotels, pensions, and similar"
+          ],
+          "found": true,
+          "requirements": []
+        }
+      },
+      {
+        "agent_name": "proximity-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "requirements": [
+            {
+              "target_column": "healthcare",
+              "operator": ">=",
+              "value": 90,
+              "description": "Healthcare services nearby; threshold meets the 75th percentile (89.9)."
+            }
+          ]
+        }
+      },
+      {
+        "agent_name": "regulatory-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "found": false,
+          "matched_use_cases": [
+            "Senior Residential Care (RSA)"
+          ],
+          "requirements": []
+        }
+      },
+      {
+        "agent_name": "energy-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "requirements": [
+            {
+              "target_column": "energy_class",
+              "operator": "IN",
+              "value": [
+                "A1",
+                "A2",
+                "A3",
+                "A4",
+                "B",
+                "C",
+                "D"
+              ],
+              "description": "Property must be in energy class D or better."
+            }
+          ],
+          "found": true
+        }
+      },
+      {
+        "agent_name": "ranking-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "ranking": [
+            {
+              "agent_name": "building",
+              "rank": 1
+            },
+            {
+              "agent_name": "energy",
+              "rank": 2
+            },
+            {
+              "agent_name": "proximity",
+              "rank": 2
+            },
+            {
+              "agent_name": "location",
+              "rank": 3
+            },
+            {
+              "agent_name": "regulatory",
+              "rank": 4
+            }
+          ],
+          "weights": {
+            "location": 0.13,
+            "regulatory": 0.1,
+            "energy": 0.19,
+            "building": 0.39,
+            "proximity": 0.19
+          }
+        }
+      },
+      {
+        "agent_name": "location-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "places": [],
+          "found": false
+        }
+      },
+      {
+        "agent_name": "sql-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "sql": "SELECT * FROM ESTATES WHERE property_type = 'Hotels, pensions, and similar' AND energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C', 'D') AND healthcare >= 90 ORDER BY id ASC",
+          "explanation": "Filters to hotels and similar properties with energy class D or better and healthcare proximity score of at least 90."
+        }
+      }
+    ],
+    "relaxation_applied": true,
+    "relaxation_count": 1,
+    "fallback_activated": false,
+    "agent_errors": []
+  }
+}

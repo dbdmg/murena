@@ -1,0 +1,282 @@
+{
+  "run_id": "bench_73fba7696e6a",
+  "condition": "one_shot",
+  "unit_id": "S03_k3_D_Cb_Cp",
+  "scenario_id": "S03_k3_D_Cb_Cp",
+  "base_case_id": "S03",
+  "missing_count": 3,
+  "scenario_name": "3 omitted dimensions; intended use: Spring section (Sezione primavera)",
+  "tags": [
+    "edbt",
+    "controlled_missingness_v3",
+    "missing_3",
+    "UC03_spring_missing_use"
+  ],
+  "model": "gpt-6-luna",
+  "repeat": 2,
+  "attempt": 2,
+  "input_sha256": "ef6d664e017de1b75378bae1f26716446fe40171d6e2c3a01039abdc56368c93",
+  "scenario_sha256": "9d09b6fb8f0b4d93394c0b68b5a22895181ab4f6af0840234f0e68634c30dce3",
+  "initial_query": "I am looking for an existing school building. The location is in Turin. I prefer a property in energy class C or better.",
+  "options": {
+    "dataset_key": "full",
+    "map_limit": 1000,
+    "llm_limit": 10,
+    "analysis_mode": "agent",
+    "use_relaxation": true,
+    "use_data_knowledge": true,
+    "architecture": "multiagent",
+    "disabled_agents": null
+  },
+  "started_at": "2026-11-18T07:21:42.861990+00:00",
+  "clarification_seconds": null,
+  "analysis_seconds": 240.597,
+  "submitted_query": "I am looking for an existing school building. The location is in Turin. I prefer a property in energy class C or better.",
+  "status": "completed",
+  "results_count": 15,
+  "top_ids": [
+    "18501",
+    "18512",
+    "M03513",
+    "18513",
+    "22364",
+    "15853",
+    "24580",
+    "19627",
+    "M03717",
+    "10600"
+  ],
+  "quality": {
+    "expected_count": 0,
+    "matched_expected": null,
+    "precision_at_returned": null,
+    "recall": null
+  },
+  "final_sql": "SELECT * FROM ESTATES WHERE property_type = 'Schools and educational activities' AND haversine_km(latitude, longitude, 45.0677551, 7.6824892) <= 3.0 AND energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C') ORDER BY haversine_km(latitude, longitude, 45.0677551, 7.6824892) ASC",
+  "duration_seconds": 240.63,
+  "scenario_definition": {
+    "id": "S03_k3_D_Cb_Cp",
+    "name": "3 omitted dimensions; intended use: Spring section (Sezione primavera)",
+    "tags": [
+      "edbt",
+      "controlled_missingness_v3",
+      "missing_3",
+      "UC03_spring_missing_use"
+    ],
+    "base_case_id": "S03",
+    "source_case_id": "UC03_spring_missing_use",
+    "missing_count": 3,
+    "initial_query": "I am looking for an existing school building. The location is in Turin. I prefer a property in energy class C or better.",
+    "one_shot_query": "I am looking for an existing school building. The location is in Turin. I prefer a property in energy class C or better.",
+    "oracle_query": "Find an existing school building to create a spring section (sezione primavera) for 14 children, integrated into an existing kindergarten in Turin with at least 180 sqm of gross floor area in energy class C or better near public transport.",
+    "expected_initial_missing": [
+      "D",
+      "Cb",
+      "Cp"
+    ],
+    "clarifications": {
+      "I": "I am looking for an existing school building.",
+      "D": "I intend to create a spring section (sezione primavera), integrated into an existing kindergarten.",
+      "L": "The location is in Turin.",
+      "Cb": "I need a property with at least 180 sqm of gross floor area and capacity for 14 people.",
+      "Ce": "I prefer a property in energy class C or better.",
+      "Cp": "I prefer properties near public transport."
+    },
+    "expected_mapping": {
+      "I": "SPECIFIED",
+      "D": "SPECIFIED",
+      "L": "SPECIFIED",
+      "Cb": "SPECIFIED",
+      "Ce": "SPECIFIED",
+      "Cp": "SPECIFIED"
+    },
+    "repeats": 1
+  },
+  "artifact_file": "runs/bench_73fba7696e6a.json",
+  "artifact_schema_version": 3,
+  "ranking_ids": [
+    "18501",
+    "18512",
+    "M03513",
+    "18513",
+    "22364",
+    "15853",
+    "24580",
+    "19627",
+    "M03717",
+    "10600",
+    "7791",
+    "13725",
+    "25095",
+    "M04818",
+    "12286"
+  ],
+  "top": [
+    {
+      "id": "18501",
+      "score": 91.42,
+      "distance_km": 1.01
+    },
+    {
+      "id": "18512",
+      "score": 91.42,
+      "distance_km": 1.01
+    },
+    {
+      "id": "M03513",
+      "score": 91.42,
+      "distance_km": 1.01
+    },
+    {
+      "id": "18513",
+      "score": 89.32,
+      "distance_km": 1.01
+    },
+    {
+      "id": "22364",
+      "score": 88.05600000000001,
+      "distance_km": 0.87
+    },
+    {
+      "id": "15853",
+      "score": 86.092,
+      "distance_km": 1.97
+    },
+    {
+      "id": "24580",
+      "score": 81.92,
+      "distance_km": 1.84
+    },
+    {
+      "id": "19627",
+      "score": 79.82,
+      "distance_km": 1.84
+    },
+    {
+      "id": "M03717",
+      "score": 79.82,
+      "distance_km": 1.84
+    },
+    {
+      "id": "10600",
+      "score": 70.956,
+      "distance_km": 2.24
+    }
+  ],
+  "api_response": {
+    "agent_trace": [
+      {
+        "agent_name": "building-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "typologies": [
+            "Schools and educational activities"
+          ],
+          "found": true,
+          "requirements": []
+        }
+      },
+      {
+        "agent_name": "energy-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "requirements": [
+            {
+              "target_column": "energy_class",
+              "operator": "IN",
+              "value": [
+                "A1",
+                "A2",
+                "A3",
+                "A4",
+                "B",
+                "C"
+              ],
+              "description": "Energy class C or better."
+            }
+          ],
+          "found": true
+        }
+      },
+      {
+        "agent_name": "proximity-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "requirements": []
+        }
+      },
+      {
+        "agent_name": "regulatory-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "found": false,
+          "matched_use_cases": [],
+          "requirements": []
+        }
+      },
+      {
+        "agent_name": "ranking-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "ranking": [
+            {
+              "agent_name": "location",
+              "rank": 1
+            },
+            {
+              "agent_name": "building",
+              "rank": 1
+            },
+            {
+              "agent_name": "energy",
+              "rank": 2
+            },
+            {
+              "agent_name": "regulatory",
+              "rank": 3
+            },
+            {
+              "agent_name": "proximity",
+              "rank": 3
+            }
+          ],
+          "weights": {
+            "location": 0.3,
+            "regulatory": 0.11,
+            "energy": 0.16,
+            "building": 0.32,
+            "proximity": 0.11
+          }
+        }
+      },
+      {
+        "agent_name": "location-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "places": [
+            {
+              "name": "Turin",
+              "city": "Turin",
+              "lat": 45.0677551,
+              "lon": 7.6824892,
+              "radius_km": 3.0
+            }
+          ],
+          "found": true
+        }
+      },
+      {
+        "agent_name": "sql-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "sql": "SELECT * FROM ESTATES WHERE property_type = 'Schools and educational activities' AND haversine_km(latitude, longitude, 45.0677551, 7.6824892) <= 3.0 AND energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C') ORDER BY haversine_km(latitude, longitude, 45.0677551, 7.6824892) ASC",
+          "explanation": "Filters for school properties within 3 km of the supplied coordinates and energy classes A1 through C, then orders by distance."
+        }
+      }
+    ],
+    "relaxation_applied": false,
+    "relaxation_count": 0,
+    "fallback_activated": false,
+    "agent_errors": []
+  }
+}

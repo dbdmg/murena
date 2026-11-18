@@ -1,0 +1,267 @@
+{
+  "run_id": "bench_d1a2cf7c3c3f",
+  "condition": "one_shot",
+  "unit_id": "S03_k4_D_L_Cb_Ce",
+  "scenario_id": "S03_k4_D_L_Cb_Ce",
+  "base_case_id": "S03",
+  "missing_count": 4,
+  "scenario_name": "4 omitted dimensions; intended use: Spring section (Sezione primavera)",
+  "tags": [
+    "edbt",
+    "controlled_missingness_v3",
+    "missing_4",
+    "UC03_spring_missing_use"
+  ],
+  "model": "gpt-6-luna",
+  "repeat": 1,
+  "attempt": 2,
+  "input_sha256": "1993de327ffff61e2337bb91351055cf684328ba81feb03149143df0de8fe36e",
+  "scenario_sha256": "14b931c3780272653df4fa32689c8283f73d8a571376c6e1d5dca731f5b4aa1d",
+  "initial_query": "I am looking for an existing school building. I prefer properties near public transport.",
+  "options": {
+    "dataset_key": "full",
+    "map_limit": 1000,
+    "llm_limit": 10,
+    "analysis_mode": "agent",
+    "use_relaxation": true,
+    "use_data_knowledge": true,
+    "architecture": "multiagent",
+    "disabled_agents": null
+  },
+  "started_at": "2026-11-18T07:22:57.782736+00:00",
+  "clarification_seconds": null,
+  "analysis_seconds": 181.962,
+  "submitted_query": "I am looking for an existing school building. I prefer properties near public transport.",
+  "status": "completed",
+  "results_count": 14,
+  "top_ids": [
+    "15981",
+    "16073",
+    "M02363",
+    "19210",
+    "12811",
+    "16950",
+    "5630",
+    "18501",
+    "18512",
+    "18513"
+  ],
+  "quality": {
+    "expected_count": 0,
+    "matched_expected": null,
+    "precision_at_returned": null,
+    "recall": null
+  },
+  "final_sql": "SELECT * FROM ESTATES WHERE property_type = 'Schools and educational activities' AND mobility >= 88 ORDER BY id ASC",
+  "duration_seconds": 181.979,
+  "scenario_definition": {
+    "id": "S03_k4_D_L_Cb_Ce",
+    "name": "4 omitted dimensions; intended use: Spring section (Sezione primavera)",
+    "tags": [
+      "edbt",
+      "controlled_missingness_v3",
+      "missing_4",
+      "UC03_spring_missing_use"
+    ],
+    "base_case_id": "S03",
+    "source_case_id": "UC03_spring_missing_use",
+    "missing_count": 4,
+    "initial_query": "I am looking for an existing school building. I prefer properties near public transport.",
+    "one_shot_query": "I am looking for an existing school building. I prefer properties near public transport.",
+    "oracle_query": "Find an existing school building to create a spring section (sezione primavera) for 14 children, integrated into an existing kindergarten in Turin with at least 180 sqm of gross floor area in energy class C or better near public transport.",
+    "expected_initial_missing": [
+      "D",
+      "L",
+      "Cb",
+      "Ce"
+    ],
+    "clarifications": {
+      "I": "I am looking for an existing school building.",
+      "D": "I intend to create a spring section (sezione primavera), integrated into an existing kindergarten.",
+      "L": "The location is in Turin.",
+      "Cb": "I need a property with at least 180 sqm of gross floor area and capacity for 14 people.",
+      "Ce": "I prefer a property in energy class C or better.",
+      "Cp": "I prefer properties near public transport."
+    },
+    "expected_mapping": {
+      "I": "SPECIFIED",
+      "D": "SPECIFIED",
+      "L": "SPECIFIED",
+      "Cb": "SPECIFIED",
+      "Ce": "SPECIFIED",
+      "Cp": "SPECIFIED"
+    },
+    "repeats": 1
+  },
+  "artifact_file": "runs/bench_d1a2cf7c3c3f.json",
+  "artifact_schema_version": 3,
+  "ranking_ids": [
+    "15981",
+    "16073",
+    "M02363",
+    "19210",
+    "12811",
+    "16950",
+    "5630",
+    "18501",
+    "18512",
+    "18513",
+    "M03513",
+    "22364",
+    "13286",
+    "22363"
+  ],
+  "top": [
+    {
+      "id": "15981",
+      "score": 85.711,
+      "distance_km": null
+    },
+    {
+      "id": "16073",
+      "score": 85.711,
+      "distance_km": null
+    },
+    {
+      "id": "M02363",
+      "score": 85.678,
+      "distance_km": null
+    },
+    {
+      "id": "19210",
+      "score": 85.57900000000001,
+      "distance_km": null
+    },
+    {
+      "id": "12811",
+      "score": 84.85300000000001,
+      "distance_km": null
+    },
+    {
+      "id": "16950",
+      "score": 84.85300000000001,
+      "distance_km": null
+    },
+    {
+      "id": "5630",
+      "score": 84.85300000000001,
+      "distance_km": null
+    },
+    {
+      "id": "18501",
+      "score": 84.061,
+      "distance_km": null
+    },
+    {
+      "id": "18512",
+      "score": 84.061,
+      "distance_km": null
+    },
+    {
+      "id": "18513",
+      "score": 84.061,
+      "distance_km": null
+    }
+  ],
+  "api_response": {
+    "agent_trace": [
+      {
+        "agent_name": "energy-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "requirements": [],
+          "found": false
+        }
+      },
+      {
+        "agent_name": "building-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "typologies": [
+            "Schools and educational activities"
+          ],
+          "found": true,
+          "requirements": []
+        }
+      },
+      {
+        "agent_name": "proximity-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "requirements": [
+            {
+              "target_column": "mobility",
+              "operator": ">=",
+              "value": 88,
+              "description": "Public transport nearby; threshold is rounded from the 75th percentile (87.77)."
+            }
+          ]
+        }
+      },
+      {
+        "agent_name": "regulatory-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "found": false,
+          "matched_use_cases": [],
+          "requirements": []
+        }
+      },
+      {
+        "agent_name": "ranking-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "ranking": [
+            {
+              "agent_name": "building",
+              "rank": 1
+            },
+            {
+              "agent_name": "location",
+              "rank": 2
+            },
+            {
+              "agent_name": "proximity",
+              "rank": 2
+            },
+            {
+              "agent_name": "regulatory",
+              "rank": 3
+            },
+            {
+              "agent_name": "energy",
+              "rank": 3
+            }
+          ],
+          "weights": {
+            "location": 0.19,
+            "regulatory": 0.12,
+            "energy": 0.12,
+            "building": 0.38,
+            "proximity": 0.19
+          }
+        }
+      },
+      {
+        "agent_name": "location-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "places": [],
+          "found": false
+        }
+      },
+      {
+        "agent_name": "sql-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "sql": "SELECT * FROM ESTATES WHERE property_type = 'Schools and educational activities' AND mobility >= 88 ORDER BY id ASC",
+          "explanation": "Filters for school and educational properties with a public transport accessibility score of at least 88; no location coordinates were provided."
+        }
+      }
+    ],
+    "relaxation_applied": false,
+    "relaxation_count": 0,
+    "fallback_activated": false,
+    "agent_errors": []
+  }
+}

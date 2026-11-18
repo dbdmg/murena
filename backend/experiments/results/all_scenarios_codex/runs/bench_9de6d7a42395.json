@@ -1,0 +1,300 @@
+{
+  "run_id": "bench_9de6d7a42395",
+  "condition": "one_shot",
+  "unit_id": "S07_k2_D_Cp",
+  "scenario_id": "S07_k2_D_Cp",
+  "base_case_id": "S07",
+  "missing_count": 2,
+  "scenario_name": "2 omitted dimensions; intended use: Senior Residential Care (RSA)",
+  "tags": [
+    "edbt",
+    "controlled_missingness_v3",
+    "missing_2",
+    "UC07_RSA_missing_use"
+  ],
+  "model": "gpt-6-luna",
+  "repeat": 2,
+  "attempt": 2,
+  "input_sha256": "d5d3fc8ee5f1813f09cfda53d8afb7397a7688d0fe51dc6d64f839bfab9d1900",
+  "scenario_sha256": "abe313d78386d5fb3c396051766b89ddfcc591f89f0c7c46ef4965d657703273",
+  "initial_query": "I am looking for a hotel building. The location is in Turin. I need a property with at least 1600 sqm of gross floor area and capacity for 30 people. I prefer a property in energy class D or better.",
+  "options": {
+    "dataset_key": "full",
+    "map_limit": 1000,
+    "llm_limit": 10,
+    "analysis_mode": "agent",
+    "use_relaxation": true,
+    "use_data_knowledge": true,
+    "architecture": "multiagent",
+    "disabled_agents": null
+  },
+  "started_at": "2026-11-18T07:46:01.234116+00:00",
+  "clarification_seconds": null,
+  "analysis_seconds": 251.088,
+  "submitted_query": "I am looking for a hotel building. The location is in Turin. I need a property with at least 1600 sqm of gross floor area and capacity for 30 people. I prefer a property in energy class D or better.",
+  "status": "completed",
+  "results_count": 20,
+  "top_ids": [
+    "12669",
+    "18989",
+    "2863",
+    "M00441",
+    "23211",
+    "11458",
+    "M03094",
+    "28785",
+    "M02403",
+    "M04174"
+  ],
+  "quality": {
+    "expected_count": 0,
+    "matched_expected": null,
+    "precision_at_returned": null,
+    "recall": null
+  },
+  "final_sql": "SELECT\n  *\nFROM ESTATES\nWHERE\n  HAVERSINE_KM(latitude, longitude, 45.0677551, 7.6824892) <= 5.0\n  AND property_type IN (\n    'Hotels, pensions, and similar',\n    'Residential (Temporary/Holiday)',\n    'Bars, restaurants, dance halls and similar'\n  )\n  AND surface_area >= 250\n  AND energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C', 'D', 'E', 'F', 'G')\nORDER BY\n  HAVERSINE_KM(latitude, longitude, 45.0677551, 7.6824892) ASC",
+  "duration_seconds": 251.103,
+  "scenario_definition": {
+    "id": "S07_k2_D_Cp",
+    "name": "2 omitted dimensions; intended use: Senior Residential Care (RSA)",
+    "tags": [
+      "edbt",
+      "controlled_missingness_v3",
+      "missing_2",
+      "UC07_RSA_missing_use"
+    ],
+    "base_case_id": "S07",
+    "source_case_id": "UC07_RSA_missing_use",
+    "missing_count": 2,
+    "initial_query": "I am looking for a hotel building. The location is in Turin. I need a property with at least 1600 sqm of gross floor area and capacity for 30 people. I prefer a property in energy class D or better.",
+    "one_shot_query": "I am looking for a hotel building. The location is in Turin. I need a property with at least 1600 sqm of gross floor area and capacity for 30 people. I prefer a property in energy class D or better.",
+    "oracle_query": "Find a hotel building to convert it into a residential senior care facility (RSA) for 30 residents in Turin with at least 1600 sqm of gross floor area in energy class D or better near healthcare services.",
+    "expected_initial_missing": [
+      "D",
+      "Cp"
+    ],
+    "clarifications": {
+      "I": "I am looking for a hotel building.",
+      "D": "I intend to convert it into a residential senior care facility (RSA).",
+      "L": "The location is in Turin.",
+      "Cb": "I need a property with at least 1600 sqm of gross floor area and capacity for 30 people.",
+      "Ce": "I prefer a property in energy class D or better.",
+      "Cp": "I prefer properties near healthcare services."
+    },
+    "expected_mapping": {
+      "I": "SPECIFIED",
+      "D": "SPECIFIED",
+      "L": "SPECIFIED",
+      "Cb": "SPECIFIED",
+      "Ce": "SPECIFIED",
+      "Cp": "SPECIFIED"
+    },
+    "repeats": 1
+  },
+  "artifact_file": "runs/bench_9de6d7a42395.json",
+  "artifact_schema_version": 3,
+  "ranking_ids": [
+    "12669",
+    "18989",
+    "2863",
+    "M00441",
+    "23211",
+    "11458",
+    "M03094",
+    "28785",
+    "M02403",
+    "M04174",
+    "M02113",
+    "10344",
+    "24519",
+    "7793",
+    "M02118",
+    "24520",
+    "M04702",
+    "24266",
+    "22973",
+    "25830"
+  ],
+  "top": [
+    {
+      "id": "12669",
+      "score": 96.10000000000001,
+      "distance_km": 0.99
+    },
+    {
+      "id": "18989",
+      "score": 93.26,
+      "distance_km": 0.31
+    },
+    {
+      "id": "2863",
+      "score": 71.66,
+      "distance_km": 0.18
+    },
+    {
+      "id": "M00441",
+      "score": 71.66,
+      "distance_km": 0.18
+    },
+    {
+      "id": "23211",
+      "score": 65.6,
+      "distance_km": 1.25
+    },
+    {
+      "id": "11458",
+      "score": 50.0,
+      "distance_km": 0.18
+    },
+    {
+      "id": "M03094",
+      "score": 49.96000000000001,
+      "distance_km": 0.24
+    },
+    {
+      "id": "28785",
+      "score": 48.940000000000005,
+      "distance_km": 1.25
+    },
+    {
+      "id": "M02403",
+      "score": 48.940000000000005,
+      "distance_km": 1.25
+    },
+    {
+      "id": "M04174",
+      "score": 46.74000000000001,
+      "distance_km": 1.3
+    }
+  ],
+  "api_response": {
+    "agent_trace": [
+      {
+        "agent_name": "location-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "places": [
+            {
+              "name": "Turin",
+              "city": "Turin",
+              "lat": 45.0677551,
+              "lon": 7.6824892,
+              "radius_km": 3.0
+            }
+          ],
+          "found": true
+        }
+      },
+      {
+        "agent_name": "proximity-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "requirements": []
+        }
+      },
+      {
+        "agent_name": "building-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "typologies": [
+            "Hotels, pensions, and similar"
+          ],
+          "found": true,
+          "requirements": [
+            {
+              "target_column": "property_type",
+              "operator": "=",
+              "value": "Hotels, pensions, and similar",
+              "description": "The user is looking for a hotel building."
+            },
+            {
+              "target_column": "surface_area",
+              "operator": ">=",
+              "value": 1600,
+              "description": "The requested gross floor area is at least 1600 sqm."
+            }
+          ]
+        }
+      },
+      {
+        "agent_name": "regulatory-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "found": false,
+          "matched_use_cases": [],
+          "requirements": []
+        }
+      },
+      {
+        "agent_name": "energy-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "requirements": [
+            {
+              "target_column": "energy_class",
+              "operator": "IN",
+              "value": [
+                "A1",
+                "A2",
+                "A3",
+                "A4",
+                "B",
+                "C",
+                "D"
+              ],
+              "description": "Energy class D or better."
+            }
+          ],
+          "found": true
+        }
+      },
+      {
+        "agent_name": "ranking-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "ranking": [
+            {
+              "agent_name": "building",
+              "rank": 1
+            },
+            {
+              "agent_name": "location",
+              "rank": 1
+            },
+            {
+              "agent_name": "regulatory",
+              "rank": 1
+            },
+            {
+              "agent_name": "energy",
+              "rank": 2
+            },
+            {
+              "agent_name": "proximity",
+              "rank": 3
+            }
+          ],
+          "weights": {
+            "location": 0.26,
+            "regulatory": 0.26,
+            "energy": 0.13,
+            "building": 0.26,
+            "proximity": 0.09
+          }
+        }
+      },
+      {
+        "agent_name": "sql-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "sql": "SELECT * FROM ESTATES WHERE haversine_km(latitude, longitude, 45.0677551, 7.6824892) <= 3.0 AND property_type = 'Hotels, pensions, and similar' AND surface_area >= 1600 AND energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C', 'D') ORDER BY haversine_km(latitude, longitude, 45.0677551, 7.6824892) ASC",
+          "explanation": "Filters hotels within 3 km of the supplied coordinates, with at least 1600 sqm and energy class A1 through D; orders by distance."
+        }
+      }
+    ],
+    "relaxation_applied": true,
+    "relaxation_count": 1,
+    "fallback_activated": false,
+    "agent_errors": []
+  }
+}

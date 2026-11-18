@@ -1,0 +1,332 @@
+{
+  "run_id": "bench_be073eafd7a6",
+  "condition": "one_shot",
+  "unit_id": "S07_k1_Ce",
+  "scenario_id": "S07_k1_Ce",
+  "base_case_id": "S07",
+  "missing_count": 1,
+  "scenario_name": "1 omitted dimensions; intended use: Senior Residential Care (RSA)",
+  "tags": [
+    "edbt",
+    "controlled_missingness_v3",
+    "missing_1",
+    "UC07_RSA_missing_use"
+  ],
+  "model": "gpt-6-luna",
+  "repeat": 1,
+  "attempt": 2,
+  "input_sha256": "6a6c41575ab48dcb774d31c4d2c9f95dd80a857d2e246a15befcc9a4c3f26510",
+  "scenario_sha256": "ecca5500843d21d7a873937bd97aef365e33c3799300a85e9117cf63e443c632",
+  "initial_query": "I am looking for a hotel building. I intend to convert it into a residential senior care facility (RSA). The location is in Turin. I need a property with at least 1600 sqm of gross floor area and capacity for 30 people. I prefer properties near healthcare services.",
+  "options": {
+    "dataset_key": "full",
+    "map_limit": 1000,
+    "llm_limit": 10,
+    "analysis_mode": "agent",
+    "use_relaxation": true,
+    "use_data_knowledge": true,
+    "architecture": "multiagent",
+    "disabled_agents": null
+  },
+  "started_at": "2026-11-18T07:45:01.241815+00:00",
+  "clarification_seconds": null,
+  "analysis_seconds": 282.305,
+  "submitted_query": "I am looking for a hotel building. I intend to convert it into a residential senior care facility (RSA). The location is in Turin. I need a property with at least 1600 sqm of gross floor area and capacity for 30 people. I prefer properties near healthcare services.",
+  "status": "completed",
+  "results_count": 54,
+  "top_ids": [
+    "18989",
+    "12669",
+    "17251",
+    "2863",
+    "M00441",
+    "904",
+    "11458",
+    "19005",
+    "23094",
+    "7926"
+  ],
+  "quality": {
+    "expected_count": 0,
+    "matched_expected": null,
+    "precision_at_returned": null,
+    "recall": null
+  },
+  "final_sql": "SELECT\n  *\nFROM ESTATES\nWHERE\n  property_type IN (\n    'Hotels, pensions, and similar',\n    'Hospitals, clinics, nursing homes and similar',\n    'Bars, restaurants, dance halls and similar'\n  )\n  AND surface_area >= 109.71\n  AND HAVERSINE_KM(latitude, longitude, 45.0677551, 7.6824892) <= 8.0\n  AND healthcare >= 80.08\nORDER BY\n  HAVERSINE_KM(latitude, longitude, 45.0677551, 7.6824892) ASC",
+  "duration_seconds": 282.322,
+  "scenario_definition": {
+    "id": "S07_k1_Ce",
+    "name": "1 omitted dimensions; intended use: Senior Residential Care (RSA)",
+    "tags": [
+      "edbt",
+      "controlled_missingness_v3",
+      "missing_1",
+      "UC07_RSA_missing_use"
+    ],
+    "base_case_id": "S07",
+    "source_case_id": "UC07_RSA_missing_use",
+    "missing_count": 1,
+    "initial_query": "I am looking for a hotel building. I intend to convert it into a residential senior care facility (RSA). The location is in Turin. I need a property with at least 1600 sqm of gross floor area and capacity for 30 people. I prefer properties near healthcare services.",
+    "one_shot_query": "I am looking for a hotel building. I intend to convert it into a residential senior care facility (RSA). The location is in Turin. I need a property with at least 1600 sqm of gross floor area and capacity for 30 people. I prefer properties near healthcare services.",
+    "oracle_query": "Find a hotel building to convert it into a residential senior care facility (RSA) for 30 residents in Turin with at least 1600 sqm of gross floor area in energy class D or better near healthcare services.",
+    "expected_initial_missing": [
+      "Ce"
+    ],
+    "clarifications": {
+      "I": "I am looking for a hotel building.",
+      "D": "I intend to convert it into a residential senior care facility (RSA).",
+      "L": "The location is in Turin.",
+      "Cb": "I need a property with at least 1600 sqm of gross floor area and capacity for 30 people.",
+      "Ce": "I prefer a property in energy class D or better.",
+      "Cp": "I prefer properties near healthcare services."
+    },
+    "expected_mapping": {
+      "I": "SPECIFIED",
+      "D": "SPECIFIED",
+      "L": "SPECIFIED",
+      "Cb": "SPECIFIED",
+      "Ce": "SPECIFIED",
+      "Cp": "SPECIFIED"
+    },
+    "repeats": 1
+  },
+  "artifact_file": "runs/bench_be073eafd7a6.json",
+  "artifact_schema_version": 3,
+  "ranking_ids": [
+    "18989",
+    "12669",
+    "17251",
+    "2863",
+    "M00441",
+    "904",
+    "11458",
+    "19005",
+    "23094",
+    "7926",
+    "M01739",
+    "7207",
+    "M05027",
+    "M03094",
+    "16492",
+    "16383",
+    "M03073",
+    "20084",
+    "23211",
+    "27648",
+    "M03023",
+    "18502",
+    "21594",
+    "21595",
+    "M04113",
+    "19512",
+    "24519",
+    "21871",
+    "M04174",
+    "857",
+    "24520",
+    "M04702",
+    "18495",
+    "13017",
+    "11357",
+    "16096",
+    "16871",
+    "2616",
+    "28785",
+    "3128",
+    "498",
+    "M02113",
+    "M02403",
+    "M03039",
+    "18432",
+    "11484",
+    "24885",
+    "25207",
+    "25094",
+    "25097",
+    "24266",
+    "27183",
+    "25830",
+    "26031"
+  ],
+  "top": [
+    {
+      "id": "18989",
+      "score": 91.106,
+      "distance_km": 0.31
+    },
+    {
+      "id": "12669",
+      "score": 78.92000000000002,
+      "distance_km": 0.99
+    },
+    {
+      "id": "17251",
+      "score": 78.112,
+      "distance_km": 0.18
+    },
+    {
+      "id": "2863",
+      "score": 78.112,
+      "distance_km": 0.18
+    },
+    {
+      "id": "M00441",
+      "score": 78.112,
+      "distance_km": 0.18
+    },
+    {
+      "id": "904",
+      "score": 64.898,
+      "distance_km": 0.32
+    },
+    {
+      "id": "11458",
+      "score": 64.61200000000001,
+      "distance_km": 0.18
+    },
+    {
+      "id": "19005",
+      "score": 64.61200000000001,
+      "distance_km": 0.18
+    },
+    {
+      "id": "23094",
+      "score": 64.61200000000001,
+      "distance_km": 0.18
+    },
+    {
+      "id": "7926",
+      "score": 64.61200000000001,
+      "distance_km": 0.18
+    }
+  ],
+  "api_response": {
+    "agent_trace": [
+      {
+        "agent_name": "regulatory-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "found": false,
+          "matched_use_cases": [
+            "Senior Residential Care (RSA)"
+          ],
+          "requirements": []
+        }
+      },
+      {
+        "agent_name": "energy-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "requirements": [],
+          "found": false
+        }
+      },
+      {
+        "agent_name": "proximity-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "requirements": [
+            {
+              "target_column": "healthcare",
+              "operator": ">=",
+              "value": 90,
+              "description": "Healthcare services are preferred nearby; threshold is at least the 75th percentile (89.9), rounded to 90."
+            }
+          ]
+        }
+      },
+      {
+        "agent_name": "building-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "typologies": [
+            "Hotels, pensions, and similar"
+          ],
+          "found": true,
+          "requirements": [
+            {
+              "target_column": "property_type",
+              "operator": "=",
+              "value": "Hotels, pensions, and similar",
+              "description": "The user is seeking a hotel in its current state; the intended future conversion does not change the current typology."
+            },
+            {
+              "target_column": "surface_area",
+              "operator": ">=",
+              "value": 1600,
+              "description": "The user explicitly requires at least 1600 sqm of gross floor area."
+            }
+          ]
+        }
+      },
+      {
+        "agent_name": "ranking-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "ranking": [
+            {
+              "agent_name": "location",
+              "rank": 1
+            },
+            {
+              "agent_name": "regulatory",
+              "rank": 1
+            },
+            {
+              "agent_name": "building",
+              "rank": 2
+            },
+            {
+              "agent_name": "proximity",
+              "rank": 3
+            },
+            {
+              "agent_name": "energy",
+              "rank": 4
+            }
+          ],
+          "weights": {
+            "location": 0.33,
+            "regulatory": 0.32,
+            "energy": 0.08,
+            "building": 0.16,
+            "proximity": 0.11
+          }
+        }
+      },
+      {
+        "agent_name": "location-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "places": [
+            {
+              "name": "Turin",
+              "city": "Turin",
+              "lat": 45.0677551,
+              "lon": 7.6824892,
+              "radius_km": 3.0
+            }
+          ],
+          "found": true
+        }
+      },
+      {
+        "agent_name": "sql-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "sql": "SELECT * FROM ESTATES WHERE property_type = 'Hotels, pensions, and similar' AND surface_area >= 1600 AND haversine_km(latitude, longitude, 45.0677551, 7.6824892) <= 3.0 AND healthcare >= 90 ORDER BY haversine_km(latitude, longitude, 45.0677551, 7.6824892) ASC",
+          "explanation": "Filters to the requested hotel property type, minimum area, proximity to the supplied coordinates, and healthcare score."
+        }
+      }
+    ],
+    "relaxation_applied": true,
+    "relaxation_count": 1,
+    "fallback_activated": false,
+    "agent_errors": [
+      {
+        "agent": "broker-agent",
+        "error": "RuntimeError: Codex CLI LLM call failed"
+      }
+    ]
+  }
+}
