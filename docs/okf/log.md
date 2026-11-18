@@ -2,6 +2,8 @@
 
 ## 2026-11-18
 
+* **Paper, note di Simone risolte (PR dedicata):** chiusura dell'abstract resa specifica per la demo (rispondere, rifiutare, modificare la richiesta riscritta; replay offline); contributi dell'introduzione riorganizzati in tre punti (meccanismo di chiarimento, valutazione controllata, dimostrazione interattiva), separando i contributi scientifici da quello della demo. Nell'abstract "another LLM" sostituito con `gpt-6-luna` (identificativo del manifest della serie Codex). Aggiunto anche Claude Haiku 5.5 come modello della serie cooperativa da 304 run. Nessun numero cambiato. Rimosse le due note `\SIMONE{}`. PDF ricompilato: 4 pagine.
+
 * **Paper, correzioni del model council (PR dedicata):** applicate le correzioni delle quattro review, inclusa gemini-4-argon.
   * Sezione System: EVPI $1-1/n$; contraddizioni controllate solo nelle disambiguazioni; blocco dopo una seconda risposta non risolta.
   * Sezione Demo: pannello con use case e $k$; opt-out solo sulle preferenze; latenze con 11 s a $k=0$; didascalia di Fig. 2 senza "144".
