@@ -1,0 +1,636 @@
+{
+  "run_id": "bench_0ade82d3c927",
+  "condition": "one_shot",
+  "unit_id": "MS07_k5_optout",
+  "scenario_id": "MS07_k5_optout",
+  "base_case_id": "UC07_RSA_missing_use",
+  "missing_count": 5,
+  "scenario_name": "5 omitted dimensions; intended use: Senior Residential Care (RSA); opt-out on Cb",
+  "tags": [
+    "edbt",
+    "controlled_missingness_v3",
+    "missing_5",
+    "UC07_RSA_missing_use",
+    "imperfect_user",
+    "optout"
+  ],
+  "model": "gpt-6-luna",
+  "repeat": 2,
+  "attempt": 1,
+  "input_sha256": "6b5841ac1c9fb05a36469a97829e950356bc0ff526e4b7706e514cf53a641117",
+  "scenario_sha256": "c84dc0b344132ed28807024b73ee4a4298918e27e4860e141dc9dd572628dd42",
+  "initial_query": "I am looking for a hotel building.",
+  "options": {
+    "dataset_key": "full",
+    "map_limit": 1000,
+    "llm_limit": 10,
+    "analysis_mode": "agent",
+    "use_relaxation": true,
+    "use_data_knowledge": true,
+    "architecture": "multiagent",
+    "disabled_agents": null
+  },
+  "started_at": "2026-11-18T21:31:42.621523+00:00",
+  "clarification_seconds": null,
+  "analysis_seconds": 89.015,
+  "submitted_query": "I am looking for a hotel building.",
+  "status": "completed",
+  "results_count": 10,
+  "top_ids": [
+    "10344",
+    "12669",
+    "18989",
+    "23211",
+    "23346",
+    "25827",
+    "2863",
+    "30395",
+    "M00441",
+    "M04955"
+  ],
+  "quality": {
+    "expected_count": 0,
+    "matched_expected": null,
+    "precision_at_returned": null,
+    "recall": null
+  },
+  "final_sql": "SELECT * FROM ESTATES WHERE property_type = 'Hotels, pensions, and similar' ORDER BY id ASC",
+  "duration_seconds": 89.032,
+  "scenario_definition": {
+    "id": "MS07_k5_optout",
+    "name": "5 omitted dimensions; intended use: Senior Residential Care (RSA); opt-out on Cb",
+    "tags": [
+      "edbt",
+      "controlled_missingness_v3",
+      "missing_5",
+      "UC07_RSA_missing_use",
+      "imperfect_user",
+      "optout"
+    ],
+    "base_case_id": "UC07_RSA_missing_use",
+    "missing_count": 5,
+    "initial_query": "I am looking for a hotel building.",
+    "one_shot_query": "I am looking for a hotel building.",
+    "oracle_query": "Find a hotel building to convert it into a residential senior care facility (RSA) for 30 residents in Turin with at least 1600 sqm of gross floor area in energy class D or better near healthcare services.",
+    "expected_initial_missing": [
+      "Cb",
+      "L",
+      "Ce",
+      "D",
+      "Cp"
+    ],
+    "clarifications": {
+      "I": "I am looking for a hotel building.",
+      "D": "I intend to convert it into a residential senior care facility (RSA).",
+      "L": "The location is in Turin.",
+      "Cb": "I have no requirement on building size, capacity or structural features.",
+      "Ce": "I prefer a property in energy class D or better.",
+      "Cp": "I prefer properties near healthcare services."
+    },
+    "expected_mapping": {
+      "I": "SPECIFIED",
+      "D": "SPECIFIED",
+      "L": "SPECIFIED",
+      "Cb": "NOT_REQUESTED",
+      "Ce": "SPECIFIED",
+      "Cp": "SPECIFIED"
+    },
+    "repeats": 1,
+    "imperfect_user": {
+      "profile": "optout",
+      "dimension": "Cb"
+    }
+  },
+  "artifact_file": "runs/bench_0ade82d3c927.json",
+  "artifact_schema_version": 4,
+  "ranking_ids": [
+    "10344",
+    "12669",
+    "18989",
+    "23211",
+    "23346",
+    "25827",
+    "2863",
+    "30395",
+    "M00441",
+    "M04955"
+  ],
+  "top": [
+    {
+      "id": "10344",
+      "score": 100.0,
+      "distance_km": null
+    },
+    {
+      "id": "12669",
+      "score": 100.0,
+      "distance_km": null
+    },
+    {
+      "id": "18989",
+      "score": 100.0,
+      "distance_km": null
+    },
+    {
+      "id": "23211",
+      "score": 100.0,
+      "distance_km": null
+    },
+    {
+      "id": "23346",
+      "score": 100.0,
+      "distance_km": null
+    },
+    {
+      "id": "25827",
+      "score": 100.0,
+      "distance_km": null
+    },
+    {
+      "id": "2863",
+      "score": 100.0,
+      "distance_km": null
+    },
+    {
+      "id": "30395",
+      "score": 100.0,
+      "distance_km": null
+    },
+    {
+      "id": "M00441",
+      "score": 100.0,
+      "distance_km": null
+    },
+    {
+      "id": "M04955",
+      "score": 100.0,
+      "distance_km": null
+    }
+  ],
+  "api_response": {
+    "agent_trace": [
+      {
+        "agent_name": "regulatory-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "found": false,
+          "matched_use_cases": [],
+          "requirements": []
+        }
+      },
+      {
+        "agent_name": "building-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "typologies": [
+            "Hotels, pensions, and similar"
+          ],
+          "found": true,
+          "requirements": []
+        }
+      },
+      {
+        "agent_name": "proximity-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "requirements": []
+        }
+      },
+      {
+        "agent_name": "energy-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "requirements": [],
+          "found": false
+        }
+      },
+      {
+        "agent_name": "ranking-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "ranking": [
+            {
+              "agent_name": "building",
+              "rank": 1
+            },
+            {
+              "agent_name": "location",
+              "rank": 2
+            },
+            {
+              "agent_name": "regulatory",
+              "rank": 2
+            },
+            {
+              "agent_name": "energy",
+              "rank": 2
+            },
+            {
+              "agent_name": "proximity",
+              "rank": 2
+            }
+          ],
+          "weights": {
+            "location": 0.17,
+            "regulatory": 0.17,
+            "energy": 0.17,
+            "building": 0.32,
+            "proximity": 0.17
+          }
+        }
+      },
+      {
+        "agent_name": "location-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "places": [],
+          "found": false
+        }
+      },
+      {
+        "agent_name": "sql-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "sql": "SELECT * FROM ESTATES WHERE property_type = 'Hotels, pensions, and similar' ORDER BY id ASC",
+          "explanation": "Filters for the requested hotel property type and orders results by ID."
+        }
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "18989",
+          "evaluation_text": "This property is a strong strategic match for the search for a hotel building: its recorded type is hotels, pensions, and similar, and its 9,974.26 sqm area indicates substantial scale. The central Turin location is supported by very high proximity scores for mobility, education, commercial services, and healthcare. Its energy class B is favorable, though the low overall energy score points to shortcomings in the plant, envelope, and renewable-energy indicators. The supplied regulatory context contains no matched use cases or requirements, so planning compatibility and authorization for the intended hotel use need verification. The data also do not establish the internal layout, condition, or technical feasibility of any proposed operation.",
+          "final_ranking_score": 100,
+          "pros": [
+            "Property type directly matches the hotel-building objective.",
+            "Large recorded surface area of 9,974.26 sqm offers substantial scale for assessment.",
+            "Strong central-service access, especially mobility (99.1), education (99.83), commercial services (92.48), and healthcare (92.19)."
+          ],
+          "cons": [
+            "Regulatory context provides no matched hotel-use requirements; planning compatibility and authorization need verification.",
+            "Energy class B is accompanied by a low energy total of 8, including weak envelope and renewable-energy scores.",
+            "The 1930 construction period and available data do not establish current condition, internal layout, accessibility, or technical feasibility; these require inspection and verification."
+          ]
+        },
+        "batch_id": 1,
+        "timestamp": "2026-11-18T22:32:31.265770",
+        "execution_time_ms": 15465.394020080566
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "10344",
+          "evaluation_text": "This property is a strong candidate for the hotel-building objective: its recorded property type is “Hotels, pensions, and similar,” and the deterministic ranking score is 100. The 274.51 sqm area and 1950 construction period provide context but do not establish the building’s layout, condition, permitted hotel use, or capacity. The available data show good access to services and energy class B, while hotel-specific regulatory requirements were not identified in the supplied regulatory result; planning and technical suitability therefore require verification.",
+          "final_ranking_score": 100,
+          "pros": [
+            "Recorded property type directly matches the hotel-building objective.",
+            "Energy class B, with a total energy score of 10, indicates a moderate energy profile in the supplied scoring system.",
+            "Strong proximity percentiles across services: green 92.87, commercial 83.01, sport 81, and healthcare 79.33."
+          ],
+          "cons": [
+            "At 274.51 sqm, the recorded area alone does not establish suitable guest-room count, layout, or hotel capacity.",
+            "Built in 1950; current condition, building systems, and renovation needs are not provided.",
+            "The supplied regulatory result found no matching hotel requirements, so permitted use and planning compatibility need verification."
+          ]
+        },
+        "batch_id": 2,
+        "timestamp": "2026-11-18T22:32:31.559378",
+        "execution_time_ms": 15760.93316078186
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "12669",
+          "evaluation_text": "This property is a strong strategic match for the search for a hotel building: its recorded type is “Hotels, pensions, and similar” and its substantial 3,682.01 sqm area indicate significant existing scale. Its central location is supported by strong proximity figures across healthcare, mobility, green areas, commercial services, and education. The A3 energy class and high plant score are further strengths. The supplied data do not establish the building’s current operating status, room layout, planning compatibility, or technical suitability for a hotel; these require verification. No hotel-specific regulatory requirements were identified in the provided regulatory context.",
+          "final_ranking_score": 100,
+          "pros": [
+            "Property type is recorded as hotels, pensions, and similar, directly aligning with the strategic objective.",
+            "Large recorded surface area of 3,682.01 sqm suggests substantial property scale for assessment as a hotel asset.",
+            "A3 energy class and strong proximity percentiles, including mobility at 90.36 and commercial services at 91.06, support its overall appeal."
+          ],
+          "cons": [
+            "The 1850 construction period means the building’s condition and any modernization needs should be assessed; the supplied data do not establish its present condition.",
+            "The data do not confirm hotel authorization, planning compatibility, accessibility, room configuration, or technical feasibility.",
+            "The regulatory context contains no matched hotel requirements, so relevant regulatory and operational checks remain to be completed."
+          ]
+        },
+        "batch_id": 3,
+        "timestamp": "2026-11-18T22:32:31.636767",
+        "execution_time_ms": 15837.852954864502
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "23211",
+          "evaluation_text": "This 1,400 sqm property is classified as a hotel, pension, or similar and was built in 2019, making it a strong direct match for the objective of finding a hotel building. Its central urban context is supported by high proximity percentiles for mobility, commercial services, education, and healthcare, with green and sports access also ranking favorably. The energy profile is mixed: class D and a total energy score of 10, with a high-quality thermal plant but a low envelope score and no recorded renewables. No regulatory requirements or matching use cases were returned, so planning compatibility, authorization, accessibility, room configuration, and technical suitability for the intended operation require verification.",
+          "final_ranking_score": 100,
+          "pros": [
+            "Property type is explicitly listed as hotels, pensions, and similar, aligning directly with the search objective.",
+            "Substantial recorded surface area of 1,400 sqm and recent construction period of 2019 support further assessment for hotel use.",
+            "Strong urban accessibility and service proximity, including mobility at 87.77 and commercial services at 87.23."
+          ],
+          "cons": [
+            "Energy class D and total energy score of 10 indicate a mixed efficiency profile.",
+            "Envelope score of 1 and renewables score of 1 indicate potential building-efficiency and decarbonization needs.",
+            "Regulatory matching was not found; hotel-use compatibility, authorizations, accessibility, room layout, and technical feasibility remain to be verified."
+          ]
+        },
+        "batch_id": 4,
+        "timestamp": "2026-11-18T22:32:32.355340",
+        "execution_time_ms": 16554.432153701782
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "25827",
+          "evaluation_text": "This 1,403.19 sqm property is already classified as a hotel, pension, or similar, making it a strong match for the objective and suggesting potential for hotel reuse. Its 1970 construction date and available data do not establish current condition, room layout, operating authorization, or planning compatibility, so these require verification. The energy class is C, while the total energy score of 8 reflects a traditional thermal plant and no recorded renewables. Service proximity indicators are moderate to relatively strong, particularly for green areas and mobility. No hotel-specific regulatory requirements were identified in the supplied regulatory context.",
+          "final_ranking_score": 100,
+          "pros": [
+            "Property type directly matches the search for a hotel building.",
+            "Substantial recorded surface area of 1,403.19 sqm offers scale for potential hospitality use, subject to layout and feasibility checks.",
+            "Moderately strong proximity indicators for mobility (67.54), green areas (78.36), and commercial services (69.53)."
+          ],
+          "cons": [
+            "Built in 1970; current condition and refurbishment needs are not provided.",
+            "Traditional thermal plant and no recorded renewable energy sources weigh on the energy profile despite energy class C.",
+            "Planning compatibility, operating authorization, accessibility, and suitability of the internal layout for hotel use are not established; the supplied regulatory result identifies no matched requirements."
+          ]
+        },
+        "batch_id": 5,
+        "timestamp": "2026-11-18T22:32:39.346769",
+        "execution_time_ms": 7787.615537643433
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "23346",
+          "evaluation_text": "This 168.31 sqm property is listed as a hotel, pension, or similar, making it directly aligned with the objective of finding a hotel building. Its 1958 construction date and C energy class indicate an existing asset with a moderate energy profile; the high thermal plant subscore is a strength, while the absence of renewables limits the overall energy performance. Nearby services score moderately to strongly across healthcare, mobility, green space, sports, commerce, and education. The available data do not establish room layout, operating condition, planning authorization, accessibility, or capacity, so these require verification before assessing its suitability as a hotel operation. No applicable regulatory requirements were returned in the supplied context.",
+          "final_ranking_score": 100,
+          "pros": [
+            "Property type is explicitly identified as hotels, pensions, and similar, directly matching the search objective.",
+            "Thermal plant quality has the maximum listed subscore of 5, alongside an overall energy class of C.",
+            "Proximity percentiles are consistently moderate to strong, including green areas (78.36), commercial services (69.53), and public transport (67.54)."
+          ],
+          "cons": [
+            "At 168.31 sqm, the recorded area is limited for a hotel building; actual accommodation capacity cannot be determined without a layout.",
+            "The 1958 construction period means the condition and suitability of the building for continued or renewed hotel use need verification.",
+            "No renewable energy sources are recorded, and the available data do not establish planning authorization, accessibility, room configuration, or operational readiness."
+          ]
+        },
+        "batch_id": 6,
+        "timestamp": "2026-11-18T22:32:39.626777",
+        "execution_time_ms": 8360.968589782715
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "2863",
+          "evaluation_text": "This property is a strong strategic match for the hotel objective: it is already classified as a hotel, pension, or similar property, with a substantial reported surface area of 555.87 sqm and a 2000 construction period. Its central B1 location is supported by high proximity percentiles across healthcare, mobility, commercial services, education, sports, and green areas. The energy profile is a notable weakness despite energy class C: the total energy score is 6/20, with low plant, envelope, and renewables scores. The supplied regulatory context contains no matched requirements or normative entries, so planning compatibility, permitted hotel use, accessibility, room layout, and technical condition require verification. The provided final ranking score is retained as supplied.",
+          "final_ranking_score": 100,
+          "pros": [
+            "Property type is directly aligned with the hotel objective: hotels, pensions, and similar.",
+            "Substantial reported surface area of 555.87 sqm and construction period of 2000 support its initial suitability for further assessment.",
+            "Strong service accessibility, with mobility at 95.26 and commercial services at 96.35; healthcare, education, sports, and green proximity scores are also favorable."
+          ],
+          "cons": [
+            "Energy performance needs attention: energy class C and total energy score 6/20, including low plant, envelope, and renewables scores.",
+            "The data do not establish planning authorization or compatibility for hotel use; these require verification.",
+            "No information confirms accessibility, room configuration, or technical condition, so operational suitability and any adaptation needs remain uncertain."
+          ]
+        },
+        "batch_id": 7,
+        "timestamp": "2026-11-18T22:32:39.769576",
+        "execution_time_ms": 8132.894992828369
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "30395",
+          "evaluation_text": "This 473.53 sqm property is classified as a hotel, pension, or similar and is therefore directly aligned with the search for a hotel building. Its existing use classification and strong reported building score make it a promising candidate for further assessment. The 1976 construction date and energy class E, alongside a low energy total of 6/20, point to potential modernization needs. The supplied data do not establish current authorization, room layout, condition, accessibility, or planning compatibility; these require verification. No matching regulatory requirements or normative entries were provided, so no regulatory conclusion can be drawn.",
+          "final_ranking_score": 100,
+          "pros": [
+            "Property type is listed as hotels, pensions, and similar, directly matching the stated objective.",
+            "Reported surface area is 473.53 sqm, providing a substantial existing property footprint for assessment.",
+            "Strong proximity percentiles for green areas (98.54) and sports facilities (93), with healthcare (71.31), mobility (74.27), commercial services (72.85), and education (72.57) also represented."
+          ],
+          "cons": [
+            "Energy class E and energy score total of 6/20 indicate weak reported energy performance, including low plant, envelope, and renewables subscores.",
+            "Construction period is 1976, so the building’s present condition and potential modernization requirements need inspection.",
+            "The data do not establish hotel authorization, planning compatibility, accessibility, or the number and suitability of guest rooms; these require verification. No applicable regulatory entries were supplied."
+          ]
+        },
+        "batch_id": 8,
+        "timestamp": "2026-11-18T22:32:40.405544",
+        "execution_time_ms": 8050.8575439453125
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "M04955",
+          "evaluation_text": "This property is a strong match for the hotel objective: its recorded use is “Hotels, pensions, and similar,” and its 1,872.72 sqm surface area suggests substantial scale for further assessment. The 1960 construction date and energy class C indicate that modernization may be needed. The available data do not establish current authorization, room layout, accessibility, or technical condition, so these require verification. No matching regulatory requirements or normative entries were supplied. The deterministic relevance score is 100; the energy profile is mixed, with a high plant score, medium class and envelope scores, and no recorded renewables.",
+          "final_ranking_score": 100,
+          "pros": [
+            "Recorded property type directly matches the hotel objective.",
+            "Substantial recorded surface area of 1,872.72 sqm offers potential for hotel use, subject to layout and feasibility checks.",
+            "Thermal plant score of 5 indicates a strong plant-quality rating in the supplied energy data."
+          ],
+          "cons": [
+            "Construction period of 1960 means the current condition and modernization needs require assessment.",
+            "Energy class C and envelope score 3 indicate room for energy-efficiency improvements.",
+            "No renewable energy sources are recorded, and authorization, accessibility, room layout, and planning compatibility are unverified."
+          ]
+        },
+        "batch_id": 9,
+        "timestamp": "2026-11-18T22:32:54.378990",
+        "execution_time_ms": 14752.813339233398
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "M00441",
+          "evaluation_text": "The property is a strong strategic match for the hotel objective: its recorded type is hotels, pensions, and similar, and its 1,025.66 sqm area indicates substantial scale. Its central B1 location and high proximity percentiles for commercial services, education, healthcare, and public transport support an attractive urban setting. The building dates from 2000 and has energy class C, while its low plant, envelope, and renewables scores indicate that energy upgrades may be needed. The supplied regulatory context contains no matched use case or requirements, so permitted use, planning compatibility, building condition, room configuration, and operational feasibility require verification.",
+          "final_ranking_score": 100,
+          "pros": [
+            "Recorded property type directly matches the hotel-building objective.",
+            "Substantial listed surface area of 1,025.66 sqm offers meaningful scale for evaluation as a hotel asset.",
+            "High reported mobility (95.26), commercial (96.35), and healthcare (96.03) proximity percentiles support an accessible urban location."
+          ],
+          "cons": [
+            "Energy score total is low at 6, with plant, envelope, and renewables scores each at 1, suggesting potential upgrade needs.",
+            "Regulatory context provides no matched hotel use case or normative requirements; permitted use and planning compatibility need verification.",
+            "The data do not establish current condition, room layout, accessibility, or technical and operational feasibility."
+          ]
+        },
+        "batch_id": 10,
+        "timestamp": "2026-11-18T22:32:55.456189",
+        "execution_time_ms": 16109.800577163696
+      }
+    ],
+    "evaluation_results": [
+      {
+        "id": "10344",
+        "evaluation_text": "This property is a strong candidate for the hotel-building objective: its recorded property type is “Hotels, pensions, and similar,” and the deterministic ranking score is 100. The 274.51 sqm area and 1950 construction period provide context but do not establish the building’s layout, condition, permitted hotel use, or capacity. The available data show good access to services and energy class B, while hotel-specific regulatory requirements were not identified in the supplied regulatory result; planning and technical suitability therefore require verification.",
+        "final_ranking_score": 100,
+        "pros": [
+          "Recorded property type directly matches the hotel-building objective.",
+          "Energy class B, with a total energy score of 10, indicates a moderate energy profile in the supplied scoring system.",
+          "Strong proximity percentiles across services: green 92.87, commercial 83.01, sport 81, and healthcare 79.33."
+        ],
+        "cons": [
+          "At 274.51 sqm, the recorded area alone does not establish suitable guest-room count, layout, or hotel capacity.",
+          "Built in 1950; current condition, building systems, and renovation needs are not provided.",
+          "The supplied regulatory result found no matching hotel requirements, so permitted use and planning compatibility need verification."
+        ]
+      },
+      {
+        "id": "12669",
+        "evaluation_text": "This property is a strong strategic match for the search for a hotel building: its recorded type is “Hotels, pensions, and similar” and its substantial 3,682.01 sqm area indicate significant existing scale. Its central location is supported by strong proximity figures across healthcare, mobility, green areas, commercial services, and education. The A3 energy class and high plant score are further strengths. The supplied data do not establish the building’s current operating status, room layout, planning compatibility, or technical suitability for a hotel; these require verification. No hotel-specific regulatory requirements were identified in the provided regulatory context.",
+        "final_ranking_score": 100,
+        "pros": [
+          "Property type is recorded as hotels, pensions, and similar, directly aligning with the strategic objective.",
+          "Large recorded surface area of 3,682.01 sqm suggests substantial property scale for assessment as a hotel asset.",
+          "A3 energy class and strong proximity percentiles, including mobility at 90.36 and commercial services at 91.06, support its overall appeal."
+        ],
+        "cons": [
+          "The 1850 construction period means the building’s condition and any modernization needs should be assessed; the supplied data do not establish its present condition.",
+          "The data do not confirm hotel authorization, planning compatibility, accessibility, room configuration, or technical feasibility.",
+          "The regulatory context contains no matched hotel requirements, so relevant regulatory and operational checks remain to be completed."
+        ]
+      },
+      {
+        "id": "18989",
+        "evaluation_text": "This property is a strong strategic match for the search for a hotel building: its recorded type is hotels, pensions, and similar, and its 9,974.26 sqm area indicates substantial scale. The central Turin location is supported by very high proximity scores for mobility, education, commercial services, and healthcare. Its energy class B is favorable, though the low overall energy score points to shortcomings in the plant, envelope, and renewable-energy indicators. The supplied regulatory context contains no matched use cases or requirements, so planning compatibility and authorization for the intended hotel use need verification. The data also do not establish the internal layout, condition, or technical feasibility of any proposed operation.",
+        "final_ranking_score": 100,
+        "pros": [
+          "Property type directly matches the hotel-building objective.",
+          "Large recorded surface area of 9,974.26 sqm offers substantial scale for assessment.",
+          "Strong central-service access, especially mobility (99.1), education (99.83), commercial services (92.48), and healthcare (92.19)."
+        ],
+        "cons": [
+          "Regulatory context provides no matched hotel-use requirements; planning compatibility and authorization need verification.",
+          "Energy class B is accompanied by a low energy total of 8, including weak envelope and renewable-energy scores.",
+          "The 1930 construction period and available data do not establish current condition, internal layout, accessibility, or technical feasibility; these require inspection and verification."
+        ]
+      },
+      {
+        "id": "23211",
+        "evaluation_text": "This 1,400 sqm property is classified as a hotel, pension, or similar and was built in 2019, making it a strong direct match for the objective of finding a hotel building. Its central urban context is supported by high proximity percentiles for mobility, commercial services, education, and healthcare, with green and sports access also ranking favorably. The energy profile is mixed: class D and a total energy score of 10, with a high-quality thermal plant but a low envelope score and no recorded renewables. No regulatory requirements or matching use cases were returned, so planning compatibility, authorization, accessibility, room configuration, and technical suitability for the intended operation require verification.",
+        "final_ranking_score": 100,
+        "pros": [
+          "Property type is explicitly listed as hotels, pensions, and similar, aligning directly with the search objective.",
+          "Substantial recorded surface area of 1,400 sqm and recent construction period of 2019 support further assessment for hotel use.",
+          "Strong urban accessibility and service proximity, including mobility at 87.77 and commercial services at 87.23."
+        ],
+        "cons": [
+          "Energy class D and total energy score of 10 indicate a mixed efficiency profile.",
+          "Envelope score of 1 and renewables score of 1 indicate potential building-efficiency and decarbonization needs.",
+          "Regulatory matching was not found; hotel-use compatibility, authorizations, accessibility, room layout, and technical feasibility remain to be verified."
+        ]
+      },
+      {
+        "id": "23346",
+        "evaluation_text": "This 168.31 sqm property is listed as a hotel, pension, or similar, making it directly aligned with the objective of finding a hotel building. Its 1958 construction date and C energy class indicate an existing asset with a moderate energy profile; the high thermal plant subscore is a strength, while the absence of renewables limits the overall energy performance. Nearby services score moderately to strongly across healthcare, mobility, green space, sports, commerce, and education. The available data do not establish room layout, operating condition, planning authorization, accessibility, or capacity, so these require verification before assessing its suitability as a hotel operation. No applicable regulatory requirements were returned in the supplied context.",
+        "final_ranking_score": 100,
+        "pros": [
+          "Property type is explicitly identified as hotels, pensions, and similar, directly matching the search objective.",
+          "Thermal plant quality has the maximum listed subscore of 5, alongside an overall energy class of C.",
+          "Proximity percentiles are consistently moderate to strong, including green areas (78.36), commercial services (69.53), and public transport (67.54)."
+        ],
+        "cons": [
+          "At 168.31 sqm, the recorded area is limited for a hotel building; actual accommodation capacity cannot be determined without a layout.",
+          "The 1958 construction period means the condition and suitability of the building for continued or renewed hotel use need verification.",
+          "No renewable energy sources are recorded, and the available data do not establish planning authorization, accessibility, room configuration, or operational readiness."
+        ]
+      },
+      {
+        "id": "25827",
+        "evaluation_text": "This 1,403.19 sqm property is already classified as a hotel, pension, or similar, making it a strong match for the objective and suggesting potential for hotel reuse. Its 1970 construction date and available data do not establish current condition, room layout, operating authorization, or planning compatibility, so these require verification. The energy class is C, while the total energy score of 8 reflects a traditional thermal plant and no recorded renewables. Service proximity indicators are moderate to relatively strong, particularly for green areas and mobility. No hotel-specific regulatory requirements were identified in the supplied regulatory context.",
+        "final_ranking_score": 100,
+        "pros": [
+          "Property type directly matches the search for a hotel building.",
+          "Substantial recorded surface area of 1,403.19 sqm offers scale for potential hospitality use, subject to layout and feasibility checks.",
+          "Moderately strong proximity indicators for mobility (67.54), green areas (78.36), and commercial services (69.53)."
+        ],
+        "cons": [
+          "Built in 1970; current condition and refurbishment needs are not provided.",
+          "Traditional thermal plant and no recorded renewable energy sources weigh on the energy profile despite energy class C.",
+          "Planning compatibility, operating authorization, accessibility, and suitability of the internal layout for hotel use are not established; the supplied regulatory result identifies no matched requirements."
+        ]
+      },
+      {
+        "id": "2863",
+        "evaluation_text": "This property is a strong strategic match for the hotel objective: it is already classified as a hotel, pension, or similar property, with a substantial reported surface area of 555.87 sqm and a 2000 construction period. Its central B1 location is supported by high proximity percentiles across healthcare, mobility, commercial services, education, sports, and green areas. The energy profile is a notable weakness despite energy class C: the total energy score is 6/20, with low plant, envelope, and renewables scores. The supplied regulatory context contains no matched requirements or normative entries, so planning compatibility, permitted hotel use, accessibility, room layout, and technical condition require verification. The provided final ranking score is retained as supplied.",
+        "final_ranking_score": 100,
+        "pros": [
+          "Property type is directly aligned with the hotel objective: hotels, pensions, and similar.",
+          "Substantial reported surface area of 555.87 sqm and construction period of 2000 support its initial suitability for further assessment.",
+          "Strong service accessibility, with mobility at 95.26 and commercial services at 96.35; healthcare, education, sports, and green proximity scores are also favorable."
+        ],
+        "cons": [
+          "Energy performance needs attention: energy class C and total energy score 6/20, including low plant, envelope, and renewables scores.",
+          "The data do not establish planning authorization or compatibility for hotel use; these require verification.",
+          "No information confirms accessibility, room configuration, or technical condition, so operational suitability and any adaptation needs remain uncertain."
+        ]
+      },
+      {
+        "id": "30395",
+        "evaluation_text": "This 473.53 sqm property is classified as a hotel, pension, or similar and is therefore directly aligned with the search for a hotel building. Its existing use classification and strong reported building score make it a promising candidate for further assessment. The 1976 construction date and energy class E, alongside a low energy total of 6/20, point to potential modernization needs. The supplied data do not establish current authorization, room layout, condition, accessibility, or planning compatibility; these require verification. No matching regulatory requirements or normative entries were provided, so no regulatory conclusion can be drawn.",
+        "final_ranking_score": 100,
+        "pros": [
+          "Property type is listed as hotels, pensions, and similar, directly matching the stated objective.",
+          "Reported surface area is 473.53 sqm, providing a substantial existing property footprint for assessment.",
+          "Strong proximity percentiles for green areas (98.54) and sports facilities (93), with healthcare (71.31), mobility (74.27), commercial services (72.85), and education (72.57) also represented."
+        ],
+        "cons": [
+          "Energy class E and energy score total of 6/20 indicate weak reported energy performance, including low plant, envelope, and renewables subscores.",
+          "Construction period is 1976, so the building’s present condition and potential modernization requirements need inspection.",
+          "The data do not establish hotel authorization, planning compatibility, accessibility, or the number and suitability of guest rooms; these require verification. No applicable regulatory entries were supplied."
+        ]
+      },
+      {
+        "id": "M00441",
+        "evaluation_text": "The property is a strong strategic match for the hotel objective: its recorded type is hotels, pensions, and similar, and its 1,025.66 sqm area indicates substantial scale. Its central B1 location and high proximity percentiles for commercial services, education, healthcare, and public transport support an attractive urban setting. The building dates from 2000 and has energy class C, while its low plant, envelope, and renewables scores indicate that energy upgrades may be needed. The supplied regulatory context contains no matched use case or requirements, so permitted use, planning compatibility, building condition, room configuration, and operational feasibility require verification.",
+        "final_ranking_score": 100,
+        "pros": [
+          "Recorded property type directly matches the hotel-building objective.",
+          "Substantial listed surface area of 1,025.66 sqm offers meaningful scale for evaluation as a hotel asset.",
+          "High reported mobility (95.26), commercial (96.35), and healthcare (96.03) proximity percentiles support an accessible urban location."
+        ],
+        "cons": [
+          "Energy score total is low at 6, with plant, envelope, and renewables scores each at 1, suggesting potential upgrade needs.",
+          "Regulatory context provides no matched hotel use case or normative requirements; permitted use and planning compatibility need verification.",
+          "The data do not establish current condition, room layout, accessibility, or technical and operational feasibility."
+        ]
+      },
+      {
+        "id": "M04955",
+        "evaluation_text": "This property is a strong match for the hotel objective: its recorded use is “Hotels, pensions, and similar,” and its 1,872.72 sqm surface area suggests substantial scale for further assessment. The 1960 construction date and energy class C indicate that modernization may be needed. The available data do not establish current authorization, room layout, accessibility, or technical condition, so these require verification. No matching regulatory requirements or normative entries were supplied. The deterministic relevance score is 100; the energy profile is mixed, with a high plant score, medium class and envelope scores, and no recorded renewables.",
+        "final_ranking_score": 100,
+        "pros": [
+          "Recorded property type directly matches the hotel objective.",
+          "Substantial recorded surface area of 1,872.72 sqm offers potential for hotel use, subject to layout and feasibility checks.",
+          "Thermal plant score of 5 indicates a strong plant-quality rating in the supplied energy data."
+        ],
+        "cons": [
+          "Construction period of 1960 means the current condition and modernization needs require assessment.",
+          "Energy class C and envelope score 3 indicate room for energy-efficiency improvements.",
+          "No renewable energy sources are recorded, and authorization, accessibility, room layout, and planning compatibility are unverified."
+        ]
+      }
+    ],
+    "relaxation_applied": false,
+    "relaxation_count": 0,
+    "fallback_activated": false,
+    "agent_errors": []
+  }
+}
