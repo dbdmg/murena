@@ -1,0 +1,776 @@
+{
+  "run_id": "bench_f3e97a1be0bf",
+  "condition": "refined",
+  "unit_id": "S01_k2_D_Ce_spec_D_vague_Ce",
+  "scenario_id": "S01_k2_D_Ce_spec_D_vague_Ce",
+  "base_case_id": "S01",
+  "missing_count": 2,
+  "scenario_name": "2 omitted dimensions; intended use: Micro-nursery; balance: 1 specified, 1 vague, 0 opt-out",
+  "tags": [
+    "edbt",
+    "controlled_missingness_v3",
+    "missing_2",
+    "UC01_micro_nursery_missing_use",
+    "imperfect_user_v4",
+    "spec_1",
+    "vague_1",
+    "optout_0",
+    "balance_1_1_0"
+  ],
+  "model": "Qwen/Qwen3.8-27B",
+  "repeat": 1,
+  "attempt": 1,
+  "input_sha256": "acabe828badcbb2c75e48be3a1b415e9f7394f2fce883bf394329f76723386da",
+  "scenario_sha256": "acabe828badcbb2c75e48be3a1b415e9f7394f2fce883bf394329f76723386da",
+  "initial_query": "I am looking for an existing residential dwelling. The location is in Turin. I need a property with at least 140 sqm of gross floor area and capacity for 18 people. I prefer properties near public transport.",
+  "options": {
+    "dataset_key": "full",
+    "map_limit": 1000,
+    "llm_limit": 10,
+    "analysis_mode": "agent",
+    "use_relaxation": true,
+    "use_data_knowledge": true,
+    "architecture": "multiagent",
+    "disabled_agents": null
+  },
+  "started_at": "2026-11-18T14:19:32.656041+00:00",
+  "clarification_seconds": 53.875,
+  "analysis_seconds": 101.766,
+  "conversation": {
+    "session_id": "f58a63f7-9bd1-454a-9b68-a163c8725c37",
+    "initial_dimension_state": {
+      "I": {
+        "status": "SPECIFIED",
+        "value": "residential dwelling",
+        "evidence": "existing residential dwelling"
+      },
+      "D": {
+        "status": "UNCONFIRMED_ABSENT",
+        "value": null,
+        "evidence": null
+      },
+      "L": {
+        "status": "SPECIFIED",
+        "value": "Turin",
+        "evidence": "The location is in Turin"
+      },
+      "Cb": {
+        "status": "SPECIFIED",
+        "value": "at least 140 sqm gross floor area, capacity for 18 people",
+        "evidence": "at least 140 sqm of gross floor area and capacity for 18 people"
+      },
+      "Ce": {
+        "status": "UNCONFIRMED_ABSENT",
+        "value": null,
+        "evidence": null
+      },
+      "Cp": {
+        "status": "SPECIFIED",
+        "value": "mobility",
+        "evidence": "near public transport"
+      }
+    },
+    "initial_missing": [
+      "Ce",
+      "D"
+    ],
+    "expected_initial_missing": [
+      "Ce",
+      "D"
+    ],
+    "missing_detection": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "turns": [
+      {
+        "question": "What is the intended use for this property? For example, is it for a Senior Day Center or a Senior Residential Care facility?",
+        "target_dimensions": [
+          "D"
+        ],
+        "times_asked_before": {
+          "D": 0
+        },
+        "answer": "I intend to convert it into a micro-nursery.",
+        "question_source": "llm_query_parser",
+        "status_after": "ASK",
+        "turn_after": 1,
+        "dimension_state_after": {
+          "I": {
+            "status": "SPECIFIED",
+            "value": "residential dwelling",
+            "evidence": "existing residential dwelling"
+          },
+          "D": {
+            "status": "SPECIFIED",
+            "value": "micro-nursery",
+            "evidence": "convert it into a micro-nursery"
+          },
+          "L": {
+            "status": "SPECIFIED",
+            "value": "Turin",
+            "evidence": "The location is in Turin"
+          },
+          "Cb": {
+            "status": "SPECIFIED",
+            "value": "at least 140 sqm gross floor area, capacity for 18 people",
+            "evidence": "at least 140 sqm of gross floor area and capacity for 18 people"
+          },
+          "Ce": {
+            "status": "UNCONFIRMED_ABSENT",
+            "value": null,
+            "evidence": null
+          },
+          "Cp": {
+            "status": "SPECIFIED",
+            "value": "mobility",
+            "evidence": "near public transport"
+          }
+        }
+      },
+      {
+        "question": "Do you have any preferences regarding the energy efficiency or class of the property, or is this not a priority?",
+        "target_dimensions": [
+          "Ce"
+        ],
+        "times_asked_before": {
+          "Ce": 0
+        },
+        "answer": "A warm and well-insulated building with good climate control since toddlers crawl on the floor, without a specific required rating.",
+        "question_source": "llm_query_parser",
+        "status_after": "READY",
+        "turn_after": 2,
+        "dimension_state_after": {
+          "I": {
+            "status": "SPECIFIED",
+            "value": "residential dwelling",
+            "evidence": "existing residential dwelling"
+          },
+          "D": {
+            "status": "SPECIFIED",
+            "value": "micro-nursery",
+            "evidence": "convert it into a micro-nursery"
+          },
+          "L": {
+            "status": "SPECIFIED",
+            "value": "Turin",
+            "evidence": "The location is in Turin"
+          },
+          "Cb": {
+            "status": "SPECIFIED",
+            "value": "at least 140 sqm gross floor area, capacity for 18 people",
+            "evidence": "at least 140 sqm of gross floor area and capacity for 18 people"
+          },
+          "Ce": {
+            "status": "SPECIFIED",
+            "value": "warm and well-insulated building with good climate control",
+            "evidence": "A warm and well-insulated building with good climate control"
+          },
+          "Cp": {
+            "status": "SPECIFIED",
+            "value": "mobility",
+            "evidence": "near public transport"
+          }
+        }
+      }
+    ],
+    "messages": [
+      {
+        "role": "user",
+        "content": "I am looking for an existing residential dwelling. The location is in Turin. I need a property with at least 140 sqm of gross floor area and capacity for 18 people. I prefer properties near public transport."
+      },
+      {
+        "role": "assistant",
+        "content": "What is the intended use for this property? For example, is it for a Senior Day Center or a Senior Residential Care facility?"
+      },
+      {
+        "role": "user",
+        "content": "I intend to convert it into a micro-nursery."
+      },
+      {
+        "role": "assistant",
+        "content": "Do you have any preferences regarding the energy efficiency or class of the property, or is this not a priority?"
+      },
+      {
+        "role": "user",
+        "content": "A warm and well-insulated building with good climate control since toddlers crawl on the floor, without a specific required rating."
+      },
+      {
+        "role": "assistant",
+        "content": "Query submitted for review: Find an existing residential dwelling in Turin with at least 140 sqm of gross floor area and capacity for 18 people, intended for conversion into a micro-nursery. The property should be warm and well-insulated with good climate control, and preferably located near public transport."
+      },
+      {
+        "role": "user",
+        "content": "Confirmed."
+      }
+    ],
+    "dimension_state": {
+      "I": {
+        "status": "SPECIFIED",
+        "value": "residential dwelling",
+        "evidence": "existing residential dwelling"
+      },
+      "D": {
+        "status": "SPECIFIED",
+        "value": "micro-nursery",
+        "evidence": "convert it into a micro-nursery"
+      },
+      "L": {
+        "status": "SPECIFIED",
+        "value": "Turin",
+        "evidence": "The location is in Turin"
+      },
+      "Cb": {
+        "status": "SPECIFIED",
+        "value": "at least 140 sqm gross floor area, capacity for 18 people",
+        "evidence": "at least 140 sqm of gross floor area and capacity for 18 people"
+      },
+      "Ce": {
+        "status": "SPECIFIED",
+        "value": "warm and well-insulated building with good climate control",
+        "evidence": "A warm and well-insulated building with good climate control"
+      },
+      "Cp": {
+        "status": "SPECIFIED",
+        "value": "mobility",
+        "evidence": "near public transport"
+      }
+    },
+    "mapping": {
+      "I": "SPECIFIED",
+      "D": "SPECIFIED",
+      "L": "SPECIFIED",
+      "Cb": "SPECIFIED",
+      "Ce": "SPECIFIED",
+      "Cp": "SPECIFIED"
+    },
+    "expected_mapping": {
+      "I": "SPECIFIED",
+      "D": "SPECIFIED",
+      "L": "SPECIFIED",
+      "Cb": "SPECIFIED",
+      "Ce": "SPECIFIED",
+      "Cp": "SPECIFIED"
+    },
+    "mapping_accuracy": 1.0,
+    "no_clarification": false,
+    "status": "READY",
+    "refined_query": "Find an existing residential dwelling in Turin with at least 140 sqm of gross floor area and capacity for 18 people, intended for conversion into a micro-nursery. The property should be warm and well-insulated with good climate control, and preferably located near public transport.",
+    "reviewed_query": "Find an existing residential dwelling in Turin with at least 140 sqm of gross floor area and capacity for 18 people, intended for conversion into a micro-nursery. The property should be warm and well-insulated with good climate control, and preferably located near public transport."
+  },
+  "submitted_query": "Find an existing residential dwelling in Turin with at least 140 sqm of gross floor area and capacity for 18 people, intended for conversion into a micro-nursery. The property should be warm and well-insulated with good climate control, and preferably located near public transport.",
+  "status": "completed",
+  "results_count": 10,
+  "top_ids": [
+    "DEMO-01430",
+    "DEMO-00962",
+    "DEMO-00133",
+    "DEMO-00950",
+    "DEMO-00877",
+    "DEMO-00289",
+    "DEMO-00804",
+    "DEMO-00372",
+    "DEMO-00626",
+    "DEMO-00071"
+  ],
+  "quality": {
+    "expected_count": 0,
+    "matched_expected": null,
+    "precision_at_returned": null,
+    "recall": null
+  },
+  "final_sql": "SELECT * FROM ESTATES WHERE property_type = 'Residential dwelling' AND surface_area >= 140 AND haversine_km(latitude, longitude, 45.0677551, 7.6824892) <= 3.0 AND energy_score_envelope >= 3 AND energy_score_plant >= 3 AND mobility >= 71 ORDER BY haversine_km(latitude, longitude, 45.0677551, 7.6824892) ASC",
+  "duration_seconds": 155.655,
+  "scenario_definition": {
+    "id": "S01_k2_D_Ce_spec_D_vague_Ce",
+    "name": "2 omitted dimensions; intended use: Micro-nursery; balance: 1 specified, 1 vague, 0 opt-out",
+    "tags": [
+      "edbt",
+      "controlled_missingness_v3",
+      "missing_2",
+      "UC01_micro_nursery_missing_use",
+      "imperfect_user_v4",
+      "spec_1",
+      "vague_1",
+      "optout_0",
+      "balance_1_1_0"
+    ],
+    "base_case_id": "S01",
+    "source_case_id": "UC01_micro_nursery_missing_use",
+    "missing_count": 2,
+    "initial_query": "I am looking for an existing residential dwelling. The location is in Turin. I need a property with at least 140 sqm of gross floor area and capacity for 18 people. I prefer properties near public transport.",
+    "one_shot_query": "I am looking for an existing residential dwelling. The location is in Turin. I need a property with at least 140 sqm of gross floor area and capacity for 18 people. I prefer properties near public transport.",
+    "oracle_query": "Find an existing residential dwelling to convert it into a micro-nursery for 18 children in Turin with at least 140 sqm of gross floor area in energy class C or better near public transport.",
+    "expected_initial_missing": [
+      "D",
+      "Ce"
+    ],
+    "clarifications": {
+      "I": "I am looking for an existing residential dwelling.",
+      "D": "I intend to convert it into a micro-nursery.",
+      "L": "The location is in Turin.",
+      "Cb": "I need a property with at least 140 sqm of gross floor area and capacity for 18 people.",
+      "Ce": [
+        "A warm and well-insulated building with good climate control since toddlers crawl on the floor, without a specific required rating.",
+        "I prefer a property in energy class C or better."
+      ],
+      "Cp": "I prefer properties near public transport."
+    },
+    "expected_mapping": {
+      "I": "SPECIFIED",
+      "D": "SPECIFIED",
+      "L": "SPECIFIED",
+      "Cb": "SPECIFIED",
+      "Ce": "SPECIFIED",
+      "Cp": "SPECIFIED"
+    },
+    "repeats": 1,
+    "imperfect_user": {
+      "profile": "mixed",
+      "balance": "1spec_1vague_0optout",
+      "source_variant_id": "S01_k2_D_Ce",
+      "source_enabled": true,
+      "specified_count": 1,
+      "vague_count": 1,
+      "optout_count": 0,
+      "specified_dimensions": [
+        "D"
+      ],
+      "vague_dimensions": [
+        "Ce"
+      ],
+      "optout_dimensions": [],
+      "expected_turns": 3
+    }
+  },
+  "artifact_file": "runs/bench_f3e97a1be0bf.json",
+  "artifact_schema_version": 4,
+  "ranking_ids": [
+    "DEMO-01430",
+    "DEMO-00962",
+    "DEMO-00133",
+    "DEMO-00950",
+    "DEMO-00877",
+    "DEMO-00289",
+    "DEMO-00804",
+    "DEMO-00372",
+    "DEMO-00626",
+    "DEMO-00071"
+  ],
+  "top": [
+    {
+      "id": "DEMO-01430",
+      "score": 90.05999999999999,
+      "distance_km": 0.45
+    },
+    {
+      "id": "DEMO-00962",
+      "score": 81.94399999999999,
+      "distance_km": 0.31
+    },
+    {
+      "id": "DEMO-00133",
+      "score": 79.928,
+      "distance_km": 1.29
+    },
+    {
+      "id": "DEMO-00950",
+      "score": 78.824,
+      "distance_km": 1.1
+    },
+    {
+      "id": "DEMO-00877",
+      "score": 73.86,
+      "distance_km": 1.95
+    },
+    {
+      "id": "DEMO-00289",
+      "score": 71.732,
+      "distance_km": 1.92
+    },
+    {
+      "id": "DEMO-00804",
+      "score": 65.492,
+      "distance_km": 1.92
+    },
+    {
+      "id": "DEMO-00372",
+      "score": 60.228,
+      "distance_km": 2.34
+    },
+    {
+      "id": "DEMO-00626",
+      "score": 59.408,
+      "distance_km": 2.15
+    },
+    {
+      "id": "DEMO-00071",
+      "score": 49.81999999999999,
+      "distance_km": 2.91
+    }
+  ],
+  "api_response": {
+    "agent_trace": [
+      {
+        "agent_name": "regulatory-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "found": false,
+          "matched_use_cases": [
+            "Micro-nursery"
+          ],
+          "requirements": []
+        }
+      },
+      {
+        "agent_name": "location-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "places": [
+            {
+              "name": "Turin",
+              "city": "Turin",
+              "lat": 45.0677551,
+              "lon": 7.6824892,
+              "radius_km": 3.0
+            }
+          ],
+          "found": true
+        }
+      },
+      {
+        "agent_name": "proximity-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "requirements": [
+            {
+              "target_column": "mobility",
+              "operator": ">=",
+              "value": 71,
+              "description": "User requested property 'preferably located near public transport', which maps to the mobility category. Using the 75th percentile (70.9) rounded to the nearest integer (71) to ensure high proximity."
+            }
+          ]
+        }
+      },
+      {
+        "agent_name": "building-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "typologies": [
+            "Residential dwelling"
+          ],
+          "found": true,
+          "requirements": [
+            {
+              "target_column": "surface_area",
+              "operator": ">=",
+              "value": 140,
+              "description": "User explicitly requested at least 140 sqm of gross floor area."
+            }
+          ]
+        }
+      },
+      {
+        "agent_name": "ranking-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "ranking": [
+            {
+              "agent_name": "location",
+              "rank": 1
+            },
+            {
+              "agent_name": "regulatory",
+              "rank": 1
+            },
+            {
+              "agent_name": "building",
+              "rank": 2
+            },
+            {
+              "agent_name": "energy",
+              "rank": 3
+            },
+            {
+              "agent_name": "proximity",
+              "rank": 4
+            }
+          ],
+          "weights": {
+            "location": 0.33,
+            "regulatory": 0.32,
+            "energy": 0.11,
+            "building": 0.16,
+            "proximity": 0.08
+          }
+        }
+      },
+      {
+        "agent_name": "energy-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "requirements": [
+            {
+              "target_column": "energy_score_envelope",
+              "operator": ">=",
+              "value": 3,
+              "description": "User requested 'well-insulated', which corresponds to a medium or better building insulation score."
+            },
+            {
+              "target_column": "energy_score_plant",
+              "operator": ">=",
+              "value": 3,
+              "description": "User requested 'good climate control', which implies a high-quality thermal plant (condensation, biomass, or heat pump)."
+            }
+          ],
+          "found": true
+        }
+      },
+      {
+        "agent_name": "sql-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "sql": "SELECT * FROM ESTATES WHERE property_type = 'Residential dwelling' AND surface_area >= 140 AND haversine_km(latitude, longitude, 45.0677551, 7.6824892) <= 3.0 AND energy_score_envelope >= 3 AND energy_score_plant >= 3 AND mobility >= 71 ORDER BY haversine_km(latitude, longitude, 45.0677551, 7.6824892) ASC",
+          "explanation": "Filter for residential dwellings with at least 140 sqm surface area, located within 3km of the specified coordinates in Turin, with medium or better building insulation and thermal plant quality, and high public transport accessibility (mobility score >= 71). Results are ordered by distance from the center point."
+        }
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": "```json\n{\n  \"evaluations\": [\n    {\n      \"id\": \"DEMO-01430\",\n      \"evaluation_text\": \"The property located at Corso Duca degli Abruzzi 68 in Turin presents a highly favorable profile for conversion into a micro-nursery. With a gross floor area of 414.0 sqm, it comfortably exceeds the 140 sqm minimum requirement and provides ample space to accommodate 18 children while meeting the regional standard of 5.5 sqm/child for net useful areas. The building, constructed after 2000, features an excellent energy class (A2) and a high-quality thermal plant (score 5), aligning perfectly with the strategic objective of a warm, well-insulated environment with good climate control. Its location offers strong proximity to public transport (mobility score 74.6) and commercial services (82.3), enhancing accessibility for families. However, the absence of renewable energy sources (score 1) and the need to verify specific urban-planning compatibility, structural safety, and hygiene-standards compliance for a 0-3 educational facility represent key considerations for the conversion process.\",\n      \"final_ranking_score\": 90,\n      \"pros\": [\n        \"Exceptional energy performance with an A2 class and high-quality thermal plant (score 5), ensuring a warm, well-insulated environment with excellent climate control.\",\n        \"Generous gross floor area of 414.0 sqm, providing sufficient space to comfortably accommodate 18 children and meet the 5.5 sqm/child net useful area standard.\",\n        \"Prime location with high proximity to public transport (mobility score 74.6) and commercial services (82.3), facilitating easy access for families and staff.\"\n      ],\n      \"cons\": [\n        \"Lack of renewable energy sources (score 1), which may limit the property's sustainability profile and potential eligibility for certain green-building incentives.\",\n        \"Urban-planning compatibility, building permit requirements, and change of use authorization for a micro-nursery in Turin's PRG must be verified, as these are not established in the provided data.\",\n        \"Specific hygiene, safety, and structural requirements for a 0-3 educational facility, including accessibility and fire safety, require dedicated technical verification before conversion.\"\n      ]\n    }\n  ]\n}\n```",
+        "batch_id": 1,
+        "timestamp": "2026-11-18T15:21:04.972083",
+        "execution_time_ms": 20041.00513458252
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": "```json\n{\n  \"evaluations\": [\n    {\n      \"id\": \"DEMO-00962\",\n      \"evaluation_text\": \"The property at Via Bologna 219 presents a strong potential for conversion into a micro-nursery, aligning well with the strategic objective. With a gross floor area of 165.0 sqm, it comfortably exceeds the 140 sqm threshold and provides sufficient space to accommodate 18 children, respecting the regional standard of 5.5 sqm/child for net useful areas. The property's energy profile is moderate (Class C, total score 14/20), with a medium-quality thermal plant and building envelope, but the presence of renewable energy sources is a notable advantage. Its location is highly favorable, with excellent proximity to public transport (mobility score 82.6) and green areas (92.0), which are critical for a childcare facility. However, the building's age (1919-1945) and the lack of verified gross-area regulatory thresholds mean that structural, seismic, and urban-planning compatibility checks are essential before proceeding. The regulatory context requires specific verification of the applicable D.G.R. standards and sectoral authorizations.\",\n      \"final_ranking_score\": 82,\n      \"pros\": [\n        \"Adequate gross floor area of 165.0 sqm, exceeding the 140 sqm requirement and providing sufficient space for 18 children according to the 5.5 sqm/child regional standard.\",\n        \"Excellent location with high proximity to public transport (mobility score 82.6) and green areas (92.0), enhancing accessibility and the quality of the environment for children.\",\n        \"Presence of renewable energy sources (energy_score_renewables: 5) contributes to a more sustainable and future-proof facility, aligning with modern environmental standards.\"\n      ],\n      \"cons\": [\n        \"Moderate energy efficiency (Class C, total score 14/20) with a medium-quality thermal plant and building envelope, indicating potential need for upgrades to meet the 'warm and well-insulated' requirement.\",\n        \"Building age (1919-1945) raises concerns about structural integrity, seismic safety, and the need for comprehensive technical and regulatory verification before conversion.\",\n        \"Lack of verified gross-area regulatory thresholds and the requirement for specific urban-planning and sectoral authorizations introduce uncertainty and potential delays in the conversion process.\"\n      ]\n    }\n  ]\n}\n```",
+        "batch_id": 2,
+        "timestamp": "2026-11-18T15:21:06.355717",
+        "execution_time_ms": 21423.386812210083
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": "```json\n{\n  \"evaluations\": [\n    {\n      \"id\": \"DEMO-00133\",\n      \"evaluation_text\": \"The property located at Via Po 2 in Turin presents a strong potential for conversion into a micro-nursery, aligning well with the strategic objective. With a gross floor area of 243.0 sqm, it comfortably exceeds the 140 sqm threshold and provides ample space to accommodate 18 children while meeting the regional standard of 5.5 sqm/child for net useful areas (requiring 99 sqm for children alone). The property is a residential dwelling built between 1981 and 2000, which suggests a relatively modern structure that may facilitate the necessary structural and safety adaptations. Its energy class B and a total energy score of 10 indicate a well-insulated envelope and a good thermal plant, contributing to a warm and comfortable environment suitable for young children. Furthermore, its high mobility score of 86.1 percentile confirms excellent proximity to public transport, a key preference for the organization. However, the conversion will require rigorous verification of urban planning compatibility, building permits for change of use, and compliance with specific hygiene, safety, and accessibility standards for educational facilities.\",\n      \"final_ranking_score\": 80,\n      \"pros\": [\n        \"Adequate gross floor area of 243.0 sqm, comfortably exceeding the 140 sqm requirement and providing sufficient space to meet the 5.5 sqm/child net area standard for 18 children.\",\n        \"High mobility score (86.1 percentile) indicates excellent proximity to public transport, fulfilling a key strategic preference for the location.\",\n        \"Good energy performance (Class B, total score 10) with a well-insulated envelope and quality thermal plant, ensuring a warm and comfortable climate control environment.\"\n      ],\n      \"cons\": [\n        \"The property is currently a residential dwelling, requiring a formal change of use and verification of urban planning compatibility (PRG Torino) and building permits for conversion to an educational facility.\",\n        \"Compliance with specific hygiene, safety, and accessibility standards for micro-nurseries (e.g., fire safety, structural seismic safety) must be verified, as these are not established by the provided data.\",\n        \"The regulatory context indicates a transition to new requirements (D.G.R. 3-1937/2025), necessitating careful verification of the applicable normative framework at the time of the application.\"\n      ]\n    }\n  ]\n}\n```",
+        "batch_id": 3,
+        "timestamp": "2026-11-18T15:21:06.795373",
+        "execution_time_ms": 21863.116025924683
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": "```json\n{\n  \"evaluations\": [\n    {\n      \"id\": \"DEMO-00950\",\n      \"evaluation_text\": \"The property at Via Bologna 165 in Turin presents a strong baseline for conversion into a micro-nursery, primarily due to its adequate gross floor area of 163.0 sqm, which comfortably exceeds the 140 sqm threshold and aligns with the capacity for 18 children. The location is highly advantageous, with an excellent mobility score (88.6 percentile) indicating strong proximity to public transport, and a high overall location score (92). Constructed after 2000, the building benefits from a relatively modern envelope (score 3) and a condensation or biomass thermal plant (score 3), contributing to a moderate energy profile (total score 9). However, the property's energy class D and the absence of renewable energy sources (score 1) represent areas for potential improvement to meet the user's preference for a 'warm and well-insulated' environment with good climate control. Furthermore, the regulatory context for micro-nurseries in Piedmont (D.G.R. 20-6732/2013) requires specific net useful areas for children (5.5 sqm/child) and staff, as well as an external area (1.0 sqm/child). While the gross area is sufficient, the specific layout and availability of an external space must be verified. The property's suitability for the intended use is promising but contingent on successful urban planning compatibility, building code compliance, and the ability to adapt the existing residential layout to meet the strict hygiene and safety standards for early childhood education.\",\n      \"final_ranking_score\": 79,\n      \"pros\": [\n        \"Adequate gross floor area of 163.0 sqm, exceeding the 140 sqm requirement and supporting the capacity for 18 children.\",\n        \"Excellent location with high mobility score (88.6 percentile), ensuring strong proximity to public transport as requested.\",\n        \"Modern construction (post-2000) with a medium-quality envelope and thermal plant, providing a solid foundation for energy efficiency upgrades.\"\n      ],\n      \"cons\": [\n        \"Energy class D and lack of renewable energy sources (score 1) may require significant investment to achieve the desired 'warm and well-insulated' climate control.\",\n        \"Regulatory requirements for micro-nurseries (e.g., 5.5 sqm/child net useful area, 1.0 sqm/child external area) must be verified against the specific layout and external space availability.\",\n        \"Conversion from residential to educational use requires verification of urban planning compatibility, building code compliance, and specific hygiene/safety standards.\"\n      ]\n    }\n  ]\n}\n```",
+        "batch_id": 4,
+        "timestamp": "2026-11-18T15:21:08.839608",
+        "execution_time_ms": 23905.762672424316
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": "```json\n{\n  \"evaluations\": [\n    {\n      \"id\": \"DEMO-00877\",\n      \"evaluation_text\": \"The property located at Via Chiesa della Salute 133 in Turin presents a strong potential for conversion into a micro-nursery, primarily due to its excellent energy performance and strategic location. With a gross floor area of 338.0 sqm, it comfortably exceeds the 140 sqm minimum requirement and provides ample space to accommodate the 18 children, along with the necessary staff and service areas mandated by regional standards. The building's pre-1919 construction is offset by a top-tier energy class (A4) and an excellent envelope score, ensuring a warm and well-insulated environment suitable for young children. Furthermore, its high mobility score (82.8) aligns perfectly with the requirement for proximity to public transport. However, the absence of renewable energy sources and the need to verify structural and urban-planning compatibility for a pre-1919 building remain key considerations for the conversion process.\",\n      \"final_ranking_score\": 74,\n      \"pros\": [\n        \"Excellent energy performance with an A4 class and a top-tier envelope score (5/5), ensuring a warm, well-insulated, and highly efficient climate control system.\",\n        \"Generous gross floor area of 338.0 sqm, which comfortably exceeds the 140 sqm minimum and provides sufficient space for 18 children plus required staff and service areas.\",\n        \"High mobility score (82.8) indicating excellent proximity to public transport, fulfilling the strategic preference for accessible locations.\"\n      ],\n      \"cons\": [\n        \"Lack of renewable energy sources (score 1/5), which may limit the property's overall sustainability profile despite its high efficiency.\",\n        \"Pre-1919 construction period necessitates thorough verification of structural integrity, seismic safety, and urban-planning compatibility for a change of use to a micro-nursery.\",\n        \"Moderate green area proximity (43.1) and the absence of a verified gross-area regulatory threshold require careful planning to ensure compliance with all specific micro-nursery spatial requirements.\"\n      ]\n    }\n  ]\n}\n```",
+        "batch_id": 5,
+        "timestamp": "2026-11-18T15:21:23.351332",
+        "execution_time_ms": 18379.045248031616
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": "```json\n{\n  \"evaluations\": [\n    {\n      \"id\": \"DEMO-00289\",\n      \"evaluation_text\": \"The property at Via Monginevro 176 presents a strong foundation for conversion into a micro-nursery, primarily due to its generous gross floor area of 301.0 sqm, which comfortably exceeds the 140 sqm threshold and provides ample space to accommodate 18 children while meeting the regional net-area requirements (5.5 sqm/child for children's spaces, plus dedicated areas for staff and general services). The building's energy performance is a notable strength, with an overall class B and a high envelope score (4/5), indicating good insulation and thermal comfort, which aligns well with the user's preference for a warm, well-insulated environment. The location is highly accessible, with a mobility score of 81.7, placing it in a favorable position regarding public transport proximity. However, the property's age (1946-1960) and the absence of renewable energy sources (score 1/5) suggest that technical upgrades may be necessary to meet modern hygiene, safety, and structural standards. Furthermore, the regulatory context requires specific checks for urban planning compatibility, building permits, and fire safety, which must be verified before proceeding with the conversion.\",\n      \"final_ranking_score\": 72,\n      \"pros\": [\n        \"Generous gross floor area of 301.0 sqm, well above the 140 sqm requirement, providing sufficient space for 18 children and necessary staff/service areas.\",\n        \"High energy efficiency (Class B) with excellent building insulation (envelope score 4/5), ensuring a warm and comfortable environment for children.\",\n        \"Excellent proximity to public transport (mobility score 81.7), facilitating easy access for families and staff.\"\n      ],\n      \"cons\": [\n        \"Absence of renewable energy sources (score 1/5) and a mid-range thermal plant (score 3/5) may require upgrades to meet modern sustainability standards.\",\n        \"Building age (1946-1960) necessitates thorough verification of structural safety, seismic compliance, and potential need for significant renovation to meet current hygiene and safety regulations.\",\n        \"Regulatory requirements for micro-nursery conversion, including urban planning compatibility, building permits, and fire safety, are not yet verified and require detailed assessment.\"\n      ]\n    }\n  ]\n}\n```",
+        "batch_id": 6,
+        "timestamp": "2026-11-18T15:21:26.632258",
+        "execution_time_ms": 20276.485919952393
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": "```json\n{\n  \"evaluations\": [\n    {\n      \"id\": \"DEMO-00804\",\n      \"evaluation_text\": \"The property at Via Monginevro 156 presents a solid foundation for conversion into a micro-nursery, primarily due to its adequate gross floor area of 169.0 sqm, which comfortably exceeds the 140 sqm threshold and aligns with the capacity requirement for 18 children. The location is highly favorable, with a strong mobility score (79.9) indicating good access to public transport, and a high healthcare proximity score (81.2). However, the building's age (1946-1960) and its energy profile (Class C, medium envelope and plant scores) suggest that significant investment will be required to meet the user's specific requirements for a 'warm and well-insulated' environment with good climate control. Furthermore, the regulatory context for micro-nurseries in Turin requires strict verification of urban planning compatibility, building safety, and specific spatial allocations (e.g., 5.5 sqm/child for children's areas), which must be confirmed through the required checks before proceeding.\",\n      \"final_ranking_score\": 65,\n      \"pros\": [\n        \"Adequate gross floor area of 169.0 sqm, which meets the minimum 140 sqm requirement and provides sufficient space for a micro-nursery capacity of 18 children.\",\n        \"Excellent location for accessibility, with a high mobility score (79.9) indicating good proximity to public transport, and a strong healthcare proximity score (81.2).\",\n        \"The property is an existing residential dwelling, which may offer a more adaptable layout for the required functional zones (e.g., living, rest, and sanitary areas) compared to commercial spaces.\"\n      ],\n      \"cons\": [\n        \"The building's age (1946-1960) and medium energy performance (Class C, envelope and plant scores of 3) indicate that substantial retrofitting will be needed to achieve the desired 'warm and well-insulated' conditions and good climate control.\",\n        \"Regulatory compliance for a micro-nursery requires extensive verification, including urban planning compatibility, building safety, and specific spatial allocations (e.g., 5.5 sqm/child for children's areas), which are not yet confirmed for this property.\",\n        \"The property's current residential designation may require a change of use, which could involve additional administrative and structural modifications to meet the specific hygiene, safety, and accessibility standards for a micro-nursery.\"\n      ]\n    }\n  ]\n}\n```",
+        "batch_id": 7,
+        "timestamp": "2026-11-18T15:21:28.301007",
+        "execution_time_ms": 21505.207061767578
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": "```json\n{\n  \"evaluations\": [\n    {\n      \"id\": \"DEMO-00372\",\n      \"evaluation_text\": \"The property at Via Garibaldi 134 in Turin presents a strong baseline for conversion into a micro-nursery, primarily due to its generous gross floor area of 197.0 sqm, which comfortably exceeds the 140 sqm threshold and provides the spatial volume necessary to accommodate 18 children while meeting the regional net-area requirements (5.5 sqm/child for children's spaces, plus dedicated areas for staff and general services). The energy profile is highly favorable, featuring an A2 energy class, a high-quality thermal plant (score 5), and the presence of renewable energy sources (score 5), which aligns well with the strategic objective of a warm, well-insulated, and climate-controlled environment. Furthermore, the property's location scores highly on mobility (79.9 percentile), indicating excellent proximity to public transport. However, the building's pre-1919 construction period introduces significant technical and regulatory complexities. The medium envelope insulation (score 3) suggests that while the plant is modern, the building fabric may require substantial retrofitting to ensure optimal thermal comfort and energy efficiency. Additionally, the conversion of a historic residential dwelling into a micro-nursery will require rigorous verification of urban-planning compatibility, structural and seismic safety, and specific hygiene and safety standards, which are currently unverified in the provided data.\",\n      \"final_ranking_score\": 60,\n      \"pros\": [\n        \"Generous gross floor area of 197.0 sqm, well above the 140 sqm requirement, providing ample space to meet the 5.5 sqm/child net-area standard for 18 children and accommodate necessary staff and service areas.\",\n        \"Excellent energy performance with an A2 class, high-quality thermal plant (score 5), and renewable energy integration (score 5), supporting the goal of a warm, well-insulated, and climate-controlled environment.\",\n        \"High mobility score (79.9 percentile) indicates excellent proximity to public transport, fulfilling the strategic preference for a well-connected location in Turin.\"\n      ],\n      \"cons\": [\n        \"Pre-1919 construction period implies potential structural, seismic, and accessibility challenges that require extensive verification and likely costly retrofitting to meet current safety and hygiene standards for a micro-nursery.\",\n        \"Medium envelope insulation (score 3) suggests the building fabric may not be optimally insulated, potentially requiring significant investment in thermal upgrades to ensure consistent climate control and energy efficiency.\",\n        \"Regulatory compatibility is unverified; converting a historic residential dwelling into a micro-nursery requires confirmation of urban-planning compatibility, change of use authorization, and compliance with specific sectoral safety and hygiene requirements.\"\n      ]\n    }\n  ]\n}\n```",
+        "batch_id": 8,
+        "timestamp": "2026-11-18T15:21:31.659744",
+        "execution_time_ms": 22820.226430892944
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": "```json\n{\n  \"evaluations\": [\n    {\n      \"id\": \"DEMO-00626\",\n      \"evaluation_text\": \"The property at Via Bologna 95 in Turin presents a moderate potential for conversion into a micro-nursery. It meets the minimum gross floor area requirement of 140 sqm with 145.0 sqm, and its residential nature is suitable for repurposing. The location offers good proximity to public transport (mobility score of 78.6) and commercial services (80.4), aligning with the strategic objective. However, the energy performance is a significant limitation: the building has an energy class of E, with a medium envelope (score 3) and a traditional thermal plant (score 3), which does not fully meet the user's preference for a warm, well-insulated property with good climate control. Furthermore, the regulatory context for micro-nurseries in Piedmont requires specific net useful areas for children (5.5 sqm/child) and staff, which must be verified against the property's internal layout. The absence of renewable energy sources and the need for structural and urban-planning compatibility checks further complicate the conversion process.\",\n      \"final_ranking_score\": 59,\n      \"pros\": [\n        \"Meets the minimum gross floor area requirement of 140 sqm with 145.0 sqm, providing sufficient space for a micro-nursery.\",\n        \"Good proximity to public transport (mobility score 78.6) and commercial services (80.4), enhancing accessibility and convenience.\",\n        \"Constructed after 2000, suggesting a relatively modern building structure that may require fewer major structural interventions compared to older properties.\"\n      ],\n      \"cons\": [\n        \"Energy class E with a medium envelope (score 3) and traditional thermal plant (score 3) does not meet the user's preference for a warm, well-insulated property with good climate control.\",\n        \"Lack of renewable energy sources (score 1) limits the property's sustainability profile and potential for energy efficiency improvements.\",\n        \"Regulatory requirements for micro-nurseries, including specific net useful areas for children and staff, must be verified against the property's internal layout, and urban-planning compatibility and building permits are required.\"\n      ]\n    }\n  ]\n}\n```",
+        "batch_id": 9,
+        "timestamp": "2026-11-18T15:21:42.294952",
+        "execution_time_ms": 18944.013357162476
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": "```json\n{\n  \"evaluations\": [\n    {\n      \"id\": \"DEMO-00071\",\n      \"evaluation_text\": \"The property at Via Bologna 132 in Turin presents a strong technical foundation for conversion into a micro-nursery, primarily due to its excellent energy performance and strategic location. With a gross floor area of 156.0 sqm, it comfortably exceeds the 140 sqm threshold requested by the organization. The building, constructed after 2000, boasts an A3 energy class and top-tier scores for both the thermal plant (5/5) and the building envelope (5/5), directly addressing the requirement for a warm, well-insulated space with good climate control. Furthermore, its high mobility score (80.3 percentile) indicates excellent proximity to public transport, a key strategic preference. However, the property's suitability is subject to significant regulatory and spatial constraints. The regulatory context for a micro-nursery in Piedmont (D.G.R. 20-6732/2013) requires a minimum of 5.5 sqm of net useful area per child. For a capacity of 18 children, this translates to a minimum of 99 sqm of net area dedicated to children, plus additional mandatory spaces for staff (15 sqm), general services (15 sqm), and reception (10 sqm). While the 156 sqm gross area may be sufficient, the actual net usable area must be verified to ensure compliance. Additionally, the property lacks renewable energy sources (score 1/5) and has a low green area proximity score (25.5 percentile), which may be a consideration for a child-focused facility. The regulatory score of 0 indicates that urban planning compatibility, building permits, and other required checks have not yet been verified and are critical next steps.\",\n      \"final_ranking_score\": 50,\n      \"pros\": [\n        \"Excellent energy performance with an A3 class, top scores for thermal plant (5/5) and building envelope (5/5), ensuring a warm and well-insulated environment with good climate control.\",\n        \"Gross floor area of 156.0 sqm exceeds the 140 sqm minimum requirement, providing a solid base for the necessary spatial layout of a micro-nursery.\",\n        \"High mobility score (80.3 percentile) confirms excellent proximity to public transport, aligning with the strategic preference for accessible locations.\"\n      ],\n      \"cons\": [\n        \"Regulatory compliance is unverified (regulatory_score: 0). The net usable area must be confirmed to meet the 5.5 sqm/child standard for 18 children (99 sqm) plus mandatory staff and service spaces, which is a critical feasibility check.\",\n        \"Lack of renewable energy sources (energy_score_renewables: 1/5) and low proximity to green areas (25.5 percentile) may be suboptimal for a child-focused facility, despite the strong overall energy profile.\",\n        \"The property is a residential dwelling, and its conversion to a micro-nursery requires verification of urban planning compatibility, building permits, and other sectoral authorizations, which are currently unconfirmed.\"\n      ]\n    }\n  ]\n}\n```",
+        "batch_id": 10,
+        "timestamp": "2026-11-18T15:21:52.680483",
+        "execution_time_ms": 26049.343824386597
+      }
+    ],
+    "evaluation_results": [
+      {
+        "id": "DEMO-01430",
+        "evaluation_text": "The property located at Corso Duca degli Abruzzi 68 in Turin presents a highly favorable profile for conversion into a micro-nursery. With a gross floor area of 414.0 sqm, it comfortably exceeds the 140 sqm minimum requirement and provides ample space to accommodate 18 children while meeting the regional standard of 5.5 sqm/child for net useful areas. The building, constructed after 2000, features an excellent energy class (A2) and a high-quality thermal plant (score 5), aligning perfectly with the strategic objective of a warm, well-insulated environment with good climate control. Its location offers strong proximity to public transport (mobility score 74.6) and commercial services (82.3), enhancing accessibility for families. However, the absence of renewable energy sources (score 1) and the need to verify specific urban-planning compatibility, structural safety, and hygiene-standards compliance for a 0-3 educational facility represent key considerations for the conversion process.",
+        "final_ranking_score": 90,
+        "pros": [
+          "Exceptional energy performance with an A2 class and high-quality thermal plant (score 5), ensuring a warm, well-insulated environment with excellent climate control.",
+          "Generous gross floor area of 414.0 sqm, providing sufficient space to comfortably accommodate 18 children and meet the 5.5 sqm/child net useful area standard.",
+          "Prime location with high proximity to public transport (mobility score 74.6) and commercial services (82.3), facilitating easy access for families and staff."
+        ],
+        "cons": [
+          "Lack of renewable energy sources (score 1), which may limit the property's sustainability profile and potential eligibility for certain green-building incentives.",
+          "Urban-planning compatibility, building permit requirements, and change of use authorization for a micro-nursery in Turin's PRG must be verified, as these are not established in the provided data.",
+          "Specific hygiene, safety, and structural requirements for a 0-3 educational facility, including accessibility and fire safety, require dedicated technical verification before conversion."
+        ]
+      },
+      {
+        "id": "DEMO-00962",
+        "evaluation_text": "The property at Via Bologna 219 presents a strong potential for conversion into a micro-nursery, aligning well with the strategic objective. With a gross floor area of 165.0 sqm, it comfortably exceeds the 140 sqm threshold and provides sufficient space to accommodate 18 children, respecting the regional standard of 5.5 sqm/child for net useful areas. The property's energy profile is moderate (Class C, total score 14/20), with a medium-quality thermal plant and building envelope, but the presence of renewable energy sources is a notable advantage. Its location is highly favorable, with excellent proximity to public transport (mobility score 82.6) and green areas (92.0), which are critical for a childcare facility. However, the building's age (1919-1945) and the lack of verified gross-area regulatory thresholds mean that structural, seismic, and urban-planning compatibility checks are essential before proceeding. The regulatory context requires specific verification of the applicable D.G.R. standards and sectoral authorizations.",
+        "final_ranking_score": 82,
+        "pros": [
+          "Adequate gross floor area of 165.0 sqm, exceeding the 140 sqm requirement and providing sufficient space for 18 children according to the 5.5 sqm/child regional standard.",
+          "Excellent location with high proximity to public transport (mobility score 82.6) and green areas (92.0), enhancing accessibility and the quality of the environment for children.",
+          "Presence of renewable energy sources (energy_score_renewables: 5) contributes to a more sustainable and future-proof facility, aligning with modern environmental standards."
+        ],
+        "cons": [
+          "Moderate energy efficiency (Class C, total score 14/20) with a medium-quality thermal plant and building envelope, indicating potential need for upgrades to meet the 'warm and well-insulated' requirement.",
+          "Building age (1919-1945) raises concerns about structural integrity, seismic safety, and the need for comprehensive technical and regulatory verification before conversion.",
+          "Lack of verified gross-area regulatory thresholds and the requirement for specific urban-planning and sectoral authorizations introduce uncertainty and potential delays in the conversion process."
+        ]
+      },
+      {
+        "id": "DEMO-00133",
+        "evaluation_text": "The property located at Via Po 2 in Turin presents a strong potential for conversion into a micro-nursery, aligning well with the strategic objective. With a gross floor area of 243.0 sqm, it comfortably exceeds the 140 sqm threshold and provides ample space to accommodate 18 children while meeting the regional standard of 5.5 sqm/child for net useful areas (requiring 99 sqm for children alone). The property is a residential dwelling built between 1981 and 2000, which suggests a relatively modern structure that may facilitate the necessary structural and safety adaptations. Its energy class B and a total energy score of 10 indicate a well-insulated envelope and a good thermal plant, contributing to a warm and comfortable environment suitable for young children. Furthermore, its high mobility score of 86.1 percentile confirms excellent proximity to public transport, a key preference for the organization. However, the conversion will require rigorous verification of urban planning compatibility, building permits for change of use, and compliance with specific hygiene, safety, and accessibility standards for educational facilities.",
+        "final_ranking_score": 80,
+        "pros": [
+          "Adequate gross floor area of 243.0 sqm, comfortably exceeding the 140 sqm requirement and providing sufficient space to meet the 5.5 sqm/child net area standard for 18 children.",
+          "High mobility score (86.1 percentile) indicates excellent proximity to public transport, fulfilling a key strategic preference for the location.",
+          "Good energy performance (Class B, total score 10) with a well-insulated envelope and quality thermal plant, ensuring a warm and comfortable climate control environment."
+        ],
+        "cons": [
+          "The property is currently a residential dwelling, requiring a formal change of use and verification of urban planning compatibility (PRG Torino) and building permits for conversion to an educational facility.",
+          "Compliance with specific hygiene, safety, and accessibility standards for micro-nurseries (e.g., fire safety, structural seismic safety) must be verified, as these are not established by the provided data.",
+          "The regulatory context indicates a transition to new requirements (D.G.R. 3-1937/2025), necessitating careful verification of the applicable normative framework at the time of the application."
+        ]
+      },
+      {
+        "id": "DEMO-00950",
+        "evaluation_text": "The property at Via Bologna 165 in Turin presents a strong baseline for conversion into a micro-nursery, primarily due to its adequate gross floor area of 163.0 sqm, which comfortably exceeds the 140 sqm threshold and aligns with the capacity for 18 children. The location is highly advantageous, with an excellent mobility score (88.6 percentile) indicating strong proximity to public transport, and a high overall location score (92). Constructed after 2000, the building benefits from a relatively modern envelope (score 3) and a condensation or biomass thermal plant (score 3), contributing to a moderate energy profile (total score 9). However, the property's energy class D and the absence of renewable energy sources (score 1) represent areas for potential improvement to meet the user's preference for a 'warm and well-insulated' environment with good climate control. Furthermore, the regulatory context for micro-nurseries in Piedmont (D.G.R. 20-6732/2013) requires specific net useful areas for children (5.5 sqm/child) and staff, as well as an external area (1.0 sqm/child). While the gross area is sufficient, the specific layout and availability of an external space must be verified. The property's suitability for the intended use is promising but contingent on successful urban planning compatibility, building code compliance, and the ability to adapt the existing residential layout to meet the strict hygiene and safety standards for early childhood education.",
+        "final_ranking_score": 79,
+        "pros": [
+          "Adequate gross floor area of 163.0 sqm, exceeding the 140 sqm requirement and supporting the capacity for 18 children.",
+          "Excellent location with high mobility score (88.6 percentile), ensuring strong proximity to public transport as requested.",
+          "Modern construction (post-2000) with a medium-quality envelope and thermal plant, providing a solid foundation for energy efficiency upgrades."
+        ],
+        "cons": [
+          "Energy class D and lack of renewable energy sources (score 1) may require significant investment to achieve the desired 'warm and well-insulated' climate control.",
+          "Regulatory requirements for micro-nurseries (e.g., 5.5 sqm/child net useful area, 1.0 sqm/child external area) must be verified against the specific layout and external space availability.",
+          "Conversion from residential to educational use requires verification of urban planning compatibility, building code compliance, and specific hygiene/safety standards."
+        ]
+      },
+      {
+        "id": "DEMO-00877",
+        "evaluation_text": "The property located at Via Chiesa della Salute 133 in Turin presents a strong potential for conversion into a micro-nursery, primarily due to its excellent energy performance and strategic location. With a gross floor area of 338.0 sqm, it comfortably exceeds the 140 sqm minimum requirement and provides ample space to accommodate the 18 children, along with the necessary staff and service areas mandated by regional standards. The building's pre-1919 construction is offset by a top-tier energy class (A4) and an excellent envelope score, ensuring a warm and well-insulated environment suitable for young children. Furthermore, its high mobility score (82.8) aligns perfectly with the requirement for proximity to public transport. However, the absence of renewable energy sources and the need to verify structural and urban-planning compatibility for a pre-1919 building remain key considerations for the conversion process.",
+        "final_ranking_score": 74,
+        "pros": [
+          "Excellent energy performance with an A4 class and a top-tier envelope score (5/5), ensuring a warm, well-insulated, and highly efficient climate control system.",
+          "Generous gross floor area of 338.0 sqm, which comfortably exceeds the 140 sqm minimum and provides sufficient space for 18 children plus required staff and service areas.",
+          "High mobility score (82.8) indicating excellent proximity to public transport, fulfilling the strategic preference for accessible locations."
+        ],
+        "cons": [
+          "Lack of renewable energy sources (score 1/5), which may limit the property's overall sustainability profile despite its high efficiency.",
+          "Pre-1919 construction period necessitates thorough verification of structural integrity, seismic safety, and urban-planning compatibility for a change of use to a micro-nursery.",
+          "Moderate green area proximity (43.1) and the absence of a verified gross-area regulatory threshold require careful planning to ensure compliance with all specific micro-nursery spatial requirements."
+        ]
+      },
+      {
+        "id": "DEMO-00289",
+        "evaluation_text": "The property at Via Monginevro 176 presents a strong foundation for conversion into a micro-nursery, primarily due to its generous gross floor area of 301.0 sqm, which comfortably exceeds the 140 sqm threshold and provides ample space to accommodate 18 children while meeting the regional net-area requirements (5.5 sqm/child for children's spaces, plus dedicated areas for staff and general services). The building's energy performance is a notable strength, with an overall class B and a high envelope score (4/5), indicating good insulation and thermal comfort, which aligns well with the user's preference for a warm, well-insulated environment. The location is highly accessible, with a mobility score of 81.7, placing it in a favorable position regarding public transport proximity. However, the property's age (1946-1960) and the absence of renewable energy sources (score 1/5) suggest that technical upgrades may be necessary to meet modern hygiene, safety, and structural standards. Furthermore, the regulatory context requires specific checks for urban planning compatibility, building permits, and fire safety, which must be verified before proceeding with the conversion.",
+        "final_ranking_score": 72,
+        "pros": [
+          "Generous gross floor area of 301.0 sqm, well above the 140 sqm requirement, providing sufficient space for 18 children and necessary staff/service areas.",
+          "High energy efficiency (Class B) with excellent building insulation (envelope score 4/5), ensuring a warm and comfortable environment for children.",
+          "Excellent proximity to public transport (mobility score 81.7), facilitating easy access for families and staff."
+        ],
+        "cons": [
+          "Absence of renewable energy sources (score 1/5) and a mid-range thermal plant (score 3/5) may require upgrades to meet modern sustainability standards.",
+          "Building age (1946-1960) necessitates thorough verification of structural safety, seismic compliance, and potential need for significant renovation to meet current hygiene and safety regulations.",
+          "Regulatory requirements for micro-nursery conversion, including urban planning compatibility, building permits, and fire safety, are not yet verified and require detailed assessment."
+        ]
+      },
+      {
+        "id": "DEMO-00804",
+        "evaluation_text": "The property at Via Monginevro 156 presents a solid foundation for conversion into a micro-nursery, primarily due to its adequate gross floor area of 169.0 sqm, which comfortably exceeds the 140 sqm threshold and aligns with the capacity requirement for 18 children. The location is highly favorable, with a strong mobility score (79.9) indicating good access to public transport, and a high healthcare proximity score (81.2). However, the building's age (1946-1960) and its energy profile (Class C, medium envelope and plant scores) suggest that significant investment will be required to meet the user's specific requirements for a 'warm and well-insulated' environment with good climate control. Furthermore, the regulatory context for micro-nurseries in Turin requires strict verification of urban planning compatibility, building safety, and specific spatial allocations (e.g., 5.5 sqm/child for children's areas), which must be confirmed through the required checks before proceeding.",
+        "final_ranking_score": 65,
+        "pros": [
+          "Adequate gross floor area of 169.0 sqm, which meets the minimum 140 sqm requirement and provides sufficient space for a micro-nursery capacity of 18 children.",
+          "Excellent location for accessibility, with a high mobility score (79.9) indicating good proximity to public transport, and a strong healthcare proximity score (81.2).",
+          "The property is an existing residential dwelling, which may offer a more adaptable layout for the required functional zones (e.g., living, rest, and sanitary areas) compared to commercial spaces."
+        ],
+        "cons": [
+          "The building's age (1946-1960) and medium energy performance (Class C, envelope and plant scores of 3) indicate that substantial retrofitting will be needed to achieve the desired 'warm and well-insulated' conditions and good climate control.",
+          "Regulatory compliance for a micro-nursery requires extensive verification, including urban planning compatibility, building safety, and specific spatial allocations (e.g., 5.5 sqm/child for children's areas), which are not yet confirmed for this property.",
+          "The property's current residential designation may require a change of use, which could involve additional administrative and structural modifications to meet the specific hygiene, safety, and accessibility standards for a micro-nursery."
+        ]
+      },
+      {
+        "id": "DEMO-00372",
+        "evaluation_text": "The property at Via Garibaldi 134 in Turin presents a strong baseline for conversion into a micro-nursery, primarily due to its generous gross floor area of 197.0 sqm, which comfortably exceeds the 140 sqm threshold and provides the spatial volume necessary to accommodate 18 children while meeting the regional net-area requirements (5.5 sqm/child for children's spaces, plus dedicated areas for staff and general services). The energy profile is highly favorable, featuring an A2 energy class, a high-quality thermal plant (score 5), and the presence of renewable energy sources (score 5), which aligns well with the strategic objective of a warm, well-insulated, and climate-controlled environment. Furthermore, the property's location scores highly on mobility (79.9 percentile), indicating excellent proximity to public transport. However, the building's pre-1919 construction period introduces significant technical and regulatory complexities. The medium envelope insulation (score 3) suggests that while the plant is modern, the building fabric may require substantial retrofitting to ensure optimal thermal comfort and energy efficiency. Additionally, the conversion of a historic residential dwelling into a micro-nursery will require rigorous verification of urban-planning compatibility, structural and seismic safety, and specific hygiene and safety standards, which are currently unverified in the provided data.",
+        "final_ranking_score": 60,
+        "pros": [
+          "Generous gross floor area of 197.0 sqm, well above the 140 sqm requirement, providing ample space to meet the 5.5 sqm/child net-area standard for 18 children and accommodate necessary staff and service areas.",
+          "Excellent energy performance with an A2 class, high-quality thermal plant (score 5), and renewable energy integration (score 5), supporting the goal of a warm, well-insulated, and climate-controlled environment.",
+          "High mobility score (79.9 percentile) indicates excellent proximity to public transport, fulfilling the strategic preference for a well-connected location in Turin."
+        ],
+        "cons": [
+          "Pre-1919 construction period implies potential structural, seismic, and accessibility challenges that require extensive verification and likely costly retrofitting to meet current safety and hygiene standards for a micro-nursery.",
+          "Medium envelope insulation (score 3) suggests the building fabric may not be optimally insulated, potentially requiring significant investment in thermal upgrades to ensure consistent climate control and energy efficiency.",
+          "Regulatory compatibility is unverified; converting a historic residential dwelling into a micro-nursery requires confirmation of urban-planning compatibility, change of use authorization, and compliance with specific sectoral safety and hygiene requirements."
+        ]
+      },
+      {
+        "id": "DEMO-00626",
+        "evaluation_text": "The property at Via Bologna 95 in Turin presents a moderate potential for conversion into a micro-nursery. It meets the minimum gross floor area requirement of 140 sqm with 145.0 sqm, and its residential nature is suitable for repurposing. The location offers good proximity to public transport (mobility score of 78.6) and commercial services (80.4), aligning with the strategic objective. However, the energy performance is a significant limitation: the building has an energy class of E, with a medium envelope (score 3) and a traditional thermal plant (score 3), which does not fully meet the user's preference for a warm, well-insulated property with good climate control. Furthermore, the regulatory context for micro-nurseries in Piedmont requires specific net useful areas for children (5.5 sqm/child) and staff, which must be verified against the property's internal layout. The absence of renewable energy sources and the need for structural and urban-planning compatibility checks further complicate the conversion process.",
+        "final_ranking_score": 59,
+        "pros": [
+          "Meets the minimum gross floor area requirement of 140 sqm with 145.0 sqm, providing sufficient space for a micro-nursery.",
+          "Good proximity to public transport (mobility score 78.6) and commercial services (80.4), enhancing accessibility and convenience.",
+          "Constructed after 2000, suggesting a relatively modern building structure that may require fewer major structural interventions compared to older properties."
+        ],
+        "cons": [
+          "Energy class E with a medium envelope (score 3) and traditional thermal plant (score 3) does not meet the user's preference for a warm, well-insulated property with good climate control.",
+          "Lack of renewable energy sources (score 1) limits the property's sustainability profile and potential for energy efficiency improvements.",
+          "Regulatory requirements for micro-nurseries, including specific net useful areas for children and staff, must be verified against the property's internal layout, and urban-planning compatibility and building permits are required."
+        ]
+      },
+      {
+        "id": "DEMO-00071",
+        "evaluation_text": "The property at Via Bologna 132 in Turin presents a strong technical foundation for conversion into a micro-nursery, primarily due to its excellent energy performance and strategic location. With a gross floor area of 156.0 sqm, it comfortably exceeds the 140 sqm threshold requested by the organization. The building, constructed after 2000, boasts an A3 energy class and top-tier scores for both the thermal plant (5/5) and the building envelope (5/5), directly addressing the requirement for a warm, well-insulated space with good climate control. Furthermore, its high mobility score (80.3 percentile) indicates excellent proximity to public transport, a key strategic preference. However, the property's suitability is subject to significant regulatory and spatial constraints. The regulatory context for a micro-nursery in Piedmont (D.G.R. 20-6732/2013) requires a minimum of 5.5 sqm of net useful area per child. For a capacity of 18 children, this translates to a minimum of 99 sqm of net area dedicated to children, plus additional mandatory spaces for staff (15 sqm), general services (15 sqm), and reception (10 sqm). While the 156 sqm gross area may be sufficient, the actual net usable area must be verified to ensure compliance. Additionally, the property lacks renewable energy sources (score 1/5) and has a low green area proximity score (25.5 percentile), which may be a consideration for a child-focused facility. The regulatory score of 0 indicates that urban planning compatibility, building permits, and other required checks have not yet been verified and are critical next steps.",
+        "final_ranking_score": 50,
+        "pros": [
+          "Excellent energy performance with an A3 class, top scores for thermal plant (5/5) and building envelope (5/5), ensuring a warm and well-insulated environment with good climate control.",
+          "Gross floor area of 156.0 sqm exceeds the 140 sqm minimum requirement, providing a solid base for the necessary spatial layout of a micro-nursery.",
+          "High mobility score (80.3 percentile) confirms excellent proximity to public transport, aligning with the strategic preference for accessible locations."
+        ],
+        "cons": [
+          "Regulatory compliance is unverified (regulatory_score: 0). The net usable area must be confirmed to meet the 5.5 sqm/child standard for 18 children (99 sqm) plus mandatory staff and service spaces, which is a critical feasibility check.",
+          "Lack of renewable energy sources (energy_score_renewables: 1/5) and low proximity to green areas (25.5 percentile) may be suboptimal for a child-focused facility, despite the strong overall energy profile.",
+          "The property is a residential dwelling, and its conversion to a micro-nursery requires verification of urban planning compatibility, building permits, and other sectoral authorizations, which are currently unconfirmed."
+        ]
+      }
+    ],
+    "relaxation_applied": false,
+    "relaxation_count": 0,
+    "fallback_activated": false,
+    "agent_errors": []
+  }
+}
