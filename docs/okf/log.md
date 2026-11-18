@@ -2,7 +2,23 @@
 
 ## 2026-11-18
 
+* **Paper locale e revisione del sorgente:** mantenuta la bozza locale sul benchmark mixed-response. Nel testo EVPI sono esplicitati $1-1/n$ per $n$ alternative uniformi e il valore zero delle omissioni aperte; la demo offline è descritta con selezione use case/$k$, anteprima e caricamento del primo `case_id` in ordine lessicografico. Il PDF non è stato rigenerato perché nell'ambiente non è disponibile un compilatore LaTeX.
+
 * **Demo statica su Vercel:** il progetto separato `murena-conversational` è pubblicato su https://murena-conversational.vercel.app; la demo storica `murena` / `murena.vercel.app` resta distinta. `frontend/vercel.json` abilita il fallback SPA e la protezione SSO è disattivata sul nuovo progetto. La modalità demo usa `imperfect_user_codex_vlast` come fonte benchmark: 225 run refined completate vengono ridotte a 75 scenari per il pannello; l’export contiene 148 immobili benchmark e tutti gli ID top dei 75 scenari hanno corrispondenza. Corretta la sorgente configurata dopo che la build precedente usava `imperfect_user_v4_comparison_seed13`, i cui ID non corrispondevano all’inventario locale. La build corretta è stata pubblicata e gli asset online verificano 75 scenari e 148 immobili associati. Nessun backend o segreto runtime è richiesto.
+
+* **Paper, correzioni del model council (PR dedicata):** applicate le correzioni delle quattro review, inclusa gemini-4-argon.
+  * Sezione System: EVPI $1-1/n$; contraddizioni controllate solo nelle disambiguazioni; blocco dopo una seconda risposta non risolta.
+  * Sezione Demo: pannello con use case e $k$; opt-out solo sulle preferenze; latenze con 11 s a $k=0$; didascalia di Fig. 2 senza "144".
+  * Sezione Evaluation:
+    * aggiunti detection 360/360, sign-flip $p=0{,}008$ e il riferimento a Fig. 3;
+    * relaxation per intent; condizioni eseguite in finestre temporali diverse;
+    * tolte le metriche tie-aware e gli invented atoms.
+  * Serie imperfetta Codex (attivata da un collega in `421f968`): dichiarati il dataset con hash diverso (`d3956041f1` contro `bc6732c8ff`), i 201 tentativi falliti per errori CLI e poi rieseguiti, la frase fissa dell'opt-out sulle sole preferenze e il tetto oracle (0,70 contro 0,87). Nessun confronto tra serie.
+  * Abstract: utente simulato esatto, credito a SAGE-Agent.
+  * Fig. 1: `\Description` allineata.
+  * Spazio: tagli di ridondanze (catalogo, query one-shot, esecuzioni precedenti).
+  * `showcomments` disattivato.
+  * PDF committato: 4 pagine.
 
 * **Model council sul paper:** tre review indipendenti (claude-opus-5-5, gemini-4-hydrogen, grok-4.7) su `3dca8d4`, voti 3/3/2. Tutti i numeri sono riprodotti tranne il 144 della Fig. 2. Sintesi e piano di revisione in `docs/reviews/model-council/2026-11-18/` (`SYNTHESIS.md`, `REVISION_PLAN.md`), fuori dal bundle OKF.
 

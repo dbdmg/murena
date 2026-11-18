@@ -226,3 +226,43 @@ Interventi applicati nella PR `paper/edbt27-presubmission`:
 - **Lingua.** Rimosso "or Italian". Il codice forza le domande e l'output in inglese (`sage_clarification/service.py:855`, `requests.py:31`) e nessuna run reale ha input in italiano.
 - **Opzione `review` (numeri di riga).** Mantenuta: il template ufficiale EDBT 2027 usa `\documentclass[sigconf,review]{acmart}` e la call vieta modifiche allo stile. `edbt-macros.tex` coincide con il template.
 - **PDF.** Rigenerato: 4 pagine, layout controllato.
+
+## Model council e correzioni (2026-11-18, sera)
+
+**Review.** Quattro review indipendenti sul commit `3dca8d4`:
+
+| Modello | Voto |
+|---|---|
+| claude-opus-5-5 | 3 |
+| gemini-4-hydrogen | 3 |
+| grok-4.7 | 2 |
+| gemini-4-argon | 4 |
+
+Tutti i numeri del paper sono stati ricalcolati dai `runs.jsonl` e coincidono. Unica eccezione: il valore "144" della Fig. 2 (16 nella run registrata). Review, sintesi e piano sono in `docs/reviews/model-council/2026-11-18/`.
+
+**Correzioni applicate** (PR #4, merge `2750e9b`), sopra la riscrittura di abstract e introduzione di un collega (`134ca4b`):
+
+- **System**
+  - EVPI con pesi uniformi vale $1-1/n$; le omissioni aperte hanno EVPI 0.
+  - Il controllo delle contraddizioni vale solo per le disambiguazioni.
+  - La sessione si blocca dopo una seconda risposta non risolta.
+- **Demo**
+  - Pannello descritto com'è nell'interfaccia: use case e $k$, una run alla volta.
+  - Opt-out limitato alle preferenze.
+  - Latenze riportate con 11 s a $k=0$.
+  - Didascalia della Fig. 2 senza il valore "144".
+- **Evaluation**
+  - Aggiunti detection 360/360, sign-flip $p=0{,}008$ e il riferimento alla Fig. 3.
+  - Relaxation riportata per intent.
+  - Dichiarato che le condizioni sono state eseguite in finestre temporali diverse.
+  - Tolte le metriche definite ma non riportate (tie-aware, invented atoms).
+- **Serie imperfetta Codex.** Dichiarati lo snapshot dati diverso, i 201 tentativi rieseguiti, la frase fissa e la copertura del solo opt-out sulle preferenze, e il tetto 0,70 contro 0,87.
+- **Abstract.** Dichiarato che l'utente simulato fornisce esattamente il requisito omesso; EVPI attribuito a SAGE-Agent.
+- **PDF.** Rigenerato e committato: 4 pagine.
+
+**Ancora aperti**
+
+- Video MP4.
+- `.env.demo` punta ancora alla serie v4: la modalità offline non mostra la serie riportata nel paper.
+- Fig. 2 catturata su una build precedente.
+- Citazioni su slot filling e clarifying questions, rimandate alla camera-ready.
