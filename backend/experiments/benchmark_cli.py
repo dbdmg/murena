@@ -211,8 +211,19 @@ def load_scenarios(path: Path) -> list[dict[str, Any]]:
         unknown_dimensions = set(clarifications) - DIMENSIONS
         if unknown_dimensions:
             raise ValueError(f"Scenario '{scenario_id}' has unknown clarification dimensions: {', '.join(sorted(unknown_dimensions))}")
-        if not all(isinstance(answer, str) and answer.strip() for answer in clarifications.values()):
-            raise ValueError(f"Scenario '{scenario_id}' clarification answers must be non-empty strings.")
+        def _valid_answer(answer: Any) -> bool:
+            if isinstance(answer, str):
+                return bool(answer.strip())
+            return (
+                isinstance(answer, list) and bool(answer)
+                and all(isinstance(item, str) and item.strip() for item in answer)
+            )
+
+        if not all(_valid_answer(answer) for answer in clarifications.values()):
+            raise ValueError(
+                f"Scenario '{scenario_id}' clarification answers must be non-empty strings "
+                "or non-empty lists of strings (one per successive question)."
+            )
         unanswered_expected = set(expected_initial_missing) - set(clarifications)
         if unanswered_expected:
             raise ValueError(
@@ -563,6 +574,17 @@ def compact_row(record: dict[str, Any]) -> dict[str, Any]:
 # SAGE dialogue simulation
 # ---------------------------------------------------------------------------
 
+def simulated_answer(configured: str | list[str], times_asked_before: int) -> str:
+    """Answer of the simulated user to the n-th question on a dimension.
+
+    A string is the answer to every question; a list gives successive answers
+    (e.g. a vague reply, then the exact requirement), the last one repeating.
+    """
+    if isinstance(configured, str):
+        return configured
+    return configured[min(times_asked_before, len(configured) - 1)]
+
+
 def simulate_conversation(scenario: dict[str, Any]) -> dict[str, Any]:
     """Drive the same SAGE clarification service used by the frontend, in an isolated DB.
 
@@ -625,6 +647,7 @@ def simulate_conversation(scenario: dict[str, Any]) -> dict[str, Any]:
                 "messages": messages,
             }
 
+            asked_count: dict[str, int] = {}
             while response.status == "ASK":
                 row = db.get(ClarificationSession, session_id)
                 state = row.state if row is not None else {}
@@ -641,11 +664,18 @@ def simulate_conversation(scenario: dict[str, Any]) -> dict[str, Any]:
                         "error": "No simulated user answer configured for dimension(s): " + ", ".join(missing_answers),
                     }
 
-                answer = " ".join(scenario["clarifications"][dimension] for dimension in targets)
+                asked = {dimension: asked_count.get(dimension, 0) for dimension in targets}
+                answer = " ".join(
+                    simulated_answer(scenario["clarifications"][dimension], asked[dimension])
+                    for dimension in targets
+                )
+                for dimension in targets:
+                    asked_count[dimension] = asked[dimension] + 1
                 messages.append({"role": "user", "content": answer})
                 turns.append({
                     "question": question,
                     "target_dimensions": targets,
+                    "times_asked_before": asked,
                     "answer": answer,
                     "question_source": (pending or {}).get("question_source", "llm_query_parser"),
                 })

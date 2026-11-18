@@ -369,6 +369,48 @@ class RunnerTests(unittest.TestCase):
                 bc.build_jobs(scenarios, bc.build_parser().parse_args(
                     ["--scenarios", str(path), "--condition", "oracle"]), "m")
 
+    def test_successive_answers_per_dimension(self):
+        from types import SimpleNamespace
+        from unittest.mock import patch
+
+        scenario = {
+            "id": "v", "initial_query": "Find a school in Turin", "missing_count": 1,
+            "expected_initial_missing": ["Ce"],
+            "clarifications": {"Ce": ["Not sure, something reasonable.", "Energy class D or better."]},
+            "expected_mapping": {"Ce": "SPECIFIED"},
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "s.json"
+            path.write_text(json.dumps([scenario]), encoding="utf-8")
+            self.assertEqual(len(bc.load_scenarios(path)), 1)
+            path.write_text(json.dumps([dict(scenario, clarifications={"Ce": []})]), encoding="utf-8")
+            with self.assertRaises(ValueError):
+                bc.load_scenarios(path)
+        self.assertEqual(bc.simulated_answer("a", 3), "a")
+        self.assertEqual(bc.simulated_answer(["a", "b"], 0), "a")
+        self.assertEqual(bc.simulated_answer(["a", "b"], 5), "b")
+
+        answers = []
+
+        class FakeClarifier:
+            def process(self, db, user_input, language, session_id=None, clarification_response=None):
+                if clarification_response is not None:
+                    answers.append(clarification_response)
+                if len(answers) < 2:  # vague first answer -> asked again
+                    return SimpleNamespace(status="ASK", session_id="s1", question="Energy class?",
+                                           turn=len(answers), message=None)
+                return SimpleNamespace(status="READY", session_id="s1", question=None, turn=2,
+                                       message=None, refined_query="q hat")
+
+            def _select_question(self, state):
+                return {"target_dimensions": ["Ce"], "question": "Energy class?"}
+
+        with patch("app.services.sage_clarification.SageClarifier", FakeClarifier):
+            result = bc.simulate_conversation(scenario)
+        self.assertEqual(result["status"], "READY")
+        self.assertEqual(answers, ["Not sure, something reasonable.", "Energy class D or better."])
+        self.assertEqual([t["times_asked_before"] for t in result["turns"]], [{"Ce": 0}, {"Ce": 1}])
+
     def test_empty_expected_missing_only_for_k0(self):
         scenario = {
             "id": "x", "initial_query": "q", "expected_initial_missing": [],
