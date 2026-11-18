@@ -1,8 +1,10 @@
 %% Conversational MURENA -- EDBT 2027 demo paper, editable LaTeX source.
 %% Evaluation reports the three-condition benchmark (refined / one_shot /
 %% oracle) on the nested 48-variant design: all 304 planned runs completed on
-%% 2026-11-17 (results/missingness_v3_haiku). An earlier partial execution with
-%% another LLM backend (115 of 123 executed runs, Git 4a7c882) is not pooled.
+%% 2026-11-18 (results/missingness_v3_haiku_r2, code a5c1b09). Superseded and
+%% never pooled: the 2026-11-17 Haiku series (results/missingness_v3_haiku,
+%% before the typology-column fix 0e29b52) and an earlier partial execution with
+%% another LLM backend (115 of 123 executed runs, Git 4a7c882).
 %% Provenance: docs/okf/research/edbt-conversational-benchmark.md. Figure data: data/per_k.csv.
 \documentclass[sigconf,review]{acmart}
 \geometry{twoside=true, head=13pt, a4paper, includeheadfoot,
@@ -41,8 +43,8 @@ controlled-omission benchmark (8 intents, 0--5 omitted dimensions, 48
 scenarios) that compares refined, one-shot, and complete (oracle) queries
 under the same pipeline. Over 304 completed runs, clarification
 detected every omission without unnecessary questions, and refined
-queries reached top-5 agreement with the oracle of 0.57, at the level of
-the oracle's own run-to-run agreement (0.53), against 0.11 for one-shot
+queries reached top-5 agreement with the oracle of 0.88, at the level of
+the oracle's own run-to-run agreement (0.87), against 0.16 for one-shot
 queries.
 A prepared demonstration scenario shows how
 clarification changes the interpreted request and the resulting
@@ -92,7 +94,9 @@ question ordering adapts this idea heuristically.
 AmbiQT~\cite{bhaskar2023ambiqt}, AMBROSIA~\cite{saparina2024ambrosia},
 and PRACTIQ~\cite{dong2025practiq} benchmark ambiguous or unanswerable
 text-to-SQL questions; AMBROSIA also reports that LLMs struggle to
-recognize ambiguity. AmbiSQL~\cite{ding2026ambisql} demonstrates
+recognize ambiguity. Sphinteract~\cite{zhao2024sphinteract} has an
+LLM ask targeted clarification questions to resolve NL2SQL ambiguity,
+AmbiSQL~\cite{ding2026ambisql} demonstrates
 multiple-choice clarification before SQL generation,
 FISQL~\cite{menon2025fisql} refines SQL through user feedback, and
 COOL~\cite{francia2021cool} disambiguates conversational OLAP sessions.
@@ -179,15 +183,35 @@ confused with room-level legal measures.
 
 \section{Demonstration}
 \label{sec:demo}
-The presenter walks attendees through one prepared scenario in the web
-interface, using a predefined request and answers. A conversation panel shows each
-generated question, possibly with suggested options, and accepts a
-free-text answer, including ``no requirement''; a review form shows the
-editable rewritten request with a \emph{Confirm and start analysis}
-button; the result view shows candidates on a map with a ranked,
-explained list. The per-dimension state of Fig.~\ref{fig:arch} is
-maintained by the backend; the presenter uses the figure to explain
-which questions are asked and why.
+Attendees drive the web interface themselves (Fig.~\ref{fig:screens});
+the presenter uses the state diagram of Fig.~\ref{fig:arch} to explain
+why each question is asked.
+
+\paragraph{Live clarification.} Attendees type their own screening
+request in English or Italian and can:
+(a)~\emph{omit and observe}: leave requirements out and see which
+dimensions are asked, one per turn, and which are left alone because
+they are already specified;
+(b)~\emph{decline or hedge}: answer ``no requirement'' and see the
+dimension recorded as not requested and not asked again, or answer
+vaguely and receive a rephrased follow-up instead of a guessed value;
+(c)~\emph{review}: edit the rewritten request, e.g., to tighten the
+energy class, and see that only the confirmed text is analysed;
+(d)~\emph{inspect}: follow the extracted filters, the candidates on the
+map, and the ranked explanations of the inherited pipeline. In the
+benchmark configuration (Sec.~\ref{sec:eval}) a dialogue takes
+17--38\,s and an analysis 72--83\,s (medians), which is compatible with
+live use.
+
+\paragraph{Controlled scenarios.} A separate start mode offers a
+scenario panel: attendees pick one of the eight benchmark intents and
+any subset of omitted dimensions (256 variants), and the interface loads
+the variant's initial request and prepared answers and, where a recorded
+benchmark run exists, its top-10 on the map, without network or model
+access. This makes the omission design of Sec.~\ref{sec:eval} tangible
+and keeps the demonstration available offline. A results page lists the
+recorded runs of a benchmark series, so the one-shot, refined, and
+oracle outputs of the same case can be compared side by side.
 \begin{figure*}[t]\centering
 \begin{minipage}[b]{0.43\textwidth}\centering
 \includegraphics[width=\linewidth]{figures/screen-dialogue.png}\\[2pt]
@@ -198,9 +222,9 @@ which questions are asked and why.
 \includegraphics[width=\linewidth]{figures/screen-results.jpg}\\
 {\footnotesize (b) Map and ranked candidates after confirmation}
 \end{minipage}
-\caption{Demonstration scenario captured on the running system:
+\caption{Walkthrough captured on the running system:
 the system asks only for the two unconfirmed dimensions
-($C_b$, $C_e$), the presenter confirms the rewritten request, and the
+($C_b$, $C_e$), the user confirms the rewritten request, and the
 inherited pipeline returns 144 matching properties with a ranked top-10.}
 \Description{Left: chat panel with the nursery request, a question on
 building constraints, the answer with floor area and capacity, a question
@@ -210,20 +234,15 @@ of ten ranked property cards.}
 \label{fig:screens}
 \end{figure*}
 
-\paragraph{Demonstration scenario: nursery conversion.} The presenter submits ``an
-existing school building in Turin to convert into a nursery, near green
-spaces''. Intent, use, location, and proximity are specified, while
+\paragraph{Opening walkthrough: nursery conversion.} The session opens
+with ``an existing school building in Turin to convert into a nursery,
+near green spaces''. Intent, use, location, and proximity are specified;
 floor area and capacity ($C_b$) and energy class ($C_e$) are
-unconfirmed; ``existing building'' does not count as a $C_b$
-requirement. The system asks two questions, one per dimension; the
-presenter supplies prepared answers specifying minimum floor area,
-capacity, and energy class. The review form shows the
-rewritten request, which the presenter reviews and confirms; the inherited
-pipeline then exposes the extracted filters, the candidates on the map,
-and the ranked explanations (Fig.~\ref{fig:screens}). This scenario
-corresponds to a benchmark scenario ($k=2$) whose two-turn dialogue was
-observed in a functional check and in the live session of
-Fig.~\ref{fig:screens}.
+unconfirmed (``existing building'' is not a $C_b$ requirement). The
+system asks exactly two questions; after the answers, the rewritten
+request is reviewed and confirmed, and the pipeline returns the
+filters, map, and ranking of Fig.~\ref{fig:screens}. This is benchmark
+scenario $k=2$ of Sec.~\ref{sec:eval}.
 
 \section{Evaluation}
 \label{sec:eval}
@@ -242,20 +261,20 @@ clarification with the simulated user, the rewritten $\hat q$ is
 accepted without edits, and $\hat q$ (never $q^*$) is analysed; all 48
 scenarios, 3 repetitions. \emph{One-shot}: $q_0$ is analysed directly;
 40 scenarios with $k\ge1$, 3 repetitions. \emph{Oracle}: $q^*$ is
-analysed directly, 5 repetitions per intent. The plan comprises 304 runs in a
-seeded interleaved order, all with the same code version, pipeline
+analysed directly, 5 repetitions per intent. The plan comprises 304 runs,
+executed by condition (refined, one-shot, oracle), all with the same code version, pipeline
 options (including MURENA's result relaxation, whose activation is
 logged), and the 89,200-property MURENA dataset. Run-to-run variability
 is measured rather than assumed absent. The oracle ranking is a
 \emph{reference query output}, not ground truth on property relevance.
 
-% Verbatim submitted_query values from missingness_v3_haiku/runs.jsonl:
-% one_shot bench_4219923a116f; refined bench_7fccc469c00d;
-% oracle bench_c41f87c72646. See OKF for provenance.
+% Verbatim submitted_query values from missingness_v3_haiku_r2/runs.jsonl:
+% one_shot bench_dc898ec9a30c; refined bench_24b7eb94f445;
+% oracle bench_d3c744f2613b. See OKF for provenance.
 For example, the recorded nursery case ($k=2$, $C_b$ and $C_e$
 omitted) supplied the following actual inputs to the analysis pipeline:
 \emph{One-shot ($q_0$)}: ``I am looking for an existing school building. I intend to convert it into a nursery. The location is in Turin. I prefer properties near green spaces.''
-\emph{Refined ($\hat q$)}: ``I am looking for an existing school building in Turin with at least 600 sqm of gross floor area and capacity for 45 people, to convert into a nursery. It should be in energy class D or better. I prefer properties near green spaces.''
+\emph{Refined ($\hat q$)}: ``I am looking for an existing school building in Turin to convert into a nursery. It must have at least 600 sqm of gross floor area and capacity for 45 people. I prefer a property in energy class D or better. I also prefer properties near green spaces.''
 \emph{Oracle ($q^*$)}: ``Find an existing school building to convert it into a nursery for 45 children in Turin with at least 600 sqm of gross floor area in energy class D or better near green spaces.''
 The refined text was generated after two clarification turns; the
 oracle was predefined. They express corresponding requirements with
@@ -294,31 +313,35 @@ wording-induced variation. An unexecuted catalogue extension enumerates all
 one enable flag per base intent and fixed job order. Reported results use
 only the original 48-variant nested design.
 
-\paragraph{Execution.} All 304 planned runs (144 refined, 120
-one-shot, 40 oracle) completed on 2026-11-17 in a single execution of
-62 minutes with ten concurrent runs; no run or agent call failed, and
-every $(k,\text{condition})$ cell covers all 8 intents. Relaxation fired
-in 28 runs (19 refined, 3 one-shot, 6 oracle) and is logged. An earlier
-partial execution with a different LLM backend was stopped because of
-service latency; it is documented separately and not pooled with these
-results.
+\paragraph{Execution.} Clarification and all pipeline agents used
+Claude Haiku 5.5 (\texttt{claude-haiku-5-5}) through the non-interactive
+Claude Code CLI, with medium reasoning effort, no tools, and the CLI's
+default sampling. All 304 planned runs (144 refined, 120
+one-shot, 40 oracle) completed on 2026-11-18 with ten concurrent runs,
+in one execution paused once and resumed on the same code; no run or
+agent call failed, and every $(k,\text{condition})$ cell covers all 8
+intents. Relaxation fired in 52 runs (36 refined, 6 one-shot, 10 oracle),
+always for the same two intents, and is logged. Two earlier executions
+are documented separately and not pooled: a partial one with a
+different LLM backend, and a complete one that preceded a fix of the
+property-type metadata passed to the building agent.
 
 \paragraph{Results.} Clarification was exact in all 144 refined runs:
 the detected missing dimensions equalled the omitted ones (micro
 P/R/$F_1$ = 1.00), the dialogue took exactly $k$ turns, no question was
 asked at $k=0$ (0/24 runs), and the intended regulatory use was among
 the matched uses in every run (with a related nursery type also matched
-in 12). Table~\ref{tab:results} and Fig.~\ref{fig:perk} show the
+in 9). Table~\ref{tab:results} and Fig.~\ref{fig:perk} show the
 consequence for the analysis. One-shot queries lose filters as $k$
-grows (median result set 247 at $k=1$ up to 80,447 at $k=5$, against
-121 for the oracle) and their top-5 overlap with the oracle falls from
-0.34 to 0.01. Refined queries recover the oracle's filters (filter
-$F_1$ 0.95--0.96 at every $k$, against 0.94 between oracle runs) and
-reach top-5 agreement of 0.57, flat across $k$ and at the level of the
-agreement between two oracle runs (0.53): the residual gap is pipeline
-variability, not lost information. Clarification costs 17--49\,s per
+grows (median result set 54 at $k=1$ up to 2,429 at $k=5$, against
+52 for the oracle) and their top-5 overlap with the oracle falls from
+0.50 to 0.01. Refined queries recover the oracle's filters (filter
+$F_1$ 0.98--0.99 at every $k$, against 0.99 between oracle runs) and
+reach top-5 agreement of 0.88, flat across $k$ and at the level of the
+agreement between two oracle runs (0.87): the residual gap is pipeline
+variability, not lost information. Clarification costs 17--38\,s per
 dialogue (median, growing with $k$), on top of an analysis of
-88--124\,s.
+72--83\,s.
 
 \begin{table}[t]
 \caption{Benchmark, 304 completed runs, $k\ge1$ unless noted: mean
@@ -331,19 +354,19 @@ $p=0.8$, over the top-10; both against the oracle.}
 \toprule
 Condition & $J_5$ & RBO & Tie-aware $J_5$\\
 \midrule
-One-shot & 0.11 [0.05, 0.18] & 0.13 [0.06, 0.20] & 0.11 [0.05, 0.17]\\
-Refined & 0.57 [0.49, 0.66] & 0.63 [0.54, 0.74] & 0.56 [0.49, 0.63]\\
-Refined, $k=0$ & 0.64 [0.58, 0.71] & 0.69 [0.62, 0.79] & 0.64 [0.57, 0.70]\\
-Oracle vs.\ oracle & 0.53 [0.43, 0.64] & 0.58 [0.47, 0.71] & 0.52 [0.43, 0.62]\\
+One-shot & 0.16 [0.07, 0.25] & 0.20 [0.10, 0.30] & 0.15 [0.07, 0.24]\\
+Refined & 0.88 [0.81, 0.96] & 0.94 [0.90, 0.97] & 0.87 [0.79, 0.95]\\
+Refined, $k=0$ & 0.87 [0.77, 0.95] & 0.94 [0.89, 0.97] & 0.86 [0.76, 0.95]\\
+Oracle vs.\ oracle & 0.87 [0.79, 0.95] & 0.94 [0.89, 0.98] & 0.85 [0.76, 0.94]\\
 \midrule
-$\Delta$ refined$-$one-shot & 0.46 [0.36, 0.56] & 0.49 [0.39, 0.61] & 0.45 [0.36, 0.54]\\
+$\Delta$ refined$-$one-shot & 0.72 [0.63, 0.82] & 0.74 [0.65, 0.82] & 0.72 [0.63, 0.82]\\
 Sign-flip $p$ (8 intents) & 0.008 & 0.008 & 0.008\\
 \bottomrule
 \end{tabular}
 \\[2pt]
-Filter $F_1$ vs.\ majority oracle: refined 0.96 [0.94, 0.97], one-shot
-0.55 [0.51, 0.59] (0.87 at $k=1$ to 0.19 at $k=5$); $\Delta$ 0.40
-[0.36, 0.44]. $p=0.008$ is the smallest attainable with 8 intents.
+Filter $F_1$ vs.\ majority oracle: refined 0.98 [0.96, 1.00], one-shot
+0.61 [0.57, 0.65] (0.88 at $k=1$ to 0.27 at $k=5$); $\Delta$ 0.37
+[0.33, 0.41]. $p=0.008$ is the smallest attainable with 8 intents.
 \end{table}
 
 \begin{figure}[t]
@@ -364,7 +387,7 @@ Filter $F_1$ vs.\ majority oracle: refined 0.96 [0.94, 0.97], one-shot
   y error plus expr=\thisrow{j5_hi}-\thisrow{j5},
   y error minus expr=\thisrow{j5}-\thisrow{j5_lo}] {data/per_k.csv};
 \addlegendentry{one-shot}
-\addplot+[dashed, mark=none, black] coordinates {(-0.3,0.529) (5.3,0.529)};
+\addplot+[dashed, mark=none, black] coordinates {(-0.3,0.870) (5.3,0.870)};
 \addlegendentry{oracle vs.\ oracle}
 \end{axis}
 \end{tikzpicture}
