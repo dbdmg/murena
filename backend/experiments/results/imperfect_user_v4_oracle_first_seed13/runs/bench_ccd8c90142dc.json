@@ -1,0 +1,934 @@
+{
+  "run_id": "bench_ccd8c90142dc",
+  "condition": "refined",
+  "unit_id": "S05_k2_L_Cb_spec_L_optout_Cb",
+  "scenario_id": "S05_k2_L_Cb_spec_L_optout_Cb",
+  "base_case_id": "S05",
+  "missing_count": 2,
+  "scenario_name": "2 omitted dimensions; intended use: Home-based nursery (Nido in famiglia); balance: 1 specified, 0 vague, 1 opt-out",
+  "tags": [
+    "edbt",
+    "controlled_missingness_v3",
+    "missing_2",
+    "UC05_home_nursery_missing_use",
+    "imperfect_user_v4",
+    "spec_1",
+    "vague_0",
+    "optout_1",
+    "balance_1_0_1"
+  ],
+  "model": "gpt-6-luna",
+  "repeat": 2,
+  "attempt": 1,
+  "input_sha256": "ea6f0cadf20fc4325b1ccb4b190c04fa4ca052cbd1d1d21939bbe679069d9105",
+  "scenario_sha256": "ea6f0cadf20fc4325b1ccb4b190c04fa4ca052cbd1d1d21939bbe679069d9105",
+  "initial_query": "I am looking for a residential dwelling. I intend to operate a home-based nursery (nido in famiglia). I prefer a property in energy class C or better. I prefer properties near green spaces.",
+  "options": {
+    "dataset_key": "full",
+    "map_limit": 1000,
+    "llm_limit": 10,
+    "analysis_mode": "agent",
+    "use_relaxation": true,
+    "use_data_knowledge": true,
+    "architecture": "multiagent",
+    "disabled_agents": null
+  },
+  "started_at": "2026-11-18T13:49:11.411433+00:00",
+  "clarification_seconds": 55.506,
+  "analysis_seconds": 118.331,
+  "conversation": {
+    "session_id": "852abc6a-b81b-4c56-87ee-bd0ed17ff6a9",
+    "initial_dimension_state": {
+      "I": {
+        "status": "SPECIFIED",
+        "value": "residential dwelling",
+        "evidence": "“residential dwelling”"
+      },
+      "D": {
+        "status": "SPECIFIED",
+        "value": "home-based nursery (nido in famiglia)",
+        "evidence": "“I intend to operate a home-based nursery (nido in famiglia)”"
+      },
+      "L": {
+        "status": "UNCONFIRMED_ABSENT",
+        "value": null,
+        "evidence": null
+      },
+      "Cb": {
+        "status": "UNCONFIRMED_ABSENT",
+        "value": null,
+        "evidence": null
+      },
+      "Ce": {
+        "status": "SPECIFIED",
+        "value": "energy class C or better",
+        "evidence": "“I prefer a property in energy class C or better”"
+      },
+      "Cp": {
+        "status": "SPECIFIED",
+        "value": "green spaces",
+        "evidence": "“I prefer properties near green spaces”"
+      }
+    },
+    "initial_missing": [
+      "Cb",
+      "L"
+    ],
+    "expected_initial_missing": [
+      "Cb",
+      "L"
+    ],
+    "missing_detection": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "turns": [
+      {
+        "question": "Which city or area should I look in? You can also say that location does not matter.",
+        "target_dimensions": [
+          "L"
+        ],
+        "times_asked_before": {
+          "L": 0
+        },
+        "answer": "The location is in Turin.",
+        "question_source": "llm_query_parser",
+        "status_after": "ASK",
+        "turn_after": 1,
+        "dimension_state_after": {
+          "I": {
+            "status": "SPECIFIED",
+            "value": "residential dwelling",
+            "evidence": "“residential dwelling”"
+          },
+          "D": {
+            "status": "SPECIFIED",
+            "value": "home-based nursery (nido in famiglia)",
+            "evidence": "“I intend to operate a home-based nursery (nido in famiglia)”"
+          },
+          "L": {
+            "status": "SPECIFIED",
+            "value": "Turin",
+            "evidence": "The location is in Turin."
+          },
+          "Cb": {
+            "status": "UNCONFIRMED_ABSENT",
+            "value": null,
+            "evidence": null
+          },
+          "Ce": {
+            "status": "SPECIFIED",
+            "value": "energy class C or better",
+            "evidence": "“I prefer a property in energy class C or better”"
+          },
+          "Cp": {
+            "status": "SPECIFIED",
+            "value": "green spaces",
+            "evidence": "“I prefer properties near green spaces”"
+          }
+        }
+      },
+      {
+        "question": "Would a minimum floor area, capacity, or any structural feature help narrow the search, or do these details not matter?",
+        "target_dimensions": [
+          "Cb"
+        ],
+        "times_asked_before": {
+          "Cb": 0
+        },
+        "answer": "I have no requirement on dwelling floor area or capacity limits for the home nursery.",
+        "question_source": "llm_query_parser",
+        "status_after": "READY",
+        "turn_after": 2,
+        "dimension_state_after": {
+          "I": {
+            "status": "SPECIFIED",
+            "value": "residential dwelling",
+            "evidence": "“residential dwelling”"
+          },
+          "D": {
+            "status": "SPECIFIED",
+            "value": "home-based nursery (nido in famiglia)",
+            "evidence": "“I intend to operate a home-based nursery (nido in famiglia)”"
+          },
+          "L": {
+            "status": "SPECIFIED",
+            "value": "Turin",
+            "evidence": "The location is in Turin."
+          },
+          "Cb": {
+            "status": "NOT_REQUESTED",
+            "value": null,
+            "evidence": "I have no requirement on dwelling floor area or capacity limits for the home nursery."
+          },
+          "Ce": {
+            "status": "SPECIFIED",
+            "value": "energy class C or better",
+            "evidence": "“I prefer a property in energy class C or better”"
+          },
+          "Cp": {
+            "status": "SPECIFIED",
+            "value": "green spaces",
+            "evidence": "“I prefer properties near green spaces”"
+          }
+        }
+      }
+    ],
+    "messages": [
+      {
+        "role": "user",
+        "content": "I am looking for a residential dwelling. I intend to operate a home-based nursery (nido in famiglia). I prefer a property in energy class C or better. I prefer properties near green spaces."
+      },
+      {
+        "role": "assistant",
+        "content": "Which city or area should I look in? You can also say that location does not matter."
+      },
+      {
+        "role": "user",
+        "content": "The location is in Turin."
+      },
+      {
+        "role": "assistant",
+        "content": "Would a minimum floor area, capacity, or any structural feature help narrow the search, or do these details not matter?"
+      },
+      {
+        "role": "user",
+        "content": "I have no requirement on dwelling floor area or capacity limits for the home nursery."
+      },
+      {
+        "role": "assistant",
+        "content": "Query submitted for review: I’m looking for a residential dwelling in Turin that I can use to operate a home-based nursery (nido in famiglia). I prefer properties in energy class C or better and near green spaces."
+      },
+      {
+        "role": "user",
+        "content": "Confirmed."
+      }
+    ],
+    "dimension_state": {
+      "I": {
+        "status": "SPECIFIED",
+        "value": "residential dwelling",
+        "evidence": "“residential dwelling”"
+      },
+      "D": {
+        "status": "SPECIFIED",
+        "value": "home-based nursery (nido in famiglia)",
+        "evidence": "“I intend to operate a home-based nursery (nido in famiglia)”"
+      },
+      "L": {
+        "status": "SPECIFIED",
+        "value": "Turin",
+        "evidence": "The location is in Turin."
+      },
+      "Cb": {
+        "status": "NOT_REQUESTED",
+        "value": null,
+        "evidence": "I have no requirement on dwelling floor area or capacity limits for the home nursery."
+      },
+      "Ce": {
+        "status": "SPECIFIED",
+        "value": "energy class C or better",
+        "evidence": "“I prefer a property in energy class C or better”"
+      },
+      "Cp": {
+        "status": "SPECIFIED",
+        "value": "green spaces",
+        "evidence": "“I prefer properties near green spaces”"
+      }
+    },
+    "mapping": {
+      "I": "SPECIFIED",
+      "D": "SPECIFIED",
+      "L": "SPECIFIED",
+      "Cb": "NOT_REQUESTED",
+      "Ce": "SPECIFIED",
+      "Cp": "SPECIFIED"
+    },
+    "expected_mapping": {
+      "I": "SPECIFIED",
+      "D": "SPECIFIED",
+      "L": "SPECIFIED",
+      "Cb": "NOT_REQUESTED",
+      "Ce": "SPECIFIED",
+      "Cp": "SPECIFIED"
+    },
+    "mapping_accuracy": 1.0,
+    "no_clarification": false,
+    "status": "READY",
+    "refined_query": "I’m looking for a residential dwelling in Turin that I can use to operate a home-based nursery (nido in famiglia). I prefer properties in energy class C or better and near green spaces.",
+    "reviewed_query": "I’m looking for a residential dwelling in Turin that I can use to operate a home-based nursery (nido in famiglia). I prefer properties in energy class C or better and near green spaces."
+  },
+  "submitted_query": "I’m looking for a residential dwelling in Turin that I can use to operate a home-based nursery (nido in famiglia). I prefer properties in energy class C or better and near green spaces.",
+  "status": "completed",
+  "results_count": 37,
+  "top_ids": [
+    "DEMO-01210",
+    "DEMO-00962",
+    "DEMO-00134",
+    "DEMO-01488",
+    "DEMO-00891",
+    "DEMO-00401",
+    "DEMO-01293",
+    "DEMO-00133",
+    "DEMO-00706",
+    "DEMO-00369"
+  ],
+  "quality": {
+    "expected_count": 0,
+    "matched_expected": null,
+    "precision_at_returned": null,
+    "recall": null
+  },
+  "final_sql": "SELECT * FROM ESTATES WHERE property_type = 'Residential dwelling' AND haversine_km(latitude, longitude, 45.0677551, 7.6824892) <= 3.0 AND energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C') AND green >= 59 ORDER BY haversine_km(latitude, longitude, 45.0677551, 7.6824892) ASC",
+  "duration_seconds": 173.854,
+  "scenario_definition": {
+    "id": "S05_k2_L_Cb_spec_L_optout_Cb",
+    "name": "2 omitted dimensions; intended use: Home-based nursery (Nido in famiglia); balance: 1 specified, 0 vague, 1 opt-out",
+    "tags": [
+      "edbt",
+      "controlled_missingness_v3",
+      "missing_2",
+      "UC05_home_nursery_missing_use",
+      "imperfect_user_v4",
+      "spec_1",
+      "vague_0",
+      "optout_1",
+      "balance_1_0_1"
+    ],
+    "base_case_id": "S05",
+    "source_case_id": "UC05_home_nursery_missing_use",
+    "missing_count": 2,
+    "initial_query": "I am looking for a residential dwelling. I intend to operate a home-based nursery (nido in famiglia). I prefer a property in energy class C or better. I prefer properties near green spaces.",
+    "one_shot_query": "I am looking for a residential dwelling. I intend to operate a home-based nursery (nido in famiglia). I prefer a property in energy class C or better. I prefer properties near green spaces.",
+    "oracle_query": "Find a residential dwelling to operate a home-based nursery (nido in famiglia) for four children in Turin with at least 95 sqm of gross floor area in energy class C or better near green spaces.",
+    "expected_initial_missing": [
+      "L",
+      "Cb"
+    ],
+    "clarifications": {
+      "I": "I am looking for a residential dwelling.",
+      "D": "I intend to operate a home-based nursery (nido in famiglia).",
+      "L": "The location is in Turin.",
+      "Cb": "I have no requirement on dwelling floor area or capacity limits for the home nursery.",
+      "Ce": "I prefer a property in energy class C or better.",
+      "Cp": "I prefer properties near green spaces."
+    },
+    "expected_mapping": {
+      "I": "SPECIFIED",
+      "D": "SPECIFIED",
+      "L": "SPECIFIED",
+      "Cb": "NOT_REQUESTED",
+      "Ce": "SPECIFIED",
+      "Cp": "SPECIFIED"
+    },
+    "repeats": 1,
+    "imperfect_user": {
+      "profile": "mixed",
+      "balance": "1spec_0vague_1optout",
+      "source_variant_id": "S05_k2_L_Cb",
+      "source_enabled": true,
+      "specified_count": 1,
+      "vague_count": 0,
+      "optout_count": 1,
+      "specified_dimensions": [
+        "L"
+      ],
+      "vague_dimensions": [],
+      "optout_dimensions": [
+        "Cb"
+      ],
+      "expected_turns": 2
+    }
+  },
+  "artifact_file": "runs/bench_ccd8c90142dc.json",
+  "artifact_schema_version": 4,
+  "ranking_ids": [
+    "DEMO-01210",
+    "DEMO-00962",
+    "DEMO-00134",
+    "DEMO-01488",
+    "DEMO-00891",
+    "DEMO-00401",
+    "DEMO-01293",
+    "DEMO-00133",
+    "DEMO-00706",
+    "DEMO-00369",
+    "DEMO-00245",
+    "DEMO-01089",
+    "DEMO-01333",
+    "DEMO-00802",
+    "DEMO-00319",
+    "DEMO-00289",
+    "DEMO-00804",
+    "DEMO-00656",
+    "DEMO-01000",
+    "DEMO-00225",
+    "DEMO-01063",
+    "DEMO-00685",
+    "DEMO-00693",
+    "DEMO-01091",
+    "DEMO-01126",
+    "DEMO-00228",
+    "DEMO-00453",
+    "DEMO-01466",
+    "DEMO-00163",
+    "DEMO-00318",
+    "DEMO-00968",
+    "DEMO-01147",
+    "DEMO-01008",
+    "DEMO-00638",
+    "DEMO-00344",
+    "DEMO-00059",
+    "DEMO-01325"
+  ],
+  "top": [
+    {
+      "id": "DEMO-01210",
+      "score": 91.40100000000001,
+      "distance_km": 0.24
+    },
+    {
+      "id": "DEMO-00962",
+      "score": 91.222,
+      "distance_km": 0.31
+    },
+    {
+      "id": "DEMO-00134",
+      "score": 90.93799999999999,
+      "distance_km": 1.0
+    },
+    {
+      "id": "DEMO-01488",
+      "score": 89.45100000000001,
+      "distance_km": 0.81
+    },
+    {
+      "id": "DEMO-00891",
+      "score": 87.97000000000001,
+      "distance_km": 1.07
+    },
+    {
+      "id": "DEMO-00401",
+      "score": 86.93299999999999,
+      "distance_km": 1.44
+    },
+    {
+      "id": "DEMO-01293",
+      "score": 86.395,
+      "distance_km": 1.31
+    },
+    {
+      "id": "DEMO-00133",
+      "score": 86.37,
+      "distance_km": 1.29
+    },
+    {
+      "id": "DEMO-00706",
+      "score": 86.298,
+      "distance_km": 1.2
+    },
+    {
+      "id": "DEMO-00369",
+      "score": 84.094,
+      "distance_km": 1.41
+    }
+  ],
+  "api_response": {
+    "agent_trace": [
+      {
+        "agent_name": "regulatory-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "found": false,
+          "matched_use_cases": [
+            "Home-based nursery (Nido in famiglia)"
+          ],
+          "requirements": []
+        }
+      },
+      {
+        "agent_name": "proximity-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "requirements": [
+            {
+              "target_column": "green",
+              "operator": ">=",
+              "value": 59,
+              "description": "Near green spaces; threshold meets the 75th percentile (59.1)."
+            }
+          ]
+        }
+      },
+      {
+        "agent_name": "building-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "typologies": [
+            "Residential dwelling"
+          ],
+          "found": true,
+          "requirements": []
+        }
+      },
+      {
+        "agent_name": "ranking-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "ranking": [
+            {
+              "agent_name": "location",
+              "rank": 1
+            },
+            {
+              "agent_name": "building",
+              "rank": 1
+            },
+            {
+              "agent_name": "regulatory",
+              "rank": 2
+            },
+            {
+              "agent_name": "energy",
+              "rank": 3
+            },
+            {
+              "agent_name": "proximity",
+              "rank": 4
+            }
+          ],
+          "weights": {
+            "location": 0.33,
+            "regulatory": 0.16,
+            "energy": 0.11,
+            "building": 0.32,
+            "proximity": 0.08
+          }
+        }
+      },
+      {
+        "agent_name": "energy-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "requirements": [
+            {
+              "target_column": "energy_class",
+              "operator": "IN",
+              "value": [
+                "A1",
+                "A2",
+                "A3",
+                "A4",
+                "B",
+                "C"
+              ],
+              "description": "Energy class C or better"
+            }
+          ],
+          "found": true
+        }
+      },
+      {
+        "agent_name": "location-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "places": [
+            {
+              "name": "Turin",
+              "city": "Turin",
+              "lat": 45.0677551,
+              "lon": 7.6824892,
+              "radius_km": 3.0
+            }
+          ],
+          "found": true
+        }
+      },
+      {
+        "agent_name": "sql-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "sql": "SELECT * FROM ESTATES WHERE property_type = 'Residential dwelling' AND haversine_km(latitude, longitude, 45.0677551, 7.6824892) <= 3.0 AND energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C') AND green >= 59 ORDER BY haversine_km(latitude, longitude, 45.0677551, 7.6824892) ASC",
+          "explanation": "Filters for residential dwellings within 3 km, the specified energy classes, and a green score of at least 59; orders by distance."
+        }
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "DEMO-00962",
+          "evaluation_text": "This residential dwelling is a strong initial match for a family nursery: its C energy class meets the stated preference, and its green-space proximity percentile of 92.0 is very high. The 165.0 sqm dataset area and residential designation are encouraging screening signals, but they do not establish how much net area is available in a room exclusively dedicated to children, nor do they confirm the required home conditions or authorization. The verified regional standard specifies at least 5 sqm of net useful area per child in that dedicated room, with a separate minimum of 15 sqm net useful area for that room; no verified gross-property-area threshold is provided. Check Turin planning compatibility, building and use-change title, hygiene, accessibility, fire safety where required, structural safety, and the applicable sector authorization procedure. Confirm which regulatory requirements apply on the application date, given the stated 2025 transition.",
+          "final_ranking_score": 91,
+          "pros": [
+            "Energy class C meets the user's stated preference; the energy score total is 14.",
+            "Green-space proximity is very high at 92.0 percentile.",
+            "Residential dwelling designation and 165.0 sqm dataset area make it a promising candidate for further suitability checks."
+          ],
+          "cons": [
+            "The dataset area does not establish the net useful area of a room exclusively dedicated to children; verify the 15 sqm room minimum and 5 sqm per child standard.",
+            "The required domestic conditions, including kitchen, bathroom, and outdoor space, are not confirmed in the supplied data.",
+            "Turin planning compatibility, building and use-change title, hygiene, accessibility, applicable fire and structural safety requirements, and sector authorization remain to be checked."
+          ]
+        },
+        "batch_id": 1,
+        "timestamp": "2026-11-18T14:51:02.086103",
+        "execution_time_ms": 21105.82661628723
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "DEMO-00134",
+          "evaluation_text": "This residential dwelling is a strong initial match for a family nursery, with energy class A1 exceeding the preference for C or better and a high green-space proximity score of 83.8. Its 68 sqm gross area and residential classification are encouraging context, but they do not establish that the home contains the required dedicated child space of at least 15 sqm net, or meet the applicable domestic, layout, or authorization requirements. The regulatory result identifies no verified gross-area threshold, so the dwelling’s total area cannot establish eligibility. Verify planning compatibility, building and use authorizations, hygiene, accessibility, safety, and the sector authorization procedure; also confirm which regulatory framework applies when submitting the application.",
+          "final_ranking_score": 91,
+          "pros": [
+            "Energy class A1 comfortably exceeds the requested C-or-better preference; the energy total is 13/20, with a strong envelope score of 5/5.",
+            "Green-space proximity is high at 83.8, aligning with the stated preference.",
+            "The property is classified as a residential dwelling, consistent with the residential-unit condition identified for a family nursery."
+          ],
+          "cons": [
+            "The 68 sqm figure is gross property area and does not confirm the required dedicated child space of at least 15 sqm net, nor the 5 sqm per child standard for that dedicated area.",
+            "The supplied data do not establish the required domestic features, room layout, hygiene, or accessibility; these need verification.",
+            "Planning compatibility, building and use authorizations, applicable safety requirements, and sector authorization remain to be checked; the regulatory result found no verified gross-area threshold."
+          ]
+        },
+        "batch_id": 2,
+        "timestamp": "2026-11-18T14:51:02.231077",
+        "execution_time_ms": 21250.192165374756
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "DEMO-01210",
+          "evaluation_text": "This 94 sqm residential dwelling in Turin is a promising candidate for a home-based nursery: its C energy class meets the stated preference, and its green-space proximity score is very high. The supplied data do not establish whether the home has the required dedicated child space, kitchen, bathroom, or outdoor area, nor whether the use is authorized. The regional standard specifies at least 15 sqm of net useful area exclusively dedicated to children and 5 sqm of that dedicated space per child; these figures do not set a minimum gross property area. Verify the applicable authorization rules at the time of application, along with planning compatibility, building title and any change-of-use requirements, hygiene, accessibility, fire safety where required, and structural safety.",
+          "final_ranking_score": 91,
+          "pros": [
+            "Residential dwelling, consistent with the stated preference for a home-based nursery.",
+            "Energy class C meets the preference for class C or better.",
+            "Very high green-space proximity score of 93.7, with strong education (95.7) and sports (95) proximity scores."
+          ],
+          "cons": [
+            "The energy component scores are modest: plant 2, envelope 2, renewables 1, and total 8; the energy class alone does not establish overall building performance.",
+            "The 94 sqm gross surface does not establish whether a dedicated room can meet the verified 15 sqm net minimum and 5 sqm per child standard, or whether the home has the required kitchen, bathroom, and outdoor space.",
+            "Planning compatibility, authorization and change-of-use needs, hygiene, accessibility, and applicable safety requirements are unverified; the supplied regulatory result identifies no verified gross-area threshold."
+          ]
+        },
+        "batch_id": 3,
+        "timestamp": "2026-11-18T14:51:02.595312",
+        "execution_time_ms": 21616.05954170227
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "DEMO-01488",
+          "evaluation_text": "This 240 sqm residential dwelling in Turin is a promising candidate for a home-based nursery: its B energy class exceeds the preferred C-or-better threshold, and its green-space proximity score is 69.1. The stated property type aligns with residential use, but the data do not establish the home layout, domestic facilities, or authorization needed for the proposed activity. Regional standards specify at least 15 sqm of net useful area exclusively dedicated to children and 5 sqm per child in that dedicated space; these figures do not establish that the dwelling’s gross area is sufficient. Urban-planning compatibility, sanitary and accessibility requirements, safety, and the applicable authorization procedure need verification. The supplied context also notes a 2025 regulatory transition whose applicability depends on the transfer of authorization responsibilities, so the rules in force at application time should be checked.",
+          "final_ranking_score": 89,
+          "pros": [
+            "Energy class B meets the preference for class C or better.",
+            "Green-space proximity score of 69.1 supports the stated preference for nearby green areas.",
+            "Residential dwelling type is consistent with the required residential setting, subject to verification of domestic facilities and other conditions."
+          ],
+          "cons": [
+            "The data do not confirm an exclusively dedicated children’s area meeting the 15 sqm net useful-area standard or the 5 sqm-per-child standard.",
+            "Turin planning compatibility, building-use status, and the required sector authorization have not been verified.",
+            "Accessibility, sanitary suitability, and applicable safety requirements need assessment; the property’s area and type alone do not establish compliance."
+          ]
+        },
+        "batch_id": 4,
+        "timestamp": "2026-11-18T14:51:02.683905",
+        "execution_time_ms": 21703.21249961853
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "DEMO-00133",
+          "evaluation_text": "This 243 sqm residential dwelling in Turin is a promising candidate for a family-based nursery: its B energy class meets the preference for C or better, and its green-space proximity score of 73.7 indicates a favorable location. The large recorded surface area may offer scope for adaptation, but it does not establish that the required dedicated children’s room or other domestic facilities are present. The verified regional standard specifies at least 15 sqm of net useful area exclusively dedicated to children, with 5 sqm per child; this applies to that room, not the dwelling’s gross area. Verify the applicable rules at the application date, urban-planning compatibility, authorization and change-of-use requirements, hygiene, accessibility, safety, and the required kitchen, bathroom, and outdoor space before proceeding.",
+          "final_ranking_score": 86,
+          "pros": [
+            "Residential dwelling in Turin, consistent with the intended home-based nursery use.",
+            "Energy class B meets the preference for C or better.",
+            "Green proximity score of 73.7 supports the preference for nearby green spaces."
+          ],
+          "cons": [
+            "The 243 sqm surface figure does not confirm the required dedicated room of at least 15 sqm net useful area or its layout.",
+            "The required kitchen, bathroom, and outdoor space are not documented in the property data.",
+            "Planning compatibility, authorization, applicable regulatory transition, hygiene, accessibility, and safety requirements need verification."
+          ]
+        },
+        "batch_id": 5,
+        "timestamp": "2026-11-18T14:51:32.704812",
+        "execution_time_ms": 30020.837545394897
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "DEMO-00401",
+          "evaluation_text": "This 128 sqm residential dwelling in Turin is a promising candidate for a home-based nursery: its A1 energy class exceeds the C-or-better preference, and its green-space proximity score is strong. The dataset’s surface area does not establish whether the dwelling has the required dedicated room or meets any gross-area threshold; the verified regional standard specifies at least 15 sqm net useful area exclusively dedicated to children, with 5 sqm per child. Confirm that the dwelling’s layout and domestic facilities meet the applicable requirements. Urban-planning compatibility, building title and use, health and safety standards, accessibility, and the applicable authorization procedure also require verification. The supplied regulatory result found no validated gross-area screening threshold, and the relevant rules may depend on the authorization regime in force when applying.",
+          "final_ranking_score": 87,
+          "pros": [
+            "A1 energy class comfortably meets the preference for class C or better.",
+            "Strong green-space proximity score of 84.8 supports the stated location preference.",
+            "Residential dwelling type aligns with the stated home-based nursery objective, subject to verification of required domestic facilities and layout."
+          ],
+          "cons": [
+            "The 128 sqm dataset area does not establish that a dedicated 15 sqm net useful room is available or that the layout is suitable.",
+            "Turin planning compatibility, building title or change-of-use requirements, and sector authorization remain to be checked.",
+            "Hygiene, accessibility, structural and fire-safety requirements, where applicable, are not established by the supplied property data."
+          ]
+        },
+        "batch_id": 6,
+        "timestamp": "2026-11-18T14:51:33.084458",
+        "execution_time_ms": 30852.798461914062
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "DEMO-00891",
+          "evaluation_text": "This residential dwelling has strong strategic potential for a family nursery, supported by its 196 sqm reported area, energy class C, and high green-space proximity score of 85. These indicators align well with the user’s preferences, while the existing residential classification is consistent with the stated domestic-use condition. The area figure is gross property data and does not establish the required net area, layout, or suitability of a dedicated children’s room. Before proceeding, verify the applicable rules at the application date, including the requirement for an exclusively dedicated room of at least 15 sqm net useful area and 5 sqm net useful area per child, as well as the home’s kitchen, bathroom, and outdoor-space conditions. Planning compatibility, permits or change of use, hygiene, accessibility, safety, structural compliance, and the sector authorization procedure also require confirmation.",
+          "final_ranking_score": 88,
+          "pros": [
+            "Residential dwelling, consistent with the stated requirement for a home-based setting.",
+            "Energy class C meets the stated preference for class C or better; plant and envelope subscores are both 4.",
+            "Green-space proximity score of 85 is strong and closely matches the user’s preference."
+          ],
+          "cons": [
+            "The 196 sqm surface-area figure does not establish the net area or layout of a dedicated children’s room; the specified room-area requirements need verification.",
+            "The supplied data do not confirm the required kitchen, bathroom, or outdoor-space conditions.",
+            "Turin planning compatibility, permits or change-of-use requirements, hygiene, accessibility, safety, structural compliance, and sector authorization remain to be checked."
+          ]
+        },
+        "batch_id": 7,
+        "timestamp": "2026-11-18T14:51:33.090889",
+        "execution_time_ms": 31005.440711975098
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "DEMO-01293",
+          "evaluation_text": "This 31.0 sqm residential dwelling in Turin has a strong initial fit with the stated preferences: it is energy class B and its green-space proximity percentile is 76.3. Its overall relevance score of 86 reflects the favorable energy and location profile, but suitability for a home-based nursery is not established by the available data. The verified 15 sqm net requirement applies to the room exclusively dedicated to children, and the 5 sqm per child figure is also a net room-area metric; neither can be assessed from the gross property area alone. Confirm that the dwelling can provide the required dedicated room and domestic facilities, and complete the listed planning, building, health, accessibility, safety, and sector authorization checks. Verify which regional rules apply when submitting an application.",
+          "final_ranking_score": 86,
+          "pros": [
+            "Energy class B meets the preference for class C or better.",
+            "Green-space proximity percentile of 76.3 aligns with the preference for nearby green areas.",
+            "Residential dwelling type is consistent with the stated home-based nursery concept, subject to confirming applicable requirements."
+          ],
+          "cons": [
+            "At 31.0 sqm gross, the dwelling’s ability to accommodate an exclusively dedicated children’s room of at least 15 sqm net and the required domestic facilities is uncertain; the supplied area does not establish room-level compliance.",
+            "The data do not establish urban-planning compatibility, building-use permissions, sanitary suitability, accessibility, fire or structural safety, or sector authorization.",
+            "No renewable energy source is recorded, and the energy total is 12, leaving room for improvement despite the favorable class B rating."
+          ]
+        },
+        "batch_id": 8,
+        "timestamp": "2026-11-18T14:51:36.888969",
+        "execution_time_ms": 34293.9395904541
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "DEMO-00369",
+          "evaluation_text": "This 106 sqm residential dwelling in Turin is a promising candidate for a home-based nursery: its residential use aligns with the stated domestic setting, its energy class C meets your preference, and its green-space proximity score of 77.9 supports your preference for nearby green areas. The supplied data do not establish whether the home has a suitable layout or the required dedicated children’s space, kitchen, bathroom, and outdoor space. The regional standard specifies 5 sqm of net useful area per child in the space dedicated to children, with a verified minimum of 15 sqm net useful area for that dedicated room; these figures do not establish that the dwelling’s 106 sqm gross area is sufficient. Turin planning compatibility, building and use-change permissions, hygiene, accessibility, applicable safety requirements, and sector authorization require verification. Check which regulatory requirements apply on the application date, given the stated transition to D.G.R. 3-1937/2025.",
+          "final_ranking_score": 84,
+          "pros": [
+            "Residential dwelling type aligns with the home-based setting, subject to confirming any required permissions and conditions.",
+            "Energy class C meets the stated efficiency preference; plant and envelope scores are medium (3 each).",
+            "Green-space proximity score of 77.9 supports the preference for nearby green areas; commercial services also score highly at 86.6."
+          ],
+          "cons": [
+            "The 106 sqm surface area does not establish the net useful area or layout of a dedicated children’s room; verify the 15 sqm net minimum and 5 sqm per child standard.",
+            "The supplied data do not confirm a kitchen, bathroom, or outdoor space, which are listed domestic conditions.",
+            "Planning compatibility, building title or use change, hygiene, accessibility, applicable safety requirements, and sector authorization remain to be checked; the applicable rules may depend on the application date."
+          ]
+        },
+        "batch_id": 9,
+        "timestamp": "2026-11-18T14:51:43.992908",
+        "execution_time_ms": 10909.576654434204
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "DEMO-00706",
+          "evaluation_text": "This 163 sqm residential dwelling in Turin is a strong initial match for a home-based nursery: it meets the stated energy preference at class C and has a relatively high green-space proximity score of 78.1. Its residential use aligns with the stated home setting, while the available data do not establish the layout, dedicated net usable area, or suitability of its kitchen, bathroom, and outdoor space. The verified regional standard requires at least 15 sqm of net useful area exclusively dedicated to children, with 5 sqm per child; this is a room-specific measure and cannot be inferred from the 163 sqm property area. Urban-planning compatibility, authorization, change-of-use requirements, hygiene, accessibility, safety, and the applicable regulatory transition must be checked. The score of 86 reflects the strong overall ranking, but does not establish regulatory or technical feasibility.",
+          "final_ranking_score": 86,
+          "pros": [
+            "Residential dwelling type is aligned with the requested home-based setting, subject to checks on its actual facilities and authorization.",
+            "Energy class C meets the user's stated preference for class C or better.",
+            "Green-space proximity score of 78.1 supports the preference for nearby green areas."
+          ],
+          "cons": [
+            "The property's 163 sqm area does not establish that a dedicated children's room meets the verified 15 sqm net-useful-area minimum or the 5 sqm-per-child standard.",
+            "No floor plan or facility details confirm the required dedicated space, kitchen, bathroom, or outdoor space.",
+            "PRG compatibility, authorization and change-of-use requirements, hygiene, accessibility, safety, and the rules applicable at the application date remain to be verified."
+          ]
+        },
+        "batch_id": 10,
+        "timestamp": "2026-11-18T14:51:44.305319",
+        "execution_time_ms": 11600.692987442017
+      }
+    ],
+    "evaluation_results": [
+      {
+        "id": "DEMO-01210",
+        "evaluation_text": "This 94 sqm residential dwelling in Turin is a promising candidate for a home-based nursery: its C energy class meets the stated preference, and its green-space proximity score is very high. The supplied data do not establish whether the home has the required dedicated child space, kitchen, bathroom, or outdoor area, nor whether the use is authorized. The regional standard specifies at least 15 sqm of net useful area exclusively dedicated to children and 5 sqm of that dedicated space per child; these figures do not set a minimum gross property area. Verify the applicable authorization rules at the time of application, along with planning compatibility, building title and any change-of-use requirements, hygiene, accessibility, fire safety where required, and structural safety.",
+        "final_ranking_score": 91,
+        "pros": [
+          "Residential dwelling, consistent with the stated preference for a home-based nursery.",
+          "Energy class C meets the preference for class C or better.",
+          "Very high green-space proximity score of 93.7, with strong education (95.7) and sports (95) proximity scores."
+        ],
+        "cons": [
+          "The energy component scores are modest: plant 2, envelope 2, renewables 1, and total 8; the energy class alone does not establish overall building performance.",
+          "The 94 sqm gross surface does not establish whether a dedicated room can meet the verified 15 sqm net minimum and 5 sqm per child standard, or whether the home has the required kitchen, bathroom, and outdoor space.",
+          "Planning compatibility, authorization and change-of-use needs, hygiene, accessibility, and applicable safety requirements are unverified; the supplied regulatory result identifies no verified gross-area threshold."
+        ]
+      },
+      {
+        "id": "DEMO-00962",
+        "evaluation_text": "This residential dwelling is a strong initial match for a family nursery: its C energy class meets the stated preference, and its green-space proximity percentile of 92.0 is very high. The 165.0 sqm dataset area and residential designation are encouraging screening signals, but they do not establish how much net area is available in a room exclusively dedicated to children, nor do they confirm the required home conditions or authorization. The verified regional standard specifies at least 5 sqm of net useful area per child in that dedicated room, with a separate minimum of 15 sqm net useful area for that room; no verified gross-property-area threshold is provided. Check Turin planning compatibility, building and use-change title, hygiene, accessibility, fire safety where required, structural safety, and the applicable sector authorization procedure. Confirm which regulatory requirements apply on the application date, given the stated 2025 transition.",
+        "final_ranking_score": 91,
+        "pros": [
+          "Energy class C meets the user's stated preference; the energy score total is 14.",
+          "Green-space proximity is very high at 92.0 percentile.",
+          "Residential dwelling designation and 165.0 sqm dataset area make it a promising candidate for further suitability checks."
+        ],
+        "cons": [
+          "The dataset area does not establish the net useful area of a room exclusively dedicated to children; verify the 15 sqm room minimum and 5 sqm per child standard.",
+          "The required domestic conditions, including kitchen, bathroom, and outdoor space, are not confirmed in the supplied data.",
+          "Turin planning compatibility, building and use-change title, hygiene, accessibility, applicable fire and structural safety requirements, and sector authorization remain to be checked."
+        ]
+      },
+      {
+        "id": "DEMO-00134",
+        "evaluation_text": "This residential dwelling is a strong initial match for a family nursery, with energy class A1 exceeding the preference for C or better and a high green-space proximity score of 83.8. Its 68 sqm gross area and residential classification are encouraging context, but they do not establish that the home contains the required dedicated child space of at least 15 sqm net, or meet the applicable domestic, layout, or authorization requirements. The regulatory result identifies no verified gross-area threshold, so the dwelling’s total area cannot establish eligibility. Verify planning compatibility, building and use authorizations, hygiene, accessibility, safety, and the sector authorization procedure; also confirm which regulatory framework applies when submitting the application.",
+        "final_ranking_score": 91,
+        "pros": [
+          "Energy class A1 comfortably exceeds the requested C-or-better preference; the energy total is 13/20, with a strong envelope score of 5/5.",
+          "Green-space proximity is high at 83.8, aligning with the stated preference.",
+          "The property is classified as a residential dwelling, consistent with the residential-unit condition identified for a family nursery."
+        ],
+        "cons": [
+          "The 68 sqm figure is gross property area and does not confirm the required dedicated child space of at least 15 sqm net, nor the 5 sqm per child standard for that dedicated area.",
+          "The supplied data do not establish the required domestic features, room layout, hygiene, or accessibility; these need verification.",
+          "Planning compatibility, building and use authorizations, applicable safety requirements, and sector authorization remain to be checked; the regulatory result found no verified gross-area threshold."
+        ]
+      },
+      {
+        "id": "DEMO-01488",
+        "evaluation_text": "This 240 sqm residential dwelling in Turin is a promising candidate for a home-based nursery: its B energy class exceeds the preferred C-or-better threshold, and its green-space proximity score is 69.1. The stated property type aligns with residential use, but the data do not establish the home layout, domestic facilities, or authorization needed for the proposed activity. Regional standards specify at least 15 sqm of net useful area exclusively dedicated to children and 5 sqm per child in that dedicated space; these figures do not establish that the dwelling’s gross area is sufficient. Urban-planning compatibility, sanitary and accessibility requirements, safety, and the applicable authorization procedure need verification. The supplied context also notes a 2025 regulatory transition whose applicability depends on the transfer of authorization responsibilities, so the rules in force at application time should be checked.",
+        "final_ranking_score": 89,
+        "pros": [
+          "Energy class B meets the preference for class C or better.",
+          "Green-space proximity score of 69.1 supports the stated preference for nearby green areas.",
+          "Residential dwelling type is consistent with the required residential setting, subject to verification of domestic facilities and other conditions."
+        ],
+        "cons": [
+          "The data do not confirm an exclusively dedicated children’s area meeting the 15 sqm net useful-area standard or the 5 sqm-per-child standard.",
+          "Turin planning compatibility, building-use status, and the required sector authorization have not been verified.",
+          "Accessibility, sanitary suitability, and applicable safety requirements need assessment; the property’s area and type alone do not establish compliance."
+        ]
+      },
+      {
+        "id": "DEMO-00891",
+        "evaluation_text": "This residential dwelling has strong strategic potential for a family nursery, supported by its 196 sqm reported area, energy class C, and high green-space proximity score of 85. These indicators align well with the user’s preferences, while the existing residential classification is consistent with the stated domestic-use condition. The area figure is gross property data and does not establish the required net area, layout, or suitability of a dedicated children’s room. Before proceeding, verify the applicable rules at the application date, including the requirement for an exclusively dedicated room of at least 15 sqm net useful area and 5 sqm net useful area per child, as well as the home’s kitchen, bathroom, and outdoor-space conditions. Planning compatibility, permits or change of use, hygiene, accessibility, safety, structural compliance, and the sector authorization procedure also require confirmation.",
+        "final_ranking_score": 88,
+        "pros": [
+          "Residential dwelling, consistent with the stated requirement for a home-based setting.",
+          "Energy class C meets the stated preference for class C or better; plant and envelope subscores are both 4.",
+          "Green-space proximity score of 85 is strong and closely matches the user’s preference."
+        ],
+        "cons": [
+          "The 196 sqm surface-area figure does not establish the net area or layout of a dedicated children’s room; the specified room-area requirements need verification.",
+          "The supplied data do not confirm the required kitchen, bathroom, or outdoor-space conditions.",
+          "Turin planning compatibility, permits or change-of-use requirements, hygiene, accessibility, safety, structural compliance, and sector authorization remain to be checked."
+        ]
+      },
+      {
+        "id": "DEMO-00401",
+        "evaluation_text": "This 128 sqm residential dwelling in Turin is a promising candidate for a home-based nursery: its A1 energy class exceeds the C-or-better preference, and its green-space proximity score is strong. The dataset’s surface area does not establish whether the dwelling has the required dedicated room or meets any gross-area threshold; the verified regional standard specifies at least 15 sqm net useful area exclusively dedicated to children, with 5 sqm per child. Confirm that the dwelling’s layout and domestic facilities meet the applicable requirements. Urban-planning compatibility, building title and use, health and safety standards, accessibility, and the applicable authorization procedure also require verification. The supplied regulatory result found no validated gross-area screening threshold, and the relevant rules may depend on the authorization regime in force when applying.",
+        "final_ranking_score": 87,
+        "pros": [
+          "A1 energy class comfortably meets the preference for class C or better.",
+          "Strong green-space proximity score of 84.8 supports the stated location preference.",
+          "Residential dwelling type aligns with the stated home-based nursery objective, subject to verification of required domestic facilities and layout."
+        ],
+        "cons": [
+          "The 128 sqm dataset area does not establish that a dedicated 15 sqm net useful room is available or that the layout is suitable.",
+          "Turin planning compatibility, building title or change-of-use requirements, and sector authorization remain to be checked.",
+          "Hygiene, accessibility, structural and fire-safety requirements, where applicable, are not established by the supplied property data."
+        ]
+      },
+      {
+        "id": "DEMO-01293",
+        "evaluation_text": "This 31.0 sqm residential dwelling in Turin has a strong initial fit with the stated preferences: it is energy class B and its green-space proximity percentile is 76.3. Its overall relevance score of 86 reflects the favorable energy and location profile, but suitability for a home-based nursery is not established by the available data. The verified 15 sqm net requirement applies to the room exclusively dedicated to children, and the 5 sqm per child figure is also a net room-area metric; neither can be assessed from the gross property area alone. Confirm that the dwelling can provide the required dedicated room and domestic facilities, and complete the listed planning, building, health, accessibility, safety, and sector authorization checks. Verify which regional rules apply when submitting an application.",
+        "final_ranking_score": 86,
+        "pros": [
+          "Energy class B meets the preference for class C or better.",
+          "Green-space proximity percentile of 76.3 aligns with the preference for nearby green areas.",
+          "Residential dwelling type is consistent with the stated home-based nursery concept, subject to confirming applicable requirements."
+        ],
+        "cons": [
+          "At 31.0 sqm gross, the dwelling’s ability to accommodate an exclusively dedicated children’s room of at least 15 sqm net and the required domestic facilities is uncertain; the supplied area does not establish room-level compliance.",
+          "The data do not establish urban-planning compatibility, building-use permissions, sanitary suitability, accessibility, fire or structural safety, or sector authorization.",
+          "No renewable energy source is recorded, and the energy total is 12, leaving room for improvement despite the favorable class B rating."
+        ]
+      },
+      {
+        "id": "DEMO-00133",
+        "evaluation_text": "This 243 sqm residential dwelling in Turin is a promising candidate for a family-based nursery: its B energy class meets the preference for C or better, and its green-space proximity score of 73.7 indicates a favorable location. The large recorded surface area may offer scope for adaptation, but it does not establish that the required dedicated children’s room or other domestic facilities are present. The verified regional standard specifies at least 15 sqm of net useful area exclusively dedicated to children, with 5 sqm per child; this applies to that room, not the dwelling’s gross area. Verify the applicable rules at the application date, urban-planning compatibility, authorization and change-of-use requirements, hygiene, accessibility, safety, and the required kitchen, bathroom, and outdoor space before proceeding.",
+        "final_ranking_score": 86,
+        "pros": [
+          "Residential dwelling in Turin, consistent with the intended home-based nursery use.",
+          "Energy class B meets the preference for C or better.",
+          "Green proximity score of 73.7 supports the preference for nearby green spaces."
+        ],
+        "cons": [
+          "The 243 sqm surface figure does not confirm the required dedicated room of at least 15 sqm net useful area or its layout.",
+          "The required kitchen, bathroom, and outdoor space are not documented in the property data.",
+          "Planning compatibility, authorization, applicable regulatory transition, hygiene, accessibility, and safety requirements need verification."
+        ]
+      },
+      {
+        "id": "DEMO-00706",
+        "evaluation_text": "This 163 sqm residential dwelling in Turin is a strong initial match for a home-based nursery: it meets the stated energy preference at class C and has a relatively high green-space proximity score of 78.1. Its residential use aligns with the stated home setting, while the available data do not establish the layout, dedicated net usable area, or suitability of its kitchen, bathroom, and outdoor space. The verified regional standard requires at least 15 sqm of net useful area exclusively dedicated to children, with 5 sqm per child; this is a room-specific measure and cannot be inferred from the 163 sqm property area. Urban-planning compatibility, authorization, change-of-use requirements, hygiene, accessibility, safety, and the applicable regulatory transition must be checked. The score of 86 reflects the strong overall ranking, but does not establish regulatory or technical feasibility.",
+        "final_ranking_score": 86,
+        "pros": [
+          "Residential dwelling type is aligned with the requested home-based setting, subject to checks on its actual facilities and authorization.",
+          "Energy class C meets the user's stated preference for class C or better.",
+          "Green-space proximity score of 78.1 supports the preference for nearby green areas."
+        ],
+        "cons": [
+          "The property's 163 sqm area does not establish that a dedicated children's room meets the verified 15 sqm net-useful-area minimum or the 5 sqm-per-child standard.",
+          "No floor plan or facility details confirm the required dedicated space, kitchen, bathroom, or outdoor space.",
+          "PRG compatibility, authorization and change-of-use requirements, hygiene, accessibility, safety, and the rules applicable at the application date remain to be verified."
+        ]
+      },
+      {
+        "id": "DEMO-00369",
+        "evaluation_text": "This 106 sqm residential dwelling in Turin is a promising candidate for a home-based nursery: its residential use aligns with the stated domestic setting, its energy class C meets your preference, and its green-space proximity score of 77.9 supports your preference for nearby green areas. The supplied data do not establish whether the home has a suitable layout or the required dedicated children’s space, kitchen, bathroom, and outdoor space. The regional standard specifies 5 sqm of net useful area per child in the space dedicated to children, with a verified minimum of 15 sqm net useful area for that dedicated room; these figures do not establish that the dwelling’s 106 sqm gross area is sufficient. Turin planning compatibility, building and use-change permissions, hygiene, accessibility, applicable safety requirements, and sector authorization require verification. Check which regulatory requirements apply on the application date, given the stated transition to D.G.R. 3-1937/2025.",
+        "final_ranking_score": 84,
+        "pros": [
+          "Residential dwelling type aligns with the home-based setting, subject to confirming any required permissions and conditions.",
+          "Energy class C meets the stated efficiency preference; plant and envelope scores are medium (3 each).",
+          "Green-space proximity score of 77.9 supports the preference for nearby green areas; commercial services also score highly at 86.6."
+        ],
+        "cons": [
+          "The 106 sqm surface area does not establish the net useful area or layout of a dedicated children’s room; verify the 15 sqm net minimum and 5 sqm per child standard.",
+          "The supplied data do not confirm a kitchen, bathroom, or outdoor space, which are listed domestic conditions.",
+          "Planning compatibility, building title or use change, hygiene, accessibility, applicable safety requirements, and sector authorization remain to be checked; the applicable rules may depend on the application date."
+        ]
+      }
+    ],
+    "relaxation_applied": false,
+    "relaxation_count": 0,
+    "fallback_activated": false,
+    "agent_errors": []
+  }
+}
