@@ -74,24 +74,11 @@
 %% test
 
 \begin{abstract}
-MURENA~\cite{deluca2026murena} is a framework that translates natural-language requests into structured requirements,
-database searches, and explainable real-estate portfolio rankings, but
-assumes that the initial request is sufficiently specified. We demonstrate
-a conversational stage that clarifies unresolved requirements
-\emph{before} the original multi-agent pipeline runs. It tracks the state
-of MURENA's six query dimensions, separates unconfirmed omissions from
-explicit non-preferences, asks one targeted question per turn in an order
-inspired by the EVPI criterion of SAGE-Agent, and requires the user to
-review and confirm a rewritten request. In a controlled-omission
-benchmark with Claude Haiku 5.5 (304 cooperative runs over eight
-intents), refined queries reach top-5 Jaccard agreement 0.88 and
-filter-atom $F_1$ 0.98 against an oracle query, on par with the oracle's
-own run-to-run agreement (0.87), compared with 0.16 and 0.61 for one-shot.
-In a separate Codex series with simulated imperfect users, explicit declines
-were recorded as non-preferences in all 105 runs and vague answers triggered
-a follow-up in all 120; refined filters had $F_1$ 1.00 and top-5 agreement
-0.74 against that series' oracle. Attendees drive the system with their own
-requests, and an offline mode replays recorded benchmark scenarios.
+% MURENA~\cite{deluca2026murena} is a framework that translates natural-language requests into structured requirements,
+% database searches, and explainable real-estate portfolio rankings, but assumes that the initial request is sufficiently specified. We present a conversational stage that clarifies unresolved requirements prior to running the original multi-agent pipeline. It tracks the state of MURENA's query dimensions, separates unconfirmed omissions from explicit non-preferences, asks one targeted question per turn in an order inspired by the EVPI criterion of SAGE-Agent, and requires the user to review and confirm a rewritten request. In a controlled-omission benchmark with Claude Haiku 5.5 (304 cooperative runs over eight intents), refined queries reach top-5 Jaccard agreement 0.88 and filter-atom $F_1$ 0.98 against an oracle query, on par with the oracle's own run-to-run agreement (0.87), compared with 0.16 and 0.61 for one-shot runs. In a separate series with simulated imperfect users, explicit declines were recorded as non-preferences in all 105 runs and vague answers triggered a follow-up in all 120 runs. Attendees drive the system with their own
+% requests, and an offline mode replays recorded benchmark scenarios.
+
+Real estate searches often begin with incomplete requests, leaving important preferences unresolved and affecting portfolio recommendations. We extend MURENA~\cite{deluca2026murena} with a conversational clarification stage that resolves missing requirements before executing its multi-agent search-and-ranking pipeline. The system tracks confirmed preferences, distinguishes omitted requirements from explicit non-preferences, and selects targeted questions using an ordering inspired by the Expected Value of Perfect Information (EVPI). Users then review and confirm the refined request. Across 304 simulated interactions covering eight search intents, clarification increased top-5 portfolio Jaccard agreement with an oracle query from 0.16 to 0.88, matching the oracle's run-to-run agreement of 0.87. Filter agreement also improved, with F1 rising from 0.61 to 0.98. Additional tests confirmed consistent handling of explicit declines and ambiguous answers across 225 simulated interactions. The live demo lets attendees explore MURENA using their own real estate requests or replay benchmark scenarios offline.\SIMONE{Chiudere con una frasetta del genere per la demo?}
 \end{abstract}
 \keywords{conversational query clarification, requirement elicitation,
 real-estate decision support, multi-agent systems, text-to-SQL}
@@ -99,57 +86,27 @@ real-estate decision support, multi-agent systems, text-to-SQL}
 
 \section{Introduction}
 \label{sec:intro}
-MURENA~\cite{deluca2026murena} supports large-scale real-estate screening
-through natural-language input, specialized domain agents, SQL-based
-filtering, multi-criteria scoring, and explanations. Its paper
-acknowledges that the approach assumes a sufficiently specified initial
-request. Real tasks often start from a broad objective: a user may state
-a future use for a building without the floor area, energy, or location
-criteria that matter to the decision, and the pipeline then silently
-runs without them.
 
-Omission is not always an error. MURENA's dimensions are optional, and a
-user may genuinely have no preference about energy class. The problem is
-therefore not to fill every field, but to tell which information is
-still unresolved and to obtain a request the user has confirmed.
+MURENA~\cite{deluca2026murena} supports large-scale real-estate screening by translating natural-language requests into database queries, multi-criteria portfolio rankings, and explanations through specialized domain agents. However, its pipeline assumes that requests are sufficiently specified. Users often describe broad objectives without stating relevant constraints, such as floor area, energy efficiency, or location. These omissions can affect portfolio rankings because the pipeline proceeds without seeking clarification.
 
-We present \emph{Conversational MURENA}, a pre-analysis clarification
-stage. The demonstration contributes (i)~stateful elicitation over the
-existing dimensions with explicit recording of non-preferences,
-(ii)~a question order adapted from the SAGE-Agent
-method~\cite{suri2026sage} and a mandatory review step, (iii)~a three-condition benchmark protocol that
-separates the cost of missing information from the effectiveness and
-cost of recovering it, complemented by simulated users who decline or
-answer vaguely. With clarification, top-5 agreement with the oracle rises
-from 0.16 to 0.88, matching the oracle's own run-to-run agreement, and
-no question is asked when nothing is missing. Attendees drive the full
-interaction, from their own request to portfolio screening.
+Missing information does not necessarily indicate an incomplete request. MURENA's search dimensions are optional, and users may deliberately leave some unconstrained. The challenge is to distinguish unresolved requirements from explicit non-preferences and obtain a request that accurately reflects the user's intentions.
+
+We introduce \emph{Conversational MURENA}, an interactive clarification stage that extends the existing multi-agent architecture before database screening. The demonstration makes the following contributions:
+\begin{itemize}
+    \item A stateful requirement elicitation mechanism that tracks confirmed and unresolved constraints, records explicit non-preferences, and selects targeted questions using an ordering inspired by SAGE-Agent~\cite{suri2026sage}. A mandatory review step lets users confirm the refined request before execution.
+
+    \item A three-condition benchmark comparing complete oracle requests, incomplete one-shot requests, and interactively clarified requests. This protocol separates the impact of missing information from the effectiveness and interaction cost of recovering it. Across 304 simulated interactions, clarification increases top-5 portfolio agreement with the oracle from 0.16 to 0.88, comparable to the oracle's run-to-run agreement of 0.87. Additional tests assess explicit declines and ambiguous answers.
+\end{itemize}
+
+End users can interact with the complete system, starting with their own real estate requests, answering clarification questions, and examining the resulting portfolio rankings and explanations. Recorded benchmark scenarios enable offline demonstrations of incomplete requests, ambiguous answers, and explicit non-preferences.
+\SIMONE{Ho rifrasato un po', ma non so se formalizzare meglio le contributions. @marco che dici? Chat dice sia meglio separare i contributi scientifici da quello della demo in sé}
 
 \section{Related Work}
 \label{sec:related}
-\emph{Clarification in LLMs.} CLAMBER~\cite{zhang2024clamber} shows
-that LLMs are weak at \emph{identifying} ambiguous information needs,
-and QuestBench~\cite{li2025questbench} casts clarification as finding
-the minimal necessary question in underspecified reasoning tasks.
-SAGE-Agent~\cite{suri2026sage} models uncertainty over tool parameters,
-ranks candidate questions by expected value of perfect information
-(EVPI), and penalizes redundant questions on the same aspect; our
-question ordering adapts this idea heuristically.
+\emph{Clarification in LLMs.} CLAMBER~\cite{zhang2024clamber} shows that LLMs struggle to \emph{identify} ambiguous information needs, while QuestBench~\cite{li2025questbench} evaluates their ability to select necessary clarification questions in underspecified reasoning tasks. SAGE-Agent~\cite{suri2026sage} models uncertainty over tool parameters, ranks candidate questions by expected value of perfect information (EVPI), and penalizes redundant questions on the same aspect; our question ordering adapts this idea heuristically.
+
 \emph{Ambiguity and interaction for data access.}
-AmbiQT~\cite{bhaskar2023ambiqt}, AMBROSIA~\cite{saparina2024ambrosia},
-and PRACTIQ~\cite{dong2025practiq} benchmark ambiguous or unanswerable
-text-to-SQL questions; AMBROSIA also reports that LLMs struggle to
-recognize ambiguity. Sphinteract~\cite{zhao2024sphinteract} has an
-LLM ask targeted clarification questions to resolve NL2SQL ambiguity,
-AmbiSQL~\cite{ding2026ambisql} demonstrates
-multiple-choice clarification before SQL generation,
-FISQL~\cite{menon2025fisql} refines SQL through user feedback, and
-COOL~\cite{francia2021cool} disambiguates conversational OLAP sessions.
-These systems resolve ambiguity with respect to a database schema or a
-generated query. We instead elicit \emph{domain requirements} for a
-fixed six-dimension template (use, location, building, energy,
-proximity) before a multi-agent screening pipeline, and evaluate
-recovery per dimension and through its effect on the ranked portfolio.
+AmbiQT~\cite{bhaskar2023ambiqt}, AMBROSIA~\cite{saparina2024ambrosia}, and PRACTIQ~\cite{dong2025practiq} benchmark ambiguous or unanswerable text-to-SQL questions; AMBROSIA also reports that LLMs struggle to recognize ambiguity. Sphinteract~\cite{zhao2024sphinteract} asks targeted clarification questions to resolve NL2SQL ambiguity, AmbiSQL~\cite{ding2026ambisql} demonstrates multiple-choice clarification before SQL generation, FISQL~\cite{menon2025fisql} refines SQL through user feedback, and COOL~\cite{francia2021cool} disambiguates conversational OLAP sessions. These approaches primarily address ambiguity in database queries or their interpretation. We instead elicit \emph{domain requirements} across MURENA's predefined search dimensions, evaluating their recovery and impact on downstream portfolio rankings.
 
 \section{System}
 \label{sec:system}
