@@ -97,3 +97,13 @@ PDF rigenerato con Tectonic e controllato visivamente: 4 pagine. Resta un overfu
   5. Conferma, analisi (circa 50 s) e mappa con 22 immobili e top 10 giustificata.
 - **Valore:** è una singola esecuzione dimostrativa, coerente con il comportamento misurato nella serie "utente imperfetto". Non è un risultato e non va citata come tale.
 - **Da fare:** il paper non contiene ancora il link al video. La GIF non ha audio: il video finale, con commento, va prodotto e caricato dagli autori.
+
+## Fonte e licenza dei dati APE (2026-11-18)
+
+- **Testo nel paper:** il paragrafo Availability indica gli APE in formato ridotto della Regione Piemonte come open data CC BY 4.0 e rimanda a `https://www.dati.piemonte.it/#/catalogo`.
+- **Verifica:** sulla scheda del catalogo, il 2026-11-18. La scheda è "Dettaglio attestato di prestazione/certificazione energetica (APE)", identificativo `regpie_ckan_ckan2_yucca_sdp_smartdatanet.it_Sicee_v_t_export_bo_ape_18895`.
+  - Titolare: Regione Piemonte; pubblicato da CSI-Piemonte, fonte Yucca SDP.
+  - Licenza: "Creative Commons Attribuzione 4.0 Internazionale".
+  - Dimensioni e aggiornamento: 79 colonne e 1.324.334 righe; aggiornamento mensile; dataset aggiornato il 2/11/2026.
+- **Limite:** il paper non dichiara quale estrazione mensile sia stata usata per costruire `estates.parquet`. La provenienza della pipeline è in `docs/estates_parquet.md`.
+- **Ancora mancante:** il link al video, in preparazione da parte di Marco De Luca.

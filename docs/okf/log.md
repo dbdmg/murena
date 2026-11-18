@@ -2,6 +2,14 @@
 
 ## 2026-11-18
 
+* **Paper, paragrafo Availability:** aggiunti portale e licenza dei dati APE.
+  * Fonte: catalogo `https://www.dati.piemonte.it/#/catalogo`, verificato il 2026-11-18.
+  * Dataset: "Dettaglio attestato di prestazione/certificazione energetica (APE)" di Regione Piemonte, pubblicato da CSI-Piemonte (Yucca SDP).
+  * Licenza: Creative Commons Attribuzione 4.0 Internazionale.
+  * Dimensioni e aggiornamento: 79 colonne e 1.324.334 righe alla data di verifica; aggiornamento mensile.
+  * PDF rigenerato in locale (4 pagine), non committato.
+  * Il link al video lo prepara Marco De Luca.
+
 * **Esecuzioni v4 con modelli alternativi:** registrate in `research/edbt-conversational-benchmark.md` le directory e lo stato delle serie Codex / ChatGPT 6 Luna (270 tentativi: 233 completati, 37 errori) e vLLM / Qwen 3.8 (in corso; 8 run completate al controllo). Nessun risultato v4 è stato aggiunto al paper.
 
 * **Punteggi top-10 nel benchmark:** il runner richiede un punteggio finito per ciascun risultato top e l'export demo completa il punteggio dalle valutazioni salvate quando necessario, fallendo con un errore esplicito se manca. Il carosello backend continua a richiedere il punteggio per classificare un risultato come top pick. Dettaglio in `frontend/ui-routes.md`.
