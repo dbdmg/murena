@@ -9,6 +9,10 @@
   * Il runner corrente non ha più `--seed`, quindi i job girano in ordine fisso e non interleaved come nella serie del 17-11.
   * La serie imperfetta precedente (codice `c7b9f7a`, 264 run completate su 265) è conservata in `results/imperfect_user_haiku_c7b9f7a` come superata.
   * Il paper usa ancora i numeri della serie del 17-11. Sarà aggiornato a serie concluse, senza combinare le serie.
+  * Stato alle 07:25 (UTC+1):
+    * Lanciata verso le 04:10, l'esecuzione è rimasta ferma mentre il computer era in sospensione ed è ripartita verso le 07:00.
+    * Fermata alle 07:25 per lo spegnimento, con 117 run su 304 della serie cooperativa completate e nessun errore. La serie imperfetta non è ancora partita.
+    * Alla ripresa vanno rilanciati gli stessi comandi, sullo stesso codice e con la stessa configurazione: il runner salta le run già registrate. Le run interrotte in corso non sono registrate e vengono rieseguite.
 
 * **SAGE: la soglia di arresto EVPI non scarta più domande su omissioni non confermate** (`_select_question`):
   * Il test di arresto (`score < SAGE_EVPI_STOP_ALPHA × max belief`, applicato solo a domande con alternative enumerabili) poteva scartare la domanda su una dimensione `UNCONFIRMED_ABSENT` o `MISSING_CRITICAL`. `_ready` richiede però che quella dimensione sia risolta o rifiutata, quindi la sessione finiva `BLOCKED` senza aver posto la domanda. Ora il test si applica solo a domande che non coprono omissioni o dettagli critici.
