@@ -1,0 +1,711 @@
+{
+  "run_id": "bench_3908d816d7b0",
+  "condition": "one_shot",
+  "unit_id": "S07_k3_D_Cb_Cp_all_optout",
+  "scenario_id": "S07_k3_D_Cb_Cp_all_optout",
+  "base_case_id": "S07",
+  "missing_count": 3,
+  "scenario_name": "3 omitted dimensions; intended use: Senior Residential Care (RSA); balance: 0 specified, 0 vague, 3 opt-out",
+  "tags": [
+    "edbt",
+    "controlled_missingness_v3",
+    "missing_3",
+    "UC07_RSA_missing_use",
+    "imperfect_user_v4",
+    "spec_0",
+    "vague_0",
+    "optout_3",
+    "balance_0_0_3"
+  ],
+  "model": "gpt-6-luna",
+  "repeat": 1,
+  "attempt": 1,
+  "input_sha256": "c5297b990557cec5d3892833f9df05c31725582ee0137e1007d039196f0d7be4",
+  "scenario_sha256": "d571a42408f4281d90af2287f06e66e46c141675522d6ed4ab319cafdfa7cee8",
+  "initial_query": "I am looking for a hotel building. The location is in Turin. I prefer a property in energy class D or better.",
+  "options": {
+    "dataset_key": "full",
+    "map_limit": 1000,
+    "llm_limit": 10,
+    "analysis_mode": "agent",
+    "use_relaxation": true,
+    "use_data_knowledge": true,
+    "architecture": "multiagent",
+    "disabled_agents": null
+  },
+  "started_at": "2026-11-18T14:10:58.659664+00:00",
+  "clarification_seconds": null,
+  "analysis_seconds": 98.47,
+  "submitted_query": "I am looking for a hotel building. The location is in Turin. I prefer a property in energy class D or better.",
+  "status": "completed",
+  "results_count": 11,
+  "top_ids": [
+    "12669",
+    "18989",
+    "2863",
+    "M00441",
+    "23211",
+    "10344",
+    "3490",
+    "16496",
+    "16497",
+    "M02454"
+  ],
+  "quality": {
+    "expected_count": 0,
+    "matched_expected": null,
+    "precision_at_returned": null,
+    "recall": null
+  },
+  "final_sql": "SELECT\n  *\nFROM ESTATES\nWHERE\n  property_type IN ('Hotels, pensions, and similar', 'Residential (Temporary/Holiday)')\n  AND energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C', 'D', 'E')\n  AND HAVERSINE_KM(latitude, longitude, 45.0677551, 7.6824892) <= 4.0\nORDER BY\n  HAVERSINE_KM(latitude, longitude, 45.0677551, 7.6824892) ASC",
+  "duration_seconds": 98.486,
+  "scenario_definition": {
+    "id": "S07_k3_D_Cb_Cp_all_optout",
+    "name": "3 omitted dimensions; intended use: Senior Residential Care (RSA); balance: 0 specified, 0 vague, 3 opt-out",
+    "tags": [
+      "edbt",
+      "controlled_missingness_v3",
+      "missing_3",
+      "UC07_RSA_missing_use",
+      "imperfect_user_v4",
+      "spec_0",
+      "vague_0",
+      "optout_3",
+      "balance_0_0_3"
+    ],
+    "base_case_id": "S07",
+    "source_case_id": "UC07_RSA_missing_use",
+    "missing_count": 3,
+    "initial_query": "I am looking for a hotel building. The location is in Turin. I prefer a property in energy class D or better.",
+    "one_shot_query": "I am looking for a hotel building. The location is in Turin. I prefer a property in energy class D or better.",
+    "oracle_query": "Find a hotel building to convert it into a residential senior care facility (RSA) for 30 residents in Turin with at least 1600 sqm of gross floor area in energy class D or better near healthcare services.",
+    "expected_initial_missing": [
+      "D",
+      "Cb",
+      "Cp"
+    ],
+    "clarifications": {
+      "I": "I am looking for a hotel building.",
+      "D": "I have no specific residential care or nursing facility conversion in mind.",
+      "L": "The location is in Turin.",
+      "Cb": "I have no requirement on total gross floor area, resident capacity, or structural dimensions for the RSA.",
+      "Ce": "I prefer a property in energy class D or better.",
+      "Cp": "I have no requirement on proximity to hospitals or healthcare facilities."
+    },
+    "expected_mapping": {
+      "I": "SPECIFIED",
+      "D": "NOT_REQUESTED",
+      "L": "SPECIFIED",
+      "Cb": "NOT_REQUESTED",
+      "Ce": "SPECIFIED",
+      "Cp": "NOT_REQUESTED"
+    },
+    "repeats": 1,
+    "imperfect_user": {
+      "profile": "all_optout",
+      "balance": "0spec_0vague_3optout",
+      "source_variant_id": "S07_k3_D_Cb_Cp",
+      "source_enabled": true,
+      "specified_count": 0,
+      "vague_count": 0,
+      "optout_count": 3,
+      "specified_dimensions": [],
+      "vague_dimensions": [],
+      "optout_dimensions": [
+        "D",
+        "Cb",
+        "Cp"
+      ],
+      "expected_turns": 3
+    }
+  },
+  "artifact_file": "runs/bench_3908d816d7b0.json",
+  "artifact_schema_version": 4,
+  "ranking_ids": [
+    "12669",
+    "18989",
+    "2863",
+    "M00441",
+    "23211",
+    "10344",
+    "3490",
+    "16496",
+    "16497",
+    "M02454",
+    "15424"
+  ],
+  "top": [
+    {
+      "id": "12669",
+      "score": 96.129,
+      "distance_km": 0.99
+    },
+    {
+      "id": "18989",
+      "score": 92.931,
+      "distance_km": 0.31
+    },
+    {
+      "id": "2863",
+      "score": 91.243,
+      "distance_km": 0.18
+    },
+    {
+      "id": "M00441",
+      "score": 91.243,
+      "distance_km": 0.18
+    },
+    {
+      "id": "23211",
+      "score": 85.32,
+      "distance_km": 1.25
+    },
+    {
+      "id": "10344",
+      "score": 62.607,
+      "distance_km": 3.0
+    },
+    {
+      "id": "3490",
+      "score": 59.0,
+      "distance_km": 0.18
+    },
+    {
+      "id": "16496",
+      "score": 47.626000000000005,
+      "distance_km": 0.73
+    },
+    {
+      "id": "16497",
+      "score": 47.626000000000005,
+      "distance_km": 0.73
+    },
+    {
+      "id": "M02454",
+      "score": 44.32,
+      "distance_km": 1.25
+    }
+  ],
+  "api_response": {
+    "agent_trace": [
+      {
+        "agent_name": "building-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "typologies": [
+            "Hotels, pensions, and similar"
+          ],
+          "found": true,
+          "requirements": []
+        }
+      },
+      {
+        "agent_name": "regulatory-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "found": false,
+          "matched_use_cases": [],
+          "requirements": []
+        }
+      },
+      {
+        "agent_name": "location-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "places": [
+            {
+              "name": "Turin",
+              "city": "Turin",
+              "lat": 45.0677551,
+              "lon": 7.6824892,
+              "radius_km": 3.0
+            }
+          ],
+          "found": true
+        }
+      },
+      {
+        "agent_name": "proximity-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "requirements": []
+        }
+      },
+      {
+        "agent_name": "ranking-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "ranking": [
+            {
+              "agent_name": "location",
+              "rank": 1
+            },
+            {
+              "agent_name": "building",
+              "rank": 1
+            },
+            {
+              "agent_name": "energy",
+              "rank": 2
+            },
+            {
+              "agent_name": "regulatory",
+              "rank": 3
+            },
+            {
+              "agent_name": "proximity",
+              "rank": 3
+            }
+          ],
+          "weights": {
+            "location": 0.3,
+            "regulatory": 0.11,
+            "energy": 0.16,
+            "building": 0.32,
+            "proximity": 0.11
+          }
+        }
+      },
+      {
+        "agent_name": "energy-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "requirements": [
+            {
+              "target_column": "energy_class",
+              "operator": "IN",
+              "value": [
+                "A1",
+                "A2",
+                "A3",
+                "A4",
+                "B",
+                "C",
+                "D"
+              ],
+              "description": "Energy class D or better."
+            }
+          ],
+          "found": true
+        }
+      },
+      {
+        "agent_name": "sql-agent",
+        "agent_mode": "extraction",
+        "output": {
+          "sql": "SELECT * FROM ESTATES WHERE property_type = 'Hotels, pensions, and similar' AND energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C', 'D') AND haversine_km(latitude, longitude, 45.0677551, 7.6824892) <= 3.0 ORDER BY haversine_km(latitude, longitude, 45.0677551, 7.6824892) ASC",
+          "explanation": "Filters to the requested hotel property type, energy classes, and 3 km radius, then orders by distance."
+        }
+      },
+      {
+        "agent_name": "relaxation-agent",
+        "agent_mode": "extraction",
+        "output": [
+          {
+            "condizione_iniziale": "property_type = 'Hotels, pensions, and similar'",
+            "condizione_relaxed": "property_type IN ('Hotels, pensions, and similar', 'Residential (Temporary/Holiday)')",
+            "piani_progressivi": [],
+            "strategia": "Category widening",
+            "motivazione": "Adds the adjacent temporary or holiday accommodation category while preserving the focus on lodging properties.",
+            "livello_rilassamento": "low"
+          },
+          {
+            "condizione_iniziale": "energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C', 'D')",
+            "condizione_relaxed": "energy_class IN ('A1', 'A2', 'A3', 'A4', 'B', 'C', 'D', 'E')",
+            "piani_progressivi": [],
+            "strategia": "Category widening",
+            "motivazione": "Includes the next less efficient energy class, which is common in the dataset and plausibly increases matches.",
+            "livello_rilassamento": "low"
+          },
+          {
+            "condizione_iniziale": "HAVERSINE_KM(latitude, longitude, 45.0677551, 7.6824892) <= 3.0",
+            "condizione_relaxed": "HAVERSINE_KM(latitude, longitude, 45.0677551, 7.6824892) <= 4.0",
+            "piani_progressivi": [],
+            "strategia": "Radius expansion",
+            "motivazione": "Expands the search area modestly around the same location to include nearby properties.",
+            "livello_rilassamento": "low"
+          }
+        ],
+        "batch_id": null,
+        "timestamp": "2026-11-18T15:11:44.884970",
+        "execution_time_ms": 17988.12699317932
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "2863",
+          "evaluation_text": "This Turin property is a strong match for the search: it is classified as a hotel, has an energy class of C (meeting the preference for D or better), and offers 555.87 sqm. Its central B1 location is supported by high proximity percentiles for healthcare, mobility, commercial services, and education. However, the low energy sub-scores for plant, envelope, and renewables indicate potential efficiency weaknesses despite the C rating. The supplied data do not establish planning authorization, hotel operating status, room layout, accessibility, or technical feasibility; these require verification.",
+          "final_ranking_score": 91,
+          "pros": [
+            "Hotel property type directly matches the requested asset.",
+            "Energy class C meets the preference for class D or better.",
+            "555.87 sqm in Turin’s B1 zone, with strong reported proximity to mobility, healthcare, commercial services, and education."
+          ],
+          "cons": [
+            "Energy plant, envelope, and renewables each score 1, indicating areas that may need improvement.",
+            "The supplied information does not establish hotel-use authorization, current operating status, or planning compatibility.",
+            "Room layout, accessibility, and technical suitability for the intended hotel use are not documented and require verification."
+          ]
+        },
+        "batch_id": 1,
+        "timestamp": "2026-11-18T15:11:56.870804",
+        "execution_time_ms": 11864.094972610474
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "M00441",
+          "evaluation_text": "This Turin property is a strong strategic match for the hotel search: it is already classified as a hotel, has 1,025.66 sqm of reported surface area, and its energy class C meets the stated preference for class D or better. Its central OMI zone and strong proximity indicators support location appeal. The available data do not establish planning authorization for continued or changed hotel use, room layout, condition, or technical feasibility; these require verification. Despite meeting the class preference, the low total energy score indicates weak performance across the listed plant, envelope, and renewables indicators.",
+          "final_ranking_score": 91,
+          "pros": [
+            "Existing property type is hotels, pensions, and similar, aligning directly with the objective.",
+            "Energy class C meets the requested threshold of D or better.",
+            "Reported surface area of 1,025.66 sqm and strong service-proximity percentiles support further consideration."
+          ],
+          "cons": [
+            "Energy total is 6, with low scores for the thermal plant, building envelope, and renewables, suggesting potential efficiency upgrades.",
+            "The supplied data do not confirm hotel-use authorization, planning compatibility, or the feasibility of the existing or proposed room layout.",
+            "Building condition and accessibility are not established and require verification."
+          ]
+        },
+        "batch_id": 2,
+        "timestamp": "2026-11-18T15:11:57.039715",
+        "execution_time_ms": 12032.816410064697
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "18989",
+          "evaluation_text": "This 9,974.26 sqm hotel property in central Turin aligns closely with the search for an existing hotel building, and its energy class B exceeds the preferred threshold of D or better. Its strong central location and access to services support its strategic appeal. The energy sub-scores indicate areas for further review: the envelope and renewable energy scores are low, while the overall energy total is 8. The supplied data do not establish planning authorization, accessibility, room configuration, or technical suitability for a specific hotel operation; these require verification.",
+          "final_ranking_score": 93,
+          "pros": [
+            "Property type is listed as hotels, pensions, and similar, matching the requested building type.",
+            "Energy class B is better than the preferred D-or-better threshold.",
+            "Central Turin location with high reported proximity percentiles for mobility (99.1), education (99.83), and commercial services (92.48)."
+          ],
+          "cons": [
+            "Low envelope score (1) and no renewables indicated by the renewables score (1) point to potential efficiency improvement needs.",
+            "Energy total is 8, reflecting weaker combined energy sub-scores despite the reported class B.",
+            "The data do not establish the room layout, accessibility, planning compatibility, or technical condition needed to confirm hotel-operation suitability."
+          ]
+        },
+        "batch_id": 3,
+        "timestamp": "2026-11-18T15:11:57.974512",
+        "execution_time_ms": 12964.214324951172
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "12669",
+          "evaluation_text": "This 3,682.01 sqm hotel property in Turin is a strong match for the stated objective: its existing hotel classification aligns with the requested use, and its A3 energy class exceeds the preference for D or better. Its central location is supported by strong proximity indicators for healthcare, mobility, green areas, commerce, and education. The data do not establish planning authorization, accessibility, room configuration, or technical condition, which should be verified before assessing operational readiness.",
+          "final_ranking_score": 96,
+          "pros": [
+            "Existing property type is hotels, pensions, and similar, directly aligned with the requested hotel use.",
+            "Energy class A3 is substantially better than the preferred threshold of D or better.",
+            "Strong reported proximity to mobility (90.36), green areas (91.38), commerce (91.06), healthcare (89.47), and education (90.53)."
+          ],
+          "cons": [
+            "The 1850 construction period makes the current building condition and any modernization needs important to verify.",
+            "The supplied data do not establish planning compatibility, authorization, or hotel operating requirements for the intended use.",
+            "Accessibility, room layout, and technical capacity are not documented and require verification before confirming operational suitability."
+          ]
+        },
+        "batch_id": 4,
+        "timestamp": "2026-11-18T15:11:58.774971",
+        "execution_time_ms": 13769.472360610962
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "23211",
+          "evaluation_text": "This 1,400 sqm property on Via Morgari is classified as a hotel, matching the stated objective, and its 2019 construction date suggests a relatively recent building. Its energy class D meets the user's preference for D or better. The thermal plant score is strong, while the envelope and renewable energy scores are low, so the overall energy profile is mixed. The location score is high, with strong proximity percentiles for mobility, commercial services, education, and healthcare. The supplied data do not establish planning authorization, accessibility, room layout, or operational readiness; these require verification.",
+          "final_ranking_score": 85,
+          "pros": [
+            "Hotel property type and 1,400 sqm area align with the search for a hotel building.",
+            "Energy class D meets the stated preference, and the thermal plant has a high score of 5.",
+            "High location score of 89, with particularly strong mobility (87.77), commercial services (87.23), education (87.06), and healthcare (86.57) proximity percentiles."
+          ],
+          "cons": [
+            "Overall energy score is moderate at 10/20, with low envelope and renewables scores of 1 each.",
+            "Green and sports proximity percentiles (66.63 and 74) are comparatively less strong than the other listed service categories.",
+            "Planning compatibility, accessibility, room configuration, and technical suitability for hotel operations are not established by the supplied data and need verification."
+          ]
+        },
+        "batch_id": 5,
+        "timestamp": "2026-11-18T15:12:05.280292",
+        "execution_time_ms": 8408.924579620361
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "10344",
+          "evaluation_text": "This Turin property is a strong strategic match for the search for a hotel building: its recorded property type is hotels, pensions, and similar, and its 274.51 sqm surface area offers a concrete starting point for assessment. Its energy class B meets the preference for class D or better. The overall relevance score of 63 reflects this direct use and energy fit, while the available data leave important questions about capacity, layout, authorization, and technical suitability unresolved.",
+          "final_ranking_score": 63,
+          "pros": [
+            "Recorded as a hotel, pension, or similar property, directly matching the requested use.",
+            "Energy class B meets the stated preference for D or better.",
+            "Located in Turin, with strong reported proximity percentiles for green areas (92.87), commercial services (83.01), and sports facilities (81)."
+          ],
+          "cons": [
+            "At 274.51 sqm, the recorded surface area may constrain the scale of hotel operations; room count and usable layout are not provided.",
+            "Built in 1950; current condition, accessibility, and upgrade needs are not established by the supplied data.",
+            "No matching regulatory requirements or source entries were found, so permitted hotel use and any applicable planning conditions require verification."
+          ]
+        },
+        "batch_id": 6,
+        "timestamp": "2026-11-18T15:12:06.007631",
+        "execution_time_ms": 8967.371225357056
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "3490",
+          "evaluation_text": "Located in Turin, this property offers strong initial alignment with the search: it is classified as Residential (Temporary/Holiday) and has an A4 energy class, exceeding the preference for class D or better. Its central location and high proximity indicators for healthcare, mobility, commerce, and education support its appeal. However, the supplied data do not establish that it is authorized or suitable for hotel use, nor do they verify its layout, accessibility, or technical feasibility for conversion. Its 116.84 sqm area may limit the scale of any hospitality project; these aspects require verification.",
+          "final_ranking_score": 59,
+          "pros": [
+            "A4 energy class exceeds the requested D-or-better preference.",
+            "Turin location with high mobility (95.26), commercial (96.35), healthcare (96.03), and education (96.15) proximity indicators.",
+            "Residential (Temporary/Holiday) classification may offer a relevant starting point for hospitality exploration, subject to verification of permitted use."
+          ],
+          "cons": [
+            "The supplied property type does not establish authorization or planning compatibility for hotel use; these require verification.",
+            "At 116.84 sqm, the property may constrain project scale, and room layout or capacity cannot be determined from the supplied data.",
+            "Despite the A4 class, the component scores show low envelope and renewables scores (1 each), and the overall energy score is 12 out of 20."
+          ]
+        },
+        "batch_id": 7,
+        "timestamp": "2026-11-18T15:12:06.212913",
+        "execution_time_ms": 8242.879152297974
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "16496",
+          "evaluation_text": "This 43.33 sqm property in central Turin has a strong location and meets the stated preference for energy class D or better. Its classification as Residential (Temporary/Holiday) makes it a possible candidate for hotel use, but the supplied information does not establish authorization, planning compatibility, or whether its layout can support hotel operations. The moderate energy class score and weak envelope and renewables scores suggest efficiency improvements may be worth assessing. Overall, its centrality and energy class are attractive, while its small area and unverified conversion feasibility limit its suitability.",
+          "final_ranking_score": 48,
+          "pros": [
+            "Located in Turin, 0.73 km from the reference point, with strong proximity indicators for healthcare, mobility, and commercial services.",
+            "Energy class D meets the stated preference for class D or better.",
+            "Temporary/holiday residential classification may offer a relevant starting point for a hospitality conversion, subject to verification."
+          ],
+          "cons": [
+            "At 43.33 sqm, the property is small; the supplied data do not establish suitability for hotel operations or multiple guest rooms.",
+            "Planning compatibility and authorization for hotel use are not established and require verification.",
+            "Energy total is 8, with a low envelope score of 1 and renewables score of 1, indicating potential efficiency upgrade needs."
+          ]
+        },
+        "batch_id": 8,
+        "timestamp": "2026-11-18T15:12:14.410930",
+        "execution_time_ms": 15636.698961257935
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "M02454",
+          "evaluation_text": "Located in Turin, this 1930 property is classified as Residential (Temporary/Holiday), which offers some alignment with visitor accommodation. Its energy class D meets the stated preference, though the low plant, envelope, and renewables scores indicate limited energy performance beyond the EPC class. The 163.83 sqm area and supplied data do not establish suitability for hotel use, planning authorization, room layout, or technical feasibility; these require verification. The deterministic relevance score is 44.",
+          "final_ranking_score": 44,
+          "pros": [
+            "In Turin, matching the requested location.",
+            "Energy class D meets the preference for class D or better.",
+            "Residential (Temporary/Holiday) classification has some relevance to visitor accommodation."
+          ],
+          "cons": [
+            "The 163.83 sqm area alone does not establish suitability for a hotel or its required facilities.",
+            "Energy plant, building envelope, and renewables each score 1, indicating weak performance in these dimensions.",
+            "Hotel use authorization, planning compatibility, accessibility, layout, and technical feasibility are not established and require verification."
+          ]
+        },
+        "batch_id": 9,
+        "timestamp": "2026-11-18T15:12:20.883290",
+        "execution_time_ms": 14876.481771469116
+      },
+      {
+        "agent_name": "evaluation-agent",
+        "agent_mode": "evaluation",
+        "output": {
+          "id": "16497",
+          "evaluation_text": "The property offers a central Turin location and meets the stated energy preference with energy class D. However, its recorded use is residential (temporary/holiday), and the supplied data do not establish that it is authorized or suitable for hotel use. Its 37.75 sqm area and weak envelope and renewable energy scores limit the evidence for hotel scale and energy performance; planning, layout, and technical feasibility require verification. No matching regulatory requirements were provided.",
+          "final_ranking_score": 48,
+          "pros": [
+            "Energy class D meets the user's preference for class D or better.",
+            "Central Turin location, with strong recorded proximity percentiles for healthcare, mobility, commerce, and education.",
+            "Construction period is recorded as 1950, providing a defined baseline for further assessment of adaptation needs."
+          ],
+          "cons": [
+            "Listed as Residential (Temporary/Holiday), so hotel authorization and planning compatibility are unverified.",
+            "The 37.75 sqm area does not establish suitability for the intended hotel use or its required layout.",
+            "Low envelope and renewable energy subscores (1 each) indicate potential efficiency limitations despite the class D rating."
+          ]
+        },
+        "batch_id": 10,
+        "timestamp": "2026-11-18T15:12:21.163847",
+        "execution_time_ms": 15884.543418884277
+      }
+    ],
+    "evaluation_results": [
+      {
+        "id": "12669",
+        "evaluation_text": "This 3,682.01 sqm hotel property in Turin is a strong match for the stated objective: its existing hotel classification aligns with the requested use, and its A3 energy class exceeds the preference for D or better. Its central location is supported by strong proximity indicators for healthcare, mobility, green areas, commerce, and education. The data do not establish planning authorization, accessibility, room configuration, or technical condition, which should be verified before assessing operational readiness.",
+        "final_ranking_score": 96,
+        "pros": [
+          "Existing property type is hotels, pensions, and similar, directly aligned with the requested hotel use.",
+          "Energy class A3 is substantially better than the preferred threshold of D or better.",
+          "Strong reported proximity to mobility (90.36), green areas (91.38), commerce (91.06), healthcare (89.47), and education (90.53)."
+        ],
+        "cons": [
+          "The 1850 construction period makes the current building condition and any modernization needs important to verify.",
+          "The supplied data do not establish planning compatibility, authorization, or hotel operating requirements for the intended use.",
+          "Accessibility, room layout, and technical capacity are not documented and require verification before confirming operational suitability."
+        ]
+      },
+      {
+        "id": "18989",
+        "evaluation_text": "This 9,974.26 sqm hotel property in central Turin aligns closely with the search for an existing hotel building, and its energy class B exceeds the preferred threshold of D or better. Its strong central location and access to services support its strategic appeal. The energy sub-scores indicate areas for further review: the envelope and renewable energy scores are low, while the overall energy total is 8. The supplied data do not establish planning authorization, accessibility, room configuration, or technical suitability for a specific hotel operation; these require verification.",
+        "final_ranking_score": 93,
+        "pros": [
+          "Property type is listed as hotels, pensions, and similar, matching the requested building type.",
+          "Energy class B is better than the preferred D-or-better threshold.",
+          "Central Turin location with high reported proximity percentiles for mobility (99.1), education (99.83), and commercial services (92.48)."
+        ],
+        "cons": [
+          "Low envelope score (1) and no renewables indicated by the renewables score (1) point to potential efficiency improvement needs.",
+          "Energy total is 8, reflecting weaker combined energy sub-scores despite the reported class B.",
+          "The data do not establish the room layout, accessibility, planning compatibility, or technical condition needed to confirm hotel-operation suitability."
+        ]
+      },
+      {
+        "id": "2863",
+        "evaluation_text": "This Turin property is a strong match for the search: it is classified as a hotel, has an energy class of C (meeting the preference for D or better), and offers 555.87 sqm. Its central B1 location is supported by high proximity percentiles for healthcare, mobility, commercial services, and education. However, the low energy sub-scores for plant, envelope, and renewables indicate potential efficiency weaknesses despite the C rating. The supplied data do not establish planning authorization, hotel operating status, room layout, accessibility, or technical feasibility; these require verification.",
+        "final_ranking_score": 91,
+        "pros": [
+          "Hotel property type directly matches the requested asset.",
+          "Energy class C meets the preference for class D or better.",
+          "555.87 sqm in Turin’s B1 zone, with strong reported proximity to mobility, healthcare, commercial services, and education."
+        ],
+        "cons": [
+          "Energy plant, envelope, and renewables each score 1, indicating areas that may need improvement.",
+          "The supplied information does not establish hotel-use authorization, current operating status, or planning compatibility.",
+          "Room layout, accessibility, and technical suitability for the intended hotel use are not documented and require verification."
+        ]
+      },
+      {
+        "id": "M00441",
+        "evaluation_text": "This Turin property is a strong strategic match for the hotel search: it is already classified as a hotel, has 1,025.66 sqm of reported surface area, and its energy class C meets the stated preference for class D or better. Its central OMI zone and strong proximity indicators support location appeal. The available data do not establish planning authorization for continued or changed hotel use, room layout, condition, or technical feasibility; these require verification. Despite meeting the class preference, the low total energy score indicates weak performance across the listed plant, envelope, and renewables indicators.",
+        "final_ranking_score": 91,
+        "pros": [
+          "Existing property type is hotels, pensions, and similar, aligning directly with the objective.",
+          "Energy class C meets the requested threshold of D or better.",
+          "Reported surface area of 1,025.66 sqm and strong service-proximity percentiles support further consideration."
+        ],
+        "cons": [
+          "Energy total is 6, with low scores for the thermal plant, building envelope, and renewables, suggesting potential efficiency upgrades.",
+          "The supplied data do not confirm hotel-use authorization, planning compatibility, or the feasibility of the existing or proposed room layout.",
+          "Building condition and accessibility are not established and require verification."
+        ]
+      },
+      {
+        "id": "23211",
+        "evaluation_text": "This 1,400 sqm property on Via Morgari is classified as a hotel, matching the stated objective, and its 2019 construction date suggests a relatively recent building. Its energy class D meets the user's preference for D or better. The thermal plant score is strong, while the envelope and renewable energy scores are low, so the overall energy profile is mixed. The location score is high, with strong proximity percentiles for mobility, commercial services, education, and healthcare. The supplied data do not establish planning authorization, accessibility, room layout, or operational readiness; these require verification.",
+        "final_ranking_score": 85,
+        "pros": [
+          "Hotel property type and 1,400 sqm area align with the search for a hotel building.",
+          "Energy class D meets the stated preference, and the thermal plant has a high score of 5.",
+          "High location score of 89, with particularly strong mobility (87.77), commercial services (87.23), education (87.06), and healthcare (86.57) proximity percentiles."
+        ],
+        "cons": [
+          "Overall energy score is moderate at 10/20, with low envelope and renewables scores of 1 each.",
+          "Green and sports proximity percentiles (66.63 and 74) are comparatively less strong than the other listed service categories.",
+          "Planning compatibility, accessibility, room configuration, and technical suitability for hotel operations are not established by the supplied data and need verification."
+        ]
+      },
+      {
+        "id": "10344",
+        "evaluation_text": "This Turin property is a strong strategic match for the search for a hotel building: its recorded property type is hotels, pensions, and similar, and its 274.51 sqm surface area offers a concrete starting point for assessment. Its energy class B meets the preference for class D or better. The overall relevance score of 63 reflects this direct use and energy fit, while the available data leave important questions about capacity, layout, authorization, and technical suitability unresolved.",
+        "final_ranking_score": 63,
+        "pros": [
+          "Recorded as a hotel, pension, or similar property, directly matching the requested use.",
+          "Energy class B meets the stated preference for D or better.",
+          "Located in Turin, with strong reported proximity percentiles for green areas (92.87), commercial services (83.01), and sports facilities (81)."
+        ],
+        "cons": [
+          "At 274.51 sqm, the recorded surface area may constrain the scale of hotel operations; room count and usable layout are not provided.",
+          "Built in 1950; current condition, accessibility, and upgrade needs are not established by the supplied data.",
+          "No matching regulatory requirements or source entries were found, so permitted hotel use and any applicable planning conditions require verification."
+        ]
+      },
+      {
+        "id": "3490",
+        "evaluation_text": "Located in Turin, this property offers strong initial alignment with the search: it is classified as Residential (Temporary/Holiday) and has an A4 energy class, exceeding the preference for class D or better. Its central location and high proximity indicators for healthcare, mobility, commerce, and education support its appeal. However, the supplied data do not establish that it is authorized or suitable for hotel use, nor do they verify its layout, accessibility, or technical feasibility for conversion. Its 116.84 sqm area may limit the scale of any hospitality project; these aspects require verification.",
+        "final_ranking_score": 59,
+        "pros": [
+          "A4 energy class exceeds the requested D-or-better preference.",
+          "Turin location with high mobility (95.26), commercial (96.35), healthcare (96.03), and education (96.15) proximity indicators.",
+          "Residential (Temporary/Holiday) classification may offer a relevant starting point for hospitality exploration, subject to verification of permitted use."
+        ],
+        "cons": [
+          "The supplied property type does not establish authorization or planning compatibility for hotel use; these require verification.",
+          "At 116.84 sqm, the property may constrain project scale, and room layout or capacity cannot be determined from the supplied data.",
+          "Despite the A4 class, the component scores show low envelope and renewables scores (1 each), and the overall energy score is 12 out of 20."
+        ]
+      },
+      {
+        "id": "16496",
+        "evaluation_text": "This 43.33 sqm property in central Turin has a strong location and meets the stated preference for energy class D or better. Its classification as Residential (Temporary/Holiday) makes it a possible candidate for hotel use, but the supplied information does not establish authorization, planning compatibility, or whether its layout can support hotel operations. The moderate energy class score and weak envelope and renewables scores suggest efficiency improvements may be worth assessing. Overall, its centrality and energy class are attractive, while its small area and unverified conversion feasibility limit its suitability.",
+        "final_ranking_score": 48,
+        "pros": [
+          "Located in Turin, 0.73 km from the reference point, with strong proximity indicators for healthcare, mobility, and commercial services.",
+          "Energy class D meets the stated preference for class D or better.",
+          "Temporary/holiday residential classification may offer a relevant starting point for a hospitality conversion, subject to verification."
+        ],
+        "cons": [
+          "At 43.33 sqm, the property is small; the supplied data do not establish suitability for hotel operations or multiple guest rooms.",
+          "Planning compatibility and authorization for hotel use are not established and require verification.",
+          "Energy total is 8, with a low envelope score of 1 and renewables score of 1, indicating potential efficiency upgrade needs."
+        ]
+      },
+      {
+        "id": "16497",
+        "evaluation_text": "The property offers a central Turin location and meets the stated energy preference with energy class D. However, its recorded use is residential (temporary/holiday), and the supplied data do not establish that it is authorized or suitable for hotel use. Its 37.75 sqm area and weak envelope and renewable energy scores limit the evidence for hotel scale and energy performance; planning, layout, and technical feasibility require verification. No matching regulatory requirements were provided.",
+        "final_ranking_score": 48,
+        "pros": [
+          "Energy class D meets the user's preference for class D or better.",
+          "Central Turin location, with strong recorded proximity percentiles for healthcare, mobility, commerce, and education.",
+          "Construction period is recorded as 1950, providing a defined baseline for further assessment of adaptation needs."
+        ],
+        "cons": [
+          "Listed as Residential (Temporary/Holiday), so hotel authorization and planning compatibility are unverified.",
+          "The 37.75 sqm area does not establish suitability for the intended hotel use or its required layout.",
+          "Low envelope and renewable energy subscores (1 each) indicate potential efficiency limitations despite the class D rating."
+        ]
+      },
+      {
+        "id": "M02454",
+        "evaluation_text": "Located in Turin, this 1930 property is classified as Residential (Temporary/Holiday), which offers some alignment with visitor accommodation. Its energy class D meets the stated preference, though the low plant, envelope, and renewables scores indicate limited energy performance beyond the EPC class. The 163.83 sqm area and supplied data do not establish suitability for hotel use, planning authorization, room layout, or technical feasibility; these require verification. The deterministic relevance score is 44.",
+        "final_ranking_score": 44,
+        "pros": [
+          "In Turin, matching the requested location.",
+          "Energy class D meets the preference for class D or better.",
+          "Residential (Temporary/Holiday) classification has some relevance to visitor accommodation."
+        ],
+        "cons": [
+          "The 163.83 sqm area alone does not establish suitability for a hotel or its required facilities.",
+          "Energy plant, building envelope, and renewables each score 1, indicating weak performance in these dimensions.",
+          "Hotel use authorization, planning compatibility, accessibility, layout, and technical feasibility are not established and require verification."
+        ]
+      }
+    ],
+    "relaxation_applied": true,
+    "relaxation_count": 1,
+    "fallback_activated": false,
+    "agent_errors": []
+  }
+}
