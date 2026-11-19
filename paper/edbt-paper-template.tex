@@ -71,9 +71,7 @@
 %% test
 
 \begin{abstract}
-Real-estate searches often begin with incomplete requests, leaving important preferences unresolved. We extend MURENA with a conversational clarification stage that distinguishes omitted requirements from explicit non-preferences, asks targeted questions, and lets users review the resulting request before analysis. We evaluate two mixed-response interaction types with simulated users: explicit declines and vague answers that require a follow-up. Across 75 scenario variants and eight search intents, both \texttt{claude-haiku-5-5} and \texttt{gpt-6-luna} recorded every completed explicit decline as a non-preference and followed up on every completed vague answer. 
-Filter \(F_1\) for retained preferences and clarified answers was 0.99–1.00. Declined preferences were excluded from downstream filters at mean rates across use cases of 0.88 for claude-haiku-5-5 and 0.90 for gpt-6-luna. 
-Attendees can submit requests, answer or decline clarification questions, and inspect the confirmed request, extracted filters, and ranked properties.
+Real-estate searches often begin with incomplete requests, leaving important preferences unresolved. We extend MURENA with a conversational clarification stage that distinguishes omitted requirements from explicit non-preferences, asks targeted questions, and lets users review the resulting request before analysis. We evaluate two mixed-response interaction types with simulated users: explicit declines and vague answers that require a follow-up. Across 75 scenario variants and eight search intents, every completed explicit decline was recorded as a non-preference, and every completed vague answer triggered a follow-up. Filter \(F_1\) for retained preferences and clarified answers was 0.99–1.00. Declined preferences were excluded from downstream filters at mean rates across use cases of 0.88–0.90. Attendees can submit requests, answer or decline clarification questions, and inspect the confirmed request, extracted filters, and ranked properties.
 \end{abstract}
 \keywords{conversational request clarification, requirement elicitation,
 real-estate decision support, multi-agent systems, text-to-SQL}
@@ -139,23 +137,18 @@ borders and grey fill; inherited ones have solid borders.}
 \end{figure}
 
 \paragraph{Dimension states.} An LLM parser assigns each dimension one
-of five states: \emph{specified}, \emph{ambiguous},
-\emph{unconfirmed absent}, \emph{not requested}, or \emph{missing
-critical}. A dimension is \emph{specified} when the request explicitly
-provides a value the system can interpret. It is \emph{ambiguous} when
+of four states: \emph{specified}, \emph{ambiguous},
+\emph{unconfirmed absent}, or \emph{not requested}. A dimension is
+\emph{specified} when the request explicitly provides a value the system
+can interpret. It is \emph{ambiguous} when
 the request contains a value or reference, but multiple plausible
 interpretations could materially change the results. For example,
 ``Porta Nuova'' names a place, but without a city it may refer to
 different locations; the parser preserves the reference and asks which
-city the user means. \emph{Missing critical} instead marks a required
-detail for which the parser has no usable, grounded value, so analysis
-must remain blocked until it is supplied or resolved. For example, if
-the parser labels a location as specified but cannot find that geographic
-value in the request, validation changes its state to \emph{missing
-critical}. A plain omission remains \emph{unconfirmed absent}; only an
-explicit statement that a dimension does not matter or has no preference
-makes it \emph{not requested}. Thus, an omission is never silently read
-as a non-preference. The parser grounds specified values and opt-outs in
+city the user means. A plain omission is \emph{unconfirmed absent}; only an explicit statement
+that a dimension does not matter or has no preference makes it
+\emph{not requested}. Thus, an omission is never silently read as a
+non-preference. The parser grounds specified values and opt-outs in
 evidence from the request; unsupported labels are downgraded to an
 unresolved state. Dimension boundaries follow
 MURENA: $C_b$ is specified only by requirements that filter properties
@@ -422,9 +415,7 @@ Student residence & Student housing tied to the specific CDP/PNRR grant scenario
 
 \paragraph{Measures.} For explicit declines, we check whether the system
 records the preference as declined and omits its filter, while preserving
-the user's other requirements. Ranking agreement is not meaningful for
-these cases because the complete reference includes a preference the user
-rejected. For vague answers, we check whether the system asks a follow-up,
+the user's other requirements. We omit ranking agreement for opt-out cases because the available complete-reference requests retain the declined preference. For vague answers, we check whether the system asks a follow-up,
 records the clarified requirement, and uses one additional turn. We also
 compare filters and resulting rankings with each model's own repeated
 reference-request runs. Filter $F_1$ measures agreement on structured search
@@ -442,7 +433,8 @@ agents with \texttt{claude-haiku-5-5} (medium reasoning effort) and
 planned runs: 225 dialogue runs and 40 reference runs.
 \texttt{claude-haiku-5-5} completed 264,
 with one vague-answer run failing; \texttt{gpt-6-luna} completed all 265. Both models
-recorded every completed explicit decline as a non-preference. They asked
+recorded every completed explicit decline as a non-preference. 
+They asked
 about each completed vague answer, recorded the clarified requirement, and
 used one additional turn. Table~\ref{tab:mixed} reports the results.
 
